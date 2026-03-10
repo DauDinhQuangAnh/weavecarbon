@@ -1,0 +1,358 @@
+@import url("https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+@import "tailwindcss";
+
+/* Leaflet CSS for map support */
+
+/* =========================================================
+   DESIGN TOKENS (LIGHT MODE)
+========================================================= */
+
+@theme {
+  /* --- BASE COLORS --- */
+  /* Nền: Trắng pha chút xám xanh rất nhẹ (Màu giấy tái chế cao cấp) */
+  /* Giúp làm nổi bật màu xanh đậm của lá */
+  --color-background: hsl(100 10% 98%);
+
+  /* Chữ: Gần như đen, nhưng thực chất là xanh rêu siêu tối để dịu mắt hơn */
+  --color-foreground: hsl(96 30% 10%);
+
+  /* --- CARDS & SURFACES --- */
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(96 25% 15%);
+
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(96 25% 15%);
+
+  /* --- PRIMARY (Màu chủ đạo - Chiếc lá) --- */
+  /* Gốc: #2d451d -> HSL(96, 41%, 19%) */
+  /* Đây là màu của nút bấm chính, logo, và các điểm nhấn quan trọng */
+  --color-primary: hsl(96 41% 19%);
+  --color-primary-foreground: hsl(
+    100 10% 98%
+  ); /* Chữ trắng ngà trên nền xanh */
+
+  /* --- SECONDARY (Raw Linen / Hemp) --- */
+  /* Màu vải lanh mộc, dùng cho nền phụ để tạo cảm giác "Weave" (dệt may) */
+  --color-secondary: hsl(40 20% 92%);
+  --color-secondary-foreground: hsl(96 40% 15%);
+
+  /* --- MUTED (Mist Green) --- */
+  /* Màu sương mù, dùng cho đường kẻ, viền, background phụ */
+  --color-muted: hsl(96 10% 90%);
+  --color-muted-foreground: hsl(96 10% 40%);
+
+  /* --- ACCENT (Burnt Clay / Terra) --- */
+  /* Màu đất nung trầm. Màu này tương phản nhẹ nhàng với xanh đậm, */
+  /* dùng cho các thông báo quan trọng hoặc số liệu cần chú ý */
+  --color-accent: hsl(25 45% 50%);
+  --color-accent-foreground: hsl(30 20% 96%);
+
+  /* --- UTILITY --- */
+  --color-destructive: hsl(0 70% 45%); /* Đỏ thẫm, không dùng đỏ tươi */
+  --color-destructive-foreground: hsl(0 0% 98%);
+
+  --color-border: hsl(96 10% 88%);
+  --color-input: hsl(96 10% 88%);
+
+  /* Ring focus khi bấm tab: dùng chính màu primary */
+  --color-ring: hsl(96 41% 19%);
+
+  --color-radius: 0.75rem;
+
+  /* --- EXTENDED PALETTE (Dùng cho Chart & Visuals) --- */
+  --color-forest-dark: hsl(96 50% 10%); /* Rừng đêm */
+  --color-forest-light: hsl(96 30% 40%); /* Rừng chiều */
+  --color-earth-warm: hsl(25 45% 50%); /* Đất ấm */
+  --color-earth-light: hsl(30 30% 80%); /* Cát khô */
+  --color-cream: hsl(45 20% 96%); /* Sợi bông */
+  --color-charcoal: hsl(96 15% 20%); /* Than gỗ */
+
+  /* --- SHADOWS (Bóng đổ có sắc xanh) --- */
+  /* Bóng đổ màu đen thuần sẽ làm đục màu xanh này. */
+  /* Ta dùng bóng đổ có pha màu xanh của lá (hsl 96) để tạo độ sâu trong trẻo */
+  --shadow-sm: 0 2px 8px -2px hsl(96 30% 10% / 0.1);
+  --shadow-md: 0 8px 24px -4px hsl(96 30% 10% / 0.15);
+  --shadow-lg: 0 16px 48px -8px hsl(96 30% 10% / 0.2);
+
+  /* Glow effect: Dùng màu xanh sáng hơn một chút để tạo hào quang */
+  --shadow-glow: 0 0 40px -10px hsl(96 50% 30% / 0.3);
+
+  /* --- SIDEBAR (Nếu có) --- */
+  --color-sidebar-background: hsl(100 5% 96%);
+  --color-sidebar-foreground: hsl(96 20% 20%);
+  --color-sidebar-primary: hsl(96 41% 19%);
+  --color-sidebar-primary-foreground: hsl(0 0% 98%);
+  --color-sidebar-accent: hsl(96 10% 90%);
+  --color-sidebar-accent-foreground: hsl(96 40% 15%);
+  --color-sidebar-border: hsl(96 10% 88%);
+  --color-sidebar-ring: hsl(96 41% 19%);
+}
+
+/* @layer base {
+  .dark {
+    --background: hsl(150 20% 8%);
+    --foreground: hsl(40 20% 95%);
+    --card: hsl(150 20% 12%);
+    --card-foreground: hsl(40 20% 95%);
+
+    --popover: hsl(150 20% 12%);
+    --popover-foreground: hsl(40 20% 95%);
+
+    --primary: hsl(150 50% 45%);
+    --primary-foreground: hsl(150 30% 10%);
+
+    --secondary: hsl(150 15% 18%);
+    --secondary-foreground: hsl(40 20% 90%);
+
+    --muted: hsl(150 15% 18%);
+    --muted-foreground: hsl(140 10% 60%);
+
+    --accent: hsl(30 45% 55%);
+    --accent-foreground: hsl(40 30% 96%);
+
+    --destructive: hsl(0 62.8% 30.6%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: hsl(150 15% 20%);
+    --input: hsl(150 15% 20%);
+    --ring: hsl(150 50% 45%);
+
+    --sidebar-background: hsl(240 5.9% 10%);
+    --sidebar-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-primary: hsl(224.3 76.3% 48%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(240 3.7% 15.9%);
+    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-border: hsl(240 3.7% 15.9%);
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  }
+} */
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+/* =========================================================
+   BASE
+========================================================= */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-weight: 700;
+  }
+}
+
+/* =========================================================
+   COMPONENTS
+========================================================= */
+@layer components {
+  .text-gradient-forest {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-forest-light)
+    );
+  }
+
+  .bg-gradient-forest {
+    background: linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-forest-light)
+    );
+  }
+
+  .bg-gradient-hero {
+    background: linear-gradient(
+      180deg,
+      var(--color-background) 0%,
+      var(--color-muted) 100%
+    );
+  }
+
+  .glass-card {
+    background-color: var(--color-card);
+    opacity: 0.8;
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+  }
+
+  .glow-effect {
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+/* =========================================================
+   UTILITIES & ANIMATIONS
+========================================================= */
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.8s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulseSoft 3s ease-in-out infinite;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes pulseSoft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+}
+
+/* =========================================================
+   LEAFLET MAP
+========================================================= */
+.leaflet-container {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  z-index: 0;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: var(--card);
+  color: var(--foreground);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--card);
+}
+
+.leaflet-popup-close-button {
+  color: var(--muted-foreground) !important;
+}
+
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Dark mode support for Leaflet */
+.dark .leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.dark .leaflet-control-zoom a {
+  background-color: var(--card);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background-color: var(--muted);
+}
+
+.dark .leaflet-control-attribution {
+  background-color: var(--card);
+  opacity: 0.8;
+  color: var(--muted-foreground);
+}
+
+.leaflet-control-attribution a {
+  color: var(--primary);
+}

@@ -1,0 +1,604 @@
+"use client";
+
+import React, { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2, Copy, ExternalLink } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { useAuth } from "@/contexts/AuthContext";
+import { api, authTokenStore, isUnauthorizedApiError } from "@/lib/apiClient";
+import {
+  resolveSubscriptionState,
+  type SubscriptionApiPayload } from
+"@/lib/subscriptionState";
+import { writeSubscriptionLockState } from "@/lib/subscriptionLockState";
+import {
+  getStandardSkuLimitFromPlan,
+  getSubscriptionPlanFamily,
+  getSubscriptionPlanRank,
+  normalizeSubscriptionPlan,
+  type StandardSkuLimit,
+  type SubscriptionPlanId } from
+"@/lib/subscriptionPlans";
+import PricingModal from "@/components/dashboard/PricingModal";
+import { useToast } from "@/hooks/useToast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle } from
+"@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
+const PENDING_UPGRADE_PLAN_KEY = "weavecarbon_pending_upgrade_plan";
+const PENDING_UPGRADE_DISPLAY_PLAN_KEY = "weavecarbon_pending_upgrade_display_plan";
+const PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY =
+  "weavecarbon_pending_upgrade_expected_products_limit";
+
+type NormalizedPlanId = SubscriptionPlanId;
+
+interface PricingSelection {
+  planId: "trial" | "standard" | "export";
+  standardSkuLimit?: StandardSkuLimit;
+}
+
+interface SubscriptionSnapshot {
+  currentPlan: string | null;
+  productsLimit: number;
+  featuresLocked: boolean;
+  trialEndsAt: string | null;
+  trialExpired: boolean;
+  trialDaysRemaining: number | null;
+}
+
+const INITIAL_SUBSCRIPTION_SNAPSHOT: SubscriptionSnapshot = {
+  currentPlan: null,
+  productsLimit: 0,
+  featuresLocked: false,
+  trialEndsAt: null,
+  trialExpired: false,
+  trialDaysRemaining: null
+};
+
+const toPlanDisplayName = (plan: string | null | undefined) => {
+  const normalized = normalizeSubscriptionPlan(plan, "free");
+  if (normalized === "trial") return "Trial";
+  if (getSubscriptionPlanFamily(normalized) === "standard") return "Standard";
+  if (normalized === "standard") return "Standard";
+  if (normalized === "export") return "Export";
+  return "Trial";
+};
+
+const toPlanActivationLabel = (
+  plan: string | null | undefined,
+  productsLimit?: number | null
+) => {
+  const displayName = toPlanDisplayName(plan);
+  if (
+    getSubscriptionPlanFamily(plan) === "standard" &&
+    typeof productsLimit === "number" &&
+    Number.isFinite(productsLimit) &&
+    productsLimit > 0
+  ) {
+    return `${displayName} (${Math.round(productsLimit)} SKU)`;
+  }
+  return displayName;
+};
+
+export default function PricingModalGate() {
+  const [open, setOpen] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionSnapshot>(
+    INITIAL_SUBSCRIPTION_SNAPSHOT
+  );
+  const [pendingUpgradePlan, setPendingUpgradePlan] = useState<NormalizedPlanId | null>(null);
+  const [pendingUpgradeDisplayPlan, setPendingUpgradeDisplayPlan] = useState<NormalizedPlanId | null>(null);
+  const [pendingUpgradeExpectedProductsLimit, setPendingUpgradeExpectedProductsLimit] = useState<number | null>(
+    null
+  );
+  const [paymentQrOpen, setPaymentQrOpen] = useState(false);
+  const [paymentQrUrl, setPaymentQrUrl] = useState("");
+  const [paymentQrPlan, setPaymentQrPlan] = useState<NormalizedPlanId>("standard");
+  const [paymentQrExpectedProductsLimit, setPaymentQrExpectedProductsLimit] = useState<number | null>(
+    null
+  );
+  const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
+  const [upgradeSuccessPlan, setUpgradeSuccessPlan] = useState<NormalizedPlanId>("standard");
+  const [upgradeSuccessProductsLimit, setUpgradeSuccessProductsLimit] = useState<number | null>(
+    null
+  );
+
+  const { user, loading, signOut } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const setPendingUpgrade = useCallback((
+    plan: string | null,
+    displayPlan?: string | null,
+    expectedProductsLimit?: number | null
+  ) => {
+    const normalized = plan ? normalizeSubscriptionPlan(plan, "free") : null;
+    const safePlan =
+      normalized && normalized !== "free"
+        ? getSubscriptionPlanFamily(normalized) === "standard"
+          ? "standard"
+          : normalized
+        : null;
+    const normalizedDisplayPlan = displayPlan
+      ? normalizeSubscriptionPlan(displayPlan, "free")
+      : safePlan;
+    const safeDisplayPlan =
+      normalizedDisplayPlan && normalizedDisplayPlan !== "free"
+        ? getSubscriptionPlanFamily(normalizedDisplayPlan) === "standard"
+          ? "standard"
+          : normalizedDisplayPlan
+        : null;
+    const safeExpectedProductsLimit =
+      typeof expectedProductsLimit === "number" && Number.isFinite(expectedProductsLimit) &&
+      expectedProductsLimit > 0 ?
+        Math.round(expectedProductsLimit) :
+        null;
+    setPendingUpgradePlan(safePlan);
+    setPendingUpgradeDisplayPlan(safeDisplayPlan);
+    setPendingUpgradeExpectedProductsLimit(safeExpectedProductsLimit);
+
+    if (typeof window !== "undefined") {
+      if (safePlan) {
+        sessionStorage.setItem(PENDING_UPGRADE_PLAN_KEY, safePlan);
+      } else {
+        sessionStorage.removeItem(PENDING_UPGRADE_PLAN_KEY);
+      }
+
+      if (safeDisplayPlan) {
+        sessionStorage.setItem(PENDING_UPGRADE_DISPLAY_PLAN_KEY, safeDisplayPlan);
+      } else {
+        sessionStorage.removeItem(PENDING_UPGRADE_DISPLAY_PLAN_KEY);
+      }
+
+      if (safeExpectedProductsLimit !== null) {
+        sessionStorage.setItem(
+          PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY,
+          String(safeExpectedProductsLimit)
+        );
+      } else {
+        sessionStorage.removeItem(PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY);
+      }
+    }
+  }, []);
+
+  const loadCurrentPlan = useCallback(async () => {
+    if (loading || !user || user.user_type === "b2c") {
+      setOpen(false);
+      return;
+    }
+
+    const hasToken = Boolean(
+      authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+    );
+    if (!hasToken) {
+      setOpen(false);
+      return;
+    }
+
+    try {
+      const payload = await api.get<SubscriptionApiPayload>("/subscription");
+      const resolved = resolveSubscriptionState(payload);
+      const productsLimit =
+        Number(payload?.plan_details?.products ?? payload?.limits?.products ?? 0) || 0;
+
+      const nextSnapshot: SubscriptionSnapshot = {
+        currentPlan: resolved.plan,
+        productsLimit,
+        featuresLocked: resolved.featuresLocked,
+        trialEndsAt: resolved.trialEndsAt,
+        trialExpired: resolved.trialExpired,
+        trialDaysRemaining: resolved.trialDaysRemaining
+      };
+      const nextPlan = normalizeSubscriptionPlan(nextSnapshot.currentPlan, "free");
+      const matchedPendingUpgrade = (() => {
+        if (pendingUpgradePlan === null) {
+          return false;
+        }
+        if (getSubscriptionPlanFamily(pendingUpgradePlan) === "standard") {
+          if (pendingUpgradeExpectedProductsLimit !== null) {
+            return (
+              getSubscriptionPlanFamily(nextPlan) === "standard" &&
+              nextSnapshot.productsLimit >= pendingUpgradeExpectedProductsLimit
+            );
+          }
+          return false;
+        }
+        return nextPlan === pendingUpgradePlan;
+      })();
+
+      setSubscription(nextSnapshot);
+
+      if (typeof window !== "undefined") {
+        writeSubscriptionLockState({
+          current_plan: nextSnapshot.currentPlan,
+          trial_ends_at: nextSnapshot.trialEndsAt,
+          trial_expired: nextSnapshot.trialExpired,
+          features_locked: nextSnapshot.featuresLocked
+        });
+
+        if (nextSnapshot.featuresLocked) {
+          setOpen(true);
+        }
+      }
+
+      if (matchedPendingUpgrade) {
+        const activatedProductsLimit =
+          nextSnapshot.productsLimit > 0 ?
+            nextSnapshot.productsLimit :
+            pendingUpgradeExpectedProductsLimit;
+        setUpgradeSuccessPlan(pendingUpgradeDisplayPlan || nextPlan);
+        setUpgradeSuccessProductsLimit(activatedProductsLimit);
+        setUpgradeSuccessOpen(true);
+        setOpen(false);
+        setPendingUpgrade(null);
+        toast({
+          title: "Chúc mừng bạn đã nâng cấp thành công",
+          description: `Gói ${toPlanActivationLabel(
+            pendingUpgradeDisplayPlan || nextPlan,
+            activatedProductsLimit
+          )} đã được kích hoạt.`
+        });
+      }
+
+    } catch (error) {
+      if (isUnauthorizedApiError(error)) {
+        await signOut();
+        return;
+      }
+
+      setOpen(false);
+    }
+  }, [
+    loading,
+    pendingUpgradeDisplayPlan,
+    pendingUpgradeExpectedProductsLimit,
+    pendingUpgradePlan,
+    setPendingUpgrade,
+    signOut,
+    toast,
+    user
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const pendingPlan = sessionStorage.getItem(PENDING_UPGRADE_PLAN_KEY);
+    const pendingDisplayPlan = sessionStorage.getItem(PENDING_UPGRADE_DISPLAY_PLAN_KEY);
+    const pendingExpectedProductsLimitRaw = sessionStorage.getItem(
+      PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY
+    );
+    const pendingExpectedProductsLimit =
+      pendingExpectedProductsLimitRaw !== null ? Number(pendingExpectedProductsLimitRaw) : null;
+    if (pendingPlan) {
+      setPendingUpgrade(
+        pendingPlan,
+        pendingDisplayPlan,
+        Number.isFinite(pendingExpectedProductsLimit) ? pendingExpectedProductsLimit : null
+      );
+    }
+  }, [setPendingUpgrade]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleOpenPricingModal = () => {
+      if (!loading && user) {
+        setOpen(true);
+      }
+    };
+
+    window.addEventListener(PRICING_MODAL_OPEN_EVENT, handleOpenPricingModal);
+    return () => {
+      window.removeEventListener(PRICING_MODAL_OPEN_EVENT, handleOpenPricingModal);
+    };
+  }, [loading, user]);
+
+  useEffect(() => {
+    void loadCurrentPlan();
+  }, [loadCurrentPlan]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleWindowFocus = () => {
+      void loadCurrentPlan();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadCurrentPlan();
+      }
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadCurrentPlan]);
+
+  useEffect(() => {
+    if (!pendingUpgradePlan || typeof window === "undefined") return;
+
+    let attempts = 0;
+    const pollId = window.setInterval(() => {
+      attempts += 1;
+      void loadCurrentPlan();
+      if (attempts >= 120) {
+        window.clearInterval(pollId);
+      }
+    }, 5000);
+
+    return () => {
+      window.clearInterval(pollId);
+    };
+  }, [loadCurrentPlan, pendingUpgradePlan]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const paymentStatus = searchParams.get("payment_status");
+    if (!paymentStatus) return;
+
+    const paymentPlan = normalizeSubscriptionPlan(searchParams.get("plan"), "free");
+    if (paymentStatus === "success") {
+      if (paymentPlan !== "free") {
+        const pendingDisplayPlan =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem(PENDING_UPGRADE_DISPLAY_PLAN_KEY)
+            : null;
+        const pendingExpectedProductsLimitRaw =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem(PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY)
+            : null;
+        const pendingExpectedProductsLimit =
+          pendingExpectedProductsLimitRaw !== null ? Number(pendingExpectedProductsLimitRaw) : null;
+        setPendingUpgrade(
+          paymentPlan,
+          pendingDisplayPlan || paymentPlan,
+          Number.isFinite(pendingExpectedProductsLimit) ? pendingExpectedProductsLimit : null
+        );
+      }
+      toast({
+        title: "Đã ghi nhận thanh toán",
+        description: "Đang xác nhận giao dịch và cập nhật gói dịch vụ của bạn..."
+      });
+      void loadCurrentPlan();
+    } else {
+      setPendingUpgrade(null);
+      toast({
+        title: "Thanh toán chưa thành công",
+        description: "Bạn có thể thử lại hoặc liên hệ hỗ trợ nếu cần.",
+        variant: "destructive"
+      });
+    }
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("payment_status");
+    nextParams.delete("plan");
+    nextParams.delete("source");
+    nextParams.delete("session_id");
+    nextParams.delete("transaction_ref");
+    nextParams.delete("reason");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }, [loadCurrentPlan, pathname, router, searchParams, setPendingUpgrade, toast]);
+
+  const handleClose = () => {
+    if (subscription.featuresLocked) {
+      return;
+    }
+    setOpen(false);
+  };
+
+  const handleOpenPaymentUrl = () => {
+    if (!paymentQrUrl || typeof window === "undefined") return;
+    window.open(paymentQrUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopyPaymentUrl = async () => {
+    if (!paymentQrUrl) return;
+    try {
+      await navigator.clipboard.writeText(paymentQrUrl);
+      toast({
+        title: "Đã sao chép liên kết thanh toán",
+        description: "Bạn có thể dán liên kết này trên thiết bị khác để quét/thanh toán."
+      });
+    } catch {
+      toast({
+        title: "Không thể sao chép",
+        description: "Vui lòng bấm Mở trang VNPay để tiếp tục thanh toán.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSelectPlan = async ({ planId, standardSkuLimit }: PricingSelection) => {
+    if (!user) return;
+
+    try {
+      const isStandardAddonPurchase = planId === "standard";
+      const normalizedTargetPlan =
+        isStandardAddonPurchase ?
+          "standard" :
+          normalizeSubscriptionPlan(planId, "free");
+      const targetPlanFamily = getSubscriptionPlanFamily(normalizedTargetPlan);
+      if (targetPlanFamily === "trial" || normalizedTargetPlan === "free") {
+        toast({
+          title: "Trial tự động kích hoạt",
+          description: "Tài khoản mới sẽ được Trial miễn phí 14 ngày, không cần đăng ký."
+        });
+        return;
+      }
+
+      const currentPlanId = normalizeSubscriptionPlan(subscription.currentPlan, "free");
+      const currentPlanFamily = getSubscriptionPlanFamily(currentPlanId);
+      const currentRank = getSubscriptionPlanRank(currentPlanId);
+      const targetRank = getSubscriptionPlanRank(normalizedTargetPlan);
+      const requestedStandardSkuIncrement =
+        standardSkuLimit ?? getStandardSkuLimitFromPlan(normalizedTargetPlan) ?? 20;
+      const currentStandardProductsLimit =
+        currentPlanFamily === "standard" ? subscription.productsLimit : 0;
+      const expectedProductsLimit =
+        targetPlanFamily === "standard" ?
+          currentStandardProductsLimit + requestedStandardSkuIncrement :
+          null;
+
+      if (isStandardAddonPurchase && currentPlanFamily === "export") {
+        toast({
+          title: "Không thể đăng ký gói thấp hơn",
+          description: "Tài khoản của bạn đã ở gói này hoặc cao hơn.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!isStandardAddonPurchase && targetRank <= currentRank && currentPlanId !== "free") {
+        toast({
+          title: "Không thể đăng ký gói thấp hơn",
+          description: "Tài khoản của bạn đã ở gói này hoặc cao hơn.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const upgrade = await api.post<{
+        checkout_url?: string;
+        payment_url?: string;
+        vnpay_url?: string;
+      }>("/subscription/upgrade", {
+        target_plan: planId === "standard" ? "standard" : normalizedTargetPlan,
+        standard_sku_limit:
+          planId === "standard" ?
+            standardSkuLimit ?? getStandardSkuLimitFromPlan(normalizedTargetPlan) ?? 20 :
+            undefined,
+        billing_cycle: "monthly",
+        payment_provider:
+          targetPlanFamily === "standard" || normalizedTargetPlan === "export"
+            ? "vnpay"
+            : undefined
+      });
+
+      const paymentUrl =
+        upgrade?.payment_url || upgrade?.vnpay_url || upgrade?.checkout_url;
+
+      if (paymentUrl && typeof window !== "undefined") {
+        setPendingUpgrade(
+          isStandardAddonPurchase ? "standard" : normalizedTargetPlan,
+          isStandardAddonPurchase ? "standard" : normalizedTargetPlan,
+          expectedProductsLimit
+        );
+        setPaymentQrUrl(paymentUrl);
+        setPaymentQrPlan(isStandardAddonPurchase ? "standard" : normalizedTargetPlan);
+        setPaymentQrExpectedProductsLimit(expectedProductsLimit);
+        setPaymentQrOpen(true);
+      }
+
+      toast({
+        title: "Đã tạo phiên thanh toán VNPay",
+        description: "Quét QR trong popup để thanh toán, hoặc bấm mở trang VNPay."
+      });
+
+      localStorage.setItem("weavecarbon_pricing_seen", "true");
+      setOpen(false);
+    } catch (error) {
+      if (isUnauthorizedApiError(error)) {
+        await signOut();
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  return (
+    <>
+      <PricingModal
+        open={open}
+        onClose={handleClose}
+        currentPlan={subscription.currentPlan}
+        trialEndsAt={subscription.trialEndsAt}
+        trialExpired={subscription.trialExpired}
+        trialDaysRemaining={subscription.trialDaysRemaining}
+        forceSelection={subscription.featuresLocked}
+        onSelectPlan={handleSelectPlan} />
+
+      <Dialog open={upgradeSuccessOpen} onOpenChange={setUpgradeSuccessOpen}>
+        <DialogContent className="max-w-md border-emerald-200">
+          <DialogHeader className="items-center text-center">
+            <div className="mb-2 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+            <DialogTitle className="text-xl text-emerald-700">
+              Nâng cấp thành công
+            </DialogTitle>
+            <DialogDescription className="text-base text-slate-700">
+              Gói {toPlanActivationLabel(upgradeSuccessPlan, upgradeSuccessProductsLimit)} đã được kích hoạt.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={() => setUpgradeSuccessOpen(false)}
+            >
+              Đã hiểu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={paymentQrOpen} onOpenChange={setPaymentQrOpen}>
+        <DialogContent className="max-w-md border-blue-200">
+          <DialogHeader className="items-center text-center">
+            <DialogTitle className="text-xl text-blue-700">
+              Quét QR để thanh toán VNPay
+            </DialogTitle>
+            <DialogDescription className="text-base text-slate-700">
+              Gói {toPlanActivationLabel(paymentQrPlan, paymentQrExpectedProductsLimit)} sẽ được kích hoạt ngay sau khi thanh toán thành công.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <QRCodeSVG
+                value={paymentQrUrl || "https://vnpay.vn/"}
+                size={220}
+                includeMargin
+                level="M"
+              />
+            </div>
+          </div>
+          <p className="text-center text-xs text-slate-600">
+            Dùng app ngân hàng/ví hỗ trợ VNPay để quét mã.
+          </p>
+          <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => void handleCopyPaymentUrl()}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Sao chép link thanh toán
+            </Button>
+            <Button
+              className="w-full bg-blue-600 text-white hover:bg-blue-700"
+              onClick={handleOpenPaymentUrl}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Mở trang VNPay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

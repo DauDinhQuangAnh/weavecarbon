@@ -1,0 +1,150 @@
+export type RouteHubKind = "airport" | "port" | "rail_terminal";
+
+export interface RouteHub {
+  id: string;
+  label: string;
+  kind: RouteHubKind;
+  lat: number;
+  lng: number;
+}
+
+export const VIETNAM_TRANSFER_HUBS: RouteHub[] = [
+  { id: "SGN", label: "Tan Son Nhat", kind: "airport", lat: 10.8188, lng: 106.6519 },
+  { id: "HAN", label: "Noi Bai", kind: "airport", lat: 21.2212, lng: 105.8072 },
+  { id: "DAD", label: "Da Nang", kind: "airport", lat: 16.0439, lng: 108.1994 },
+  { id: "CXR", label: "Cam Ranh", kind: "airport", lat: 11.9982, lng: 109.2194 },
+  { id: "HPH", label: "Cat Bi", kind: "airport", lat: 20.8194, lng: 106.724 },
+  { id: "VCA", label: "Can Tho", kind: "airport", lat: 10.0851, lng: 105.7119 },
+  { id: "CAT_LAI", label: "Cat Lai Port", kind: "port", lat: 10.7696, lng: 106.7605 },
+  { id: "CAI_MEP", label: "Cai Mep Port", kind: "port", lat: 10.5748, lng: 107.0184 },
+  { id: "LACH_HUYEN", label: "Lach Huyen Port", kind: "port", lat: 20.8516, lng: 106.7787 },
+  { id: "TIEN_SA", label: "Tien Sa Port", kind: "port", lat: 16.1205, lng: 108.2107 },
+  { id: "QUY_NHON", label: "Quy Nhon Port", kind: "port", lat: 13.7699, lng: 109.2467 },
+  { id: "DUNG_QUAT", label: "Dung Quat Port", kind: "port", lat: 15.1365, lng: 108.7985 },
+  { id: "SONG_THAN", label: "Song Than ICD", kind: "rail_terminal", lat: 10.8926, lng: 106.7578 },
+  { id: "YEN_VIEN", label: "Yen Vien Rail Yard", kind: "rail_terminal", lat: 21.0808, lng: 105.9174 },
+  { id: "GIAP_BAT", label: "Giap Bat Rail Yard", kind: "rail_terminal", lat: 20.9951, lng: 105.8429 },
+  { id: "LAO_CAI_RAIL", label: "Lao Cai Rail Terminal", kind: "rail_terminal", lat: 22.4856, lng: 103.9739 },
+  { id: "DONG_DANG_RAIL", label: "Dong Dang Rail Terminal", kind: "rail_terminal", lat: 21.8453, lng: 106.7385 },
+  { id: "KIM_LIEN_RAIL", label: "Kim Lien Rail Yard", kind: "rail_terminal", lat: 16.0602, lng: 108.1988 }
+];
+
+export const DESTINATION_HUBS_BY_MARKET: Record<string, RouteHub[]> = {
+  usa: [
+    { id: "LAX", label: "Los Angeles Intl", kind: "airport", lat: 33.9416, lng: -118.4085 },
+    { id: "JFK", label: "John F Kennedy Intl", kind: "airport", lat: 40.6413, lng: -73.7781 },
+    { id: "ORD", label: "Chicago O'Hare Intl", kind: "airport", lat: 41.9742, lng: -87.9073 },
+    { id: "DFW", label: "Dallas Fort Worth Intl", kind: "airport", lat: 32.8998, lng: -97.0403 },
+    { id: "ATL", label: "Hartsfield Jackson Atlanta Intl", kind: "airport", lat: 33.6407, lng: -84.4277 },
+    { id: "SFO", label: "San Francisco Intl", kind: "airport", lat: 37.6213, lng: -122.379 },
+    { id: "SEA", label: "Seattle Tacoma Intl", kind: "airport", lat: 47.4502, lng: -122.3088 },
+    { id: "MIA", label: "Miami Intl", kind: "airport", lat: 25.7959, lng: -80.287 },
+    { id: "PORT_LA", label: "Port of Los Angeles", kind: "port", lat: 33.7405, lng: -118.2719 },
+    { id: "PORT_LB", label: "Port of Long Beach", kind: "port", lat: 33.7542, lng: -118.2167 },
+    { id: "PORT_NYNJ", label: "Port of New York and New Jersey", kind: "port", lat: 40.6681, lng: -74.0413 },
+    { id: "PORT_SAV", label: "Port of Savannah", kind: "port", lat: 32.0809, lng: -81.0912 },
+    { id: "PORT_HOU", label: "Port of Houston", kind: "port", lat: 29.7297, lng: -95.2658 },
+    { id: "PORT_SEA_TAC", label: "Northwest Seaport Alliance", kind: "port", lat: 47.572, lng: -122.35 },
+    { id: "PORT_NOR", label: "Port of Norfolk", kind: "port", lat: 36.946, lng: -76.3302 },
+    { id: "PORT_OAK", label: "Port of Oakland", kind: "port", lat: 37.7955, lng: -122.278 },
+    { id: "RAIL_CHI_G4", label: "Chicago Global IV", kind: "rail_terminal", lat: 41.6853, lng: -88.0895 },
+    { id: "RAIL_LA_ICTF", label: "Los Angeles ICTF", kind: "rail_terminal", lat: 33.7981, lng: -118.214 },
+    { id: "RAIL_DFW_ALLIANCE", label: "AllianceTexas Intermodal", kind: "rail_terminal", lat: 32.9882, lng: -97.3229 },
+    { id: "RAIL_KC", label: "Kansas City Intermodal", kind: "rail_terminal", lat: 39.1242, lng: -94.7425 },
+    { id: "RAIL_MEMPHIS", label: "Memphis Rossville Intermodal", kind: "rail_terminal", lat: 35.0837, lng: -89.799 },
+    { id: "RAIL_NEWARK", label: "ExpressRail Newark", kind: "rail_terminal", lat: 40.6842, lng: -74.1734 }
+  ],
+  eu: [
+    { id: "FRA", label: "Frankfurt Airport", kind: "airport", lat: 50.0379, lng: 8.5622 },
+    { id: "AMS", label: "Amsterdam Schiphol", kind: "airport", lat: 52.3105, lng: 4.7683 },
+    { id: "CDG", label: "Paris Charles de Gaulle", kind: "airport", lat: 49.0097, lng: 2.5479 },
+    { id: "LGG", label: "Liege Airport", kind: "airport", lat: 50.6466, lng: 5.4432 },
+    { id: "MAD", label: "Madrid Barajas", kind: "airport", lat: 40.4983, lng: -3.5676 },
+    { id: "LHR", label: "London Heathrow", kind: "airport", lat: 51.47, lng: -0.4543 },
+    { id: "ROTTERDAM", label: "Port of Rotterdam", kind: "port", lat: 51.95, lng: 4.14 },
+    { id: "ANTWERP", label: "Port of Antwerp Bruges", kind: "port", lat: 51.2637, lng: 4.4 },
+    { id: "HAMBURG", label: "Port of Hamburg", kind: "port", lat: 53.5461, lng: 9.9661 },
+    { id: "BREMERHAVEN", label: "Port of Bremerhaven", kind: "port", lat: 53.5396, lng: 8.5809 },
+    { id: "VALENCIA", label: "Port of Valencia", kind: "port", lat: 39.448, lng: -0.3169 },
+    { id: "PIRAEUS", label: "Port of Piraeus", kind: "port", lat: 37.942, lng: 23.6465 },
+    { id: "DUISBURG", label: "Duisburg Intermodal", kind: "rail_terminal", lat: 51.4344, lng: 6.7623 },
+    { id: "HAMBURG_BILL", label: "Hamburg Billwerder Terminal", kind: "rail_terminal", lat: 53.5244, lng: 10.0866 },
+    { id: "MANNHEIM", label: "Mannheim DUSS Terminal", kind: "rail_terminal", lat: 49.4798, lng: 8.4752 },
+    { id: "VIENNA_SOUTH", label: "Vienna South Freight", kind: "rail_terminal", lat: 48.1748, lng: 16.4096 },
+    { id: "MALASZEWICZE", label: "Malaszewicze Terminal", kind: "rail_terminal", lat: 52.039, lng: 23.541 },
+    { id: "LYON_VENISSIEUX", label: "Lyon Venissieux Rail", kind: "rail_terminal", lat: 45.6956, lng: 4.8855 }
+  ],
+  korea: [
+    { id: "ICN", label: "Incheon Intl", kind: "airport", lat: 37.4602, lng: 126.4407 },
+    { id: "GMP", label: "Gimpo Intl", kind: "airport", lat: 37.5583, lng: 126.7906 },
+    { id: "PUS", label: "Gimhae Intl", kind: "airport", lat: 35.1796, lng: 128.9382 },
+    { id: "BUSAN_PORT", label: "Port of Busan", kind: "port", lat: 35.1017, lng: 129.0403 },
+    { id: "INCHEON_PORT", label: "Port of Incheon", kind: "port", lat: 37.4637, lng: 126.6208 },
+    { id: "GWANGYANG_PORT", label: "Port of Gwangyang", kind: "port", lat: 34.9035, lng: 127.748 },
+    { id: "ULSAN_PORT", label: "Port of Ulsan", kind: "port", lat: 35.503, lng: 129.387 },
+    { id: "POHANG_PORT", label: "Port of Pohang", kind: "port", lat: 36.047, lng: 129.3763 },
+    { id: "UIWANG_ICD", label: "Uiwang ICD", kind: "rail_terminal", lat: 37.3464, lng: 126.9684 },
+    { id: "BUSAN_RAIL", label: "Busan Rail Logistics", kind: "rail_terminal", lat: 35.0801, lng: 128.8473 },
+    { id: "INCHEON_RAIL", label: "Incheon Rail Logistics", kind: "rail_terminal", lat: 37.4869, lng: 126.616 },
+    { id: "GWANGYANG_RAIL", label: "Gwangyang Rail Freight", kind: "rail_terminal", lat: 34.9076, lng: 127.7442 }
+  ],
+  japan: [
+    { id: "NRT", label: "Narita Intl", kind: "airport", lat: 35.7719, lng: 140.3929 },
+    { id: "HND", label: "Haneda Intl", kind: "airport", lat: 35.5494, lng: 139.7798 },
+    { id: "KIX", label: "Kansai Intl", kind: "airport", lat: 34.4347, lng: 135.244 },
+    { id: "NGO", label: "Chubu Centrair", kind: "airport", lat: 34.8584, lng: 136.8054 },
+    { id: "FUK", label: "Fukuoka Airport", kind: "airport", lat: 33.5859, lng: 130.4507 },
+    { id: "TOKYO_PORT", label: "Port of Tokyo", kind: "port", lat: 35.6167, lng: 139.7833 },
+    { id: "YOKOHAMA", label: "Port of Yokohama", kind: "port", lat: 35.45, lng: 139.661 },
+    { id: "NAGOYA_PORT", label: "Port of Nagoya", kind: "port", lat: 35.08, lng: 136.885 },
+    { id: "KOBE_PORT", label: "Port of Kobe", kind: "port", lat: 34.6833, lng: 135.1833 },
+    { id: "OSAKA_PORT", label: "Port of Osaka", kind: "port", lat: 34.6381, lng: 135.4183 },
+    { id: "HAKATA_PORT", label: "Port of Hakata", kind: "port", lat: 33.6096, lng: 130.4105 },
+    { id: "TOKYO_FREIGHT", label: "Tokyo Freight Terminal", kind: "rail_terminal", lat: 35.6034, lng: 139.7671 },
+    { id: "SUITA_FREIGHT", label: "Suita Freight Terminal", kind: "rail_terminal", lat: 34.7635, lng: 135.5167 },
+    { id: "NAGOYA_FREIGHT", label: "Nagoya Freight Terminal", kind: "rail_terminal", lat: 35.1377, lng: 136.9003 },
+    { id: "FUKUOKA_FREIGHT", label: "Fukuoka Freight Terminal", kind: "rail_terminal", lat: 33.599, lng: 130.4314 },
+    { id: "SAPPORO_FREIGHT", label: "Sapporo Freight Terminal", kind: "rail_terminal", lat: 43.1058, lng: 141.3723 }
+  ],
+  china: [
+    { id: "PVG", label: "Shanghai Pudong", kind: "airport", lat: 31.1443, lng: 121.8083 },
+    { id: "PEK", label: "Beijing Capital", kind: "airport", lat: 40.0799, lng: 116.6031 },
+    { id: "CAN", label: "Guangzhou Baiyun", kind: "airport", lat: 23.3924, lng: 113.2988 },
+    { id: "SZX", label: "Shenzhen Bao'an", kind: "airport", lat: 22.6393, lng: 113.8107 },
+    { id: "CKG", label: "Chongqing Jiangbei", kind: "airport", lat: 29.7192, lng: 106.6416 },
+    { id: "XIY", label: "Xi'an Xianyang", kind: "airport", lat: 34.4471, lng: 108.7516 },
+    { id: "SHANGHAI_PORT", label: "Port of Shanghai", kind: "port", lat: 31.4, lng: 121.8 },
+    { id: "NINGBO", label: "Port of Ningbo Zhoushan", kind: "port", lat: 29.9492, lng: 121.8745 },
+    { id: "YANTIAN", label: "Shenzhen Yantian Port", kind: "port", lat: 22.5556, lng: 114.2569 },
+    { id: "QINGDAO", label: "Port of Qingdao", kind: "port", lat: 36.089, lng: 120.336 },
+    { id: "NANSHA", label: "Guangzhou Nansha Port", kind: "port", lat: 22.7714, lng: 113.6406 },
+    { id: "TIANJIN", label: "Port of Tianjin", kind: "port", lat: 38.9868, lng: 117.7394 },
+    { id: "XIAN_RAIL", label: "Xi'an International Port", kind: "rail_terminal", lat: 34.3266, lng: 109.045 },
+    { id: "CQ_TUANJIECUN", label: "Chongqing Tuanjiecun", kind: "rail_terminal", lat: 29.553, lng: 106.561 },
+    { id: "ZHENGZHOU_RAIL", label: "Zhengzhou Land Port", kind: "rail_terminal", lat: 34.7384, lng: 113.722 },
+    { id: "CHENGDU_QBJ", label: "Chengdu Qingbaijiang", kind: "rail_terminal", lat: 30.8787, lng: 104.246 },
+    { id: "WUHAN_RAIL", label: "Wuhan Rail Hub", kind: "rail_terminal", lat: 30.6187, lng: 114.2965 },
+    { id: "NANNING_RAIL", label: "Nanning Rail Hub", kind: "rail_terminal", lat: 22.817, lng: 108.3669 },
+    { id: "LANZHOU_RAIL", label: "Lanzhou Rail Hub", kind: "rail_terminal", lat: 36.0611, lng: 103.8343 }
+  ],
+  other: [
+    { id: "SIN", label: "Singapore Changi", kind: "airport", lat: 1.3644, lng: 103.9915 },
+    { id: "DXB", label: "Dubai Intl", kind: "airport", lat: 25.2532, lng: 55.3657 },
+    { id: "HKG", label: "Hong Kong Intl", kind: "airport", lat: 22.308, lng: 113.9185 },
+    { id: "DOH", label: "Hamad Intl", kind: "airport", lat: 25.2736, lng: 51.6081 },
+    { id: "BKK", label: "Suvarnabhumi", kind: "airport", lat: 13.69, lng: 100.7501 },
+    { id: "IST", label: "Istanbul Airport", kind: "airport", lat: 41.2753, lng: 28.7519 },
+    { id: "PORT_SIN", label: "Port of Singapore", kind: "port", lat: 1.2644, lng: 103.84 },
+    { id: "JEBEL_ALI", label: "Jebel Ali Port", kind: "port", lat: 25.005, lng: 55.0616 },
+    { id: "PORT_KLANG", label: "Port Klang", kind: "port", lat: 2.9914, lng: 101.3969 },
+    { id: "TANJUNG_PELEPAS", label: "Tanjung Pelepas", kind: "port", lat: 1.3659, lng: 103.5346 },
+    { id: "COLOMBO", label: "Port of Colombo", kind: "port", lat: 6.9553, lng: 79.8448 },
+    { id: "PORT_RASHID", label: "Port Rashid", kind: "port", lat: 25.28, lng: 55.29 },
+    { id: "KHORGOS", label: "Khorgos Rail Hub", kind: "rail_terminal", lat: 44.23, lng: 80.41 },
+    { id: "ALASHANKOU", label: "Alashankou Rail Hub", kind: "rail_terminal", lat: 45.1704, lng: 82.5739 },
+    { id: "HALKALI", label: "Halkali Rail Terminal", kind: "rail_terminal", lat: 41.0042, lng: 28.7997 },
+    { id: "BILK", label: "Budapest BILK", kind: "rail_terminal", lat: 47.4031, lng: 19.1402 },
+    { id: "TASHKENT_RAIL", label: "Tashkent Rail Hub", kind: "rail_terminal", lat: 41.2995, lng: 69.2401 },
+    { id: "APRIN_RAIL", label: "Aprin Rail Terminal", kind: "rail_terminal", lat: 35.449, lng: 50.999 }
+  ]
+};

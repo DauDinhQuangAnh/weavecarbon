@@ -1,0 +1,1910 @@
+{
+  "version": 2,
+  "scenario": "b2b_standard_20",
+  "seededAt": "2026-03-01T08:00:00.000Z",
+  "user": {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "email": "demo.b2b@weavecarbon.com",
+    "full_name": "Demo B2B Admin",
+    "company_id": "00000000-0000-4000-8000-000000000001",
+    "user_type": "b2b",
+    "company_role": "root",
+    "is_root": true,
+    "is_demo": true,
+    "avatar_url": null
+  },
+  "company": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "name": "WeaveCarbon Demo Factory",
+    "business_type": "brand",
+    "domestic_market": "VN",
+    "target_markets": [
+      "EU",
+      "US"
+    ],
+    "current_plan": "standard",
+    "standard_sku_limit": 20
+  },
+  "products": [
+    {
+      "id": "00000000-0000-4000-8000-000000000100",
+      "productCode": "WC-TEE-001",
+      "productName": "Organic Cotton Tee",
+      "productType": "tshirt",
+      "weightPerUnit": 180,
+      "quantity": 1200,
+      "materials": [
+        {
+          "id": "mat-0-0",
+          "materialType": "organic_cotton",
+          "percentage": 100,
+          "source": "domestic",
+          "certifications": [
+            "gots"
+          ]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-0",
+          "source": "solar",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Bien Hoa",
+      "wasteRecovery": "partial",
+      "destinationMarket": "vietnam",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Tan Hiep",
+        "ward": "",
+        "district": "",
+        "city": "Bien Hoa",
+        "stateRegion": "Bien Hoa",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.95,
+        "lng": 106.85
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "District 7 DC",
+        "ward": "",
+        "district": "",
+        "city": "Ho Chi Minh City",
+        "stateRegion": "Ho Chi Minh City",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.72,
+        "lng": 106.72
+      },
+      "transportLegs": [
+        {
+          "id": "leg-0-0",
+          "mode": "road",
+          "estimatedDistance": 45,
+          "emissionFactor": 0.089,
+          "co2Kg": 0.72
+        }
+      ],
+      "estimatedTotalDistance": 45,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 1.62,
+          "production": 0.38,
+          "energy": 0.22,
+          "transport": 0.05,
+          "packaging": 0.04,
+          "total": 2.31
+        },
+        "totalBatch": {
+          "materials": 1944,
+          "production": 456,
+          "energy": 264,
+          "transport": 60,
+          "packaging": 48,
+          "total": 2772
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.48,
+        "scope2": 0.22,
+        "scope3": 1.67
+      },
+      "status": "published",
+      "version": 2,
+      "shipmentId": "00000000-0000-4000-8000-000000000331",
+      "createdAt": "2026-02-10T03:00:00.000Z",
+      "updatedAt": "2026-03-01T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000101",
+      "productCode": "WC-DEN-002",
+      "productName": "Recycled Denim Jeans",
+      "productType": "pants",
+      "weightPerUnit": 420,
+      "quantity": 640,
+      "materials": [
+        {
+          "id": "mat-1-0",
+          "materialType": "recycled_polyester",
+          "percentage": 25,
+          "source": "imported",
+          "certifications": [
+            "grs",
+            "rcs"
+          ]
+        },
+        {
+          "id": "mat-1-1",
+          "materialType": "cotton",
+          "percentage": 75,
+          "source": "domestic",
+          "certifications": [
+            "bci"
+          ]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-1",
+          "source": "grid",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Long An",
+      "wasteRecovery": "high",
+      "destinationMarket": "eu",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Duc Hoa Hub",
+        "ward": "",
+        "district": "",
+        "city": "Long An",
+        "stateRegion": "Long An",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.87,
+        "lng": 106.42
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Hamburg Port",
+        "ward": "",
+        "district": "",
+        "city": "Hamburg",
+        "stateRegion": "Hamburg",
+        "country": "Germany",
+        "postalCode": "",
+        "lat": 53.55,
+        "lng": 9.99
+      },
+      "transportLegs": [
+        {
+          "id": "leg-1-0",
+          "mode": "road",
+          "estimatedDistance": 65,
+          "emissionFactor": 0.089,
+          "co2Kg": 1.34
+        },
+        {
+          "id": "leg-1-1",
+          "mode": "sea",
+          "estimatedDistance": 10840,
+          "emissionFactor": 0.016,
+          "co2Kg": 5.94
+        }
+      ],
+      "estimatedTotalDistance": 10905,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 3.1,
+          "production": 0.62,
+          "energy": 0.41,
+          "transport": 0.28,
+          "packaging": 0.04,
+          "total": 4.45
+        },
+        "totalBatch": {
+          "materials": 1984,
+          "production": 396.8,
+          "energy": 262.4,
+          "transport": 179.2,
+          "packaging": 25.6,
+          "total": 2848
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.72,
+        "scope2": 0.41,
+        "scope3": 3.38
+      },
+      "status": "published",
+      "version": 2,
+      "shipmentId": "00000000-0000-4000-8000-000000000332",
+      "createdAt": "2026-02-11T03:00:00.000Z",
+      "updatedAt": "2026-03-02T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000102",
+      "productCode": "WC-POL-003",
+      "productName": "Bamboo Polo",
+      "productType": "polo",
+      "weightPerUnit": 210,
+      "quantity": 900,
+      "materials": [
+        {
+          "id": "mat-2-0",
+          "materialType": "bamboo",
+          "percentage": 65,
+          "source": "domestic",
+          "certifications": [
+            "fsc"
+          ]
+        },
+        {
+          "id": "mat-2-1",
+          "materialType": "cotton",
+          "percentage": 35,
+          "source": "domestic",
+          "certifications": []
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-2",
+          "source": "grid",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Ho Chi Minh City",
+      "wasteRecovery": "partial",
+      "destinationMarket": "vietnam",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Tan Binh Workshop",
+        "ward": "",
+        "district": "",
+        "city": "Ho Chi Minh City",
+        "stateRegion": "Ho Chi Minh City",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.8,
+        "lng": 106.65
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Can Tho Hub",
+        "ward": "",
+        "district": "",
+        "city": "Can Tho",
+        "stateRegion": "Can Tho",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.04,
+        "lng": 105.74
+      },
+      "transportLegs": [
+        {
+          "id": "leg-2-0",
+          "mode": "road",
+          "estimatedDistance": 170,
+          "emissionFactor": 0.089,
+          "co2Kg": 1.18
+        }
+      ],
+      "estimatedTotalDistance": 170,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 1.88,
+          "production": 0.34,
+          "energy": 0.27,
+          "transport": 0.08,
+          "packaging": 0.04,
+          "total": 2.57
+        },
+        "totalBatch": {
+          "materials": 1692,
+          "production": 306,
+          "energy": 243,
+          "transport": 72,
+          "packaging": 36,
+          "total": 2313
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.44,
+        "scope2": 0.27,
+        "scope3": 1.96
+      },
+      "status": "draft",
+      "version": 2,
+      "shipmentId": null,
+      "createdAt": "2026-02-12T03:00:00.000Z",
+      "updatedAt": "2026-03-03T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000103",
+      "productCode": "WC-BAG-004",
+      "productName": "Canvas Tote Bag",
+      "productType": "bag",
+      "weightPerUnit": 260,
+      "quantity": 450,
+      "materials": [
+        {
+          "id": "mat-3-0",
+          "materialType": "cotton",
+          "percentage": 100,
+          "source": "domestic",
+          "certifications": [
+            "ocs"
+          ]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-3",
+          "source": "solar",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Da Nang",
+      "wasteRecovery": "high",
+      "destinationMarket": "eu",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Hoa Khanh",
+        "ward": "",
+        "district": "",
+        "city": "Da Nang",
+        "stateRegion": "Da Nang",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 16.07,
+        "lng": 108.15
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Rotterdam Port",
+        "ward": "",
+        "district": "",
+        "city": "Rotterdam",
+        "stateRegion": "Rotterdam",
+        "country": "Netherlands",
+        "postalCode": "",
+        "lat": 51.92,
+        "lng": 4.47
+      },
+      "transportLegs": [
+        {
+          "id": "leg-3-0",
+          "mode": "road",
+          "estimatedDistance": 30,
+          "emissionFactor": 0.089,
+          "co2Kg": 0.4
+        },
+        {
+          "id": "leg-3-1",
+          "mode": "sea",
+          "estimatedDistance": 11120,
+          "emissionFactor": 0.016,
+          "co2Kg": 4.7
+        }
+      ],
+      "estimatedTotalDistance": 11150,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 2.15,
+          "production": 0.4,
+          "energy": 0.25,
+          "transport": 0.22,
+          "packaging": 0.04,
+          "total": 3.06
+        },
+        "totalBatch": {
+          "materials": 967.5,
+          "production": 180,
+          "energy": 112.5,
+          "transport": 99,
+          "packaging": 18,
+          "total": 1377
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.5,
+        "scope2": 0.25,
+        "scope3": 2.37
+      },
+      "status": "draft",
+      "version": 1,
+      "shipmentId": null,
+      "createdAt": "2026-02-13T03:00:00.000Z",
+      "updatedAt": "2026-03-03T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000104",
+      "productCode": "WC-JKT-005",
+      "productName": "Performance Jacket",
+      "productType": "jacket",
+      "weightPerUnit": 540,
+      "quantity": 300,
+      "materials": [
+        {
+          "id": "mat-4-0",
+          "materialType": "recycled_polyester",
+          "percentage": 60,
+          "source": "imported",
+          "certifications": [
+            "grs"
+          ]
+        },
+        {
+          "id": "mat-4-1",
+          "materialType": "nylon",
+          "percentage": 40,
+          "source": "domestic",
+          "certifications": []
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-4",
+          "source": "grid",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Binh Duong",
+      "wasteRecovery": "partial",
+      "destinationMarket": "usa",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "VSIP 1",
+        "ward": "",
+        "district": "",
+        "city": "Binh Duong",
+        "stateRegion": "Binh Duong",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.93,
+        "lng": 106.73
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Los Angeles DC",
+        "ward": "",
+        "district": "",
+        "city": "Los Angeles",
+        "stateRegion": "Los Angeles",
+        "country": "United States",
+        "postalCode": "",
+        "lat": 34.05,
+        "lng": -118.24
+      },
+      "transportLegs": [
+        {
+          "id": "leg-4-0",
+          "mode": "road",
+          "estimatedDistance": 32,
+          "emissionFactor": 0.089,
+          "co2Kg": 0.61
+        },
+        {
+          "id": "leg-4-1",
+          "mode": "air",
+          "estimatedDistance": 13280,
+          "emissionFactor": 0.602,
+          "co2Kg": 9.8
+        }
+      ],
+      "estimatedTotalDistance": 13312,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 4.4,
+          "production": 0.73,
+          "energy": 0.36,
+          "transport": 0.92,
+          "packaging": 0.04,
+          "total": 6.45
+        },
+        "totalBatch": {
+          "materials": 1320,
+          "production": 219,
+          "energy": 108,
+          "transport": 276,
+          "packaging": 12,
+          "total": 1935
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.83,
+        "scope2": 0.36,
+        "scope3": 5.32
+      },
+      "status": "published",
+      "version": 1,
+      "shipmentId": "00000000-0000-4000-8000-000000000333",
+      "createdAt": "2026-02-14T03:00:00.000Z",
+      "updatedAt": "2026-03-03T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000105",
+      "productCode": "WC-SHI-006",
+      "productName": "Linen Resort Shirt",
+      "productType": "shirt",
+      "weightPerUnit": 230,
+      "quantity": 520,
+      "materials": [
+        {
+          "id": "mat-5-0",
+          "materialType": "linen",
+          "percentage": 100,
+          "source": "domestic",
+          "certifications": []
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-5",
+          "source": "grid",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Hue",
+      "wasteRecovery": "high",
+      "destinationMarket": "japan",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Phu Bai",
+        "ward": "",
+        "district": "",
+        "city": "Hue",
+        "stateRegion": "Hue",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 16.44,
+        "lng": 107.56
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Osaka DC",
+        "ward": "",
+        "district": "",
+        "city": "Osaka",
+        "stateRegion": "Osaka",
+        "country": "Japan",
+        "postalCode": "",
+        "lat": 34.69,
+        "lng": 135.5
+      },
+      "transportLegs": [
+        {
+          "id": "leg-5-0",
+          "mode": "road",
+          "estimatedDistance": 70,
+          "emissionFactor": 0.089,
+          "co2Kg": 0.55
+        },
+        {
+          "id": "leg-5-1",
+          "mode": "sea",
+          "estimatedDistance": 3820,
+          "emissionFactor": 0.016,
+          "co2Kg": 2.04
+        }
+      ],
+      "estimatedTotalDistance": 3890,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 1.94,
+          "production": 0.39,
+          "energy": 0.16,
+          "transport": 0.1,
+          "packaging": 0.04,
+          "total": 2.63
+        },
+        "totalBatch": {
+          "materials": 1008.8,
+          "production": 202.8,
+          "energy": 83.2,
+          "transport": 52,
+          "packaging": 20.8,
+          "total": 1367.6
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.49,
+        "scope2": 0.16,
+        "scope3": 2.04
+      },
+      "status": "draft",
+      "version": 1,
+      "shipmentId": null,
+      "createdAt": "2026-02-15T03:00:00.000Z",
+      "updatedAt": "2026-03-03T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000106",
+      "productCode": "WC-DRS-007",
+      "productName": "Viscose Summer Dress",
+      "productType": "dress",
+      "weightPerUnit": 280,
+      "quantity": 410,
+      "materials": [
+        {
+          "id": "mat-6-0",
+          "materialType": "viscose",
+          "percentage": 100,
+          "source": "domestic",
+          "certifications": [
+            "fsc"
+          ]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-6",
+          "source": "solar",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Ho Chi Minh City",
+      "wasteRecovery": "partial",
+      "destinationMarket": "eu",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Cu Chi Cluster",
+        "ward": "",
+        "district": "",
+        "city": "Ho Chi Minh City",
+        "stateRegion": "Ho Chi Minh City",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.97,
+        "lng": 106.49
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Marseille Port",
+        "ward": "",
+        "district": "",
+        "city": "Marseille",
+        "stateRegion": "Marseille",
+        "country": "France",
+        "postalCode": "",
+        "lat": 43.29,
+        "lng": 5.36
+      },
+      "transportLegs": [
+        {
+          "id": "leg-6-0",
+          "mode": "road",
+          "estimatedDistance": 28,
+          "emissionFactor": 0.089,
+          "co2Kg": 0.32
+        },
+        {
+          "id": "leg-6-1",
+          "mode": "sea",
+          "estimatedDistance": 10420,
+          "emissionFactor": 0.016,
+          "co2Kg": 4.11
+        }
+      ],
+      "estimatedTotalDistance": 10448,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 2.48,
+          "production": 0.44,
+          "energy": 0.21,
+          "transport": 0.16,
+          "packaging": 0.04,
+          "total": 3.33
+        },
+        "totalBatch": {
+          "materials": 1016.8,
+          "production": 180.4,
+          "energy": 86.1,
+          "transport": 65.6,
+          "packaging": 16.4,
+          "total": 1365.3
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.54,
+        "scope2": 0.21,
+        "scope3": 2.64
+      },
+      "status": "published",
+      "version": 1,
+      "shipmentId": null,
+      "createdAt": "2026-02-16T03:00:00.000Z",
+      "updatedAt": "2026-03-03T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000107",
+      "productCode": "WC-CAP-008",
+      "productName": "Recycled Cap",
+      "productType": "accessories",
+      "weightPerUnit": 95,
+      "quantity": 880,
+      "materials": [
+        {
+          "id": "mat-7-0",
+          "materialType": "recycled_polyester",
+          "percentage": 100,
+          "source": "imported",
+          "certifications": [
+            "rcs"
+          ]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": [
+        "cutting_sewing",
+        "finishing"
+      ],
+      "energySources": [
+        {
+          "id": "ene-7",
+          "source": "grid",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Hai Phong",
+      "wasteRecovery": "high",
+      "destinationMarket": "usa",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Nomura IZ",
+        "ward": "",
+        "district": "",
+        "city": "Hai Phong",
+        "stateRegion": "Hai Phong",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 20.84,
+        "lng": 106.68
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Seattle FC",
+        "ward": "",
+        "district": "",
+        "city": "Seattle",
+        "stateRegion": "Seattle",
+        "country": "United States",
+        "postalCode": "",
+        "lat": 47.6,
+        "lng": -122.33
+      },
+      "transportLegs": [
+        {
+          "id": "leg-7-0",
+          "mode": "sea",
+          "estimatedDistance": 10890,
+          "emissionFactor": 0.016,
+          "co2Kg": 2.48
+        }
+      ],
+      "estimatedTotalDistance": 10890,
+      "carbonResults": {
+        "perProduct": {
+          "materials": 1.22,
+          "production": 0.16,
+          "energy": 0.03,
+          "transport": 0.05,
+          "packaging": 0.04,
+          "total": 1.46
+        },
+        "totalBatch": {
+          "materials": 1073.6,
+          "production": 140.8,
+          "energy": 26.4,
+          "transport": 44,
+          "packaging": 35.2,
+          "total": 1284.8
+        },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.26,
+        "scope2": 0.03,
+        "scope3": 1.27
+      },
+      "status": "draft",
+      "version": 1,
+      "shipmentId": null,
+      "createdAt": "2026-02-17T03:00:00.000Z",
+      "updatedAt": "2026-03-03T08:00:00.000Z"
+    }
+  ],
+  "batches": [
+    {
+      "id": "00000000-0000-4000-8000-000000000441",
+      "name": "March Vietnam Retail Batch",
+      "description": "Domestic launch batch.",
+      "status": "published",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Tan Hiep",
+        "ward": "",
+        "district": "",
+        "city": "Bien Hoa",
+        "stateRegion": "Bien Hoa",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.95,
+        "lng": 106.85
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "District 7 DC",
+        "ward": "",
+        "district": "",
+        "city": "Ho Chi Minh City",
+        "stateRegion": "Ho Chi Minh City",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.72,
+        "lng": 106.72
+      },
+      "destinationMarket": "vietnam",
+      "transportModes": [
+        "road"
+      ],
+      "shipmentId": "00000000-0000-4000-8000-000000000331",
+      "totalProducts": 2,
+      "totalQuantity": 2100,
+      "totalWeight": 405,
+      "totalCO2": 126,
+      "publishedAt": "2026-03-01T10:00:00.000Z",
+      "createdAt": "2026-02-27T09:00:00.000Z",
+      "updatedAt": "2026-03-01T10:00:00.000Z",
+      "items": [
+        {
+          "id": "bi1",
+          "productId": "00000000-0000-4000-8000-000000000100",
+          "productCode": "WC-TEE-001",
+          "productName": "Organic Cotton Tee",
+          "productType": "tshirt",
+          "quantity": 1200,
+          "weightKg": 0.18,
+          "co2PerUnit": 2.31
+        },
+        {
+          "id": "bi2",
+          "productId": "00000000-0000-4000-8000-000000000102",
+          "productCode": "WC-POL-003",
+          "productName": "Bamboo Polo",
+          "productType": "polo",
+          "quantity": 900,
+          "weightKg": 0.21,
+          "co2PerUnit": 2.57
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000442",
+      "name": "EU Spring Export Batch",
+      "description": "EU assortment for buyers.",
+      "status": "draft",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Duc Hoa Hub",
+        "ward": "",
+        "district": "",
+        "city": "Long An",
+        "stateRegion": "Long An",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.87,
+        "lng": 106.42
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Hamburg Port",
+        "ward": "",
+        "district": "",
+        "city": "Hamburg",
+        "stateRegion": "Hamburg",
+        "country": "Germany",
+        "postalCode": "",
+        "lat": 53.55,
+        "lng": 9.99
+      },
+      "destinationMarket": "eu",
+      "transportModes": [
+        "road",
+        "sea"
+      ],
+      "shipmentId": null,
+      "totalProducts": 2,
+      "totalQuantity": 1090,
+      "totalWeight": 386,
+      "totalCO2": 980,
+      "createdAt": "2026-03-01T11:00:00.000Z",
+      "updatedAt": "2026-03-01T11:00:00.000Z",
+      "items": [
+        {
+          "id": "bi3",
+          "productId": "00000000-0000-4000-8000-000000000101",
+          "productCode": "WC-DEN-002",
+          "productName": "Recycled Denim Jeans",
+          "productType": "pants",
+          "quantity": 640,
+          "weightKg": 0.42,
+          "co2PerUnit": 4.45
+        },
+        {
+          "id": "bi4",
+          "productId": "00000000-0000-4000-8000-000000000103",
+          "productCode": "WC-BAG-004",
+          "productName": "Canvas Tote Bag",
+          "productType": "bag",
+          "quantity": 450,
+          "weightKg": 0.26,
+          "co2PerUnit": 3.06
+        }
+      ]
+    }
+  ],
+  "shipments": [
+    {
+      "id": "00000000-0000-4000-8000-000000000331",
+      "reference_number": "SHIP-VN-1001",
+      "status": "delivered",
+      "origin": {
+        "streetNumber": "",
+        "street": "Tan Hiep",
+        "ward": "",
+        "district": "",
+        "city": "Bien Hoa",
+        "stateRegion": "Bien Hoa",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.95,
+        "lng": 106.85
+      },
+      "destination": {
+        "streetNumber": "",
+        "street": "District 7 DC",
+        "ward": "",
+        "district": "",
+        "city": "Ho Chi Minh City",
+        "stateRegion": "Ho Chi Minh City",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.72,
+        "lng": 106.72
+      },
+      "total_weight_kg": 405,
+      "total_distance_km": 45,
+      "total_co2e": 126,
+      "estimated_arrival": "2026-03-18",
+      "actual_arrival": "2026-03-02",
+      "legs_count": 1,
+      "products_count": 2,
+      "created_at": "2026-03-01T02:00:00.000Z",
+      "updated_at": "2026-03-03T05:00:00.000Z",
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "legs": [
+        {
+          "id": "sleg1",
+          "leg_order": 1,
+          "transport_mode": "road",
+          "origin_location": "Bien Hoa Factory",
+          "destination_location": "Ho Chi Minh DC",
+          "distance_km": 45,
+          "duration_hours": 2.5,
+          "co2e": 126,
+          "emission_factor_used": 0.089,
+          "carrier_name": "GreenRoad",
+          "vehicle_type": "Truck 2T"
+        }
+      ],
+      "products": [
+        {
+          "id": "sp1",
+          "product_id": "00000000-0000-4000-8000-000000000100",
+          "quantity": 1200,
+          "weight_kg": 216,
+          "allocated_co2e": 82,
+          "sku": "WC-TEE-001",
+          "product_name": "Organic Cotton Tee"
+        },
+        {
+          "id": "sp2",
+          "product_id": "00000000-0000-4000-8000-000000000102",
+          "quantity": 900,
+          "weight_kg": 189,
+          "allocated_co2e": 44,
+          "sku": "WC-POL-003",
+          "product_name": "Bamboo Polo"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000332",
+      "reference_number": "SHIP-EU-2304",
+      "status": "in_transit",
+      "origin": {
+        "streetNumber": "",
+        "street": "Duc Hoa Hub",
+        "ward": "",
+        "district": "",
+        "city": "Long An",
+        "stateRegion": "Long An",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.87,
+        "lng": 106.42
+      },
+      "destination": {
+        "streetNumber": "",
+        "street": "Hamburg Port",
+        "ward": "",
+        "district": "",
+        "city": "Hamburg",
+        "stateRegion": "Hamburg",
+        "country": "Germany",
+        "postalCode": "",
+        "lat": 53.55,
+        "lng": 9.99
+      },
+      "total_weight_kg": 385.8,
+      "total_distance_km": 10905,
+      "total_co2e": 980,
+      "estimated_arrival": "2026-03-18",
+      "actual_arrival": null,
+      "legs_count": 2,
+      "products_count": 2,
+      "created_at": "2026-03-01T02:00:00.000Z",
+      "updated_at": "2026-03-03T05:00:00.000Z",
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "legs": [
+        {
+          "id": "sleg2",
+          "leg_order": 1,
+          "transport_mode": "road",
+          "origin_location": "Long An Factory",
+          "destination_location": "Cat Lai Port",
+          "distance_km": 65,
+          "duration_hours": 3.2,
+          "co2e": 180,
+          "emission_factor_used": 0.089,
+          "carrier_name": "Saigon Haulage",
+          "vehicle_type": "Container Truck"
+        },
+        {
+          "id": "sleg3",
+          "leg_order": 2,
+          "transport_mode": "sea",
+          "origin_location": "Cat Lai Port",
+          "destination_location": "Hamburg Port",
+          "distance_km": 10840,
+          "duration_hours": 410,
+          "co2e": 800,
+          "emission_factor_used": 0.016,
+          "carrier_name": "OceanBridge",
+          "vehicle_type": "Container Vessel"
+        }
+      ],
+      "products": [
+        {
+          "id": "sp3",
+          "product_id": "00000000-0000-4000-8000-000000000101",
+          "quantity": 640,
+          "weight_kg": 268.8,
+          "allocated_co2e": 720,
+          "sku": "WC-DEN-002",
+          "product_name": "Recycled Denim Jeans"
+        },
+        {
+          "id": "sp4",
+          "product_id": "00000000-0000-4000-8000-000000000103",
+          "quantity": 450,
+          "weight_kg": 117,
+          "allocated_co2e": 260,
+          "sku": "WC-BAG-004",
+          "product_name": "Canvas Tote Bag"
+        }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000333",
+      "reference_number": "SHIP-US-0408",
+      "status": "pending",
+      "origin": {
+        "streetNumber": "",
+        "street": "VSIP 1",
+        "ward": "",
+        "district": "",
+        "city": "Binh Duong",
+        "stateRegion": "Binh Duong",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.93,
+        "lng": 106.73
+      },
+      "destination": {
+        "streetNumber": "",
+        "street": "Los Angeles DC",
+        "ward": "",
+        "district": "",
+        "city": "Los Angeles",
+        "stateRegion": "Los Angeles",
+        "country": "United States",
+        "postalCode": "",
+        "lat": 34.05,
+        "lng": -118.24
+      },
+      "total_weight_kg": 162,
+      "total_distance_km": 13312,
+      "total_co2e": 1180,
+      "estimated_arrival": "2026-03-18",
+      "actual_arrival": null,
+      "legs_count": 2,
+      "products_count": 1,
+      "created_at": "2026-03-01T02:00:00.000Z",
+      "updated_at": "2026-03-03T05:00:00.000Z",
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "legs": [
+        {
+          "id": "sleg4",
+          "leg_order": 1,
+          "transport_mode": "road",
+          "origin_location": "Binh Duong Factory",
+          "destination_location": "Tan Son Nhat Airport",
+          "distance_km": 32,
+          "duration_hours": 1.4,
+          "co2e": 120,
+          "emission_factor_used": 0.089,
+          "carrier_name": "GreenRoad",
+          "vehicle_type": "Truck 1T"
+        },
+        {
+          "id": "sleg5",
+          "leg_order": 2,
+          "transport_mode": "air",
+          "origin_location": "Ho Chi Minh City",
+          "destination_location": "Los Angeles",
+          "distance_km": 13280,
+          "duration_hours": 18,
+          "co2e": 1060,
+          "emission_factor_used": 0.602,
+          "carrier_name": "Pacific Air Cargo",
+          "vehicle_type": "Freighter"
+        }
+      ],
+      "products": [
+        {
+          "id": "sp5",
+          "product_id": "00000000-0000-4000-8000-000000000104",
+          "quantity": 300,
+          "weight_kg": 162,
+          "allocated_co2e": 1180,
+          "sku": "WC-JKT-005",
+          "product_name": "Performance Jacket"
+        }
+      ]
+    }
+  ],
+  "exportCompliance": {
+    "VN": {
+      "market": "VN",
+      "marketName": "Vietnam",
+      "regulation": {
+        "code": "VN GHG",
+        "name": "Vietnam GHG Inventory",
+        "legalReference": "Decree 06/2022/ND-CP",
+        "guideUrl": "https://www.monre.gov.vn/",
+        "reportingScope": "Company and facility level",
+        "reportingFrequency": "Annual",
+        "enforcementDate": "2026-01-01",
+        "description": "Domestic documentation and carbon reporting readiness."
+      },
+      "score": 78,
+      "status": "ready",
+      "lastUpdated": "2026-03-03T09:00:00.000Z",
+      "requiredDocuments": [
+        "vn_labeling",
+        "vn_import_dossier"
+      ],
+      "requiredDocumentsCount": 2,
+      "requiredDocumentsUploadedCount": 2,
+      "requiredDocumentsMissingCount": 0,
+      "documentsTotalCount": 5,
+      "documentsUploadedCount": 4,
+      "documentsMissingCount": 1,
+      "documents": [
+        {
+          "id": "vn_labeling",
+          "name": "Domestic goods labeling (Vietnamese)",
+          "type": "document",
+          "required": true,
+          "status": "approved",
+          "downloadUrl": "/demo-assets/documents/eia-vn.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "vn_import_dossier",
+          "name": "Basic import dossier",
+          "type": "document",
+          "required": true,
+          "status": "uploaded",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "vn_co_fta",
+          "name": "Certificate of Origin / FTA document",
+          "type": "document",
+          "required": false,
+          "status": "missing"
+        },
+        {
+          "id": "cert_gots",
+          "name": "GOTS — Global Organic Textile Standard",
+          "type": "material_certification",
+          "required": false,
+          "status": "approved",
+          "downloadUrl": "/demo-assets/documents/eia-vn.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "cert_rcs",
+          "name": "RCS — Recycled Claim Standard",
+          "type": "material_certification",
+          "required": false,
+          "status": "uploaded",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        }
+      ],
+      "carbonData": [
+        {
+          "scope": "scope1",
+          "value": 42.6,
+          "unit": "tCO2e",
+          "methodology": "GHG Protocol",
+          "dataSource": "Fuel log",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        },
+        {
+          "scope": "scope2",
+          "value": 23.4,
+          "unit": "tCO2e",
+          "methodology": "GHG Protocol",
+          "dataSource": "Electricity bills",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        },
+        {
+          "scope": "scope3",
+          "value": 88.2,
+          "unit": "tCO2e",
+          "methodology": "LCA",
+          "dataSource": "Transport model",
+          "reportingPeriod": "2025",
+          "isComplete": false
+        }
+      ],
+      "productScope": [
+        {
+          "productId": "00000000-0000-4000-8000-000000000100",
+          "productName": "Organic Cotton Tee",
+          "hsCode": "610910",
+          "productionSite": "Bien Hoa",
+          "exportVolume": 1200,
+          "unit": "pcs"
+        }
+      ],
+      "emissionFactors": [
+        {
+          "name": "Demo factor set",
+          "source": "Demo library",
+          "version": "2026.1",
+          "appliedDate": "2026-03-01"
+        }
+      ],
+      "recommendations": [
+        {
+          "id": "rec-vn-1",
+          "relatedDocumentId": "vn_co_fta",
+          "type": "document",
+          "missingItem": "Certificate of Origin / FTA document",
+          "regulatoryReason": "Optional for tariff preference claims.",
+          "businessImpact": "Improves tariff preference readiness.",
+          "recommendedAction": [
+            "Upload COO/FTA declaration PDF."
+          ],
+          "priority": "recommended",
+          "ctaLabel": "Upload COO/FTA",
+          "ctaAction": "upload_document",
+          "status": "active"
+        }
+      ],
+      "verificationRequired": true,
+      "verificationStatus": "verified",
+      "approvalNote": "Demo readiness snapshot",
+      "verifiedBy": "Demo Compliance Lead"
+    },
+    "EU": {
+      "market": "EU",
+      "marketName": "European Union",
+      "regulation": {
+        "code": "EU CBAM",
+        "name": "Carbon Border Adjustment Mechanism",
+        "legalReference": "Regulation (EU) 2023/956",
+        "guideUrl": "https://eur-lex.europa.eu/",
+        "reportingScope": "Product level",
+        "reportingFrequency": "Quarterly",
+        "enforcementDate": "2026-01-01",
+        "description": "EU market access documentation."
+      },
+      "score": 54,
+      "status": "incomplete",
+      "lastUpdated": "2026-03-03T09:00:00.000Z",
+      "requiredDocuments": [
+        "eu_label",
+        "eu_origin_marking",
+        "eu_reach"
+      ],
+      "requiredDocumentsCount": 3,
+      "requiredDocumentsUploadedCount": 3,
+      "requiredDocumentsMissingCount": 0,
+      "documentsTotalCount": 7,
+      "documentsUploadedCount": 4,
+      "documentsMissingCount": 3,
+      "documents": [
+        {
+          "id": "eu_label",
+          "name": "Textile fibre composition labeling",
+          "type": "document",
+          "required": true,
+          "status": "approved",
+          "downloadUrl": "/demo-assets/documents/reach-eu.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "eu_origin_marking",
+          "name": "Country-of-origin marking",
+          "type": "document",
+          "required": true,
+          "status": "uploaded",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "eu_reach",
+          "name": "REACH market-access compliance declaration",
+          "type": "document",
+          "required": true,
+          "status": "approved",
+          "downloadUrl": "/demo-assets/documents/reach-eu.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "eu_origin_decl",
+          "name": "Origin declaration",
+          "type": "document",
+          "required": false,
+          "status": "missing"
+        },
+        {
+          "id": "eu_buyer_cert",
+          "name": "Buyer certifications (OEKO-TEX/GRS)",
+          "type": "document",
+          "required": false,
+          "status": "missing"
+        },
+        {
+          "id": "cert_grs",
+          "name": "GRS — Global Recycled Standard",
+          "type": "material_certification",
+          "required": false,
+          "status": "approved",
+          "downloadUrl": "/demo-assets/documents/reach-eu.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "cert_oeko_tex",
+          "name": "OEKO-TEX STANDARD 100",
+          "type": "material_certification",
+          "required": false,
+          "status": "missing"
+        }
+      ],
+      "carbonData": [
+        {
+          "scope": "scope1",
+          "value": 36.8,
+          "unit": "tCO2e",
+          "methodology": "GHG Protocol",
+          "dataSource": "Fuel records",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        },
+        {
+          "scope": "scope2",
+          "value": 28.4,
+          "unit": "tCO2e",
+          "methodology": "GHG Protocol",
+          "dataSource": "Utility",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        },
+        {
+          "scope": "scope3",
+          "value": 140.2,
+          "unit": "tCO2e",
+          "methodology": "Product LCA",
+          "dataSource": "Product + logistics",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        }
+      ],
+      "productScope": [
+        {
+          "productId": "00000000-0000-4000-8000-000000000101",
+          "productName": "Recycled Denim Jeans",
+          "hsCode": "620342",
+          "productionSite": "Long An",
+          "exportVolume": 640,
+          "unit": "pcs"
+        },
+        {
+          "productId": "00000000-0000-4000-8000-000000000103",
+          "productName": "Canvas Tote Bag",
+          "hsCode": "420292",
+          "productionSite": "Da Nang",
+          "exportVolume": 450,
+          "unit": "pcs"
+        }
+      ],
+      "emissionFactors": [
+        {
+          "name": "Demo factor set",
+          "source": "Demo library",
+          "version": "2026.1",
+          "appliedDate": "2026-03-01"
+        }
+      ],
+      "recommendations": [
+        {
+          "id": "rec-eu-1",
+          "relatedDocumentId": "eu_origin_decl",
+          "type": "document",
+          "missingItem": "Origin declaration",
+          "regulatoryReason": "Supports EVFTA preferential treatment.",
+          "businessImpact": "Buyer onboarding remains incomplete.",
+          "recommendedAction": [
+            "Upload signed origin declaration PDF."
+          ],
+          "priority": "important",
+          "ctaLabel": "Upload origin document",
+          "ctaAction": "upload_document",
+          "status": "active"
+        }
+      ],
+      "verificationRequired": true,
+      "verificationStatus": "pending",
+      "approvalNote": "Demo readiness snapshot",
+      "verifiedBy": null
+    },
+    "US": {
+      "market": "US",
+      "marketName": "United States",
+      "regulation": {
+        "code": "US Climate Act",
+        "name": "California Climate Corporate Data Accountability Act",
+        "legalReference": "SB 253 and SB 261",
+        "guideUrl": "https://ww2.arb.ca.gov/",
+        "reportingScope": "Company and product level",
+        "reportingFrequency": "Annual",
+        "enforcementDate": "2026-01-01",
+        "description": "US market readiness baseline."
+      },
+      "score": 42,
+      "status": "draft",
+      "lastUpdated": "2026-03-03T09:00:00.000Z",
+      "requiredDocuments": [
+        "us_ftc_label",
+        "us_origin_marking"
+      ],
+      "requiredDocumentsCount": 2,
+      "requiredDocumentsUploadedCount": 1,
+      "requiredDocumentsMissingCount": 1,
+      "documentsTotalCount": 5,
+      "documentsUploadedCount": 3,
+      "documentsMissingCount": 2,
+      "documents": [
+        {
+          "id": "us_ftc_label",
+          "name": "FTC textile labeling package",
+          "type": "document",
+          "required": true,
+          "status": "uploaded",
+          "downloadUrl": "/demo-assets/documents/ftc-us.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "us_origin_marking",
+          "name": "Country-of-origin marking",
+          "type": "document",
+          "required": true,
+          "status": "missing"
+        },
+        {
+          "id": "us_esg_audit",
+          "name": "ESG/social audit package",
+          "type": "document",
+          "required": false,
+          "status": "uploaded",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "cert_grs_us",
+          "name": "GRS — Global Recycled Standard",
+          "type": "material_certification",
+          "required": false,
+          "status": "approved",
+          "downloadUrl": "/demo-assets/documents/ftc-us.pdf",
+          "uploadedBy": "Demo Admin",
+          "uploadedDate": "2026-03-02T08:00:00.000Z"
+        },
+        {
+          "id": "cert_bci_us",
+          "name": "Better Cotton (BCI)",
+          "type": "material_certification",
+          "required": false,
+          "status": "missing"
+        }
+      ],
+      "carbonData": [
+        {
+          "scope": "scope1",
+          "value": 48.4,
+          "unit": "tCO2e",
+          "methodology": "GHG Protocol",
+          "dataSource": "Fuel records",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        },
+        {
+          "scope": "scope2",
+          "value": 31.1,
+          "unit": "tCO2e",
+          "methodology": "GHG Protocol",
+          "dataSource": "Electricity bills",
+          "reportingPeriod": "2025",
+          "isComplete": true
+        },
+        {
+          "scope": "scope3",
+          "value": 166.9,
+          "unit": "tCO2e",
+          "methodology": "LCA",
+          "dataSource": "Product and route model",
+          "reportingPeriod": "2025",
+          "isComplete": false
+        }
+      ],
+      "productScope": [
+        {
+          "productId": "00000000-0000-4000-8000-000000000104",
+          "productName": "Performance Jacket",
+          "hsCode": "620240",
+          "productionSite": "Binh Duong",
+          "exportVolume": 300,
+          "unit": "pcs"
+        }
+      ],
+      "emissionFactors": [
+        {
+          "name": "Demo factor set",
+          "source": "Demo library",
+          "version": "2026.1",
+          "appliedDate": "2026-03-01"
+        }
+      ],
+      "recommendations": [
+        {
+          "id": "rec-us-1",
+          "relatedDocumentId": "us_origin_marking",
+          "type": "document",
+          "missingItem": "Country-of-origin marking",
+          "regulatoryReason": "Required for textile labeling in the US.",
+          "businessImpact": "Shipment cannot be marked ready.",
+          "recommendedAction": [
+            "Upload COO marking sheet PDF."
+          ],
+          "priority": "mandatory",
+          "ctaLabel": "Upload marking sheet",
+          "ctaAction": "upload_document",
+          "status": "active"
+        }
+      ],
+      "verificationRequired": true,
+      "verificationStatus": "pending",
+      "approvalNote": "Demo readiness snapshot",
+      "verifiedBy": null
+    }
+  },
+  "reports": [
+    {
+      "id": "00000000-0000-4000-8000-000000000551",
+      "title": "Carbon audit snapshot",
+      "type": "carbon_audit",
+      "format": "XLSX",
+      "status": "completed",
+      "createdAt": "2026-03-03T08:00:00.000Z",
+      "date": "2026-03-03",
+      "size": "24.0 KB",
+      "records": 8,
+      "co2e": 14325,
+      "downloadUrl": "demo://report/00000000-0000-4000-8000-000000000551",
+      "snapshot": {
+        "datasetType": "products",
+        "columns": [
+          "productCode",
+          "productName",
+          "status",
+          "destinationMarket",
+          "totalCo2e"
+        ],
+        "rows": [
+          {
+            "productCode": "WC-TEE-001",
+            "productName": "Organic Cotton Tee",
+            "status": "published",
+            "destinationMarket": "vietnam",
+            "totalCo2e": 2772
+          },
+          {
+            "productCode": "WC-DEN-002",
+            "productName": "Recycled Denim Jeans",
+            "status": "published",
+            "destinationMarket": "eu",
+            "totalCo2e": 2848
+          },
+          {
+            "productCode": "WC-POL-003",
+            "productName": "Bamboo Polo",
+            "status": "draft",
+            "destinationMarket": "vietnam",
+            "totalCo2e": 2313
+          },
+          {
+            "productCode": "WC-BAG-004",
+            "productName": "Canvas Tote Bag",
+            "status": "draft",
+            "destinationMarket": "eu",
+            "totalCo2e": 1377
+          },
+          {
+            "productCode": "WC-JKT-005",
+            "productName": "Performance Jacket",
+            "status": "published",
+            "destinationMarket": "usa",
+            "totalCo2e": 1935
+          },
+          {
+            "productCode": "WC-SHI-006",
+            "productName": "Linen Resort Shirt",
+            "status": "draft",
+            "destinationMarket": "japan",
+            "totalCo2e": 1367.6
+          },
+          {
+            "productCode": "WC-DRS-007",
+            "productName": "Viscose Summer Dress",
+            "status": "published",
+            "destinationMarket": "eu",
+            "totalCo2e": 1365.3
+          },
+          {
+            "productCode": "WC-CAP-008",
+            "productName": "Recycled Cap",
+            "status": "draft",
+            "destinationMarket": "usa",
+            "totalCo2e": 1284.8
+          }
+        ]
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000552",
+      "title": "Sustainability overview",
+      "type": "sustainability",
+      "format": "CSV",
+      "status": "completed",
+      "createdAt": "2026-03-03T08:30:00.000Z",
+      "date": "2026-03-03",
+      "size": "6.4 KB",
+      "records": 3,
+      "co2e": null,
+      "downloadUrl": "demo://report/00000000-0000-4000-8000-000000000552",
+      "snapshot": {
+        "datasetType": "analytics",
+        "columns": [
+          "id",
+          "period",
+          "total_products",
+          "published_products",
+          "total_co2e",
+          "avg_co2e_per_unit",
+          "export_ready_markets"
+        ],
+        "rows": [
+          {
+            "id": "an-1",
+            "period": "2026-01",
+            "total_products": 5,
+            "published_products": 2,
+            "total_co2e": 8420,
+            "avg_co2e_per_unit": 3.98,
+            "export_ready_markets": 1
+          },
+          {
+            "id": "an-2",
+            "period": "2026-02",
+            "total_products": 8,
+            "published_products": 4,
+            "total_co2e": 13925,
+            "avg_co2e_per_unit": 3.74,
+            "export_ready_markets": 1
+          },
+          {
+            "id": "an-3",
+            "period": "2026-03",
+            "total_products": 8,
+            "published_products": 4,
+            "total_co2e": 14325,
+            "avg_co2e_per_unit": 3.86,
+            "export_ready_markets": 2
+          }
+        ]
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "email": "demo.b2b@weavecarbon.com",
+      "full_name": "Demo B2B Admin",
+      "role": "root",
+      "status": "active",
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "last_login_at": "2026-03-03T09:30:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000023",
+      "email": "ops@weavecarbon.com",
+      "full_name": "Operations Lead",
+      "role": "member",
+      "status": "active",
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "last_login_at": "2026-03-03T07:20:00.000Z"
+    }
+  ],
+  "history": [
+    {
+      "id": "hist-1",
+      "product_id": "00000000-0000-4000-8000-000000000100",
+      "product_name": "Organic Cotton Tee",
+      "calculated_at": "2026-03-01T10:00:00.000Z",
+      "total_co2e": 2772,
+      "confidence": 93,
+      "version": 2
+    },
+    {
+      "id": "hist-2",
+      "product_id": "00000000-0000-4000-8000-000000000101",
+      "product_name": "Recycled Denim Jeans",
+      "calculated_at": "2026-03-01T10:05:00.000Z",
+      "total_co2e": 2848,
+      "confidence": 90,
+      "version": 2
+    },
+    {
+      "id": "hist-3",
+      "product_id": "00000000-0000-4000-8000-000000000104",
+      "product_name": "Performance Jacket",
+      "calculated_at": "2026-03-02T10:00:00.000Z",
+      "total_co2e": 1935,
+      "confidence": 82,
+      "version": 2
+    }
+  ],
+  "analytics": {
+    "rows": [
+      {
+        "id": "an-1",
+        "period": "2026-01",
+        "total_products": 5,
+        "published_products": 2,
+        "total_co2e": 8420,
+        "avg_co2e_per_unit": 3.98,
+        "export_ready_markets": 1
+      },
+      {
+        "id": "an-2",
+        "period": "2026-02",
+        "total_products": 8,
+        "published_products": 4,
+        "total_co2e": 13925,
+        "avg_co2e_per_unit": 3.74,
+        "export_ready_markets": 1
+      },
+      {
+        "id": "an-3",
+        "period": "2026-03",
+        "total_products": 8,
+        "published_products": 4,
+        "total_co2e": 14325,
+        "avg_co2e_per_unit": 3.86,
+        "export_ready_markets": 2
+      }
+    ]
+  },
+  "uiState": {}
+}
