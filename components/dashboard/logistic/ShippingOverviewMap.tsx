@@ -33,6 +33,7 @@ import {
   formatShipmentLocation,
   inferShipmentProgress,
   isValidUuid,
+  resolveShipmentEta,
   toTrackShipmentStatus,
   toTransportLegs,
   type LogisticsShipmentSummary,
@@ -51,6 +52,7 @@ interface Shipment {
   productName: string;
   sku: string;
   status: "in_transit" | "delivered" | "pending" | "cancelled";
+  simulationEnabled: boolean;
   progress: number;
   origin: string;
   destination: string;
@@ -65,20 +67,6 @@ interface Shipment {
   totalCO2: number;
   carrier: string;
 }
-
-const normalizeDateOnly = (value: string | null | undefined) => {
-  if (!value) {
-    return new Date().toISOString().slice(0, 10);
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value.slice(0, 10);
-  }
-  return parsed.toISOString().slice(0, 10);
-};
-
-const deriveDepartureDate = (createdAt: string | null | undefined) =>
-normalizeDateOnly(createdAt);
 
 const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   const normalizedReference = referenceNumber.replace(/[^a-zA-Z0-9]/g, "");
@@ -135,13 +123,12 @@ fallbacks: {shipmentName: string;unknownCarrier: string;})
     fallbacks.shipmentName,
     sku: firstProduct?.sku || detailLike.reference_number || detailLike.id,
     status,
+    simulationEnabled: detailLike.simulation_enabled,
     progress,
     origin: originLabel,
     destination: destinationLabel,
-    estimatedArrival: normalizeDateOnly(
-      detailLike.actual_arrival || detailLike.estimated_arrival || detailLike.updated_at
-    ),
-    createdAt: normalizeDateOnly(detailLike.created_at),
+    estimatedArrival: resolveShipmentEta(detailLike) || detailLike.updated_at,
+    createdAt: detailLike.created_at,
     currentLocation: {
       lat: fallbackLocation.lat,
       lng: fallbackLocation.lng,
@@ -284,11 +271,12 @@ const toDetailShipment = (shipment: Shipment): TrackShipment => ({
   productName: shipment.productName,
   sku: shipment.sku,
   status: shipment.status,
+  simulationEnabled: shipment.simulationEnabled,
   progress: shipment.progress,
   origin: shipment.origin,
   destination: shipment.destination,
   estimatedArrival: shipment.estimatedArrival,
-  departureDate: deriveDepartureDate(shipment.createdAt),
+  departureDate: shipment.createdAt,
   currentLocation: shipment.currentLocation?.name || shipment.origin,
   legs: shipment.legs,
   totalCO2: shipment.totalCO2,
@@ -1028,7 +1016,11 @@ const ShippingOverviewMap: React.FC = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="h-full overflow-y-auto overflow-x-hidden p-3 md:p-4">
-              <ShipmentDetails shipment={detailShipment} />
+              <ShipmentDetails
+                shipment={detailShipment}
+                onRefresh={() => {
+                  void loadUserShipments(false);
+                }} />
             </div>
           </DialogContent>
         }

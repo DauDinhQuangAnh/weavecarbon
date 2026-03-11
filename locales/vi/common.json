@@ -1643,9 +1643,14 @@
     "legNumber": "Chặng",
     "international": "Quốc tế",
     "domestic": "Nội địa",
-    "viewLogistics": "Xem chi tiết logistics",
-    "viewCarbonHistory": "Xem lịch sử carbon",
-    "statuses": {
+  "viewLogistics": "Xem chi tiết logistics",
+  "viewCarbonHistory": "Xem lịch sử carbon",
+  "cancelShipment": "Hủy lô hàng",
+  "cancelling": "Đang hủy...",
+  "confirmCancel": "Bạn có chắc muốn hủy lô hàng này không? Chỉ có thể hủy khi lô hàng còn ở trạng thái chờ xử lý.",
+  "cancelSuccess": "Đã hủy lô hàng.",
+  "cancelFailed": "Không thể hủy lô hàng.",
+  "statuses": {
       "delivered": "Đã giao",
       "inTransit": "Đang vận chuyển",
       "pending": "Chờ xuất phát",

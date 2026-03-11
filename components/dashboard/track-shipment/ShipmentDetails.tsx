@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -26,6 +26,9 @@ import {
 import type { TrackShipment } from "./types";
 import TransportMap from "@/components/ui/TransportMap";
 import { useAppRoutes } from "@/lib/demo/routes";
+import { updateLogisticsShipmentStatus } from "@/lib/logisticsApi";
+import { isApiError } from "@/lib/apiClient";
+import { toast } from "sonner";
 
 interface ShipmentDetailsProps {
   shipment: TrackShipment | null;
@@ -70,6 +73,43 @@ const STATUS_PALETTE = {
   }
 } as const;
 
+const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseShipmentDate = (value: string | null | undefined) => {
+  if (!value) return null;
+  if (ISO_DATE_ONLY_REGEX.test(value)) {
+    const [year, month, day] = value.split("-").map((part) => Number(part));
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatShipmentDate = (value: string | null | undefined, locale: string) => {
+  const parsed = parseShipmentDate(value);
+  if (!parsed) return "--";
+  return parsed.toLocaleDateString(locale);
+};
+
+const formatShipmentDateTime = (value: string | null | undefined, locale: string) => {
+  const parsed = parseShipmentDate(value);
+  if (!parsed) return "--";
+
+  const options =
+  ISO_DATE_ONLY_REGEX.test(value || "") ?
+  { year: "numeric", month: "short", day: "2-digit" } as const :
+  {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  } as const;
+
+  return parsed.toLocaleString(locale, options);
+};
+
 const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   shipment,
   onRefresh
@@ -79,6 +119,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
   const router = useRouter();
   const appRoutes = useAppRoutes();
+  const [isCancelling, setIsCancelling] = useState(false);
   const formatDistanceKm = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
   const formatExactValue = (value: number) =>
@@ -87,6 +128,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   shipment && shipment.status in STATUS_PALETTE ?
   STATUS_PALETTE[shipment.status as keyof typeof STATUS_PALETTE] :
   STATUS_PALETTE.unknown;
+  const canCancel =
+  Boolean(
+    shipment &&
+    shipment.shipmentId &&
+    shipment.simulationEnabled &&
+    shipment.status === "pending" &&
+    !appRoutes.isDemo
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -138,6 +187,28 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   t.has(`transportModes.${mode}`) ?
   t(`transportModes.${mode}`) :
   mode;
+
+  const handleCancelShipment = async () => {
+    if (!shipment?.shipmentId || !canCancel || isCancelling) return;
+
+    const confirmed = window.confirm(t("confirmCancel"));
+    if (!confirmed) return;
+
+    try {
+      setIsCancelling(true);
+      await updateLogisticsShipmentStatus(shipment.shipmentId, "cancelled");
+      toast.success(t("cancelSuccess"));
+      onRefresh?.();
+    } catch (error) {
+      if (isApiError(error) && error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error(t("cancelFailed"));
+      }
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   if (!shipment) {
     return (
@@ -196,16 +267,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               <Calendar className="mx-auto mb-1 h-5 w-5 text-slate-500" />
               <p className="text-xs text-slate-500">{t("departureDate")}</p>
               <p className="font-medium text-slate-800">
-                {new Date(shipment.departureDate).toLocaleDateString(displayLocale)}
+                {formatShipmentDate(shipment.departureDate, displayLocale)}
               </p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-center">
               <Clock className="mx-auto mb-1 h-5 w-5 text-slate-500" />
               <p className="text-xs text-slate-500">{t("estimatedArrival")}</p>
               <p className="font-medium text-slate-800">
-                {new Date(shipment.estimatedArrival).toLocaleDateString(
-                  displayLocale
-                )}
+                {formatShipmentDateTime(shipment.estimatedArrival, displayLocale)}
               </p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-center">
@@ -297,6 +366,17 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
           
           <div className="flex gap-3 border-t border-slate-200 pt-4">
+            {canCancel &&
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => {
+                void handleCancelShipment();
+              }}
+              disabled={isCancelling}>
+                {isCancelling ? t("cancelling") : t("cancelShipment")}
+              </Button>
+            }
             <Button
               variant="outline"
               className="flex-1 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"

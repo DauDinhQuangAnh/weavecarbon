@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/purity */
 "use client";
 import { motion, AnimatePresence } from "motion/react";
 import {

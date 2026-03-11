@@ -11,20 +11,12 @@ import {
   fetchAllLogisticsShipmentDetails,
   formatShipmentLocation,
   inferShipmentProgress,
+  resolveShipmentEta,
   toTrackShipmentStatus,
   toTransportLegs,
   type LogisticsShipmentDetail } from
 "@/lib/logisticsApi";
 import { PRODUCT_USAGE_UPDATED_EVENT } from "@/lib/productUsageEvents";
-
-const normalizeDateOnly = (value: string | null | undefined) => {
-  if (!value) return new Date().toISOString().slice(0, 10);
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value.slice(0, 10);
-  }
-  return parsed.toISOString().slice(0, 10);
-};
 
 const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   const normalizedReference = referenceNumber.replace(/[^a-zA-Z0-9]/g, "");
@@ -48,10 +40,6 @@ fallbacks: {unknownCarrier: string;shipmentName: string;})
   shipment.legs.find((leg) => leg.carrier_name.trim().length > 0)?.carrier_name ||
   fallbacks.unknownCarrier;
 
-  const estimatedArrival =
-  normalizeDateOnly(shipment.actual_arrival || shipment.estimated_arrival) ||
-  normalizeDateOnly(shipment.updated_at);
-
   return {
     id: shipment.reference_number || shipment.id,
     shipmentId: shipment.id,
@@ -62,11 +50,12 @@ fallbacks: {unknownCarrier: string;shipmentName: string;})
     fallbacks.shipmentName,
     sku: firstProduct?.sku || shipment.reference_number || shipment.id,
     status,
+    simulationEnabled: shipment.simulation_enabled,
     progress,
     origin: originLabel,
     destination: destinationLabel,
-    estimatedArrival,
-    departureDate: normalizeDateOnly(shipment.created_at),
+    estimatedArrival: resolveShipmentEta(shipment) || shipment.updated_at,
+    departureDate: shipment.created_at,
     currentLocation: status === "delivered" ? destinationLabel : originLabel,
     legs: toTransportLegs(shipment),
     totalCO2: shipment.total_co2e,

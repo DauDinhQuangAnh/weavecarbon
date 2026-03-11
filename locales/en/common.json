@@ -1643,9 +1643,14 @@
     "legNumber": "Leg",
     "international": "International",
     "domestic": "Domestic",
-    "viewLogistics": "View Logistics Details",
-    "viewCarbonHistory": "View Carbon History",
-    "statuses": {
+  "viewLogistics": "View Logistics Details",
+  "viewCarbonHistory": "View Carbon History",
+  "cancelShipment": "Cancel Shipment",
+  "cancelling": "Cancelling...",
+  "confirmCancel": "Are you sure you want to cancel this shipment? Only shipments that are still pending can be cancelled.",
+  "cancelSuccess": "Shipment cancelled.",
+  "cancelFailed": "Unable to cancel shipment.",
+  "statuses": {
       "delivered": "Delivered",
       "inTransit": "In Transit",
       "pending": "Pending",

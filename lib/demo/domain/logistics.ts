@@ -96,8 +96,12 @@ const buildShipmentDetail = (
     total_weight_kg: 0,
     total_distance_km: 0,
     total_co2e: 0,
+    pending_until: null,
     estimated_arrival: payload.estimated_arrival || existing?.estimated_arrival || null,
+    estimated_arrival_at: existing?.estimated_arrival_at || null,
     actual_arrival: existing?.actual_arrival || null,
+    actual_arrival_at: existing?.actual_arrival_at || null,
+    simulation_enabled: false,
     legs_count: 0,
     products_count: 0,
     created_at: existing?.created_at || now,
@@ -164,8 +168,12 @@ export const listDemoShipments = (
     total_weight_kg: shipment.total_weight_kg,
     total_distance_km: shipment.total_distance_km,
     total_co2e: shipment.total_co2e,
+    pending_until: shipment.pending_until,
     estimated_arrival: shipment.estimated_arrival,
+    estimated_arrival_at: shipment.estimated_arrival_at,
     actual_arrival: shipment.actual_arrival,
+    actual_arrival_at: shipment.actual_arrival_at,
+    simulation_enabled: shipment.simulation_enabled,
     legs_count: shipment.legs_count,
     products_count: shipment.products_count,
     created_at: shipment.created_at,
@@ -203,8 +211,12 @@ export const createDemoShipment = (
     status: shipment.status,
     created_at: shipment.created_at,
     updated_at: shipment.updated_at,
+    pending_until: shipment.pending_until,
     estimated_arrival: shipment.estimated_arrival,
+    estimated_arrival_at: shipment.estimated_arrival_at,
     actual_arrival: shipment.actual_arrival,
+    actual_arrival_at: shipment.actual_arrival_at,
+    simulation_enabled: shipment.simulation_enabled,
   };
 };
 
@@ -230,8 +242,12 @@ export const updateDemoShipment = (
     id: shipment.id,
     status: shipment.status,
     updated_at: shipment.updated_at,
+    pending_until: shipment.pending_until,
     estimated_arrival: shipment.estimated_arrival,
+    estimated_arrival_at: shipment.estimated_arrival_at,
     actual_arrival: shipment.actual_arrival,
+    actual_arrival_at: shipment.actual_arrival_at,
+    simulation_enabled: shipment.simulation_enabled,
   };
 };
 
@@ -248,6 +264,7 @@ export const updateDemoShipmentStatus = (
       ...shipment,
       status,
       actual_arrival: actualArrival || shipment.actual_arrival,
+      actual_arrival_at: actualArrival || shipment.actual_arrival_at,
       updated_at: new Date().toISOString(),
     };
   }) as unknown as DemoDataset["shipments"];
@@ -256,8 +273,12 @@ export const updateDemoShipmentStatus = (
     id: shipment.id,
     status: shipment.status,
     updated_at: shipment.updated_at,
+    pending_until: shipment.pending_until,
     estimated_arrival: shipment.estimated_arrival,
+    estimated_arrival_at: shipment.estimated_arrival_at,
     actual_arrival: shipment.actual_arrival,
+    actual_arrival_at: shipment.actual_arrival_at,
+    simulation_enabled: shipment.simulation_enabled,
   };
 };
 
@@ -291,6 +312,12 @@ export const replaceDemoShipmentLegs = (
     id: shipment.id,
     status: shipment.status,
     updated_at: shipment.updated_at,
+    pending_until: shipment.pending_until,
+    estimated_arrival: shipment.estimated_arrival,
+    estimated_arrival_at: shipment.estimated_arrival_at,
+    actual_arrival: shipment.actual_arrival,
+    actual_arrival_at: shipment.actual_arrival_at,
+    simulation_enabled: shipment.simulation_enabled,
   };
 };
 
@@ -327,6 +354,12 @@ export const replaceDemoShipmentProducts = (
     id: shipment.id,
     status: shipment.status,
     updated_at: shipment.updated_at,
+    pending_until: shipment.pending_until,
+    estimated_arrival: shipment.estimated_arrival,
+    estimated_arrival_at: shipment.estimated_arrival_at,
+    actual_arrival: shipment.actual_arrival,
+    actual_arrival_at: shipment.actual_arrival_at,
+    simulation_enabled: shipment.simulation_enabled,
   };
 };
 

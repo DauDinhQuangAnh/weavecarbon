@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Leaf,
   LogOut,
+  Loader2,
   RotateCcw,
   Package,
   Truck,
@@ -73,11 +74,12 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   onToggleSidebar
 }) => {
   const t = useTranslations("sidebar");
-  const { user, signOut, isDemoSession, exitDemoSession } = useAuth();
+  const { user, signOut, isDemoSession } = useAuth();
   const { canAccessSettings } = usePermissions();
   const appRoutes = useAppRoutes();
   const router = useRouter();
   const pathname = usePathname();
+  const [isResettingDemo, setIsResettingDemo] = useState(false);
   const hasSession = Boolean(user?.id || profile?.id || authTokenStore.getAccessToken());
   const homeHref = hasSession ? appRoutes.homePath : "/";
   const handleSidebarNavigate = () => {
@@ -90,25 +92,29 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   const handleSignOut = async () => {
-    if (isDemoSession) {
-      await exitDemoSession();
-      router.push("/auth?type=b2b");
-      return;
-    }
     await signOut();
     router.push("/");
   };
 
-  const handleResetDemo = () => {
-    resetDemoDataset();
-    ensureDemoSession();
-    writeSubscriptionLockState({
-      current_plan: "standard",
-      trial_ends_at: null,
-      trial_expired: false,
-      features_locked: false
-    });
-    window.location.reload();
+  const handleResetDemo = async () => {
+    if (isResettingDemo) {
+      return;
+    }
+
+    setIsResettingDemo(true);
+    try {
+      resetDemoDataset();
+      ensureDemoSession();
+      writeSubscriptionLockState({
+        current_plan: "standard",
+        trial_ends_at: null,
+        trial_expired: false,
+        features_locked: false
+      });
+      window.location.reload();
+    } finally {
+      setIsResettingDemo(false);
+    }
   };
 
   const isActive = (path: string) => {
@@ -207,32 +213,41 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             </div>
           }
           {isDemoSession ? (
-            <div className={sidebarOpen ? "space-y-2" : "flex flex-col items-center gap-2"}>
+            <div className={sidebarOpen ? "space-y-3" : "flex justify-center"}>
+              {sidebarOpen && (
+                <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                    Demo mode
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-900">
+                    Khôi phục dữ liệu mẫu
+                  </p>
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="sm"
+                title="Khôi phục dữ liệu mẫu"
+                disabled={isResettingDemo}
                 className={
                   sidebarOpen ?
-                    "h-9 w-full justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100" :
-                    "h-9 w-9 p-0"
+                    "h-10 w-full justify-start gap-2 border-emerald-300 bg-white text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-100" :
+                    "h-10 w-10 rounded-full border-emerald-300 bg-white p-0 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50"
                 }
-                onClick={handleResetDemo}
+                onClick={() => {
+                  void handleResetDemo();
+                }}
               >
-                <RotateCcw className="w-4 h-4 shrink-0" />
-                {sidebarOpen && <span className="truncate">Reset demo</span>}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={
-                  sidebarOpen ?
-                    "h-9 w-full justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100" :
-                    "h-9 w-9 p-0"
-                }
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-4 h-4 shrink-0" />
-                {sidebarOpen && <span className="truncate">{t("signOut")}</span>}
+                {isResettingDemo ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4 shrink-0" />
+                )}
+                {sidebarOpen && (
+                  <span className="truncate">
+                    {isResettingDemo ? "Đang làm mới demo..." : "Reset demo"}
+                  </span>
+                )}
               </Button>
             </div>
           ) : (

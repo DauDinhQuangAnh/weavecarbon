@@ -56,8 +56,12 @@ export interface LogisticsShipmentSummary {
   total_weight_kg: number;
   total_distance_km: number;
   total_co2e: number;
+  pending_until: string | null;
   estimated_arrival: string | null;
+  estimated_arrival_at: string | null;
   actual_arrival: string | null;
+  actual_arrival_at: string | null;
+  simulation_enabled: boolean;
   legs_count: number;
   products_count: number;
   created_at: string;
@@ -112,8 +116,12 @@ export interface ShipmentMutationResult {
   status?: LogisticsShipmentStatus;
   updated_at?: string;
   created_at?: string;
+  pending_until?: string | null;
   estimated_arrival?: string | null;
+  estimated_arrival_at?: string | null;
   actual_arrival?: string | null;
+  actual_arrival_at?: string | null;
+  simulation_enabled?: boolean;
 }
 
 export interface ShipmentLocationInput {
@@ -162,6 +170,8 @@ export interface UpdateShipmentPayload {
 
 const UUID_REGEX =
 /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export const isValidUuid = (value: string) => UUID_REGEX.test(value.trim());
 
@@ -221,6 +231,30 @@ const toIsoDate = (value: unknown) => {
     return raw;
   }
   return parsed.toISOString().slice(0, 10);
+};
+
+const normalizeTemporalValue = (value: unknown) => {
+  const raw = asString(value).trim();
+  if (!raw) return null;
+  if (ISO_DATE_ONLY_REGEX.test(raw)) {
+    return raw;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return raw;
+  }
+  return parsed.toISOString();
+};
+
+const toComparableTime = (value: string | null | undefined) => {
+  if (!value) return NaN;
+  if (ISO_DATE_ONLY_REGEX.test(value)) {
+    const [year, month, day] = value.split("-").map((part) => Number(part));
+    return Date.UTC(year, month - 1, day, 12, 0, 0, 0);
+  }
+
+  return new Date(value).getTime();
 };
 
 const toShipmentStatus = (value: unknown): LogisticsShipmentStatus => {
@@ -341,8 +375,16 @@ value: unknown)
     total_weight_kg: Math.max(0, asNumber(value.total_weight_kg)),
     total_distance_km: Math.max(0, asNumber(value.total_distance_km)),
     total_co2e: Math.max(0, asNumber(value.total_co2e)),
+    pending_until: normalizeTemporalValue(value.pending_until),
     estimated_arrival: toIsoDate(value.estimated_arrival),
+    estimated_arrival_at: normalizeTemporalValue(
+      value.estimated_arrival_at ?? value.estimated_arrival
+    ),
     actual_arrival: toIsoDate(value.actual_arrival),
+    actual_arrival_at: normalizeTemporalValue(
+      value.actual_arrival_at ?? value.actual_arrival
+    ),
+    simulation_enabled: value.simulation_enabled === true,
     legs_count: Math.max(0, Math.trunc(asNumber(value.legs_count))),
     products_count: Math.max(0, Math.trunc(asNumber(value.products_count))),
     created_at: toIsoDatetime(value.created_at),
@@ -467,8 +509,19 @@ const normalizeMutationPayload = (payload: unknown): ShipmentMutationResult => {
     payload.created_at === undefined ?
     undefined :
     toIsoDatetime(payload.created_at),
+    pending_until: normalizeTemporalValue(payload.pending_until),
     estimated_arrival: toIsoDate(payload.estimated_arrival),
-    actual_arrival: toIsoDate(payload.actual_arrival)
+    estimated_arrival_at: normalizeTemporalValue(
+      payload.estimated_arrival_at ?? payload.estimated_arrival
+    ),
+    actual_arrival: toIsoDate(payload.actual_arrival),
+    actual_arrival_at: normalizeTemporalValue(
+      payload.actual_arrival_at ?? payload.actual_arrival
+    ),
+    simulation_enabled:
+    payload.simulation_enabled === undefined ?
+    undefined :
+    payload.simulation_enabled === true
   };
 };
 
@@ -900,6 +953,8 @@ const resolveLegProgressDistances = (shipment: LogisticsShipmentDetail) => {
 const estimateProgress = (
 status: LogisticsShipmentStatus,
 createdAt: string,
+pendingUntil: string | null,
+estimatedArrivalAt: string | null,
 estimatedArrival: string | null) =>
 {
   if (status === "pending" || status === "cancelled") {
@@ -909,18 +964,21 @@ estimatedArrival: string | null) =>
     return 100;
   }
 
-  if (!estimatedArrival) {
+  const transitStart = pendingUntil || createdAt;
+  const eta = estimatedArrivalAt || estimatedArrival;
+
+  if (!eta) {
     return 50;
   }
 
-  const created = new Date(createdAt).getTime();
-  const eta = new Date(estimatedArrival).getTime();
+  const created = toComparableTime(transitStart);
+  const etaTime = toComparableTime(eta);
   const now = Date.now();
-  if (!Number.isFinite(created) || !Number.isFinite(eta) || eta <= created) {
+  if (!Number.isFinite(created) || !Number.isFinite(etaTime) || etaTime <= created) {
     return 50;
   }
 
-  const progress = (now - created) / (eta - created) * 100;
+  const progress = (now - created) / (etaTime - created) * 100;
   return Math.max(5, Math.min(99, Math.round(progress)));
 };
 
@@ -1127,7 +1185,20 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
 
 export const inferShipmentProgress = (
 shipment: LogisticsShipmentSummary | LogisticsShipmentDetail) =>
-estimateProgress(shipment.status, shipment.created_at, shipment.estimated_arrival);
+estimateProgress(
+  shipment.status,
+  shipment.created_at,
+  shipment.pending_until,
+  shipment.estimated_arrival_at,
+  shipment.estimated_arrival
+);
+
+export const resolveShipmentEta = (
+shipment: LogisticsShipmentSummary | LogisticsShipmentDetail) =>
+shipment.actual_arrival_at ||
+shipment.estimated_arrival_at ||
+shipment.actual_arrival ||
+shipment.estimated_arrival;
 
 export const fetchLogisticsShipments = async (
 query: LogisticsShipmentListQuery = {})

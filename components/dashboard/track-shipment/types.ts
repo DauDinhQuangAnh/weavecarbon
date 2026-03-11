@@ -7,6 +7,7 @@ export interface TrackShipment {
   productName: string;
   sku: string;
   status: "in_transit" | "delivered" | "pending" | "cancelled";
+  simulationEnabled: boolean;
   progress: number;
   origin: string;
   destination: string;

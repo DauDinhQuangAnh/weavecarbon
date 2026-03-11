@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Be_Vietnam_Pro } from "next/font/google";
 import { getScopedMessages } from "@/lib/i18n/messages";
 import { ROOT_NAMESPACES } from "@/lib/i18n/namespaces";
+import { getBackendHealth } from "@/lib/backendHealth";
+import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 
 const beVietnamProBody = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -41,25 +43,29 @@ export default async function RootLayout({
 
 
 }: Readonly<{children: React.ReactNode;}>) {
+  const backendHealth = await getBackendHealth();
   const { locale, messages } = await getScopedMessages(ROOT_NAMESPACES);
   return (
     <html data-scroll-behavior="smooth" lang={locale} suppressHydrationWarning>
       <body
         className={`${beVietnamProBody.variable} ${beVietnamProHeading.variable} antialiased`}>
-
-        <AuthProvider>
-          <NextIntlClientProvider locale={locale} messages={messages}>
-            <LanguageProvider>
-              {children}
-              <Toaster />
-              <SonnerToaster
-                position="top-right"
-                richColors
-                closeButton
-                duration={3000} />
-            </LanguageProvider>
-          </NextIntlClientProvider>
-        </AuthProvider>
+        {backendHealth.healthy ? (
+          <AuthProvider>
+            <NextIntlClientProvider locale={locale} messages={messages}>
+              <LanguageProvider>
+                {children}
+                <Toaster />
+                <SonnerToaster
+                  position="top-right"
+                  richColors
+                  closeButton
+                  duration={3000} />
+              </LanguageProvider>
+            </NextIntlClientProvider>
+          </AuthProvider>
+        ) : (
+          <MaintenanceScreen healthUrl={backendHealth.healthUrl} />
+        )}
       </body>
     </html>);
 
