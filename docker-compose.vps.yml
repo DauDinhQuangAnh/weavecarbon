@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../BE_weavecarbon/DATABASE_SCHEMA.sql:/docker-entrypoint-initdb.d/01_database_schema.sql:ro
+      - ${BACKEND_REPO_PATH:-../BE_Carbon-main}/DATABASE_SCHEMA.sql:/docker-entrypoint-initdb.d/01_database_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -21,7 +21,7 @@ services:
   be:
     container_name: weavecarbon-be
     build:
-      context: ../BE_weavecarbon
+      context: ${BACKEND_REPO_PATH:-../BE_Carbon-main}
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
