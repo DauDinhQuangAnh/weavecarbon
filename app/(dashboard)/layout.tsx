@@ -25,7 +25,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 <DashboardSidebarShell company={null} />
 
                 
-                <main className="flex min-h-dvh flex-1 flex-col overflow-x-clip overflow-y-auto lg:pl-52">
+                <main className="flex min-h-dvh flex-1 flex-col overflow-x-clip overflow-y-auto lg:pl-56">
                   <DashboardLayoutContent>{children}</DashboardLayoutContent>
                 </main>
 

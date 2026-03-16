@@ -22,7 +22,7 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
                 <DemoRoutePrefetch />
                 <div className="flex min-h-dvh w-full flex-col overflow-x-clip bg-background lg:flex-row">
                   <DashboardSidebarShell company={null} />
-                  <main className="flex min-h-dvh flex-1 flex-col overflow-x-clip overflow-y-auto lg:pl-52">
+                  <main className="flex min-h-dvh flex-1 flex-col overflow-x-clip overflow-y-auto lg:pl-56">
                     <DashboardLayoutContent>{children}</DashboardLayoutContent>
                   </main>
                   <RouteWeaveyChat />
