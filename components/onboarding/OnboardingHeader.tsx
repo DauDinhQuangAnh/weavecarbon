@@ -4,8 +4,8 @@ import { Leaf } from "lucide-react";
 
 const OnboardingHeader = () => {
   return (
-    <div className="text-center mb-8">
-      <Link href="/" className="inline-flex items-center gap-2">
+    <div className="mb-8 flex w-full justify-center">
+      <Link href="/" className="inline-flex items-center justify-center gap-2 text-center">
         <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
           <Leaf className="w-6 h-6 text-white" />
         </div>

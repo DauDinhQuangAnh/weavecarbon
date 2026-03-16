@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import * as XLSX from "@e965/xlsx";
 import { MATERIAL_CERTIFICATION_OPTIONS } from "@/lib/materialCertificationDefinitions";
 
 interface TemplateColumn {

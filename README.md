@@ -29,6 +29,12 @@ npm run audit:i18n
 - `npm run typecheck` passes
 - `npm run build` passes
 
+## Payment Integration
+
+- Standard checkout now redirects to VNPAY instead of showing a local QR popup
+- FE expects a public backend via `NEXT_PUBLIC_API_BASE_URL`
+- BE setup and VNPAY deployment steps live in `../BE_Carbon-main/VNPAY_STANDARD_SETUP.md`
+
 ## Refactor Guardrails
 
 - Keep API payload shapes and route behavior unchanged

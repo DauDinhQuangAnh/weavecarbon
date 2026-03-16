@@ -135,8 +135,8 @@ const OnboardingClient: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-primary/5 flex items-center justify-center p-4 sm:p-6">
+      <div className="mx-auto flex w-full max-w-lg flex-col items-center">
         <OnboardingHeader />
         <OnboardingForm
           companyName={companyName}

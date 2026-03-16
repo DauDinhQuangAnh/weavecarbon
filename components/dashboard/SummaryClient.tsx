@@ -1594,7 +1594,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
   const handleDownloadReport = async () => {
     try {
-      const XLSX = await import("xlsx");
+      const XLSX = await import("@e965/xlsx");
       const generatedAt = new Date();
       const datePart = generatedAt.toISOString().split("T")[0];
       const quantity =

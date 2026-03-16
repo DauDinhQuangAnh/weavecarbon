@@ -43,8 +43,8 @@ const OnboardingForm: React.FC<OnboardingFormProps> = ({
   const t = useTranslations("onboarding");
 
   return (
-    <Card className="border-border/50 shadow-xl">
-      <CardHeader className="text-center">
+    <Card className="w-full border-border/50 shadow-xl">
+      <CardHeader className="items-center text-center">
         <CardTitle className="text-2xl">{t("title")}</CardTitle>
         <CardDescription>
           {t("subtitle")}

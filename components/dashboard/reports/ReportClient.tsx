@@ -524,7 +524,7 @@ const convertCsvBlobToXlsx = async (blob: Blob) => {
   if (isPlaceholderCsvExport(csvText)) {
     throw new PlaceholderExportError();
   }
-  const XLSX = await import("xlsx");
+  const XLSX = await import("@e965/xlsx");
   const workbook = XLSX.read(csvText, {
     type: "string",
     raw: false,

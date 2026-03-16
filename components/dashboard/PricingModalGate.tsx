@@ -2,8 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Copy, ExternalLink } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, authTokenStore, isUnauthorizedApiError } from "@/lib/apiClient";
 import {
@@ -36,6 +35,7 @@ const PENDING_UPGRADE_PLAN_KEY = "weavecarbon_pending_upgrade_plan";
 const PENDING_UPGRADE_DISPLAY_PLAN_KEY = "weavecarbon_pending_upgrade_display_plan";
 const PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY =
   "weavecarbon_pending_upgrade_expected_products_limit";
+const PENDING_UPGRADE_SESSION_ID_KEY = "weavecarbon_pending_upgrade_session_id";
 
 type NormalizedPlanId = SubscriptionPlanId;
 
@@ -51,6 +51,13 @@ interface SubscriptionSnapshot {
   trialEndsAt: string | null;
   trialExpired: boolean;
   trialDaysRemaining: number | null;
+}
+
+interface PaymentStatusSnapshot {
+  session_id: string;
+  status: "pending" | "paid" | "failed" | "expired";
+  target_plan?: string | null;
+  standard_sku_limit?: number;
 }
 
 const INITIAL_SUBSCRIPTION_SNAPSHOT: SubscriptionSnapshot = {
@@ -97,12 +104,7 @@ export default function PricingModalGate() {
   const [pendingUpgradeExpectedProductsLimit, setPendingUpgradeExpectedProductsLimit] = useState<number | null>(
     null
   );
-  const [paymentQrOpen, setPaymentQrOpen] = useState(false);
-  const [paymentQrUrl, setPaymentQrUrl] = useState("");
-  const [paymentQrPlan, setPaymentQrPlan] = useState<NormalizedPlanId>("standard");
-  const [paymentQrExpectedProductsLimit, setPaymentQrExpectedProductsLimit] = useState<number | null>(
-    null
-  );
+  const [pendingUpgradeSessionId, setPendingUpgradeSessionId] = useState<string | null>(null);
   const [upgradeSuccessOpen, setUpgradeSuccessOpen] = useState(false);
   const [upgradeSuccessPlan, setUpgradeSuccessPlan] = useState<NormalizedPlanId>("standard");
   const [upgradeSuccessProductsLimit, setUpgradeSuccessProductsLimit] = useState<number | null>(
@@ -118,7 +120,8 @@ export default function PricingModalGate() {
   const setPendingUpgrade = useCallback((
     plan: string | null,
     displayPlan?: string | null,
-    expectedProductsLimit?: number | null
+    expectedProductsLimit?: number | null,
+    sessionId?: string | null
   ) => {
     const normalized = plan ? normalizeSubscriptionPlan(plan, "free") : null;
     const safePlan =
@@ -141,9 +144,14 @@ export default function PricingModalGate() {
       expectedProductsLimit > 0 ?
         Math.round(expectedProductsLimit) :
         null;
+    const safeSessionId =
+      typeof sessionId === "string" && sessionId.trim().length > 0 ?
+        sessionId.trim() :
+        null;
     setPendingUpgradePlan(safePlan);
     setPendingUpgradeDisplayPlan(safeDisplayPlan);
     setPendingUpgradeExpectedProductsLimit(safeExpectedProductsLimit);
+    setPendingUpgradeSessionId(safeSessionId);
 
     if (typeof window !== "undefined") {
       if (safePlan) {
@@ -166,6 +174,12 @@ export default function PricingModalGate() {
       } else {
         sessionStorage.removeItem(PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY);
       }
+
+      if (safeSessionId) {
+        sessionStorage.setItem(PENDING_UPGRADE_SESSION_ID_KEY, safeSessionId);
+      } else {
+        sessionStorage.removeItem(PENDING_UPGRADE_SESSION_ID_KEY);
+      }
     }
   }, []);
 
@@ -184,7 +198,9 @@ export default function PricingModalGate() {
     }
 
     try {
-      const payload = await api.get<SubscriptionApiPayload>("/subscription");
+      const payload = await api.get<SubscriptionApiPayload>("/subscription", {
+        disableResponseCache: true
+      });
       const resolved = resolveSubscriptionState(payload);
       const productsLimit =
         Number(payload?.plan_details?.products ?? payload?.limits?.products ?? 0) || 0;
@@ -238,7 +254,7 @@ export default function PricingModalGate() {
         setUpgradeSuccessProductsLimit(activatedProductsLimit);
         setUpgradeSuccessOpen(true);
         setOpen(false);
-        setPendingUpgrade(null);
+        setPendingUpgrade(null, null, null, null);
         toast({
           title: "Chúc mừng bạn đã nâng cấp thành công",
           description: `Gói ${toPlanActivationLabel(
@@ -267,6 +283,41 @@ export default function PricingModalGate() {
     user
   ]);
 
+  const syncPendingPaymentStatus = useCallback(async (sessionId: string) => {
+    const trimmedSessionId = sessionId.trim();
+    if (!trimmedSessionId) return "pending" as const;
+
+    const paymentStatus = await api.get<PaymentStatusSnapshot>(
+      `/subscription/payment-status?session_id=${encodeURIComponent(trimmedSessionId)}`,
+      {
+        disableResponseCache: true
+      }
+    );
+
+    if (paymentStatus.status === "paid") {
+      await loadCurrentPlan();
+      return "paid" as const;
+    }
+
+    if (paymentStatus.status === "failed" || paymentStatus.status === "expired") {
+      setPendingUpgrade(null, null, null, null);
+      toast({
+        title:
+          paymentStatus.status === "expired" ?
+            "Phiên thanh toán đã hết hạn" :
+            "Thanh toán chưa thành công",
+        description:
+          paymentStatus.status === "expired" ?
+            "Vui lòng tạo lại giao dịch mới để tiếp tục nâng cấp gói." :
+            "Bạn có thể thử lại hoặc liên hệ hỗ trợ nếu cần.",
+        variant: "destructive"
+      });
+      return paymentStatus.status;
+    }
+
+    return "pending" as const;
+  }, [loadCurrentPlan, setPendingUpgrade, toast]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const pendingPlan = sessionStorage.getItem(PENDING_UPGRADE_PLAN_KEY);
@@ -274,13 +325,15 @@ export default function PricingModalGate() {
     const pendingExpectedProductsLimitRaw = sessionStorage.getItem(
       PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY
     );
+    const pendingSessionId = sessionStorage.getItem(PENDING_UPGRADE_SESSION_ID_KEY);
     const pendingExpectedProductsLimit =
       pendingExpectedProductsLimitRaw !== null ? Number(pendingExpectedProductsLimitRaw) : null;
     if (pendingPlan) {
       setPendingUpgrade(
         pendingPlan,
         pendingDisplayPlan,
-        Number.isFinite(pendingExpectedProductsLimit) ? pendingExpectedProductsLimit : null
+        Number.isFinite(pendingExpectedProductsLimit) ? pendingExpectedProductsLimit : null,
+        pendingSessionId
       );
     }
   }, [setPendingUpgrade]);
@@ -308,11 +361,19 @@ export default function PricingModalGate() {
     if (typeof window === "undefined") return;
 
     const handleWindowFocus = () => {
-      void loadCurrentPlan();
+      if (pendingUpgradeSessionId) {
+        void syncPendingPaymentStatus(pendingUpgradeSessionId);
+      } else {
+        void loadCurrentPlan();
+      }
     };
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        void loadCurrentPlan();
+        if (pendingUpgradeSessionId) {
+          void syncPendingPaymentStatus(pendingUpgradeSessionId);
+        } else {
+          void loadCurrentPlan();
+        }
       }
     };
 
@@ -322,7 +383,7 @@ export default function PricingModalGate() {
       window.removeEventListener("focus", handleWindowFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [loadCurrentPlan]);
+  }, [loadCurrentPlan, pendingUpgradeSessionId, syncPendingPaymentStatus]);
 
   useEffect(() => {
     if (!pendingUpgradePlan || typeof window === "undefined") return;
@@ -330,7 +391,11 @@ export default function PricingModalGate() {
     let attempts = 0;
     const pollId = window.setInterval(() => {
       attempts += 1;
-      void loadCurrentPlan();
+      if (pendingUpgradeSessionId) {
+        void syncPendingPaymentStatus(pendingUpgradeSessionId);
+      } else {
+        void loadCurrentPlan();
+      }
       if (attempts >= 120) {
         window.clearInterval(pollId);
       }
@@ -339,7 +404,7 @@ export default function PricingModalGate() {
     return () => {
       window.clearInterval(pollId);
     };
-  }, [loadCurrentPlan, pendingUpgradePlan]);
+  }, [loadCurrentPlan, pendingUpgradePlan, pendingUpgradeSessionId, syncPendingPaymentStatus]);
 
   useEffect(() => {
     if (!searchParams) return;
@@ -348,8 +413,9 @@ export default function PricingModalGate() {
     if (!paymentStatus) return;
 
     const paymentPlan = normalizeSubscriptionPlan(searchParams.get("plan"), "free");
-    if (paymentStatus === "success") {
-      if (paymentPlan !== "free") {
+    const paymentSessionId = searchParams.get("session_id");
+    if (paymentStatus === "success" || paymentStatus === "pending") {
+      if (paymentPlan !== "free" || paymentSessionId) {
         const pendingDisplayPlan =
           typeof window !== "undefined"
             ? sessionStorage.getItem(PENDING_UPGRADE_DISPLAY_PLAN_KEY)
@@ -360,10 +426,21 @@ export default function PricingModalGate() {
             : null;
         const pendingExpectedProductsLimit =
           pendingExpectedProductsLimitRaw !== null ? Number(pendingExpectedProductsLimitRaw) : null;
+        const storedPendingPlan =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem(PENDING_UPGRADE_PLAN_KEY)
+            : null;
+        const resolvedPendingPlan =
+          paymentPlan !== "free"
+            ? paymentPlan
+            : storedPendingPlan
+              ? normalizeSubscriptionPlan(storedPendingPlan, "free")
+              : "standard";
         setPendingUpgrade(
-          paymentPlan,
-          pendingDisplayPlan || paymentPlan,
-          Number.isFinite(pendingExpectedProductsLimit) ? pendingExpectedProductsLimit : null
+          resolvedPendingPlan,
+          pendingDisplayPlan || resolvedPendingPlan,
+          Number.isFinite(pendingExpectedProductsLimit) ? pendingExpectedProductsLimit : null,
+          paymentSessionId
         );
       }
       toast({
@@ -372,7 +449,7 @@ export default function PricingModalGate() {
       });
       void loadCurrentPlan();
     } else {
-      setPendingUpgrade(null);
+      setPendingUpgrade(null, null, null, null);
       toast({
         title: "Thanh toán chưa thành công",
         description: "Bạn có thể thử lại hoặc liên hệ hỗ trợ nếu cần.",
@@ -389,35 +466,21 @@ export default function PricingModalGate() {
     nextParams.delete("reason");
     const nextQuery = nextParams.toString();
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-  }, [loadCurrentPlan, pathname, router, searchParams, setPendingUpgrade, toast]);
+  }, [
+    loadCurrentPlan,
+    pathname,
+    router,
+    searchParams,
+    setPendingUpgrade,
+    syncPendingPaymentStatus,
+    toast
+  ]);
 
   const handleClose = () => {
     if (subscription.featuresLocked) {
       return;
     }
     setOpen(false);
-  };
-
-  const handleOpenPaymentUrl = () => {
-    if (!paymentQrUrl || typeof window === "undefined") return;
-    window.open(paymentQrUrl, "_blank", "noopener,noreferrer");
-  };
-
-  const handleCopyPaymentUrl = async () => {
-    if (!paymentQrUrl) return;
-    try {
-      await navigator.clipboard.writeText(paymentQrUrl);
-      toast({
-        title: "Đã sao chép liên kết thanh toán",
-        description: "Bạn có thể dán liên kết này trên thiết bị khác để quét/thanh toán."
-      });
-    } catch {
-      toast({
-        title: "Không thể sao chép",
-        description: "Vui lòng bấm Mở trang VNPay để tiếp tục thanh toán.",
-        variant: "destructive"
-      });
-    }
   };
 
   const handleSelectPlan = async ({ planId, standardSkuLimit }: PricingSelection) => {
@@ -473,6 +536,7 @@ export default function PricingModalGate() {
         checkout_url?: string;
         payment_url?: string;
         vnpay_url?: string;
+        session_id?: string;
       }>("/subscription/upgrade", {
         target_plan: planId === "standard" ? "standard" : normalizedTargetPlan,
         standard_sku_limit:
@@ -493,18 +557,14 @@ export default function PricingModalGate() {
         setPendingUpgrade(
           isStandardAddonPurchase ? "standard" : normalizedTargetPlan,
           isStandardAddonPurchase ? "standard" : normalizedTargetPlan,
-          expectedProductsLimit
+          expectedProductsLimit,
+          upgrade?.session_id ?? null
         );
-        setPaymentQrUrl(paymentUrl);
-        setPaymentQrPlan(isStandardAddonPurchase ? "standard" : normalizedTargetPlan);
-        setPaymentQrExpectedProductsLimit(expectedProductsLimit);
-        setPaymentQrOpen(true);
+        localStorage.setItem("weavecarbon_pricing_seen", "true");
+        setOpen(false);
+        window.location.assign(paymentUrl);
+        return;
       }
-
-      toast({
-        title: "Đã tạo phiên thanh toán VNPay",
-        description: "Quét QR trong popup để thanh toán, hoặc bấm mở trang VNPay."
-      });
 
       localStorage.setItem("weavecarbon_pricing_seen", "true");
       setOpen(false);
@@ -552,49 +612,6 @@ export default function PricingModalGate() {
               onClick={() => setUpgradeSuccessOpen(false)}
             >
               Đã hiểu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={paymentQrOpen} onOpenChange={setPaymentQrOpen}>
-        <DialogContent className="max-w-md border-blue-200">
-          <DialogHeader className="items-center text-center">
-            <DialogTitle className="text-xl text-blue-700">
-              Quét QR để thanh toán VNPay
-            </DialogTitle>
-            <DialogDescription className="text-base text-slate-700">
-              Gói {toPlanActivationLabel(paymentQrPlan, paymentQrExpectedProductsLimit)} sẽ được kích hoạt ngay sau khi thanh toán thành công.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center">
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-              <QRCodeSVG
-                value={paymentQrUrl || "https://vnpay.vn/"}
-                size={220}
-                includeMargin
-                level="M"
-              />
-            </div>
-          </div>
-          <p className="text-center text-xs text-slate-600">
-            Dùng app ngân hàng/ví hỗ trợ VNPay để quét mã.
-          </p>
-          <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => void handleCopyPaymentUrl()}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Sao chép link thanh toán
-            </Button>
-            <Button
-              className="w-full bg-blue-600 text-white hover:bg-blue-700"
-              onClick={handleOpenPaymentUrl}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Mở trang VNPay
             </Button>
           </DialogFooter>
         </DialogContent>
