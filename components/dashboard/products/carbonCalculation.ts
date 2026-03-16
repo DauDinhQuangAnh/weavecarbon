@@ -98,16 +98,22 @@ row: BulkProductRow)
   const manufacturingCO2 = weightKg * processTotal * energyFactor;
 
 
-  const transportFactor = TRANSPORT_FACTORS[row.transportMode] || 0.05;
+  const hasTransportMode = Boolean(row.transportMode);
+  const transportFactor =
+  row.transportMode ?
+  TRANSPORT_FACTORS[row.transportMode] || 0.05 :
+  0;
   const distance =
+  hasTransportMode ?
   typeof row.transportDistanceKm === "number" &&
   Number.isFinite(row.transportDistanceKm) &&
   row.transportDistanceKm > 0 ?
   row.transportDistanceKm :
   MARKET_DISTANCES[
-  row.marketType === "domestic" ? "domestic" : row.exportCountry || "other"];
+  row.marketType === "domestic" ? "domestic" : row.exportCountry || "other"] :
+  0;
 
-  const transportCO2 = weightKg * (distance / 1000) * transportFactor;
+  const transportCO2 = hasTransportMode ? weightKg * (distance / 1000) * transportFactor : 0;
 
 
   const totalCO2 = materialsCO2 + manufacturingCO2 + transportCO2;

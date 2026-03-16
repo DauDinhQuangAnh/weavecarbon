@@ -48,3 +48,11 @@ That means:
 - `Dockerfile`: multi-stage production build for Next.js
 - `.dockerignore`: keeps the build context small
 - `docker-compose.yml`: easiest local/prod-like startup flow
+
+## 5. Full VPS stack
+
+If you want to run frontend + backend + database together on one VPS, use:
+
+- `docker-compose.vps.yml`
+- `.env.vps.example`
+- `DEPLOY_VPS.md`

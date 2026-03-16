@@ -72,13 +72,41 @@ const HEADER_ALIASES: Record<string, string> = {
   shippingmode: "transportMode",
   hinhthucvanchuyen: "transportMode",
   transportorigin: "transportOrigin",
+  transportoriginaddress: "transportOrigin",
   originoftransport: "transportOrigin",
   diemdivanchuyen: "transportOrigin",
   noixuatphatvanchuyen: "transportOrigin",
+  transportorigincity: "transportOriginCity",
+  origincity: "transportOriginCity",
+  thanhpodi: "transportOriginCity",
+  transportoriginstate: "transportOriginStateRegion",
+  transportoriginprovince: "transportOriginStateRegion",
+  originstate: "transportOriginStateRegion",
+  originprovince: "transportOriginStateRegion",
+  tinhthanhdi: "transportOriginStateRegion",
+  bangtinhdi: "transportOriginStateRegion",
+  transportorigincountry: "transportOriginCountry",
+  origincountry: "transportOriginCountry",
+  quocgiadi: "transportOriginCountry",
   transportdestination: "transportDestination",
+  transportdestinationaddress: "transportDestination",
   destinationoftransport: "transportDestination",
   diemdenvanchuyen: "transportDestination",
   noidiemdenvanchuyen: "transportDestination",
+  transportdestinationcity: "transportDestinationCity",
+  destinationcity: "transportDestinationCity",
+  thanhphoden: "transportDestinationCity",
+  transportdestinationstate: "transportDestinationStateRegion",
+  transportdestinationprovince: "transportDestinationStateRegion",
+  destinationstate: "transportDestinationStateRegion",
+  destinationprovince: "transportDestinationStateRegion",
+  tinhthanhden: "transportDestinationStateRegion",
+  bangtinhden: "transportDestinationStateRegion",
+  transportdestinationcountry: "transportDestinationCountry",
+  destinationcountrytransport: "transportDestinationCountry",
+  destinationcountryroute: "transportDestinationCountry",
+  destinationcountryname: "transportDestinationCountry",
+  quocgiaden: "transportDestinationCountry",
   transportdistancekm: "transportDistanceKm",
   distancetransportkm: "transportDistanceKm",
   khoangcachvanchuyenkm: "transportDistanceKm"
@@ -146,11 +174,18 @@ const ENERGY_SOURCE_MAP: Record<string, string> = {
 const TRANSPORT_MODE_MAP: Record<string, string> = {
   road: "road",
   duongbo: "road",
+  truck: "road",
   sea: "sea",
+  ship: "sea",
+  ocean: "sea",
+  taubien: "sea",
   duongbien: "sea",
   air: "air",
+  plane: "air",
+  flight: "air",
   duonghangkhong: "air",
   rail: "rail",
+  train: "rail",
   duongsat: "rail",
   multimodal: "multimodal",
   daphuongthuc: "multimodal"
@@ -242,6 +277,9 @@ const normalizeToken = (value: unknown): string =>
 const normalizeString = (value: unknown): string => String(value ?? "").trim();
 
 const normalizeSku = (value: string) => value.trim().toUpperCase();
+
+const hasAnyTransportRouteValue = (...values: Array<unknown>) =>
+  values.some((value) => normalizeString(value).length > 0);
 
 const isMissingValue = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
@@ -491,17 +529,29 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       | "export";
     const exportCountry = mapValue(mappedRow.exportCountry, EXPORT_COUNTRY_MAP, "");
     const exportComplianceDocuments = normalizeString(mappedRow.exportComplianceDocuments);
-    const transportMode = mapValue(mappedRow.transportMode, TRANSPORT_MODE_MAP, "sea") as
-      | "road"
-      | "sea"
-      | "air"
-      | "rail"
-      | "multimodal";
+    const rawTransportMode = normalizeString(mappedRow.transportMode);
+    const transportMode = rawTransportMode
+      ? ((TRANSPORT_MODE_MAP[normalizeToken(rawTransportMode)] as
+          | "road"
+          | "sea"
+          | "air"
+          | "rail"
+          | "multimodal"
+          | undefined) ?? undefined)
+      : undefined;
     const manufacturingLocation = normalizeString(mappedRow.manufacturingLocation);
     const rawWasteRecovery = normalizeString(mappedRow.wasteRecovery);
     const wasteRecovery = normalizeWasteRecovery(mappedRow.wasteRecovery);
     const transportOrigin = normalizeString(mappedRow.transportOrigin);
+    const transportOriginCity = normalizeString(mappedRow.transportOriginCity);
+    const transportOriginStateRegion = normalizeString(mappedRow.transportOriginStateRegion);
+    const transportOriginCountry = normalizeString(mappedRow.transportOriginCountry);
     const transportDestination = normalizeString(mappedRow.transportDestination);
+    const transportDestinationCity = normalizeString(mappedRow.transportDestinationCity);
+    const transportDestinationStateRegion = normalizeString(
+      mappedRow.transportDestinationStateRegion
+    );
+    const transportDestinationCountry = normalizeString(mappedRow.transportDestinationCountry);
     const rawTransportDistance = normalizeString(mappedRow.transportDistanceKm);
     const normalizedTransportDistance = rawTransportDistance.replace(/,/g, ".");
     const parsedTransportDistance = normalizedTransportDistance
@@ -516,15 +566,48 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       warnings.push({
         row: rowNumber,
         field: "transportDistanceKm",
-        message: "Khoảng cách vận chuyển phải là số dương (km)",
+        message: "Khoang cach van chuyen phai la so duong (km)",
         severity: "warning"
       });
     }
-    if (!transportOrigin || !transportDestination) {
+    if (rawTransportMode && !transportMode) {
+      warnings.push({
+        row: rowNumber,
+        field: "transportMode",
+        message: "Phuong thuc van chuyen khong hop le; dong nay se de trong logistics.",
+        severity: "warning"
+      });
+    }
+    const hasOriginRouteInfo = hasAnyTransportRouteValue(
+      transportOrigin,
+      transportOriginCity,
+      transportOriginStateRegion,
+      transportOriginCountry
+    );
+    const hasDestinationRouteInfo = hasAnyTransportRouteValue(
+      transportDestination,
+      transportDestinationCity,
+      transportDestinationStateRegion,
+      transportDestinationCountry
+    );
+    const hasAnyTransportInput =
+      Boolean(transportMode) ||
+      Boolean(transportDistanceKm) ||
+      hasOriginRouteInfo ||
+      hasDestinationRouteInfo;
+    if ((Boolean(transportDistanceKm) || hasOriginRouteInfo || hasDestinationRouteInfo) && !transportMode) {
+      warnings.push({
+        row: rowNumber,
+        field: "transportMode",
+        message: "Co du lieu van chuyen nhung thieu phuong thuc; he thong se khong tu mac dinh chang van chuyen.",
+        severity: "warning"
+      });
+    }
+    if (transportMode && (!hasOriginRouteInfo || !hasDestinationRouteInfo)) {
       warnings.push({
         row: rowNumber,
         field: "transportRoute",
-        message: "Nên khai báo đầy đủ điểm đi và điểm đến vận chuyển",
+        message: "Nen khai bao day du diem di va diem den van chuyen",
         severity: "warning"
       });
     }
@@ -540,7 +623,7 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       warnings.push({
         row: rowNumber,
         field: "exportCountry",
-        message: "Sản phẩm xuất khẩu nhưng chưa chỉ định quốc gia đích",
+        message: "San pham xuat khau nhung chua chi dinh quoc gia dich",
         severity: "warning"
       });
     }
@@ -548,7 +631,15 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       warnings.push({
         row: rowNumber,
         field: "exportComplianceDocuments",
-        message: "Nên khai báo hồ sơ xuất khẩu đã có (nếu đã tải trong module /export).",
+        message: "Nen khai bao ho so xuat khau da co (neu da tai trong module /export).",
+        severity: "warning"
+      });
+    }
+    if (marketType === "export" && !hasAnyTransportInput) {
+      warnings.push({
+        row: rowNumber,
+        field: "transportMode",
+        message: "Chua co du lieu logistics; ban co the bo sung sau khi import o buoc Phuong thuc van chuyen.",
         severity: "warning"
       });
     }
@@ -577,7 +668,13 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       manufacturingLocation: manufacturingLocation || undefined,
       wasteRecovery: wasteRecovery || undefined,
       transportOrigin: transportOrigin || undefined,
+      transportOriginCity: transportOriginCity || undefined,
+      transportOriginStateRegion: transportOriginStateRegion || undefined,
+      transportOriginCountry: transportOriginCountry || undefined,
       transportDestination: transportDestination || undefined,
+      transportDestinationCity: transportDestinationCity || undefined,
+      transportDestinationStateRegion: transportDestinationStateRegion || undefined,
+      transportDestinationCountry: transportDestinationCountry || undefined,
       transportDistanceKm
     };
 

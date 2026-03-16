@@ -76,10 +76,7 @@ const TrackShipmentClient: React.FC = () => {
   const preferredShipmentId = searchParams.get("shipmentId");
 
   useEffect(() => {
-    setPageTitle(
-      t("title"),
-      t("subtitle")
-    );
+    setPageTitle(t("title"), t("subtitle"));
   }, [setPageTitle, t]);
 
   const loadShipments = useCallback(async (preferredId?: string | null) => {

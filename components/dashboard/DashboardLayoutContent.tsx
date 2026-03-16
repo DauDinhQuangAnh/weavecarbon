@@ -124,24 +124,38 @@ export default function DashboardLayoutContent({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-border bg-card/95 p-3 backdrop-blur lg:sticky lg:top-0 lg:z-20 lg:bg-card lg:p-4">
-        <div className="page-shell flex items-start justify-between gap-3 px-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-border bg-card/95 py-2.5 backdrop-blur lg:sticky lg:top-0 lg:z-20 lg:bg-card lg:py-3">
+        <div className="flex w-full items-center justify-between gap-3 px-2.5 md:px-3 lg:px-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <DashboardHeaderButton />
-            <h1 className="text-xl md:text-2xl font-display font-bold truncate">
-              {title}
-            </h1>
+            <div className="min-w-0 overflow-hidden">
+              <div className="flex min-w-0 items-baseline gap-2 overflow-hidden whitespace-nowrap">
+                <h1
+                  className="truncate text-xl font-extrabold leading-tight tracking-tight text-[#2c441d] md:text-2xl"
+                  style={{ fontFamily: "\"Plus Jakarta Sans\", system-ui, sans-serif" }}
+                >
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <>
+                    <span className="shrink-0 text-sm font-medium leading-tight text-muted-foreground md:text-base">
+                      &bull;
+                    </span>
+                    <p className="min-w-0 truncate text-sm font-medium leading-tight text-muted-foreground md:text-base">
+                      {subtitle}
+                    </p>
+                  </>
+                ) : null}
+              </div>
+            </div>
           </div>
           <div className="shrink-0">
             <LanguageToggle />
           </div>
         </div>
-        <p className="page-shell mt-1 px-0 text-xs text-muted-foreground md:text-sm lg:pl-0">
-          {subtitle}
-        </p>
       </header>
 
-      <div className="page-shell flex-1 pb-4 pt-[5.5rem] md:pb-6 md:pt-24 lg:pt-4">{children}</div>
+      <div className="flex-1 px-2.5 pb-4 pt-[5.5rem] md:px-3 md:pb-6 md:pt-24 lg:px-4 lg:pt-4">{children}</div>
     </>);
 
 }

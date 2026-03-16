@@ -15,3 +15,6 @@ DOCKER.md
 API_DOCUMENTATION.md
 CLEANUP_AUDIT.md
 thitruong.md
+DEPLOY_VPS.md
+deploy
+docker-compose.vps.yml

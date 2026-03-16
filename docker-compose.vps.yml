@@ -1,0 +1,117 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: weavecarbon-db
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Bangkok}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../BE_weavecarbon/DATABASE_SCHEMA.sql:/docker-entrypoint-initdb.d/01_database_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  be:
+    container_name: weavecarbon-be
+    build:
+      context: ../BE_weavecarbon
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      FRONTEND_URL: ${APP_PUBLIC_URL}
+      FRONTEND_URLS: ${FRONTEND_URLS}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      AUTH_PUBLIC_BASE_URL: ${APP_PUBLIC_URL}
+      API_BASE_URL: ${APP_PUBLIC_URL}
+      BACKEND_URL: ${APP_PUBLIC_URL}
+      VNPAY_MODE: ${VNPAY_MODE:-mock}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_PAY_URL: ${VNPAY_PAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_QUERYDR_URL: ${VNPAY_QUERYDR_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      VNPAY_RETURN_URL: ${APP_PUBLIC_URL}/api/subscription/vnpay/return
+      VNPAY_IPN_URL: ${APP_PUBLIC_URL}/api/subscription/vnpay/ipn
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${APP_PUBLIC_URL}/api/auth/google/callback
+    volumes:
+      - be_uploads:/app/uploads
+
+  fe:
+    container_name: weavecarbon-fe
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+        NEXT_PUBLIC_WEAVEY_API_URL: ${NEXT_PUBLIC_WEAVEY_API_URL:-}
+        NEXT_PUBLIC_RAG_API_BASE_URL: ${NEXT_PUBLIC_RAG_API_BASE_URL:-}
+        NEXT_PUBLIC_RAG_COLLECTION: ${NEXT_PUBLIC_RAG_COLLECTION:-}
+        NEXT_PUBLIC_RAG_COLUMNS_TO_ANSWER: ${NEXT_PUBLIC_RAG_COLUMNS_TO_ANSWER:-chunk}
+        NEXT_PUBLIC_RAG_NUMBER_DOCS_RETRIEVAL: ${NEXT_PUBLIC_RAG_NUMBER_DOCS_RETRIEVAL:-3}
+        NEXT_PUBLIC_RAG_TIMEOUT_MS: ${NEXT_PUBLIC_RAG_TIMEOUT_MS:-30000}
+        NEXT_PUBLIC_MAPBOX_TOKEN: ${NEXT_PUBLIC_MAPBOX_TOKEN:-}
+        NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL: ${NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL:-https://api.mapbox.com/geocoding/v5/mapbox.places}
+        NEXT_PUBLIC_AUTH_DISABLED: ${NEXT_PUBLIC_AUTH_DISABLED:-0}
+        NEXT_PUBLIC_ACCOUNT_ENDPOINT: ${NEXT_PUBLIC_ACCOUNT_ENDPOINT:-}
+        NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD: ${NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD:-0}
+    restart: unless-stopped
+    depends_on:
+      be:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      BACKEND_HEALTH_URL: ${BACKEND_HEALTH_URL:-http://be:4000/health}
+
+  proxy:
+    image: caddy:2-alpine
+    container_name: weavecarbon-proxy
+    restart: unless-stopped
+    depends_on:
+      be:
+        condition: service_healthy
+      fe:
+        condition: service_healthy
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  postgres_data:
+  be_uploads:
+  caddy_data:
+  caddy_config:

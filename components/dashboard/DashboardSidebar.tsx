@@ -145,11 +145,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
       
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-dvh w-64 shrink-0 flex-col border-r border-border bg-card transition-transform duration-300 lg:z-20 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-52 shrink-0 flex-col border-r border-border bg-card transition-transform duration-300 lg:z-20 lg:translate-x-0 ${
         sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
         }>
         
-        <div className="p-4 border-b border-border">
+        <div className="border-b border-border p-4">
           <div className="flex justify-end mb-3 lg:hidden">
             <Button
               className="lg:hidden"
@@ -164,19 +164,19 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               }
             </Button>
           </div>
-          <Link href={homeHref} className="flex items-center gap-2">
+          <Link href={homeHref} className="flex min-w-0 items-center gap-2">
             <div className="w-8 h-8 bg-gradient-forest rounded-lg flex items-center justify-center">
               <Leaf className="w-5 h-5 text-primary-foreground" />
             </div>
             {sidebarOpen &&
-            <span className="font-display font-bold text-foreground">
+            <span className="truncate font-display font-bold text-foreground">
                 WEAVE<span className="text-primary">CARBON</span>
               </span>
             }
           </Link>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex flex-1 flex-col items-center gap-1 p-4">
           {visibleMenuItems.map((item) => {
             const active = isActive(item.path);
             return (
@@ -184,7 +184,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 onClick={handleSidebarNavigate}
                 key={item.path}
                 href={appRoutes.toAppPath(item.path)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                className={`flex w-full max-w-[10.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                 active ?
                 "bg-primary/10 text-primary" :
                 "text-muted-foreground hover:bg-muted hover:text-foreground"}`
@@ -231,7 +231,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 disabled={isResettingDemo}
                 className={
                   sidebarOpen ?
-                    "h-10 w-full justify-start gap-2 border-emerald-300 bg-white text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-100" :
+                    "mx-auto h-10 w-full max-w-[10.25rem] justify-start gap-2 border-emerald-300 bg-white text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-100" :
                     "h-10 w-10 rounded-full border-emerald-300 bg-white p-0 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50"
                 }
                 onClick={() => {
@@ -256,7 +256,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               size="sm"
               className={
                 sidebarOpen ?
-                  "h-9 w-full justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100" :
+                  "mx-auto h-9 w-full max-w-[10.25rem] justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100" :
                   "h-9 w-9 p-0"
               }
               onClick={handleSignOut}

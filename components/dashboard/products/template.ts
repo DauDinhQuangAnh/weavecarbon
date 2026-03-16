@@ -170,25 +170,67 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   },
   {
     key: "transportMode",
-    header: "Transport Mode *",
+    header: "Transport Mode",
     width: 18,
-    required: true,
+    required: false,
     example: "sea",
     options: "road, sea, air, rail, multimodal"
   },
   {
     key: "transportOrigin",
-    header: "Transport Origin",
+    header: "Transport Origin / Street",
     width: 34,
     required: false,
-    example: "Tan Hiep, Bien Hoa, Dong Nai, Vietnam"
+    example: "Tan Hiep Industrial Zone"
+  },
+  {
+    key: "transportOriginCity",
+    header: "Origin City",
+    width: 18,
+    required: false,
+    example: "Bien Hoa"
+  },
+  {
+    key: "transportOriginStateRegion",
+    header: "Origin State / Province",
+    width: 22,
+    required: false,
+    example: "Dong Nai"
+  },
+  {
+    key: "transportOriginCountry",
+    header: "Origin Country",
+    width: 18,
+    required: false,
+    example: "Vietnam"
   },
   {
     key: "transportDestination",
-    header: "Transport Destination",
+    header: "Transport Destination / Street",
     width: 34,
     required: false,
-    example: "Port of Los Angeles, California, USA"
+    example: "Port of Los Angeles"
+  },
+  {
+    key: "transportDestinationCity",
+    header: "Destination City",
+    width: 18,
+    required: false,
+    example: "Los Angeles"
+  },
+  {
+    key: "transportDestinationStateRegion",
+    header: "Destination State / Province",
+    width: 24,
+    required: false,
+    example: "California"
+  },
+  {
+    key: "transportDestinationCountry",
+    header: "Destination Country",
+    width: 22,
+    required: false,
+    example: "United States"
   },
   {
     key: "transportDistanceKm",
@@ -231,8 +273,14 @@ const buildSampleData = (): Array<Record<string, string | number>> => {
       exportComplianceDocuments:
         "textile_fibre_composition_labeling,reach_market_access_compliance_declaration",
       transportMode: "sea",
-      transportOrigin: "Tan Hiep, Bien Hoa, Dong Nai, Vietnam",
-      transportDestination: "Port of Rotterdam, Netherlands",
+      transportOrigin: "Tan Hiep Industrial Zone",
+      transportOriginCity: "Bien Hoa",
+      transportOriginStateRegion: "Dong Nai",
+      transportOriginCountry: "Vietnam",
+      transportDestination: "Port of Rotterdam",
+      transportDestinationCity: "Rotterdam",
+      transportDestinationStateRegion: "South Holland",
+      transportDestinationCountry: "Netherlands",
       transportDistanceKm: 10000
     },
     {
@@ -257,8 +305,14 @@ const buildSampleData = (): Array<Record<string, string | number>> => {
       exportCountry: "us",
       exportComplianceDocuments: "ftc_textile_labeling_package,country_of_origin_marking",
       transportMode: "sea",
-      transportOrigin: "Cat Lai Port, Ho Chi Minh City, Vietnam",
-      transportDestination: "Port of Los Angeles, California, USA",
+      transportOrigin: "Cat Lai Port",
+      transportOriginCity: "Ho Chi Minh City",
+      transportOriginStateRegion: "",
+      transportOriginCountry: "Vietnam",
+      transportDestination: "Port of Los Angeles",
+      transportDestinationCity: "Los Angeles",
+      transportDestinationStateRegion: "California",
+      transportDestinationCountry: "United States",
       transportDistanceKm: 14000
     },
     {
@@ -283,8 +337,14 @@ const buildSampleData = (): Array<Record<string, string | number>> => {
       exportCountry: "",
       exportComplianceDocuments: "",
       transportMode: "road",
-      transportOrigin: "Tam Hiep, Bien Hoa, Dong Nai, Vietnam",
-      transportDestination: "Dai Dong, Nghe An, Vietnam",
+      transportOrigin: "Tam Hiep",
+      transportOriginCity: "Bien Hoa",
+      transportOriginStateRegion: "Dong Nai",
+      transportOriginCountry: "Vietnam",
+      transportDestination: "Dai Dong",
+      transportDestinationCity: "",
+      transportDestinationStateRegion: "Nghe An",
+      transportDestinationCountry: "Vietnam",
       transportDistanceKm: 1250
     }
   ];
@@ -314,9 +374,10 @@ export const generateTemplate = (format: "xlsx" | "csv" = "xlsx"): void => {
     ["4) For export rows: set marketType=export and exportCountry."],
     ["5) processes / certifications / exportComplianceDocuments accept comma-separated values."],
     ["6) accessoriesWeightGram follows accessories order (e.g. accessories=button,zipper and weights=2,5)."],
-    ["7) transportOrigin / transportDestination should be full address text for logistics traceability."],
-    ["8) material percentages should sum to 100."],
-    ["9) Sample SKU is generated per download to reduce duplicate SKU errors."],
+    ["7) transportMode / transportDistanceKm / route columns are optional. If blank, logistics stays empty for later completion."],
+    ["8) transportOrigin / transportDestination can be used as street or address line; city/state/country columns are optional but recommended."],
+    ["9) material percentages should sum to 100."],
+    ["10) Sample SKU is generated per download to reduce duplicate SKU errors."],
     [""],
     ["Vietnamese aliases are still accepted by parser (e.g. Trong nuoc, Xuat khau, Duong bien)."]
   ];
@@ -340,7 +401,11 @@ export const generateTemplate = (format: "xlsx" | "csv" = "xlsx"): void => {
       "exportComplianceDocuments",
       "list codes/names of uploaded export docs for selected market (from /export)"
     ],
-    ["transportMode", "road, sea, air, rail, multimodal"]
+    ["transportMode", "road, sea, air, rail, multimodal"],
+    [
+      "transportOrigin / transportDestination",
+      "free-text street/address line; pair with city/state/country columns when available"
+    ]
   ];
 
   const wsOptions = XLSX.utils.aoa_to_sheet(optionsData);

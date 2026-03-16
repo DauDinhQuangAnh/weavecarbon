@@ -562,10 +562,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setPageTitle(
-      t("title"),
-      t("subtitle")
-    );
+    setPageTitle(t("title"), t("subtitle"));
   }, [setPageTitle, t]);
 
   useEffect(() => {

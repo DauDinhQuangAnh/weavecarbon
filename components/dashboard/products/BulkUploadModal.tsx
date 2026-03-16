@@ -92,7 +92,7 @@ const DISTANCE_BY_DESTINATION_MARKET: Record<string, number> = {
 
 const COUNTRY_BY_DESTINATION_MARKET: Record<string, string> = {
   vietnam: "Vietnam",
-  eu: "European Union",
+  eu: "Germany",
   usa: "United States",
   japan: "Japan",
   korea: "Korea",
@@ -184,8 +184,8 @@ transportDistanceKm?: number)
 
 const resolveTransportLegMode = (
 mode: BulkProductRow["transportMode"])
-: "road" | "sea" | "air" | "rail" =>
-mode === "multimodal" ? "sea" : mode;
+: "road" | "sea" | "air" | "rail" | undefined =>
+mode ? (mode === "multimodal" ? "sea" : mode) : undefined;
 
 const LEGACY_MATERIAL_TO_CATALOG_ID: Record<string, string> = {
   cotton: "cat-cotton-100",
@@ -436,19 +436,110 @@ const buildMaterials = (row: BulkProductRow) => {
   return materials;
 };
 
-const buildAddressFromText = (fullAddress?: string, fallbackCountry = "Vietnam") => {
-  const normalizedAddress = (fullAddress || "").trim();
+const trimImportValue = (value?: string) => (value || "").trim();
+
+const inferAddressFromText = (fullAddress?: string) => {
+  const normalizedAddress = trimImportValue(fullAddress);
+  const segments = normalizedAddress
+    .split(",")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return {
+      street: "",
+      city: "",
+      stateRegion: "",
+      country: ""
+    };
+  }
+
+  if (segments.length === 1) {
+    return {
+      street: segments[0],
+      city: "",
+      stateRegion: "",
+      country: ""
+    };
+  }
+
+  if (segments.length === 2) {
+    return {
+      street: segments[0],
+      city: "",
+      stateRegion: "",
+      country: segments[1]
+    };
+  }
+
+  if (segments.length === 3) {
+    return {
+      street: segments[0],
+      city: segments[1],
+      stateRegion: "",
+      country: segments[2]
+    };
+  }
+
+  return {
+    street: segments.slice(0, -3).join(", "),
+    city: segments[segments.length - 3] || "",
+    stateRegion: segments[segments.length - 2] || "",
+    country: segments[segments.length - 1] || ""
+  };
+};
+
+const buildAddressFromImport = (
+  {
+    fullAddress,
+    city,
+    stateRegion,
+    country
+  }: {
+    fullAddress?: string;
+    city?: string;
+    stateRegion?: string;
+    country?: string;
+  },
+  fallbackCountry = ""
+) => {
+  const normalizedAddress = trimImportValue(fullAddress);
+  const normalizedCity = trimImportValue(city);
+  const normalizedStateRegion = trimImportValue(stateRegion);
+  const normalizedCountry = trimImportValue(country);
+  const inferredAddress = inferAddressFromText(normalizedAddress);
+  const hasAnyAddressValue = Boolean(
+    normalizedAddress ||
+    normalizedCity ||
+    normalizedStateRegion ||
+    normalizedCountry
+  );
+
   return {
     streetNumber: "",
-    street: normalizedAddress,
+    street: inferredAddress.street || normalizedAddress,
     ward: "",
     district: "",
-    city: "",
-    stateRegion: "",
-    country: fallbackCountry,
+    city: normalizedCity || inferredAddress.city,
+    stateRegion: normalizedStateRegion || inferredAddress.stateRegion,
+    country:
+      normalizedCountry ||
+      inferredAddress.country ||
+      (hasAnyAddressValue ? fallbackCountry : ""),
     postalCode: ""
   };
 };
+
+const hasAddressData = (
+  address: {
+    street?: string;
+    city?: string;
+    stateRegion?: string;
+    country?: string;
+  }
+) =>
+  [address.street, address.city, address.stateRegion, address.country]
+    .some((value) => trimImportValue(value).length > 0);
 
 const normalizeWasteRecovery = (value?: string): string | undefined => {
   const raw = (value || "").trim();
@@ -505,11 +596,11 @@ row: BulkProductRow,
 forcedDomesticMarket?: string | null)
 : Record<string, unknown> => {
   const destinationMarket = resolveDestinationMarket(row, forcedDomesticMarket);
-  const estimatedTotalDistance = resolveEstimatedDistance(
-    destinationMarket,
-    row.transportDistanceKm
-  );
   const transportMode = resolveTransportLegMode(row.transportMode);
+  const estimatedTotalDistance =
+  transportMode ?
+  resolveEstimatedDistance(destinationMarket, row.transportDistanceKm) :
+  0;
   const isForcedDomestic = Boolean(normalizeDestinationMarket(forcedDomesticMarket));
   const normalizedMarketType = isForcedDomestic ? "domestic" : row.marketType;
   const normalizedExportCountry = isForcedDomestic ? undefined : row.exportCountry;
@@ -518,11 +609,26 @@ forcedDomesticMarket?: string | null)
   const normalizedWasteRecovery = normalizeWasteRecovery(row.wasteRecovery);
   const defaultDestinationCountry =
   COUNTRY_BY_DESTINATION_MARKET[destinationMarket] || "Other";
-  const originAddress = buildAddressFromText(row.transportOrigin, "Vietnam");
-  const destinationAddress = buildAddressFromText(
-    row.transportDestination,
+  const originAddress = buildAddressFromImport(
+    {
+      fullAddress: row.transportOrigin,
+      city: row.transportOriginCity,
+      stateRegion: row.transportOriginStateRegion,
+      country: row.transportOriginCountry
+    },
+    "Vietnam"
+  );
+  const destinationAddress = buildAddressFromImport(
+    {
+      fullAddress: row.transportDestination,
+      city: row.transportDestinationCity,
+      stateRegion: row.transportDestinationStateRegion,
+      country: row.transportDestinationCountry
+    },
     defaultDestinationCountry
   );
+  const hasOriginAddressValue = hasAddressData(originAddress);
+  const hasDestinationAddressValue = hasAddressData(destinationAddress);
   const materials = buildMaterials(row);
   const accessories = buildAccessories(row.accessories, row.accessoriesWeightGram);
   const certifications = buildCertifications(row.certifications);
@@ -534,14 +640,16 @@ forcedDomesticMarket?: string | null)
     source: row.energySource,
     percentage: 100
   }];
-  const transportLegs = [
+  const transportLegs = transportMode ?
+  [
   {
     id: "leg-1",
     mode: transportMode,
     estimatedDistance: estimatedTotalDistance,
     originLocation: row.transportOrigin,
     destinationLocation: row.transportDestination
-  }];
+  }] :
+  [];
 
   const payload: Record<string, unknown> = {
     sku: row.sku,
@@ -583,20 +691,6 @@ forcedDomesticMarket?: string | null)
     destination_market: destinationMarket,
     exportCountry: normalizedExportCountry,
     export_country: normalizedExportCountry,
-    originAddress,
-    origin_address: originAddress,
-    destinationAddress,
-    destination_address: destinationAddress,
-    transportOrigin: row.transportOrigin,
-    transport_origin: row.transportOrigin,
-    transportDestination: row.transportDestination,
-    transport_destination: row.transportDestination,
-    transportMode: row.transportMode,
-    transport_mode: row.transportMode,
-    transportLegs,
-    transport_legs: transportLegs,
-    estimatedTotalDistance,
-    estimated_total_distance: estimatedTotalDistance,
     carbonResults,
     carbon_results: carbonResults,
     materialsCO2e: carbonResults.perProduct.materials,
@@ -618,6 +712,38 @@ forcedDomesticMarket?: string | null)
     scope2: carbonResults.scope2,
     scope3: carbonResults.scope3
   };
+
+  if (hasOriginAddressValue) {
+    payload.originAddress = originAddress;
+    payload.origin_address = originAddress;
+  }
+
+  if (hasDestinationAddressValue) {
+    payload.destinationAddress = destinationAddress;
+    payload.destination_address = destinationAddress;
+  }
+
+  if (row.transportOrigin) {
+    payload.transportOrigin = row.transportOrigin;
+    payload.transport_origin = row.transportOrigin;
+  }
+
+  if (row.transportDestination) {
+    payload.transportDestination = row.transportDestination;
+    payload.transport_destination = row.transportDestination;
+  }
+
+  if (row.transportMode) {
+    payload.transportMode = row.transportMode;
+    payload.transport_mode = row.transportMode;
+  }
+
+  if (transportLegs.length > 0) {
+    payload.transportLegs = transportLegs;
+    payload.transport_legs = transportLegs;
+    payload.estimatedTotalDistance = estimatedTotalDistance;
+    payload.estimated_total_distance = estimatedTotalDistance;
+  }
 
   if (exportComplianceDocuments.length > 0) {
     payload.exportComplianceDocuments = exportComplianceDocuments;

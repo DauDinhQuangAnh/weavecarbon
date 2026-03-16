@@ -122,6 +122,8 @@ interface SaveTargetResponse {
   mode?: "manual" | "auto";
 }
 
+const MARKET_READINESS_PREVIEW_LIMIT = 3;
+
 const EMISSION_COLOR_PALETTE = [
 "hsl(171 78% 33%)",
 "hsl(220 85% 54%)",
@@ -129,6 +131,14 @@ const EMISSION_COLOR_PALETTE = [
 "hsl(8 82% 56%)"];
 
 const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
+const OVERVIEW_STAT_HEADER_CLASS =
+  "rounded-t-[inherit] border-b border-slate-300 bg-slate-100 p-3 pb-2 md:p-6 md:pb-3";
+const OVERVIEW_STAT_HEADER_INNER_CLASS =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2";
+const OVERVIEW_STAT_LABEL_CLASS =
+  "line-clamp-2 text-sm font-semibold leading-snug text-slate-700 md:text-[15px]";
+const OVERVIEW_STAT_VALUE_CLASS =
+  "shrink-0 text-right text-[2rem] font-bold leading-none text-slate-900 md:text-[2.2rem]";
 
 
 const normalizeEmissionKey = (value: string) =>
@@ -240,6 +250,31 @@ Object.values(markets).map((market) => ({
   score: normalizeReadinessScore(market.score)
 }));
 
+const renderMarketReadinessItem = (market: MarketReadinessItem) =>
+<div
+  key={market.market}
+  className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
+
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0 flex items-center gap-2">
+        <span className="truncate font-medium text-slate-900">
+          {market.market}
+        </span>
+        <Badge
+          className={getReadinessColor(market.score)}
+          variant="secondary">
+
+          {market.score >= 80 ?
+          <CheckCircle2 className="w-3 h-3 mr-1" /> :
+          <AlertCircle className="w-3 h-3 mr-1" />
+          }
+          {market.score}%
+        </Badge>
+      </div>
+    </div>
+    <Progress value={market.score} className="h-2 bg-slate-300" />
+  </div>;
+
 const getImpactColor = (impact: string) => {
   switch (impact) {
     case "high":
@@ -271,6 +306,7 @@ const OverviewPage: React.FC = () => {
   const appRoutes = useAppRoutes();
   const [, setCompany] = useState<Company | null>(null);
   const [apiStats, setApiStats] = useState<OverviewStats | null>(null);
+  const [showMarketReadinessDialog, setShowMarketReadinessDialog] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showTargetDialog, setShowTargetDialog] = useState(false);
   const [targetMode, setTargetMode] = useState<"auto" | "manual">("auto");
@@ -409,6 +445,14 @@ const OverviewPage: React.FC = () => {
   }, [products]);
 
   const stats = apiStats || localStats;
+  const marketReadinessPreview = useMemo(
+    () => marketReadiness.slice(0, MARKET_READINESS_PREVIEW_LIMIT),
+    [marketReadiness]
+  );
+  const hiddenMarketReadinessCount = Math.max(
+    0,
+    marketReadiness.length - marketReadinessPreview.length
+  );
 
   const autoBaseline = useMemo(() => {
     const nonZero = trendData.
@@ -542,51 +586,57 @@ const OverviewPage: React.FC = () => {
     <div className="space-y-4 md:space-y-6">
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-          <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100 p-3 pb-2 md:p-6 md:pb-2">
-            <CardDescription className="text-xs text-slate-700 md:text-sm">
-              {t("stats.totalCO2")}
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold text-slate-900 md:text-3xl">
-              {stats.totalCO2.toLocaleString(displayLocale)}
-            </CardTitle>
+          <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
+            <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
+              <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
+                {t("stats.totalCO2")}
+              </CardDescription>
+              <CardTitle className={OVERVIEW_STAT_VALUE_CLASS}>
+                {stats.totalCO2.toLocaleString(displayLocale)}
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="p-3 pt-2 md:pt-4">
-            <p className="text-xs text-slate-700 md:text-sm">
+            <p className="text-sm font-medium text-slate-700 md:text-[15px]">
               {t("stats.kgCO2eThisMonth")}
             </p>
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-          <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100 p-3 pb-2 md:p-6 md:pb-2">
-            <CardDescription className="text-xs text-slate-700 md:text-sm">
-              {t("stats.skuTracking")}
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold text-slate-900 md:text-3xl">
-              {stats.skuCount}
-            </CardTitle>
+          <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
+            <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
+              <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
+                {t("stats.skuTracking")}
+              </CardDescription>
+              <CardTitle className={OVERVIEW_STAT_VALUE_CLASS}>
+                {stats.skuCount}
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="p-3 pt-2 md:pt-4">
-            <p className="text-xs text-slate-700 md:text-sm">
+            <p className="text-sm font-medium text-slate-700 md:text-[15px]">
               {t("stats.activeProducts")}
             </p>
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-          <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100 p-3 pb-2 md:p-6 md:pb-2">
-            <CardDescription className="text-xs text-slate-700 md:text-sm">
-              {t("stats.exportReadiness")}
-            </CardDescription>
-            {isTrialPlan ? (
-              <CardTitle className="text-lg font-bold text-amber-800 md:text-xl">
-                {t("stats.trialLocked")}
-              </CardTitle>
-            ) : (
-              <CardTitle className="text-2xl font-bold text-primary md:text-3xl">
-                {stats.exportReadiness}%
-              </CardTitle>
-            )}
+          <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
+            <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
+              <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
+                {t("stats.exportReadiness")}
+              </CardDescription>
+              {isTrialPlan ? (
+                <CardTitle className="shrink-0 text-right text-xl font-bold leading-tight text-amber-800 md:text-2xl">
+                  {t("stats.trialLocked")}
+                </CardTitle>
+              ) : (
+                <CardTitle className="shrink-0 text-right text-[2rem] font-bold leading-none text-primary md:text-[2.2rem]">
+                  {stats.exportReadiness}%
+                </CardTitle>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-3 pt-2 md:pt-4">
             {isTrialPlan ? (
@@ -607,16 +657,18 @@ const OverviewPage: React.FC = () => {
         </Card>
 
         <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-          <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100 p-3 pb-2 md:p-6 md:pb-2">
-            <CardDescription className="text-xs text-slate-700 md:text-sm">
-              {t("stats.dataReliability")}
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold text-amber-700 md:text-3xl">
-              {stats.confidenceScore}%
-            </CardTitle>
+          <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
+            <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
+              <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
+                {t("stats.dataReliability")}
+              </CardDescription>
+              <CardTitle className="shrink-0 text-right text-2xl font-bold leading-none text-amber-700 md:text-3xl">
+                {stats.confidenceScore}%
+              </CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="p-3 pt-2 md:pt-4">
-            <div className="flex items-center gap-2 text-xs text-slate-700 md:text-sm">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-700 md:text-[15px]">
               <Gauge className="w-4 h-4" />
               <span>{t("stats.basedOnSKUs", { count: stats.skuCount })}</span>
             </div>
@@ -635,13 +687,37 @@ const OverviewPage: React.FC = () => {
       <div className="grid lg:grid-cols-2 gap-6">
         <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
           <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              {t("marketReadiness.title")}
-            </CardTitle>
-            <CardDescription className="text-slate-700">
-              {t("marketReadiness.subtitle")}
-            </CardDescription>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  {t("marketReadiness.title")}
+                </CardTitle>
+                <CardDescription className="text-slate-700">
+                  {t("marketReadiness.subtitle")}
+                </CardDescription>
+              </div>
+              {!isTrialPlan && hiddenMarketReadinessCount > 0 && (
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="mt-0.5 h-7 min-w-[2.25rem] rounded-full px-2.5 text-xs font-bold shadow-sm shadow-primary/25"
+                  onClick={() => setShowMarketReadinessDialog(true)}
+                  aria-label={
+                    locale === "vi" ?
+                      `Xem tat ca ${marketReadiness.length} thi truong` :
+                      `View all ${marketReadiness.length} markets`
+                  }
+                  title={
+                    locale === "vi" ?
+                      `Xem tat ca ${marketReadiness.length} thi truong` :
+                      `View all ${marketReadiness.length} markets`
+                  }>
+                  +{hiddenMarketReadinessCount}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4 bg-white pt-5">
             {isTrialPlan ? (
@@ -663,31 +739,9 @@ const OverviewPage: React.FC = () => {
                 No market readiness data yet.
               </p>
             ) : (
-              marketReadiness.map((market) => (
-                <div
-                  key={market.market}
-                  className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900">
-                        {market.market}
-                      </span>
-                      <Badge
-                        className={getReadinessColor(market.score)}
-                        variant="secondary">
-
-                        {market.score >= 80 ?
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> :
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                        }
-                        {market.score}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <Progress value={market.score} className="h-2 bg-slate-300" />
-                </div>
-              ))
+              <>
+                {marketReadinessPreview.map(renderMarketReadinessItem)}
+              </>
             )}
           </CardContent>
         </Card>
@@ -839,6 +893,24 @@ const OverviewPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={showMarketReadinessDialog}
+        onOpenChange={setShowMarketReadinessDialog}>
+        <DialogContent className="border border-slate-200 bg-white sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {t("marketReadiness.title")}
+            </DialogTitle>
+            <DialogDescription className="text-slate-700">
+              {t("marketReadiness.subtitle")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
+            {marketReadiness.map(renderMarketReadinessItem)}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={showTargetDialog}

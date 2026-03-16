@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 import { api } from "@/lib/apiClient";
+import { clearSubscriptionLockStateCache } from "@/lib/subscriptionLockState";
 import { resolveDomesticMarketCode } from "@/lib/targetMarkets";
 import OnboardingHeader from "./OnboardingHeader";
 import OnboardingForm from "./OnboardingForm";
@@ -12,8 +13,12 @@ import { useLocale, useTranslations } from "next-intl";
 
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
 
+interface CompanyMutationResponse {
+  id?: string;
+}
+
 const OnboardingClient: React.FC = () => {
-  const { user, loading, refreshUser } = useAuth();
+  const { user, loading, refreshUser, updateUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -37,12 +42,14 @@ const OnboardingClient: React.FC = () => {
     if (loading) return;
 
     if (!user) {
-      router.push("/auth");
+      router.replace("/auth");
       return;
     }
 
+    router.prefetch("/overview");
+
     if (user.company_id && !isGoogleFlow) {
-      router.push("/overview");
+      router.replace("/overview");
     }
   }, [user, loading, router, isGoogleFlow]);
 
@@ -70,6 +77,7 @@ const OnboardingClient: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      let company: CompanyMutationResponse | null = null;
       const companyPayload = {
         name: companyName,
         business_type: businessType as "shop_online" | "brand" | "factory",
@@ -78,10 +86,10 @@ const OnboardingClient: React.FC = () => {
       };
 
       if (user.company_id) {
-        await api.put("/account/company", companyPayload);
+        company = await api.put<CompanyMutationResponse>("/account/company", companyPayload);
       } else {
         try {
-          await api.post("/account/company", companyPayload);
+          company = await api.post<CompanyMutationResponse>("/account/company", companyPayload);
         } catch (error) {
           const message =
           error instanceof Error ? error.message.toLowerCase() : "";
@@ -94,7 +102,7 @@ const OnboardingClient: React.FC = () => {
             throw error;
           }
 
-          await api.put("/account/company", companyPayload);
+          company = await api.put<CompanyMutationResponse>("/account/company", companyPayload);
         }
       }
 
@@ -107,8 +115,21 @@ const OnboardingClient: React.FC = () => {
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
       }
 
-      await refreshUser();
-      router.push("/overview");
+      clearSubscriptionLockStateCache();
+
+      const nextCompanyId = company?.id || user.company_id || null;
+
+      if (!nextCompanyId) {
+        await refreshUser();
+        router.replace("/overview");
+        return;
+      }
+
+      updateUser({
+        company_id: nextCompanyId
+      });
+      router.replace("/overview");
+      void refreshUser().catch(() => undefined);
     } catch (error) {
       const message =
       error instanceof Error ? error.message : "Something went wrong";

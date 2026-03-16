@@ -33,7 +33,12 @@ npm run audit:i18n
 
 - Standard checkout now redirects to VNPAY instead of showing a local QR popup
 - FE expects a public backend via `NEXT_PUBLIC_API_BASE_URL`
-- BE setup and VNPAY deployment steps live in `../BE_Carbon-main/VNPAY_STANDARD_SETUP.md`
+- For full FE + BE Docker deployment on one VPS, use `DEPLOY_VPS.md`
+
+## Docker
+
+- Standalone FE Docker flow: `DOCKER.md`
+- Full FE + BE + DB VPS stack: `DEPLOY_VPS.md`
 
 ## Refactor Guardrails
 

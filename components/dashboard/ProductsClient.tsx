@@ -642,7 +642,6 @@ const ProductsClient: React.FC = () => {
   products.length === 0 ? 0 : (pagination.page - 1) * pagination.page_size + 1;
   const rangeEnd =
   products.length === 0 ? 0 : rangeStart + products.length - 1;
-
   const summaryText = useMemo(
     () =>
     t("summary", {

@@ -29,11 +29,17 @@ export interface BulkProductRow {
   marketType: "domestic" | "export";
   exportCountry?: string;
   exportComplianceDocuments?: string;
-  transportMode: "road" | "sea" | "air" | "rail" | "multimodal";
+  transportMode?: "road" | "sea" | "air" | "rail" | "multimodal";
   manufacturingLocation?: string;
   wasteRecovery?: string;
   transportOrigin?: string;
+  transportOriginCity?: string;
+  transportOriginStateRegion?: string;
+  transportOriginCountry?: string;
   transportDestination?: string;
+  transportDestinationCity?: string;
+  transportDestinationStateRegion?: string;
+  transportDestinationCountry?: string;
   transportDistanceKm?: number;
 
 
