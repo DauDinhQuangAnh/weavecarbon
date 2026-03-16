@@ -238,3 +238,5 @@ Add these GitHub repository secrets in the FE repo:
 - `DEPLOY_SSH_KEY=<private key content for the VPS>`
 
 Use the same `DEPLOY_*` secrets in the BE repo as well, because the backend repo also has its own deploy workflow.
+
+Until those secrets exist, the deploy jobs are skipped automatically.
