@@ -214,3 +214,29 @@ docker compose --env-file .env.vps -f docker-compose.vps.yml up -d --build
 - Database data persists in the `postgres_data` Docker volume.
 - Caddy stores certificates in Docker volumes and renews them automatically.
 - Keep `.env.vps` only on the server and out of version control.
+
+## 12. GitHub Actions CI/CD
+
+This repo includes:
+
+- `.github/workflows/frontend-ci.yml`
+- `.github/workflows/frontend-deploy.yml`
+- `deploy/redeploy-vps.sh`
+
+The deploy workflow:
+
+- runs FE validation on GitHub Actions
+- SSHes into the VPS
+- pulls the latest `main` branch for both FE and BE repos
+- runs `docker compose --env-file .env.vps -f docker-compose.vps.yml up -d --build`
+
+Add these GitHub repository secrets in the FE repo:
+
+- `DEPLOY_HOST=163.44.207.217`
+- `DEPLOY_PORT=22`
+- `DEPLOY_USER=root`
+- `DEPLOY_SSH_KEY=<private key content for the VPS>`
+
+Use the same `DEPLOY_*` secrets in the BE repo as well, because the backend repo also has its own deploy workflow.
+
+Until those secrets exist, the deploy jobs are skipped automatically.
