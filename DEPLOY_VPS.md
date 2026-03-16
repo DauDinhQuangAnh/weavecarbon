@@ -239,4 +239,4 @@ Add these GitHub repository secrets in the FE repo:
 
 Use the same `DEPLOY_*` secrets in the BE repo as well, because the backend repo also has its own deploy workflow.
 
-Until those secrets exist, the deploy jobs are skipped automatically.
+If those secrets are missing, the deploy workflow still starts but exits cleanly with a skip message instead of failing syntax validation.
