@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 
 interface WeaveyChatProps {
   variant?: "landing" | "dashboard";
+  displayMode?: "widget" | "page";
 }
 
 const formatConversationTime = (value: string) => {
@@ -57,7 +58,10 @@ const formatConversationTime = (value: string) => {
 const getActionErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
 
-const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
+const WeaveyChat: React.FC<WeaveyChatProps> = ({
+  variant = "landing",
+  displayMode = "widget",
+}) => {
   const t = useTranslations("dashboard.weaveyChat");
   const { user } = useAuth();
   const pathname = usePathname();
@@ -74,7 +78,6 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
     messages,
     conversations,
     activeConversationId,
-    chatSettings,
     isRemoteMode,
     isLoading,
     isInitializing,
@@ -89,13 +92,32 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
     variant,
   });
 
+  const isPageMode = displayMode === "page";
+  const isChatVisible = isPageMode || isOpen;
+  const welcomeMessage = user ? t("welcomeUser") : t("welcomeGuest");
+  const emptyStateMessage = statusMessage || welcomeMessage;
+  const deleteConversationTitle = "Delete conversation";
+  const deleteConversationAction = "Delete conversation";
+  const deletingConversationAction = "Deleting...";
+  const deleteConversationSuccess = "Conversation deleted.";
+  const deleteConversationFailed = "Unable to delete conversation.";
+  const deleteConversationCancel = "Cancel";
+  const deleteConversationDescription = useMemo(() => {
+    if (!pendingDeleteConversation) {
+      return "Are you sure you want to delete this conversation?";
+    }
+
+    return `Are you sure you want to delete "${pendingDeleteConversation.title}"?`;
+  }, [pendingDeleteConversation]);
+
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = "auto") => {
-      if (!isOpen) return;
+      if (!isChatVisible) return;
 
       const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
         "[data-radix-scroll-area-viewport]"
       );
+
       if (viewport) {
         viewport.scrollTo({ top: viewport.scrollHeight, behavior });
         return;
@@ -103,7 +125,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
 
       messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
     },
-    [isOpen]
+    [isChatVisible]
   );
 
   useEffect(() => {
@@ -117,10 +139,10 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
   }, [isExpanded, isLoading, isInitializing, isOpen, messages.length, scrollToBottom]);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+    if (isChatVisible) {
+      inputRef.current?.focus();
     }
-  }, [isOpen]);
+  }, [isChatVisible]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -144,12 +166,17 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
 
     try {
       await deleteConversation(pendingDeleteConversation.id);
-      toast.success("Đã xóa hội thoại.");
+      toast.success(deleteConversationSuccess);
       setPendingDeleteConversation(null);
     } catch (error) {
-      toast.error(getActionErrorMessage(error, "Không thể xóa hội thoại."));
+      toast.error(getActionErrorMessage(error, deleteConversationFailed));
     }
-  }, [deleteConversation, pendingDeleteConversation]);
+  }, [
+    deleteConversation,
+    deleteConversationFailed,
+    deleteConversationSuccess,
+    pendingDeleteConversation,
+  ]);
 
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isExpanded) return;
@@ -157,14 +184,6 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
       setIsExpanded(false);
     }
   };
-
-  const welcomeMessage = user ? t("welcomeUser") : t("welcomeGuest");
-  const emptyStateMessage = statusMessage || welcomeMessage;
-  const showInheritedNotice =
-    variant === "dashboard" &&
-    isRemoteMode &&
-    chatSettings?.configSource === "company_admin" &&
-    Boolean(chatSettings.config);
 
   if (variant === "landing") {
     return (
@@ -233,6 +252,117 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
     );
   }
 
+  if (isPageMode) {
+    return (
+      <>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex flex-col gap-4 bg-linear-to-r from-primary to-accent p-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">Weavey</h3>
+                <p className="text-sm text-white/80">{t("assistantTitleDashboard")}</p>
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-white hover:bg-white/20 md:w-auto"
+              onClick={startNewChat}
+              title={t("newChat")}
+            >
+              <MessageSquarePlus className="mr-2 h-4 w-4" />
+              {t("newChat")}
+            </Button>
+          </div>
+
+          <div className="flex min-h-[72vh] flex-col overflow-hidden md:flex-row">
+            {isRemoteMode ? (
+              <ConversationSidebar
+                conversations={conversations}
+                activeConversationId={activeConversationId}
+                isInitializing={isInitializing}
+                deletingConversationId={deletingConversationId}
+                onSelectConversation={selectConversation}
+                onRequestDeleteConversation={setPendingDeleteConversation}
+                onStartNewChat={startNewChat}
+                title={t("recentConversations")}
+                emptyLabel={t("noConversations")}
+                newChatLabel={t("newChat")}
+                messageCountLabel={(count) => `${count} messages`}
+                deleteConversationLabel={deleteConversationAction}
+              />
+            ) : null}
+
+            <div className="flex min-h-0 flex-1 flex-col">
+              <ScrollArea className="flex-1 p-5" ref={scrollAreaRef}>
+                <div className="space-y-4">
+                  {isInitializing && messages.length === 0 ? (
+                    <SystemNotice icon={<Loader2 className="h-4 w-4 animate-spin" />}>
+                      {t("loadingHistory")}
+                    </SystemNotice>
+                  ) : null}
+
+                  {!isInitializing && messages.length === 0 ? (
+                    <EmptyStateBubble message={emptyStateMessage} />
+                  ) : null}
+
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} />
+                  ))}
+
+                  {isLoading ? <TypingBubble /> : null}
+                  <div ref={messagesEndRef} aria-hidden="true" />
+                </div>
+              </ScrollArea>
+
+              <div className="border-t border-border p-4">
+                <form onSubmit={handleSubmit} className="flex gap-3">
+                  <Input
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    placeholder={t("inputPlaceholderDashboard")}
+                    className="h-11 flex-1 text-sm"
+                    disabled={isLoading || isInitializing}
+                  />
+
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="h-11 w-11"
+                    disabled={isLoading || isInitializing || !inputValue.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DeleteConversationDialog
+          open={Boolean(pendingDeleteConversation)}
+          deletingConversationId={deletingConversationId}
+          title={deleteConversationTitle}
+          description={deleteConversationDescription}
+          cancelLabel={deleteConversationCancel}
+          confirmLabel={deleteConversationAction}
+          confirmingLabel={deletingConversationAction}
+          onOpenChange={(open) => {
+            if (!open && !deletingConversationId) {
+              setPendingDeleteConversation(null);
+            }
+          }}
+          onConfirm={handleConfirmDeleteConversation}
+        />
+      </>
+    );
+  }
+
   return (
     <div
       onClick={handleBackdropClick}
@@ -289,7 +419,12 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
             </div>
           </div>
 
-          <div className={cn("flex flex-1 overflow-hidden", isExpanded && isRemoteMode && "flex-col md:flex-row")}>
+          <div
+            className={cn(
+              "flex flex-1 overflow-hidden",
+              isExpanded && isRemoteMode && "flex-col md:flex-row"
+            )}
+          >
             {isExpanded && isRemoteMode ? (
               <ConversationSidebar
                 conversations={conversations}
@@ -302,16 +437,12 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
                 title={t("recentConversations")}
                 emptyLabel={t("noConversations")}
                 newChatLabel={t("newChat")}
+                messageCountLabel={(count) => `${count} messages`}
+                deleteConversationLabel={deleteConversationAction}
               />
             ) : null}
 
             <div className="flex min-h-0 flex-1 flex-col">
-              {showInheritedNotice ? (
-                <div className="border-b border-border/70 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                  {t("inheritedFromAdmin")}
-                </div>
-              ) : null}
-
               <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                 <div className="space-y-3">
                   {isInitializing && messages.length === 0 ? (
@@ -370,48 +501,77 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
         </Button>
       )}
 
-      <AlertDialog
+      <DeleteConversationDialog
         open={Boolean(pendingDeleteConversation)}
+        deletingConversationId={deletingConversationId}
+        title={deleteConversationTitle}
+        description={deleteConversationDescription}
+        cancelLabel={deleteConversationCancel}
+        confirmLabel={deleteConversationAction}
+        confirmingLabel={deletingConversationAction}
         onOpenChange={(open) => {
           if (!open && !deletingConversationId) {
             setPendingDeleteConversation(null);
           }
         }}
-      >
-        <AlertDialogContent className="max-w-md border-slate-200 bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xóa hội thoại</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDeleteConversation ?
-                `Bạn có chắc muốn xóa "${pendingDeleteConversation.title}" không?` :
-                "Bạn có chắc muốn xóa hội thoại này không?"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={Boolean(deletingConversationId)}>Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              disabled={Boolean(deletingConversationId)}
-              onClick={(event) => {
-                event.preventDefault();
-                void handleConfirmDeleteConversation();
-              }}
-            >
-              {deletingConversationId ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang xóa...
-                </>
-              ) : (
-                "Xóa hội thoại"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleConfirmDeleteConversation}
+      />
     </div>
   );
 };
+
+const DeleteConversationDialog: React.FC<{
+  open: boolean;
+  deletingConversationId: string | null;
+  title: string;
+  description: string;
+  cancelLabel: string;
+  confirmLabel: string;
+  confirmingLabel: string;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => Promise<void>;
+}> = ({
+  open,
+  deletingConversationId,
+  title,
+  description,
+  cancelLabel,
+  confirmLabel,
+  confirmingLabel,
+  onOpenChange,
+  onConfirm,
+}) => (
+  <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialogContent className="max-w-md border-slate-200 bg-white">
+      <AlertDialogHeader>
+        <AlertDialogTitle>{title}</AlertDialogTitle>
+        <AlertDialogDescription>{description}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={Boolean(deletingConversationId)}>
+          {cancelLabel}
+        </AlertDialogCancel>
+        <AlertDialogAction
+          variant="destructive"
+          disabled={Boolean(deletingConversationId)}
+          onClick={(event) => {
+            event.preventDefault();
+            void onConfirm();
+          }}
+        >
+          {deletingConversationId ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {confirmingLabel}
+            </>
+          ) : (
+            confirmLabel
+          )}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+);
 
 const ConversationSidebar: React.FC<{
   conversations: ConversationSummary[];
@@ -424,6 +584,8 @@ const ConversationSidebar: React.FC<{
   title: string;
   emptyLabel: string;
   newChatLabel: string;
+  messageCountLabel: (count: number) => string;
+  deleteConversationLabel: string;
 }> = ({
   conversations,
   activeConversationId,
@@ -435,6 +597,8 @@ const ConversationSidebar: React.FC<{
   title,
   emptyLabel,
   newChatLabel,
+  messageCountLabel,
+  deleteConversationLabel,
 }) => {
   return (
     <aside className="flex w-full shrink-0 flex-col border-b border-border/70 bg-slate-50/70 md:w-80 md:border-b-0 md:border-r lg:w-[21rem]">
@@ -445,7 +609,12 @@ const ConversationSidebar: React.FC<{
             {conversations.length}
           </span>
         </div>
-        <Button variant="outline" size="sm" className="mt-3 w-full justify-center" onClick={onStartNewChat}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full justify-center"
+          onClick={onStartNewChat}
+        >
           <MessageSquarePlus className="mr-2 h-4 w-4" />
           {newChatLabel}
         </Button>
@@ -495,7 +664,7 @@ const ConversationSidebar: React.FC<{
                     </p>
                     <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <Clock3 className="h-3 w-3" />
-                      <span>{conversation.messageCount} messages</span>
+                      <span>{messageCountLabel(conversation.messageCount)}</span>
                     </div>
                   </button>
                   <Button
@@ -504,17 +673,17 @@ const ConversationSidebar: React.FC<{
                     size="icon"
                     className={cn(
                       "h-8 w-8 shrink-0 rounded-full text-slate-500",
-                      deletingConversationId && deletingConversationId !== conversation.id ?
-                        "opacity-50" :
-                        "opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                      deletingConversationId && deletingConversationId !== conversation.id
+                        ? "opacity-50"
+                        : "opacity-100 md:opacity-0 md:group-hover:opacity-100"
                     )}
                     onClick={(event) => {
                       event.stopPropagation();
                       onRequestDeleteConversation(conversation);
                     }}
                     disabled={Boolean(deletingConversationId)}
-                    title="Delete conversation"
-                    aria-label={`Delete conversation ${conversation.title}`}
+                    title={deleteConversationLabel}
+                    aria-label={`${deleteConversationLabel}: ${conversation.title}`}
                   >
                     {deletingConversationId === conversation.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -539,7 +708,7 @@ const EmptyStateBubble: React.FC<{ message: string; compact?: boolean }> = ({
   <div className={cn("flex gap-3", compact && "gap-2")}>
     <div
       className={cn(
-        "shrink-0 rounded-full bg-primary/10 flex items-center justify-center",
+        "flex shrink-0 items-center justify-center rounded-full bg-primary/10",
         compact ? "h-7 w-7" : "h-8 w-8"
       )}
     >
@@ -562,7 +731,7 @@ const TypingBubble: React.FC<{ compact?: boolean }> = ({ compact }) => (
   <div className={cn("flex gap-3", compact && "gap-2")}>
     <div
       className={cn(
-        "shrink-0 rounded-full bg-primary/10 flex items-center justify-center",
+        "flex shrink-0 items-center justify-center rounded-full bg-primary/10",
         compact ? "h-7 w-7" : "h-8 w-8"
       )}
     >
@@ -571,15 +740,24 @@ const TypingBubble: React.FC<{ compact?: boolean }> = ({ compact }) => (
     <div className="rounded-2xl rounded-tl-sm bg-muted px-4 py-3 shadow-sm">
       <div className="flex gap-1">
         <span
-          className={cn("animate-bounce rounded-full bg-primary/60", compact ? "h-1.5 w-1.5" : "h-2 w-2")}
+          className={cn(
+            "animate-bounce rounded-full bg-primary/60",
+            compact ? "h-1.5 w-1.5" : "h-2 w-2"
+          )}
           style={{ animationDelay: "0ms" }}
         />
         <span
-          className={cn("animate-bounce rounded-full bg-primary/60", compact ? "h-1.5 w-1.5" : "h-2 w-2")}
+          className={cn(
+            "animate-bounce rounded-full bg-primary/60",
+            compact ? "h-1.5 w-1.5" : "h-2 w-2"
+          )}
           style={{ animationDelay: "150ms" }}
         />
         <span
-          className={cn("animate-bounce rounded-full bg-primary/60", compact ? "h-1.5 w-1.5" : "h-2 w-2")}
+          className={cn(
+            "animate-bounce rounded-full bg-primary/60",
+            compact ? "h-1.5 w-1.5" : "h-2 w-2"
+          )}
           style={{ animationDelay: "300ms" }}
         />
       </div>
@@ -622,7 +800,9 @@ const MessageBubble: React.FC<{ message: ChatMessage; compact?: boolean }> = ({
         className={cn(
           "min-w-[3.25rem] w-fit max-w-[90%] break-words rounded-2xl px-4 shadow-sm",
           compact ? "py-3" : "py-3.5",
-          isUser ? "rounded-tr-sm bg-primary text-primary-foreground" : "rounded-tl-sm bg-muted"
+          isUser
+            ? "rounded-tr-sm bg-primary text-primary-foreground"
+            : "rounded-tl-sm bg-muted"
         )}
       >
         <div

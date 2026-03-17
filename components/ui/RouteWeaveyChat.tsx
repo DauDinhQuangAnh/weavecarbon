@@ -28,6 +28,12 @@ const DASHBOARD_ROUTE_PREFIXES = [
 const shouldShowWeaveyChat = (pathname: string | null) => {
   if (!pathname) return false;
   const normalizedPath = stripDemoPrefix(pathname);
+  const isDedicatedAiPage =
+    normalizedPath === "/settings/ai" || normalizedPath.startsWith("/settings/ai/");
+
+  if (isDedicatedAiPage) {
+    return false;
+  }
 
   return DASHBOARD_ROUTE_PREFIXES.some((prefix) => {
     return normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`);

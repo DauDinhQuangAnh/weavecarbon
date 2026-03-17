@@ -35,7 +35,7 @@ export const usePermissions = () => {
     const canMutate = canMutateByRole && !subscriptionLocked;
     const planFamily = getSubscriptionPlanFamily(currentPlan);
     const isTrialPlan = planFamily === "trial";
-    const canAccessAISettings = canAccessSystemSettings(role) && !isTrialPlan;
+    const canAccessAISettings = canAccessSettings(role);
 
     return {
       role,

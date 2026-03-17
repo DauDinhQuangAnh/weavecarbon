@@ -4,12 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   deleteChatConversation as deletePersistedChatConversation,
   getChatConversation,
-  getChatSettings,
   listChatConversations,
   sendChatMessage as sendPersistedChatMessage,
   type ChatMessage,
   type ConversationSummary,
-  type ResolvedChatSettings,
 } from "@/lib/chatApi";
 import { queryRagCollection, readRagRuntimeConfig } from "@/lib/ragApi";
 
@@ -55,14 +53,11 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
   const variant = options.variant || "landing";
   const isRemoteMode = variant === "dashboard" && Boolean(user?.id) && !isDemoSession;
   const localChatErrorMessage = t("localUnavailable");
-  const remoteAdminConfigMessage = t("notConfiguredAdmin");
-  const remoteMemberConfigMessage = t("notConfiguredMember");
   const failedToLoadHistoryMessage = t("failedToLoadHistory");
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [chatSettings, setChatSettings] = useState<ResolvedChatSettings | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
@@ -72,7 +67,6 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
     if (!isRemoteMode) {
       setConversations([]);
       setActiveConversationId(null);
-      setChatSettings(null);
       setLoadError(null);
       return;
     }
@@ -84,14 +78,10 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
       setLoadError(null);
 
       try {
-        const [resolvedSettings, conversationList] = await Promise.all([
-          getChatSettings(),
-          listChatConversations(),
-        ]);
+        const conversationList = await listChatConversations();
 
         if (ignore) return;
 
-        setChatSettings(resolvedSettings);
         setConversations(conversationList.items);
 
         if (conversationList.items.length === 0) {
@@ -246,14 +236,6 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         });
         setActiveConversationId(result.conversation.id);
         setConversations((prev) => upsertConversationSummary(prev, result.conversation));
-        setChatSettings((prev) =>
-          prev ?
-            {
-              ...prev,
-              configSource: result.configSource,
-            } :
-            prev
-        );
       } catch (error) {
         setMessages((prev) => [
           ...prev,
@@ -284,18 +266,12 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
   );
 
   const statusMessage =
-    loadError ||
-    (isRemoteMode && !isInitializing && chatSettings && !chatSettings.config ?
-      chatSettings.canEdit ?
-        remoteAdminConfigMessage :
-        remoteMemberConfigMessage :
-      null);
+    loadError || null;
 
   return {
     messages,
     conversations,
     activeConversationId,
-    chatSettings,
     isRemoteMode,
     isLoading,
     isInitializing,
@@ -349,4 +325,4 @@ async function getWeaveyResponse(input: string): Promise<string> {
   }
 }
 
-export type { ChatMessage, ConversationSummary, ResolvedChatSettings };
+export type { ChatMessage, ConversationSummary };

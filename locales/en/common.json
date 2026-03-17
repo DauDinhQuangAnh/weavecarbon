@@ -336,6 +336,15 @@
       "noConversations": "No conversations yet",
       "loadingHistory": "Loading conversation history...",
       "failedToLoadHistory": "Failed to load chat history.",
+      "deleteConversationTitle": "Delete conversation",
+      "deleteConversationDescription": "Are you sure you want to delete \"{title}\"?",
+      "deleteConversationFallback": "Are you sure you want to delete this conversation?",
+      "deleteConversationAction": "Delete conversation",
+      "deletingConversationAction": "Deleting...",
+      "deleteConversationSuccess": "Conversation deleted.",
+      "deleteConversationFailed": "Unable to delete conversation.",
+      "cancel": "Cancel",
+      "messagesCount": "{count} messages",
       "inheritedFromAdmin": "Using the latest company admin AI settings",
       "notConfiguredAdmin": "Weavey chat is not configured yet. Open Settings > AI to finish setup.",
       "notConfiguredMember": "Weavey chat is not configured yet. Please ask your company admin to set up AI in Settings.",
@@ -1378,7 +1387,12 @@
     "subtitle": "Manage system and users",
     "tabs": {
       "system": "System",
-      "users": "Users"
+      "users": "Users",
+      "ai": "AI"
+    },
+    "ai": {
+      "title": "AI",
+      "subtitle": "Chat with Weavey and manage conversation history."
     },
     "system": {
       "personalInfo": "Personal Information",
