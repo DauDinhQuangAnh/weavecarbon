@@ -122,8 +122,6 @@ services:
     depends_on:
       be:
         condition: service_healthy
-      rag:
-        condition: service_healthy
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
@@ -136,8 +134,6 @@ services:
     restart: unless-stopped
     depends_on:
       be:
-        condition: service_healthy
-      rag:
         condition: service_healthy
       fe:
         condition: service_healthy
