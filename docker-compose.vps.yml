@@ -61,6 +61,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${APP_PUBLIC_URL}/api/auth/google/callback
       RAG_PROXY_ALLOWED_BASE_URLS: ${RAG_PROXY_ALLOWED_BASE_URLS:-https://weavecarbon.com/rag,https://www.weavecarbon.com/rag}
+      RAG_PROXY_INTERNAL_BASE_URL: ${RAG_PROXY_INTERNAL_BASE_URL:-http://rag:8000}
     volumes:
       - be_uploads:/app/uploads
 
