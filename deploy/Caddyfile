@@ -6,6 +6,13 @@
     reverse_proxy be:4000
   }
 
+  @rag_root path /rag
+  redir @rag_root /rag/ 308
+
+  handle_path /rag/* {
+    reverse_proxy rag:8000
+  }
+
   handle {
     reverse_proxy fe:3000
   }

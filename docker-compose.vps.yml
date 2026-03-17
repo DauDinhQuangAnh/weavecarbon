@@ -63,6 +63,43 @@ services:
     volumes:
       - be_uploads:/app/uploads
 
+  rag:
+    container_name: weavecarbon-rag
+    build:
+      context: ${RAG_REPO_PATH:-../rag}
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CHROMA_DB_PATH: /app/db
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite-preview}
+      HF_TOKEN: ${HF_TOKEN:-}
+      ROOT_PATH: ${RAG_ROOT_PATH:-/rag}
+      RAG_CORS_ORIGINS: ${FRONTEND_URLS}
+    volumes:
+      - rag_data:/app/db
+      - rag_cache:/root/.cache
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
   fe:
     container_name: weavecarbon-fe
     build:
@@ -85,6 +122,8 @@ services:
     depends_on:
       be:
         condition: service_healthy
+      rag:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
@@ -97,6 +136,8 @@ services:
     restart: unless-stopped
     depends_on:
       be:
+        condition: service_healthy
+      rag:
         condition: service_healthy
       fe:
         condition: service_healthy
@@ -113,5 +154,7 @@ services:
 volumes:
   postgres_data:
   be_uploads:
+  rag_data:
+  rag_cache:
   caddy_data:
   caddy_config:
