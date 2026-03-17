@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import {
   Bot,
   Clock3,
@@ -14,7 +15,18 @@ import {
   Minimize2,
   Send,
   Sparkles,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,6 +54,9 @@ const formatConversationTime = (value: string) => {
     : parsed.toLocaleDateString([], { month: "short", day: "numeric" });
 };
 
+const getActionErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
+
 const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
   const t = useTranslations("dashboard.weaveyChat");
   const { user } = useAuth();
@@ -49,6 +64,8 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
   const [isOpen, setIsOpen] = useState(variant === "landing");
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [pendingDeleteConversation, setPendingDeleteConversation] =
+    useState<ConversationSummary | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,9 +78,11 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
     isRemoteMode,
     isLoading,
     isInitializing,
+    deletingConversationId,
     statusMessage,
     sendMessage,
     selectConversation,
+    deleteConversation,
     startNewChat,
   } = useWeaveyChat({
     currentPage: pathname,
@@ -117,6 +136,20 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
     setIsOpen(false);
     setIsExpanded(false);
   };
+
+  const handleConfirmDeleteConversation = useCallback(async () => {
+    if (!pendingDeleteConversation) {
+      return;
+    }
+
+    try {
+      await deleteConversation(pendingDeleteConversation.id);
+      toast.success("Đã xóa hội thoại.");
+      setPendingDeleteConversation(null);
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, "Không thể xóa hội thoại."));
+    }
+  }, [deleteConversation, pendingDeleteConversation]);
 
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isExpanded) return;
@@ -214,7 +247,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
           className={cn(
             "flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl",
             isExpanded
-              ? "h-[86dvh] w-full max-w-5xl md:h-[82vh]"
+              ? "h-[86dvh] w-full max-w-6xl md:h-[82vh]"
               : "h-[min(72vh,33rem)] w-[min(24rem,calc(100vw-1rem))] md:h-[36rem] md:w-[min(30rem,calc(100vw-1.5rem))]"
           )}
         >
@@ -262,7 +295,9 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
                 conversations={conversations}
                 activeConversationId={activeConversationId}
                 isInitializing={isInitializing}
+                deletingConversationId={deletingConversationId}
                 onSelectConversation={selectConversation}
+                onRequestDeleteConversation={setPendingDeleteConversation}
                 onStartNewChat={startNewChat}
                 title={t("recentConversations")}
                 emptyLabel={t("noConversations")}
@@ -334,6 +369,46 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({ variant = "landing" }) => {
           <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
         </Button>
       )}
+
+      <AlertDialog
+        open={Boolean(pendingDeleteConversation)}
+        onOpenChange={(open) => {
+          if (!open && !deletingConversationId) {
+            setPendingDeleteConversation(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md border-slate-200 bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa hội thoại</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeleteConversation ?
+                `Bạn có chắc muốn xóa "${pendingDeleteConversation.title}" không?` :
+                "Bạn có chắc muốn xóa hội thoại này không?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(deletingConversationId)}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={Boolean(deletingConversationId)}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmDeleteConversation();
+              }}
+            >
+              {deletingConversationId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                "Xóa hội thoại"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -342,7 +417,9 @@ const ConversationSidebar: React.FC<{
   conversations: ConversationSummary[];
   activeConversationId: string | null;
   isInitializing: boolean;
+  deletingConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
+  onRequestDeleteConversation: (conversation: ConversationSummary) => void;
   onStartNewChat: () => void;
   title: string;
   emptyLabel: string;
@@ -351,28 +428,32 @@ const ConversationSidebar: React.FC<{
   conversations,
   activeConversationId,
   isInitializing,
+  deletingConversationId,
   onSelectConversation,
+  onRequestDeleteConversation,
   onStartNewChat,
   title,
   emptyLabel,
   newChatLabel,
 }) => {
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-border/70 bg-muted/20 md:w-72 md:border-b-0 md:border-r">
-      <div className="flex items-center justify-between px-3 py-3">
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{title}</p>
-          <p className="text-xs text-muted-foreground">{conversations.length}</p>
+    <aside className="flex w-full shrink-0 flex-col border-b border-border/70 bg-slate-50/70 md:w-80 md:border-b-0 md:border-r lg:w-[21rem]">
+      <div className="border-b border-border/70 bg-white/80 px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{title}</p>
+          <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+            {conversations.length}
+          </span>
         </div>
-        <Button variant="outline" size="sm" onClick={onStartNewChat}>
+        <Button variant="outline" size="sm" className="mt-3 w-full justify-center" onClick={onStartNewChat}>
           <MessageSquarePlus className="mr-2 h-4 w-4" />
           {newChatLabel}
         </Button>
       </div>
 
       <div className="min-h-0 flex-1">
-        <ScrollArea className="h-full px-2 pb-2">
-          <div className="space-y-2">
+        <ScrollArea className="h-full px-3 py-3">
+          <div className="space-y-2.5">
             {isInitializing && conversations.length === 0 ? (
               <SystemNotice icon={<Loader2 className="h-4 w-4 animate-spin" />}>
                 {title}
@@ -386,33 +467,63 @@ const ConversationSidebar: React.FC<{
             ) : null}
 
             {conversations.map((conversation) => (
-              <button
+              <div
                 key={conversation.id}
-                type="button"
-                onClick={() => void onSelectConversation(conversation.id)}
                 className={cn(
-                  "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                  "group rounded-xl border p-2 transition-all",
                   conversation.id === activeConversationId
-                    ? "border-primary/40 bg-primary/10"
-                    : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
+                    ? "border-primary/30 bg-primary/5 shadow-sm"
+                    : "border-slate-200/80 bg-white/90 hover:border-slate-300 hover:bg-white hover:shadow-sm"
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="line-clamp-2 text-sm font-semibold text-slate-900">
-                    {conversation.title}
-                  </p>
-                  <span className="shrink-0 text-[11px] text-muted-foreground">
-                    {formatConversationTime(conversation.updatedAt)}
-                  </span>
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void onSelectConversation(conversation.id)}
+                    className="min-w-0 flex-1 rounded-lg px-1 py-1 text-left"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="line-clamp-1 text-sm font-semibold text-slate-900">
+                        {conversation.title}
+                      </p>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {formatConversationTime(conversation.updatedAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">
+                      {conversation.lastMessagePreview || conversation.title}
+                    </p>
+                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Clock3 className="h-3 w-3" />
+                      <span>{conversation.messageCount} messages</span>
+                    </div>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-8 w-8 shrink-0 rounded-full text-slate-500",
+                      deletingConversationId && deletingConversationId !== conversation.id ?
+                        "opacity-50" :
+                        "opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    )}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onRequestDeleteConversation(conversation);
+                    }}
+                    disabled={Boolean(deletingConversationId)}
+                    title="Delete conversation"
+                    aria-label={`Delete conversation ${conversation.title}`}
+                  >
+                    {deletingConversationId === conversation.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {conversation.lastMessagePreview || conversation.title}
-                </p>
-                <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <Clock3 className="h-3 w-3" />
-                  <span>{conversation.messageCount}</span>
-                </div>
-              </button>
+              </div>
             ))}
           </div>
         </ScrollArea>
@@ -509,7 +620,7 @@ const MessageBubble: React.FC<{ message: ChatMessage; compact?: boolean }> = ({
 
       <div
         className={cn(
-          "w-fit max-w-[90%] break-words rounded-2xl px-4 shadow-sm",
+          "min-w-[3.25rem] w-fit max-w-[90%] break-words rounded-2xl px-4 shadow-sm",
           compact ? "py-3" : "py-3.5",
           isUser ? "rounded-tr-sm bg-primary text-primary-foreground" : "rounded-tl-sm bg-muted"
         )}

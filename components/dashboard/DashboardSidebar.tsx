@@ -8,6 +8,7 @@ import { authTokenStore } from "@/lib/apiClient";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
+import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
   Leaf,
   LogOut,
@@ -75,7 +76,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 }) => {
   const t = useTranslations("sidebar");
   const { user, signOut, isDemoSession } = useAuth();
-  const { canAccessSettings } = usePermissions();
+  const { canAccessSettings, isTrialPlan: isTrialPlanFromPermissions } = usePermissions();
   const appRoutes = useAppRoutes();
   const router = useRouter();
   const pathname = usePathname();
@@ -122,13 +123,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     return pathname === targetPath || pathname.startsWith(targetPath + "/");
   };
 
-  const normalizedPlan = (currentPlan || company?.current_plan || "").trim().toLowerCase();
-  const isStarterPlan = normalizedPlan.includes("trial");
+  const menuPlan = currentPlan || company?.current_plan || null;
+  const isTrialPlan =
+    isTrialPlanFromPermissions || getSubscriptionPlanFamily(menuPlan) === "trial";
 
   const visibleMenuItems = menuItems.filter((item) =>
   item.path === "/settings" ?
   !isDemoSession && canAccessSettings :
-  isStarterPlan && (item.path === "/export" || item.path === "/reports") ?
+  isTrialPlan && (item.path === "/export" || item.path === "/reports") ?
   false :
   true
   );

@@ -15,6 +15,31 @@ const asNullableString = (value: unknown) => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const normalizeChatSettingsBaseUrl = (value: string) => {
+  const raw = trimTrailingSlash(value.trim());
+  if (!raw) return "";
+
+  try {
+    const parsed =
+      typeof window !== "undefined" ?
+        new URL(raw, window.location.origin) :
+        new URL(raw);
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return raw;
+    }
+
+    const pathname =
+      parsed.pathname && parsed.pathname !== "/" ? trimTrailingSlash(parsed.pathname) : "";
+
+    return trimTrailingSlash(`${parsed.protocol}//${parsed.host}${pathname}`);
+  } catch {
+    return raw;
+  }
+};
+
 const asNumber = (value: unknown, fallback = 0) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) {
@@ -181,6 +206,10 @@ export const getChatConversation = async (conversationId: string): Promise<Conve
   return normalizeConversationDetail(payload);
 };
 
+export const deleteChatConversation = async (conversationId: string): Promise<void> => {
+  await api.delete<unknown>(`/chat/conversations/${encodeURIComponent(conversationId)}`);
+};
+
 export const sendChatMessage = async (payload: {
   conversationId?: string | null;
   content: string;
@@ -216,8 +245,9 @@ export const getChatSettings = async (): Promise<ResolvedChatSettings> => {
 export const saveChatSettings = async (
   config: RagRuntimeConfig
 ): Promise<ResolvedChatSettings> => {
+  const normalizedBaseUrl = normalizeChatSettingsBaseUrl(config.baseUrl);
   const response = await api.put<unknown>("/chat/settings", {
-    rag_base_url: config.baseUrl,
+    rag_base_url: normalizedBaseUrl,
     collection_name: config.collectionName,
     columns_to_answer: config.columnsToAnswer,
     number_docs_retrieval: config.numberDocsRetrieval,

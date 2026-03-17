@@ -14,5 +14,5 @@ fi
 cd "${ROOT_DIR}"
 
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" config >/dev/null
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build
+docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build --force-recreate
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps

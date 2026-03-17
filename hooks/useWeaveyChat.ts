@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  deleteChatConversation as deletePersistedChatConversation,
   getChatConversation,
   getChatSettings,
   listChatConversations,
@@ -64,6 +65,7 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
   const [chatSettings, setChatSettings] = useState<ResolvedChatSettings | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -151,6 +153,54 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
     setMessages([]);
     setLoadError(null);
   }, []);
+
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      if (!isRemoteMode || !conversationId) {
+        return;
+      }
+
+      setDeletingConversationId(conversationId);
+      setLoadError(null);
+
+      try {
+        await deletePersistedChatConversation(conversationId);
+
+        let remainingConversations: ConversationSummary[] = [];
+        setConversations((previous) => {
+          remainingConversations = previous.filter((conversation) => conversation.id !== conversationId);
+          return remainingConversations;
+        });
+
+        if (activeConversationId !== conversationId) {
+          return;
+        }
+
+        setActiveConversationId(null);
+        setMessages([]);
+
+        const nextConversation = remainingConversations[0];
+        if (!nextConversation) {
+          return;
+        }
+
+        try {
+          const detail = await getChatConversation(nextConversation.id);
+          setActiveConversationId(detail.id);
+          setMessages(detail.messages);
+        } catch (error) {
+          setLoadError(toErrorMessage(error, failedToLoadHistoryMessage));
+        }
+      } catch (error) {
+        const message = toErrorMessage(error, failedToLoadHistoryMessage);
+        setLoadError(message);
+        throw error instanceof Error ? error : new Error(message);
+      } finally {
+        setDeletingConversationId(null);
+      }
+    },
+    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode]
+  );
 
   const sendLocalMessage = useCallback(
     async (input: string) => {
@@ -249,9 +299,11 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
     isRemoteMode,
     isLoading,
     isInitializing,
+    deletingConversationId,
     statusMessage,
     sendMessage,
     selectConversation,
+    deleteConversation,
     startNewChat,
   };
 }

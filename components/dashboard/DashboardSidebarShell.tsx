@@ -4,6 +4,11 @@ import React, { useState, useEffect } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
+import {
+  resolveSubscriptionState,
+  type SubscriptionApiPayload
+} from "@/lib/subscriptionState";
+import { writeSubscriptionLockState } from "@/lib/subscriptionLockState";
 import { Company } from "@/types/app.type";
 
 interface DashboardSidebarShellProps {
@@ -12,6 +17,10 @@ interface DashboardSidebarShellProps {
 
 const ACCOUNT_ENDPOINT_ENABLED =
 process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
+
+type AccountPayload = {
+  company?: Company | null;
+};
 
 export default function DashboardSidebarShell({
   company
@@ -84,8 +93,18 @@ export default function DashboardSidebarShell({
   }, [company]);
 
   useEffect(() => {
-    setResolvedPlan(company?.current_plan || null);
+    const companyPlan = (company?.current_plan || "").trim();
+    if (!companyPlan) return;
+
+    setResolvedPlan((prev) => prev || companyPlan);
   }, [company?.current_plan]);
+
+  useEffect(() => {
+    const companyPlan = (resolvedCompany?.current_plan || "").trim();
+    if (!companyPlan) return;
+
+    setResolvedPlan((prev) => prev || companyPlan);
+  }, [resolvedCompany?.current_plan]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -110,9 +129,16 @@ export default function DashboardSidebarShell({
       if (company || !user || !ACCOUNT_ENDPOINT_ENABLED) return;
 
       try {
-        const account = await api.get<{company?: Company | null;}>("/account");
+        const account = await api.get<AccountPayload>("/account", {
+          disableResponseCache: true
+        });
+        const nextCompany = account?.company || null;
         if (!cancelled) {
-          setResolvedCompany(account?.company || null);
+          setResolvedCompany(nextCompany);
+          const accountPlan = (nextCompany?.current_plan || "").trim();
+          if (accountPlan) {
+            setResolvedPlan((prev) => prev || accountPlan);
+          }
         }
       } catch {
         if (!cancelled) {
@@ -135,18 +161,25 @@ export default function DashboardSidebarShell({
       if (!userId || userType === "b2c") return;
 
       try {
-        const subscription = await api.get<{
-          current_plan?: string;
-          subscription?: {
-            current_plan?: string;
-          };
-        }>("/subscription");
+        const fallbackPlan =
+          resolvedCompany?.current_plan || company?.current_plan || null;
+        const subscription = await api.get<SubscriptionApiPayload>("/subscription", {
+          disableResponseCache: true
+        });
+        const resolved = resolveSubscriptionState(subscription, {
+          fallbackPlan
+        });
         const nextPlan =
-          subscription?.current_plan ||
-          subscription?.subscription?.current_plan ||
-          null;
+          resolved.plan === "free" && !fallbackPlan ? null : resolved.plan;
+
         if (!cancelled && nextPlan) {
           setResolvedPlan(nextPlan);
+          writeSubscriptionLockState({
+            current_plan: nextPlan,
+            trial_ends_at: resolved.trialEndsAt,
+            trial_expired: resolved.trialExpired,
+            features_locked: resolved.featuresLocked
+          });
         }
       } catch {
 
@@ -158,7 +191,7 @@ export default function DashboardSidebarShell({
     return () => {
       cancelled = true;
     };
-  }, [userId, userType]);
+  }, [company?.current_plan, resolvedCompany?.current_plan, userId, userType]);
 
   const handleToggleSidebar = () => {
     if (window.innerWidth < 1024) {

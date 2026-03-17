@@ -63,8 +63,8 @@ type OpenSectionsState = {
 };
 const DEFAULT_OPEN_SECTIONS: OpenSectionsState = {
   runtime: true,
-  collections: true,
-  ingest: true
+  collections: false,
+  ingest: false
 };
 
 const parseColumnsInput = (value: string) =>
@@ -525,9 +525,32 @@ const AISettings: React.FC = () => {
     }
   };
 
+  const settingsSourceMeta = (() => {
+    switch (settingsSource) {
+      case "self":
+        return {
+          label: "Self config",
+          description: "Using the saved AI config for this account.",
+          badgeClassName: "border-emerald-200 bg-emerald-50 text-emerald-700"
+        };
+      case "company_admin":
+        return {
+          label: "Company admin config",
+          description: "Using the latest config from company admin until you save your own copy.",
+          badgeClassName: "border-sky-200 bg-sky-50 text-sky-700"
+        };
+      default:
+        return {
+          label: "Local fallback",
+          description: "No backend config found yet. Local fallback is being used for quick testing.",
+          badgeClassName: "border-amber-200 bg-amber-50 text-amber-700"
+        };
+    }
+  })();
+
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
@@ -545,30 +568,29 @@ const AISettings: React.FC = () => {
             </Button>
           </div>
           <CardDescription>
-            Configure RAG backend and the active collection used by Weavey chat.
+            Quick config for endpoint, collection, and basic connection checks.
           </CardDescription>
         </CardHeader>
         {openSections.runtime ?
-          <CardContent className="space-y-4">
-          {settingsSource === "self" ?
-            <p className="text-xs text-muted-foreground">
-              Backend source of truth is active for this account.
-            </p> :
-            null}
+          <CardContent className="space-y-4 pt-0">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className={settingsSourceMeta.badgeClassName}>
+                {settingsSourceMeta.label}
+              </Badge>
+              <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">
+                Collection: {config.collectionName || "Not selected"}
+              </Badge>
+              {activeCollection ? (
+                <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">
+                  {activeCollection.count} docs
+                </Badge>
+              ) : null}
+            </div>
+            <p className="mt-2 text-xs text-slate-600">{settingsSourceMeta.description}</p>
+          </div>
 
-          {settingsSource === "company_admin" ?
-            <p className="text-xs text-muted-foreground">
-              Currently using the latest company admin config until you save your own copy.
-            </p> :
-            null}
-
-          {settingsSource === "local_fallback" ?
-            <p className="text-xs text-muted-foreground">
-              No backend config found yet. Local fallback is being used until you save.
-            </p> :
-            null}
-
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="rag-base-url">RAG API Base URL</Label>
               <Input
@@ -597,9 +619,6 @@ const AISettings: React.FC = () => {
                 placeholder="rag_collection_demo"
               />
             </div>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="rag-columns">columns_to_answer (comma-separated)</Label>
               <Input
@@ -651,75 +670,105 @@ const AISettings: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={handleSaveRuntimeConfig}>
-              <Save className="w-4 h-4 mr-2" />
-              Save runtime config
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => refreshCollections(config.baseUrl)}
-              disabled={loadingCollections}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loadingCollections ? "animate-spin" : ""}`} />
-              Refresh collections
-            </Button>
-            <Button variant="outline" onClick={handleCheckConnection} disabled={checkingConnection}>
-              <Database className={`w-4 h-4 mr-2 ${checkingConnection ? "animate-spin" : ""}`} />
-              Check connection
-            </Button>
-          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={handleSaveRuntimeConfig}>
+                <Save className="w-4 h-4 mr-2" />
+                Save config
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refreshCollections(config.baseUrl)}
+                disabled={loadingCollections}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loadingCollections ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCheckConnection}
+                disabled={checkingConnection}
+              >
+                <Database className={`w-4 h-4 mr-2 ${checkingConnection ? "animate-spin" : ""}`} />
+                Check
+              </Button>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant="secondary">Health: {healthStatus}</Badge>
-            <Badge variant="secondary">DB: {dbStatus}</Badge>
-            {dbMessage ?
-              <span className="text-muted-foreground">{dbMessage}</span> :
-              null}
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant="secondary" className="bg-white text-slate-700">
+                Health: {healthStatus}
+              </Badge>
+              <Badge variant="secondary" className="bg-white text-slate-700">
+                DB: {dbStatus}
+              </Badge>
+              {dbMessage ?
+                <span className="text-xs text-slate-600">{dbMessage}</span> :
+                null}
+            </div>
           </div>
           </CardContent> :
           null}
       </Card>
 
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle>Collection management</CardTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleSection("collections")}
-              aria-label={
-                openSections.collections ?
-                "Collapse Collection management" :
-                "Expand Collection management"
-              }
-            >
-              {openSections.collections ?
-                <ChevronDown className="w-4 h-4" /> :
-                <ChevronRight className="w-4 h-4" />}
-            </Button>
+            <CardTitle>Collections</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => refreshCollections(config.baseUrl)}
+                disabled={loadingCollections}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${loadingCollections ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSection("collections")}
+                aria-label={
+                  openSections.collections ?
+                  "Collapse Collection management" :
+                  "Expand Collection management"
+                }
+              >
+                {openSections.collections ?
+                  <ChevronDown className="w-4 h-4" /> :
+                  <ChevronRight className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
-          <CardDescription>Create, edit, delete, and pick active collections.</CardDescription>
+          <CardDescription>Create, select, rename, or delete collections.</CardDescription>
         </CardHeader>
         {openSections.collections ?
-          <CardContent className="space-y-4">
-          <div className="grid gap-3 lg:grid-cols-[1.1fr_1fr_auto]">
-            <Input
-              value={createName}
-              onChange={(event) => setCreateName(event.target.value)}
-              placeholder="Collection name"
-            />
-            <Input
-              value={createDescription}
-              onChange={(event) => setCreateDescription(event.target.value)}
-              placeholder="Description (optional)"
-            />
-            <Button onClick={handleCreateCollection} disabled={creating}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create
-            </Button>
+          <CardContent className="space-y-4 pt-0">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="mb-3">
+              <p className="text-sm font-medium text-slate-900">Quick create</p>
+              <p className="text-xs text-slate-600">Create a new collection quickly for testing.</p>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+              <Input
+                value={createName}
+                onChange={(event) => setCreateName(event.target.value)}
+                placeholder="Collection name"
+              />
+              <Input
+                value={createDescription}
+                onChange={(event) => setCreateDescription(event.target.value)}
+                placeholder="Description (optional)"
+              />
+              <Button size="sm" onClick={handleCreateCollection} disabled={creating}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-md border border-slate-200">
@@ -731,16 +780,18 @@ const AISettings: React.FC = () => {
                   return (
                     <div
                       key={collection.name}
-                      className="px-3 py-2.5 flex flex-wrap items-center justify-between gap-2"
+                      className="px-3 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{collection.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
                           {getCollectionDescription(collection) || "No description"}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{collection.count} docs</Badge>
+                        <Badge variant="outline" className="border-slate-200 bg-white text-slate-700">
+                          {collection.count} docs
+                        </Badge>
                         <Button
                           size="sm"
                           variant={isActive ? "default" : "outline"}
@@ -750,6 +801,7 @@ const AISettings: React.FC = () => {
                               collectionName: collection.name
                             };
                             persistConfig(nextConfig);
+                            setIngestCollectionName(collection.name);
                             toast.success(
                               `Active collection is now "${collection.name}". Save runtime config to sync chat.`
                             );
@@ -760,6 +812,7 @@ const AISettings: React.FC = () => {
                         <Button
                           size="icon"
                           variant="ghost"
+                          className="h-8 w-8"
                           onClick={() => void handleDeleteCollection(collection.name)}
                           disabled={deletingCollectionName === collection.name}
                         >
@@ -772,14 +825,14 @@ const AISettings: React.FC = () => {
               </div>}
           </div>
 
-          <div className="space-y-3 rounded-md border border-slate-200 p-3">
+          <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3">
             <div>
               <p className="font-medium">Edit selected collection</p>
               <p className="text-xs text-muted-foreground">
                 Works for the current active collection only.
               </p>
             </div>
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
               <Input
                 value={editName}
                 onChange={(event) => setEditName(event.target.value)}
@@ -792,16 +845,16 @@ const AISettings: React.FC = () => {
                 placeholder="Description"
                 disabled={!activeCollection}
               />
+              <Button size="sm" onClick={handleUpdateCollection} disabled={!activeCollection || updating}>
+                Save changes
+              </Button>
             </div>
-            <Button onClick={handleUpdateCollection} disabled={!activeCollection || updating}>
-              Save collection changes
-            </Button>
           </div>
           </CardContent> :
           null}
       </Card>
 
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle>Ingest + Query test</CardTitle>
@@ -816,49 +869,70 @@ const AISettings: React.FC = () => {
             </Button>
           </div>
           <CardDescription>
-            Upload CSV into a collection and test a query with current runtime config.
+            Upload CSV and run a quick query without leaving this screen.
           </CardDescription>
         </CardHeader>
         {openSections.ingest ?
-          <CardContent className="space-y-4">
-          <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr_0.9fr_auto]">
-            <Input
-              value={ingestCollectionName}
-              onChange={(event) => setIngestCollectionName(event.target.value)}
-              placeholder="collection_name (optional)"
-            />
-            <Input
-              value={indexColumn}
-              onChange={(event) => setIndexColumn(event.target.value)}
-              placeholder="index_column"
-            />
-            <Input
-              type="file"
-              accept=".csv,text/csv"
-              onChange={(event) => setUploadFile(event.target.files?.[0] || null)}
-            />
-            <Button onClick={handleUploadCsv} disabled={uploading}>
-              <Upload className="w-4 h-4 mr-2" />
-              Ingest CSV
-            </Button>
+          <CardContent className="grid gap-4 pt-0 xl:grid-cols-2">
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">CSV ingest</p>
+              <p className="text-xs text-slate-600">Upload CSV data into a test collection.</p>
+            </div>
+            <div className="grid gap-3">
+              <Input
+                value={ingestCollectionName}
+                onChange={(event) => setIngestCollectionName(event.target.value)}
+                placeholder="collection_name (optional)"
+              />
+              <div className="grid gap-3 sm:grid-cols-[1fr_1.1fr]">
+                <Input
+                  value={indexColumn}
+                  onChange={(event) => setIndexColumn(event.target.value)}
+                  placeholder="index_column"
+                />
+                <Input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => setUploadFile(event.target.files?.[0] || null)}
+                />
+              </div>
+              <div className="flex justify-start">
+                <Button size="sm" onClick={handleUploadCsv} disabled={uploading}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Ingest CSV
+                </Button>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="rag-query-test">Query test</Label>
-            <Textarea
-              id="rag-query-test"
-              value={queryDraft}
-              onChange={(event) => setQueryDraft(event.target.value)}
-              placeholder="Ask a question..."
-              className="min-h-20"
-            />
-            <div className="flex items-center gap-2">
-              <Button onClick={handleTestQuery} disabled={querying}>
-                <PlayCircle className="w-4 h-4 mr-2" />
-                Run query
-              </Button>
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Query test</p>
+              <p className="text-xs text-slate-600">Run a quick question against the current collection.</p>
             </div>
-            <Textarea value={queryAnswer} readOnly placeholder="Answer will appear here." />
+            <div className="space-y-2">
+              <Label htmlFor="rag-query-test">Question</Label>
+              <Textarea
+                id="rag-query-test"
+                value={queryDraft}
+                onChange={(event) => setQueryDraft(event.target.value)}
+                placeholder="Ask a question..."
+                className="min-h-24 bg-white"
+              />
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleTestQuery} disabled={querying}>
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Run query
+                </Button>
+              </div>
+              <Textarea
+                value={queryAnswer}
+                readOnly
+                placeholder="Answer will appear here."
+                className="min-h-28 bg-white"
+              />
+            </div>
           </div>
           </CardContent> :
           null}

@@ -8,6 +8,7 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { LanguageToggle } from "../ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
+import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
   resolveSubscriptionState,
   type SubscriptionApiPayload } from
@@ -96,8 +97,7 @@ export default function DashboardLayoutContent({
                 current_plan?: string | null;
               } | null;
             }>("/account");
-            const rawPlan = (account?.company?.current_plan || "").trim().toLowerCase();
-            if (rawPlan.includes("trial")) {
+            if (getSubscriptionPlanFamily(account?.company?.current_plan || null) === "trial") {
               effectivePlan = "trial";
             }
           } catch {
