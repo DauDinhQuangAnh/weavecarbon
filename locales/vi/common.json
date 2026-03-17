@@ -326,11 +326,22 @@
     "targetMarkets": "Thị trường Mục tiêu",
     "targetMarketsDesc": "Các điểm đến xuất khẩu đã chọn",
     "weaveyChat": {
-      "welcomeUser": "Chào bạn! Mình là Weavey, trợ lý AI của WeaveCarbon. Mình có thể hỗ trợ:\n\n- **Hướng dẫn dashboard**: Điều hướng và sử dụng tính năng\n- **Nhập liệu thông minh**: Mô tả dữ liệu bằng ngôn ngữ tự nhiên\n- **Cảnh báo tuân thủ**: Theo dõi và tối ưu phát thải carbon\n\nBạn cần mình hỗ trợ gì?",
+      "welcomeUser": "Chào bạn! Mình là Weavey, trợ lý AI của WeaveCarbon. Bạn cần mình hỗ trợ gì?",
       "welcomeGuest": "Chào bạn! Mình là **Weavey**.\n\nMình là trợ lý AI về phát triển bền vững của WeaveCarbon, sẵn sàng giúp bạn:\n\n- Tìm hiểu về **dấu chân carbon** và cách tính\n- Giải đáp về **quy định xuất khẩu xanh**\n- Hướng dẫn sử dụng **công cụ tính carbon**\n\nBạn cứ hỏi mình nhé!",
       "assistantTitleLanding": "Trợ lý AI Bền vững",
       "assistantTitleDashboard": "Trợ lý AI",
       "clearHistory": "Xóa lịch sử",
+      "newChat": "Cuộc trò chuyện mới",
+      "recentConversations": "Lịch sử hội thoại",
+      "noConversations": "Chưa có hội thoại nào",
+      "loadingHistory": "Đang tải lịch sử hội thoại...",
+      "failedToLoadHistory": "Không thể tải lịch sử hội thoại.",
+      "inheritedFromAdmin": "Đang dùng cấu hình AI mới nhất của quản trị viên công ty",
+      "notConfiguredAdmin": "Weavey chưa được cấu hình. Hãy mở Cài đặt > AI để hoàn tất.",
+      "notConfiguredMember": "Weavey chưa được cấu hình. Vui lòng nhờ quản trị viên công ty thiết lập AI trong Cài đặt.",
+      "localUnavailable": "AI đang tạm thời không khả dụng. Vui lòng kiểm tra cấu hình AI và thử lại.",
+      "expand": "Mở rộng",
+      "collapse": "Thu gọn",
       "inputPlaceholderLanding": "Nhập câu hỏi của bạn...",
       "inputPlaceholderDashboard": "Hỏi Weavey..."
     }

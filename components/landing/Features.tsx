@@ -14,6 +14,19 @@ import {
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
 
+const DESKTOP_DECORATIVE_PARTICLES = [
+  { left: "18%", top: "18%", size: 8, duration: 4.2, delay: 0.1, drift: 16 },
+  { left: "26%", top: "68%", size: 10, duration: 5.1, delay: 0.5, drift: 22 },
+  { left: "37%", top: "24%", size: 6, duration: 4.6, delay: 0.9, drift: 18 },
+  { left: "61%", top: "22%", size: 9, duration: 5.4, delay: 0.3, drift: 20 },
+  { left: "74%", top: "33%", size: 7, duration: 4.8, delay: 1.1, drift: 16 },
+  { left: "81%", top: "58%", size: 10, duration: 5.6, delay: 0.7, drift: 24 },
+  { left: "67%", top: "78%", size: 8, duration: 4.4, delay: 1.3, drift: 18 },
+  { left: "43%", top: "82%", size: 9, duration: 5.2, delay: 0.2, drift: 20 },
+] as const;
+
+const ORBITING_DOT_ROTATIONS = [0, 120, 240] as const;
+
 // Mobile/Tablet Grid Layout Component
 interface MobileLayoutProps {
   features: Array<{
@@ -391,49 +404,18 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
             xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 1000 900"
+            aria-hidden="true"
           >
-            <defs>
-              <linearGradient
-                id="circle-gradient"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <stop
-                  offset="0%"
-                  stopColor="hsl(var(--primary))"
-                  stopOpacity="0.3"
-                />
-                <stop
-                  offset="50%"
-                  stopColor="hsl(var(--primary))"
-                  stopOpacity="0.6"
-                />
-                <stop
-                  offset="100%"
-                  stopColor="hsl(var(--primary))"
-                  stopOpacity="0.3"
-                />
-              </linearGradient>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
             {/* Main circle */}
             <motion.circle
-              cx="50%"
-              cy="50%"
+              cx="500"
+              cy="450"
               r="340"
-              stroke="url(#circle-gradient)"
+              stroke="var(--color-primary)"
               strokeWidth="2"
+              strokeOpacity="0.3"
               fill="none"
-              filter="url(#glow)"
               initial={{ pathLength: 0, opacity: 0 }}
               whileInView={{ pathLength: 1, opacity: 1 }}
               viewport={{ once: true }}
@@ -442,33 +424,51 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
                 ease: "easeInOut",
               }}
             />
-
-            {/* Animated dots traveling around the circle */}
-            {[0, 0.33, 0.66].map((offset, i) => (
-              <motion.circle
-                key={`orbit-dot-${i}`}
-                r="4"
-                fill="hsl(var(--primary))"
-                opacity="0.7"
-                filter="url(#glow)"
-              >
-                <animateMotion
-                  dur="12s"
-                  repeatCount="indefinite"
-                  begin={`${offset * 12}s`}
-                >
-                  <mpath href="#circle-path" />
-                </animateMotion>
-              </motion.circle>
-            ))}
-
-            {/* Hidden path for animation */}
-            <path
-              id="circle-path"
-              d="M 50%,50% m -340,0 a 340,340 0 1,0 680,0 a 340,340 0 1,0 -680,0"
+            <motion.circle
+              cx="500"
+              cy="450"
+              r="340"
+              stroke="var(--color-primary)"
+              strokeWidth="1"
+              strokeOpacity="0.14"
+              strokeDasharray="10 14"
               fill="none"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
             />
           </svg>
+
+          {ORBITING_DOT_ROTATIONS.map((rotation, index) => (
+            <motion.div
+              key={`orbit-dot-${rotation}`}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2"
+              initial={{ rotate: rotation, opacity: 0 }}
+              animate={{ rotate: rotation + 360, opacity: 1 }}
+              transition={{
+                rotate: {
+                  duration: 12,
+                  repeat: Infinity,
+                  ease: "linear",
+                  delay: index * 0.35,
+                },
+                opacity: {
+                  duration: 0.6,
+                  delay: 0.5 + index * 0.1,
+                  ease: "easeOut",
+                },
+              }}
+            >
+              <div
+                className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/70"
+                style={{
+                  boxShadow: "0 0 18px hsl(96 41% 19% / 0.22)",
+                }}
+              />
+            </motion.div>
+          ))}
 
           {/* Center content */}
           <motion.div
@@ -586,23 +586,28 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
           })}
 
           {/* Decorative floating particles */}
-          {[...Array(20)].map((_, i) => (
+          {DESKTOP_DECORATIVE_PARTICLES.map((particle, i) => (
             <motion.div
               key={`particle-${i}`}
-              className="absolute w-1 h-1 bg-primary/30 rounded-full"
+              aria-hidden="true"
+              className="absolute rounded-full pointer-events-none"
               style={{
-                left: `${50 + (Math.random() - 0.5) * 80}%`,
-                top: `${50 + (Math.random() - 0.5) * 80}%`,
+                left: particle.left,
+                top: particle.top,
+                width: particle.size,
+                height: particle.size,
+                background:
+                  "radial-gradient(circle, hsl(96 41% 19% / 0.18) 0%, hsl(96 41% 19% / 0) 72%)",
               }}
               animate={{
-                y: [0, -20, 0],
-                opacity: [0.2, 0.5, 0.2],
-                scale: [1, 1.3, 1],
+                y: [0, -particle.drift, 0],
+                opacity: [0.18, 0.4, 0.18],
+                scale: [1, 1.18, 1],
               }}
               transition={{
-                duration: 3 + Math.random() * 2,
+                duration: particle.duration,
                 repeat: Infinity,
-                delay: Math.random() * 2,
+                delay: particle.delay,
                 ease: "easeInOut",
               }}
             />

@@ -326,11 +326,22 @@
     "targetMarkets": "Target Markets",
     "targetMarketsDesc": "Your selected export destinations",
     "weaveyChat": {
-      "welcomeUser": "Hi! I'm Weavey, WeaveCarbon's AI assistant. I can help you with:\n\n- **Dashboard guidance**: Navigate and use features\n- **Smart data input**: Describe data in natural language\n- **Compliance alerts**: Monitor and optimize carbon emissions\n\nWhat do you need help with?",
+      "welcomeUser": "Hi! I'm Weavey, WeaveCarbon's AI assistant. What do you need help with?",
       "welcomeGuest": "Hi! I'm **Weavey**.\n\nI'm WeaveCarbon's sustainability AI assistant, ready to help you:\n\n- Learn about **carbon footprint** and how to calculate it\n- Answer questions about **green export regulations**\n- Guide you through the **carbon calculation tools**\n\nAsk me anything!",
       "assistantTitleLanding": "AI Sustainability Assistant",
       "assistantTitleDashboard": "AI Assistant",
       "clearHistory": "Clear history",
+      "newChat": "New chat",
+      "recentConversations": "Recent conversations",
+      "noConversations": "No conversations yet",
+      "loadingHistory": "Loading conversation history...",
+      "failedToLoadHistory": "Failed to load chat history.",
+      "inheritedFromAdmin": "Using the latest company admin AI settings",
+      "notConfiguredAdmin": "Weavey chat is not configured yet. Open Settings > AI to finish setup.",
+      "notConfiguredMember": "Weavey chat is not configured yet. Please ask your company admin to set up AI in Settings.",
+      "localUnavailable": "AI is temporarily unavailable. Please verify AI settings and try again.",
+      "expand": "Expand",
+      "collapse": "Collapse",
       "inputPlaceholderLanding": "Enter your question...",
       "inputPlaceholderDashboard": "Ask Weavey..."
     }

@@ -31,6 +31,7 @@ import {
   type RagCollectionDetail,
   type RagRuntimeConfig
 } from "@/lib/ragApi";
+import { getChatSettings, saveChatSettings, type ChatConfigSource } from "@/lib/chatApi";
 import {
   Card,
   CardContent,
@@ -143,6 +144,9 @@ const AISettings: React.FC = () => {
   const [querying, setQuerying] = React.useState(false);
   const [openSections, setOpenSections] = React.useState<OpenSectionsState>(DEFAULT_OPEN_SECTIONS);
   const [sectionsHydrated, setSectionsHydrated] = React.useState(false);
+  const [settingsSource, setSettingsSource] = React.useState<ChatConfigSource | "local_fallback">(
+    "local_fallback"
+  );
 
   const activeCollection = React.useMemo(
     () => collections.find((collection) => collection.name === config.collectionName) || null,
@@ -176,11 +180,44 @@ const AISettings: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    const storedConfig = readRagRuntimeConfig();
-    setConfig(storedConfig);
-    setColumnsInput(storedConfig.columnsToAnswer.join(", "));
-    setIngestCollectionName(storedConfig.collectionName);
-    void refreshCollections(storedConfig.baseUrl);
+    let ignore = false;
+
+    const hydrateRuntimeConfig = async () => {
+      const storedConfig = readRagRuntimeConfig();
+      if (ignore) return;
+
+      setConfig(storedConfig);
+      setColumnsInput(storedConfig.columnsToAnswer.join(", "));
+      setIngestCollectionName(storedConfig.collectionName);
+      void refreshCollections(storedConfig.baseUrl);
+
+      try {
+        const resolvedSettings = await getChatSettings();
+        if (ignore) return;
+
+        if (resolvedSettings.config) {
+          setSettingsSource(resolvedSettings.configSource || "self");
+          setConfig(resolvedSettings.config);
+          setColumnsInput(resolvedSettings.config.columnsToAnswer.join(", "));
+          setIngestCollectionName(resolvedSettings.config.collectionName);
+          saveRagRuntimeConfig(resolvedSettings.config);
+          void refreshCollections(resolvedSettings.config.baseUrl);
+          return;
+        }
+
+        setSettingsSource("local_fallback");
+      } catch {
+        if (!ignore) {
+          setSettingsSource("local_fallback");
+        }
+      }
+    };
+
+    void hydrateRuntimeConfig();
+
+    return () => {
+      ignore = true;
+    };
   }, [refreshCollections]);
 
   React.useEffect(() => {
@@ -228,7 +265,7 @@ const AISettings: React.FC = () => {
     setColumnsInput(normalizedConfig.columnsToAnswer.join(", "));
   };
 
-  const handleSaveRuntimeConfig = () => {
+  const handleSaveRuntimeConfig = async () => {
     const normalizedConfig = normalizeConfig(config, columnsInput);
     if (!normalizedConfig.baseUrl) {
       toast.error("RAG API base URL is required.");
@@ -243,8 +280,14 @@ const AISettings: React.FC = () => {
       return;
     }
 
-    persistConfig(normalizedConfig);
-    toast.success("AI runtime config saved.");
+    try {
+      const saved = await saveChatSettings(normalizedConfig);
+      persistConfig(saved.config || normalizedConfig);
+      setSettingsSource(saved.configSource || "self");
+      toast.success("AI runtime config saved.");
+    } catch (error) {
+      toast.error(toErrorMessage(error));
+    }
   };
 
   const handleCheckConnection = async () => {
@@ -507,6 +550,24 @@ const AISettings: React.FC = () => {
         </CardHeader>
         {openSections.runtime ?
           <CardContent className="space-y-4">
+          {settingsSource === "self" ?
+            <p className="text-xs text-muted-foreground">
+              Backend source of truth is active for this account.
+            </p> :
+            null}
+
+          {settingsSource === "company_admin" ?
+            <p className="text-xs text-muted-foreground">
+              Currently using the latest company admin config until you save your own copy.
+            </p> :
+            null}
+
+          {settingsSource === "local_fallback" ?
+            <p className="text-xs text-muted-foreground">
+              No backend config found yet. Local fallback is being used until you save.
+            </p> :
+            null}
+
           <div className="grid gap-3 lg:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="rag-base-url">RAG API Base URL</Label>
@@ -689,7 +750,9 @@ const AISettings: React.FC = () => {
                               collectionName: collection.name
                             };
                             persistConfig(nextConfig);
-                            toast.success(`Active collection is now "${collection.name}".`);
+                            toast.success(
+                              `Active collection is now "${collection.name}". Save runtime config to sync chat.`
+                            );
                           }}
                         >
                           {isActive ? "Active" : "Set active"}
