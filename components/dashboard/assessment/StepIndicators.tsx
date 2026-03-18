@@ -39,7 +39,7 @@ export default function StepIndicators({
                 <StepIcon className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span
-                className={`mt-2 hidden text-xs text-center md:block ${
+                className={`mt-2 hidden text-xs text-center md:block md:text-sm ${
                 isActive ?
                 "text-primary font-medium" :
                 "text-muted-foreground"}`

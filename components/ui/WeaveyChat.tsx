@@ -603,7 +603,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
     <div
       onClick={handleBackdropClick}
       className={cn(
-        isExpanded
+        isExpanded || (isMobileViewport && isOpen)
           ? "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-2 md:p-8"
           : "fixed bottom-4 right-4 z-50 md:bottom-6 md:right-6"
       )}
@@ -614,7 +614,9 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
             "flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl",
             isExpanded
               ? "h-[86dvh] w-full max-w-6xl md:h-[82vh]"
-              : "h-[min(72vh,33rem)] w-[min(24rem,calc(100vw-1rem))] md:h-[36rem] md:w-[min(30rem,calc(100vw-1.5rem))]"
+              : isMobileViewport
+                ? "h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none"
+                : "h-[min(72vh,33rem)] w-[min(24rem,calc(100vw-1rem))] md:h-[36rem] md:w-[min(30rem,calc(100vw-1.5rem))]"
           )}
         >
           <div className="flex items-center justify-between bg-linear-to-r from-primary to-accent p-3">
@@ -643,15 +645,17 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
               >
                 <MessageSquarePlus className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={() => setIsExpanded((previous) => !previous)}
-                title={isExpanded ? t("collapse") : t("expand")}
-              >
-                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
+              {!isMobileViewport ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-white hover:bg-white/20"
+                  onClick={() => setIsExpanded((previous) => !previous)}
+                  title={isExpanded ? t("collapse") : t("expand")}
+                >
+                  {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              ) : null}
             </div>
           </div>
 
@@ -700,7 +704,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
                 </div>
               </ScrollArea>
 
-              <div className="border-t border-border p-3">
+              <div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <form onSubmit={handleSubmit} className="flex gap-2">
                   <Input
                     ref={inputRef}

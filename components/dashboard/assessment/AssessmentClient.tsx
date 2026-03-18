@@ -1541,8 +1541,10 @@ export default function AssessmentClient({
     return null;
   }
 
+  const containerClassName = isModalMode ? "space-y-4 md:space-y-6" : "space-y-4 md:space-y-6 max-w-5xl mx-auto";
+
   return (
-    <div className="space-y-4 md:space-y-6 max-w-5xl mx-auto">
+    <div className={containerClassName}>
       <div>
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs md:text-sm text-muted-foreground">
@@ -1556,7 +1558,7 @@ export default function AssessmentClient({
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg md:text-base">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             {React.createElement(steps[currentStep - 1].icon, {
               className: "w-4 h-4 md:w-5 md:h-5"
             })}
