@@ -35,7 +35,7 @@ export default function HomeClient({
 
       {!isLoading &&
       <div
-        className={`min-h-screen bg-background transition-opacity duration-500 ${showContent ? "opacity-100" : "opacity-0"}`}>
+        className={`min-h-screen overflow-x-clip bg-background transition-opacity duration-500 ${showContent ? "opacity-100" : "opacity-0"}`}>
 
           {children}
         </div>

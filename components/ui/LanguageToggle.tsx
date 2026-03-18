@@ -25,9 +25,9 @@ export function LanguageToggle() {
       onValueChange={(value) => setLocale(value as Locale)}
       disabled={isLoading}>
 
-      <SelectTrigger className="w-20 border-2 bg-transparent items-center cursor-pointer hover:border-slate-500">
+      <SelectTrigger className="h-9 w-[3.3rem] items-center border-2 bg-transparent px-2 text-xs cursor-pointer hover:border-slate-500 [&_svg]:h-3.5 [&_svg]:w-3.5 sm:h-10 sm:w-20 sm:px-3 sm:text-sm sm:[&_svg]:h-4 sm:[&_svg]:w-4">
         <SelectValue>
-          <span className={`fi fi-${localeFlagCodes[locale]} text-xl`} />
+          <span className={`fi fi-${localeFlagCodes[locale]} text-base sm:text-xl`} />
         </SelectValue>
       </SelectTrigger>
       <SelectContent>

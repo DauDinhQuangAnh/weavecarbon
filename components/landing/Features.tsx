@@ -11,8 +11,8 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useState, useEffect } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 
 const DESKTOP_DECORATIVE_PARTICLES = [
   { left: "18%", top: "18%", size: 8, duration: 4.2, delay: 0.1, drift: 16 },
@@ -27,97 +27,266 @@ const DESKTOP_DECORATIVE_PARTICLES = [
 
 const ORBITING_DOT_ROTATIONS = [0, 120, 240] as const;
 
-// Mobile/Tablet Grid Layout Component
-interface MobileLayoutProps {
-  features: Array<{
-    icon: React.ReactNode;
-    titleKey: string;
-    descKey: string;
-    gradient: string;
-    glowColor: string;
-  }>;
+type FeatureItem = {
+  icon: React.ReactNode;
+  titleKey: string;
+  descKey: string;
+  gradient: string;
+  glowColor: string;
+};
+
+interface FeatureLayoutProps {
+  features: FeatureItem[];
   t: (key: string) => string;
 }
 
-const MobileGridLayout: React.FC<MobileLayoutProps> = ({ features, t }) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
+  const locale = useLocale();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
+  const activeFeature = features[activeIndex];
+  const mobileHeaderTitle =
+    locale === "vi" ?
+      ["Tính năng mạnh mẽ", "Thời trang Bền vững"] :
+      [t("title")];
+  const mobileHeaderSubtitle =
+    locale === "vi" ?
+      t("subtitle").replace("khí thải carbon", "khí thải\u00a0carbon") :
+      t("subtitle");
+
+  const selectIndex = (index: number) => {
+    const safeIndex = Math.max(0, Math.min(index, features.length - 1));
+    if (safeIndex === activeIndex) return;
+
+    setDirection(safeIndex > activeIndex ? 1 : -1);
+    setActiveIndex(safeIndex);
+  };
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touchStartX = touchStartXRef.current;
+    const touchEndX = event.changedTouches[0]?.clientX;
+
+    touchStartXRef.current = null;
+
+    if (touchStartX === null || typeof touchEndX !== "number") return;
+
+    const deltaX = touchEndX - touchStartX;
+    if (Math.abs(deltaX) < 42) return;
+
+    selectIndex(activeIndex + (deltaX < 0 ? 1 : -1));
+  };
+
+  useEffect(() => {
+    if (features.length <= 1) return;
+
+    const timer = window.setTimeout(() => {
+      setDirection(1);
+      setActiveIndex((currentIndex) => (currentIndex + 1) % features.length);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [activeIndex, features.length]);
 
   return (
     <>
       {/* Background blur mesh */}
       <div className="absolute inset-0 bg-linear-to-b from-secondary to-background overflow-hidden pointer-events-none">
         {/* Large forest orb */}
-        <motion.div
+        <div
           className="absolute top-12 -left-20 w-64 h-64 rounded-full blur-3xl"
           style={{
             background:
               "radial-gradient(circle, hsl(96 30% 40% / 0.5) 0%, hsl(96 41% 25% / 0.3) 100%)",
           }}
-          initial={{ scale: 0.8, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 0.6 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.6, 0.5, 0.6],
-          }}
         />
 
         {/* Top right accent */}
-        <motion.div
+        <div
           className="absolute top-32 -right-16 w-56 h-56 rounded-full blur-3xl"
           style={{
             background:
               "radial-gradient(circle, hsl(40 20% 85% / 0.4) 0%, hsl(30 30% 80% / 0.2) 100%)",
           }}
-          initial={{ scale: 0.8, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 0.5 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-          animate={{
-            y: [0, -20, 0],
-            scale: [1, 1.1, 1],
-          }}
         />
 
         {/* Bottom accent */}
-        <motion.div
+        <div
           className="absolute -bottom-20 left-1/3 w-64 h-64 rounded-full blur-3xl"
           style={{
             background:
               "radial-gradient(circle, hsl(25 45% 50% / 0.35) 0%, hsl(96 30% 35% / 0.25) 100%)",
           }}
-          initial={{ scale: 0.8, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 0.5 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-          animate={{
-            x: [0, 15, 0],
-            scale: [1, 1.15, 1],
-          }}
         />
 
         {/* Bottom right accent */}
-        <motion.div
+        <div
           className="absolute -bottom-12 -right-20 w-56 h-56 rounded-full blur-3xl"
           style={{
             background:
               "radial-gradient(circle, hsl(96 40% 30% / 0.4) 0%, hsl(96 30% 40% / 0.3) 100%)",
           }}
-          initial={{ scale: 0.7, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 0.5 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
-          animate={{
-            x: [0, -20, 0],
-            scale: [1, 1.1, 1],
-          }}
         />
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-4 relative z-10">
         {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="mx-auto mb-10 max-w-[22rem] text-center"
+        >
+          <span className="mb-4 inline-flex rounded-full border border-primary/10 bg-white/55 px-4 py-1.5 text-sm font-medium text-primary shadow-sm backdrop-blur-sm">
+            {t("badge")}
+          </span>
+          <h2 className="mb-4 text-[2.15rem] font-display font-bold leading-[1.08] tracking-tight text-foreground">
+            {mobileHeaderTitle.map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
+          </h2>
+          <p className="mx-auto max-w-[20.75rem] text-pretty text-[1rem] leading-7 text-muted-foreground">
+            {mobileHeaderSubtitle}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.65, ease: "easeOut", delay: 0.1 }}
+          className="mx-auto max-w-sm"
+        >
+          <div
+            className="relative overflow-hidden rounded-[2rem] border border-white/65 bg-white/45 p-3 shadow-[0_26px_70px_-40px_rgba(45,74,28,0.5)] backdrop-blur-md"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="pointer-events-none absolute inset-x-5 top-1 h-20 rounded-full blur-3xl"
+              style={{
+                background:
+                  "radial-gradient(circle, hsl(96 35% 38% / 0.22) 0%, hsl(96 35% 38% / 0) 72%)",
+              }}
+            />
+
+            <div className="relative min-h-[19.5rem]">
+              <AnimatePresence mode="wait" initial={false} custom={direction}>
+                <motion.div
+                  key={activeFeature.titleKey}
+                  custom={direction}
+                  initial={{
+                    opacity: 0,
+                    x: direction >= 0 ? 42 : -42,
+                    scale: 0.96,
+                  }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{
+                    opacity: 0,
+                    x: direction >= 0 ? -42 : 42,
+                    scale: 0.96,
+                  }}
+                  transition={{ duration: 0.32, ease: "easeOut" }}
+                  className="absolute inset-0"
+                >
+                  <div
+                    className="relative flex h-full flex-col overflow-hidden rounded-[1.65rem] border border-primary/10 bg-white/88 px-5 pb-5 pt-5 shadow-[0_22px_60px_-42px_rgba(51,77,34,0.52)]"
+                    style={{
+                      boxShadow: `0 24px 64px -42px ${activeFeature.glowColor}`,
+                    }}
+                  >
+                    <div
+                      className="absolute inset-x-0 top-0 h-1.5"
+                      style={{ background: activeFeature.gradient }}
+                    />
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div
+                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.15rem] text-white shadow-lg"
+                        style={{ background: activeFeature.gradient }}
+                      >
+                        {activeFeature.icon}
+                      </div>
+
+                      <div className="rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary/60">
+                        WeaveCarbon
+                      </div>
+                    </div>
+
+                    <div className="mt-5">
+                      <h3 className="text-[1.8rem] font-display font-bold leading-[1.05] tracking-tight text-foreground">
+                        {t(activeFeature.titleKey)}
+                      </h3>
+                      <p className="mt-4 text-[0.98rem] leading-7 text-muted-foreground">
+                        {t(activeFeature.descKey)}
+                      </p>
+                    </div>
+
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </>
+  );
+};
+
+// Desktop Circular Constellation Layout
+interface DesktopLayoutProps {
+  features: FeatureItem[];
+  t: (key: string) => string;
+}
+
+const MobileGridLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  return (
+    <>
+      {/* Background blur mesh */}
+      <div className="absolute inset-0 bg-linear-to-b from-secondary to-background overflow-hidden pointer-events-none">
+        <div
+          className="absolute top-12 -left-20 w-64 h-64 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(96 30% 40% / 0.5) 0%, hsl(96 41% 25% / 0.3) 100%)",
+          }}
+        />
+        <div
+          className="absolute top-32 -right-16 w-56 h-56 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(40 20% 85% / 0.4) 0%, hsl(30 30% 80% / 0.2) 100%)",
+          }}
+        />
+        <div
+          className="absolute -bottom-20 left-1/3 w-64 h-64 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(25 45% 50% / 0.35) 0%, hsl(96 30% 35% / 0.25) 100%)",
+          }}
+        />
+        <div
+          className="absolute -bottom-12 -right-20 w-56 h-56 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, hsl(96 40% 30% / 0.4) 0%, hsl(96 30% 40% / 0.3) 100%)",
+          }}
+        />
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -136,7 +305,6 @@ const MobileGridLayout: React.FC<MobileLayoutProps> = ({ features, t }) => {
           </p>
         </motion.div>
 
-        {/* Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto">
           {features.map((feature, index) => (
             <motion.div
@@ -151,30 +319,25 @@ const MobileGridLayout: React.FC<MobileLayoutProps> = ({ features, t }) => {
               }}
               className="group"
             >
-              {/* Feature Card */}
               <motion.div
                 onClick={() =>
                   setExpandedIndex(expandedIndex === index ? null : index)
                 }
-                className="relative p-6 rounded-2xl bg-card/80 backdrop-blur-sm border border-primary/10 cursor-pointer transition-all duration-300 hover:border-primary/30 min-h-fit"
-                whileHover={{ y: -4, boxShadow: "0 12px 24px rgba(0,0,0,0.1)" }}
+                className="relative min-h-fit cursor-pointer rounded-2xl border border-primary/10 bg-card/80 p-5 backdrop-blur-sm transition-all duration-300 hover:border-primary/30 sm:p-6"
                 style={{
                   borderColor:
                     expandedIndex === index ? feature.glowColor : "inherit",
                 }}
               >
-                {/* Gradient accent bar */}
                 <motion.div
                   className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
                   style={{ background: feature.gradient }}
                 />
 
-                {/* Icon and Title */}
                 <div className="flex items-start gap-4 mb-4">
                   <motion.div
                     className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg"
                     style={{ background: feature.gradient }}
-                    whileHover={{ rotate: 8, scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     {feature.icon}
@@ -187,12 +350,10 @@ const MobileGridLayout: React.FC<MobileLayoutProps> = ({ features, t }) => {
                   </div>
                 </div>
 
-                {/* Description preview (always visible on mobile) */}
                 <div className="block md:hidden text-xs text-muted-foreground line-clamp-2">
                   {t(feature.descKey)}
                 </div>
 
-                {/* Expanded description */}
                 <motion.div
                   initial={false}
                   animate={{
@@ -208,7 +369,6 @@ const MobileGridLayout: React.FC<MobileLayoutProps> = ({ features, t }) => {
                   </p>
                 </motion.div>
 
-                {/* Always show full description on tablet+ */}
                 <p className="hidden md:block text-sm text-muted-foreground leading-relaxed">
                   {t(feature.descKey)}
                 </p>
@@ -220,18 +380,6 @@ const MobileGridLayout: React.FC<MobileLayoutProps> = ({ features, t }) => {
     </>
   );
 };
-
-// Desktop Circular Constellation Layout
-interface DesktopLayoutProps {
-  features: Array<{
-    icon: React.ReactNode;
-    titleKey: string;
-    descKey: string;
-    gradient: string;
-    glowColor: string;
-  }>;
-  t: (key: string) => string;
-}
 
 const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
   features,
@@ -621,16 +769,32 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
 // Main Features Component
 const Features = () => {
   const t = useTranslations("features");
-  const [isMobile, setIsMobile] = useState(false);
+  const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
+    const syncViewportMode = () => {
+      const width = window.innerWidth;
+
+      if (width <= 767) {
+        setViewportMode("mobile");
+        return;
+      }
+
+      if (width <= 1023) {
+        setViewportMode("tablet");
+        return;
+      }
+
+      setViewportMode("desktop");
     };
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    syncViewportMode();
+    window.addEventListener("resize", syncViewportMode);
+    window.addEventListener("orientationchange", syncViewportMode);
+    return () => {
+      window.removeEventListener("resize", syncViewportMode);
+      window.removeEventListener("orientationchange", syncViewportMode);
+    };
   }, []);
 
   const features = [
@@ -711,9 +875,16 @@ const Features = () => {
   return (
     <section
       id="features"
-      className="relative z-30 md:py-32 bg-linear-to-b from-secondary to-background overflow-hidden"
+      className="relative z-30 -mt-28 overflow-hidden bg-linear-to-b from-secondary via-secondary/95 to-background pt-8 pb-16 sm:-mt-32 sm:pt-12 md:mt-0 md:py-32"
     >
-      {isMobile ? (
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-10 md:hidden">
+        <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-secondary/0 via-secondary/70 to-secondary" />
+        <div className="absolute left-1/2 top-[-0.75rem] h-8 w-[135%] -translate-x-1/2 rounded-full bg-secondary/80 blur-3xl" />
+      </div>
+
+      {viewportMode === "mobile" ? (
+        <MobileSliderLayout features={features} t={t} />
+      ) : viewportMode === "tablet" ? (
         <MobileGridLayout features={features} t={t} />
       ) : (
         <DesktopCircularLayout features={features} t={t} />

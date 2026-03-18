@@ -32,15 +32,15 @@ const Header = () => {
           y: [null, 0],
           transition: { duration: 0.5, times: [0, 1] },
         }}
-        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/70"
+        className="fixed top-0 left-0 right-0 z-50 overflow-x-clip backdrop-blur-md bg-white/70"
       >
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <Link href="/" className="group flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-forest flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-                <Leaf className="w-5 h-5 text-primary-foreground" />
+        <div className="container mx-auto px-3 sm:px-4 md:px-6">
+          <div className="flex h-14 items-center justify-between gap-2 sm:h-16 md:h-20">
+            <Link href="/" className="group flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-forest shadow-md transition-shadow group-hover:shadow-lg sm:h-10 sm:w-10">
+                <Leaf className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
               </div>
-              <span className="text-xl font-display font-semibold text-foreground">
+              <span className="max-w-[9.5rem] truncate text-base font-display font-semibold text-foreground sm:max-w-none sm:text-xl">
                 WeaveCarbon
               </span>
             </Link>
@@ -89,10 +89,10 @@ const Header = () => {
               </Button>
             </div>
 
-            <div className="flex gap-2 lg:hidden">
+            <div className="flex shrink-0 gap-1.5 sm:gap-2 lg:hidden">
               <LanguageToggle />
               <button
-                className="rounded-lg p-2.5 text-foreground hover:bg-muted lg:hidden"
+                className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted sm:p-2.5 lg:hidden"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
               >

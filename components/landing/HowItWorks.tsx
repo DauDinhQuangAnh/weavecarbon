@@ -67,8 +67,12 @@ const HowItWorks = () => {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="py-24 md:py-32 bg-linear-to-t from-primary via-primary/5 to-background relative overflow-hidden"
+      className="relative -mt-8 overflow-hidden bg-linear-to-t from-primary via-primary/5 to-background pt-12 pb-14 sm:-mt-10 sm:pt-16 sm:pb-16 md:mt-0 md:py-32"
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-8 md:hidden">
+        <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-background/0 via-background/70 to-background" />
+      </div>
+
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-48 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
@@ -82,7 +86,7 @@ const HowItWorks = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.6 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="max-w-3xl mx-auto text-center mb-20"
+          className="mx-auto mb-10 max-w-3xl text-center sm:mb-12 md:mb-20"
         >
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
@@ -253,7 +257,9 @@ const HowItWorks = () => {
                   </div>
 
                   {/* Mobile/Tablet Layout */}
-                  <div className="lg:hidden mb-12">
+                  <div
+                    className={`lg:hidden ${index === steps.length - 1 ? "" : "mb-6 sm:mb-8"}`}
+                  >
                     <div className="flex gap-6">
                       {/* Timeline node */}
                       <div className="relative shrink-0">
@@ -275,7 +281,7 @@ const HowItWorks = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: index * 0.15 }}
-                        className="flex-1 pb-8"
+                        className="flex-1 pb-2 sm:pb-4"
                       >
                         <div
                           className="bg-card/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
@@ -286,10 +292,10 @@ const HowItWorks = () => {
                         >
                           <div className="flex items-center gap-4 mb-4">
                             <div
-                              className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
+                              className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
                               style={{ background: step.gradient }}
                             >
-                              {step.icon}
+                              <div className="scale-[0.72]">{step.icon}</div>
                             </div>
                             <h3 className="text-xl font-bold text-foreground flex-1">
                               {t(step.titleKey)}
