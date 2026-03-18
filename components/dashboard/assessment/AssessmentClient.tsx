@@ -217,6 +217,16 @@ const resolveComplianceMarketCode = (destinationMarket: string | null | undefine
 const isReadyComplianceDocumentStatus = (status: unknown) =>
   CERTIFICATION_READY_DOCUMENT_STATUSES.has(String(status || "").trim().toLowerCase());
 
+const isPublishBlockedByMissingDocumentsError = (error: unknown) => {
+  const message = formatApiErrorMessage(error, "").toLowerCase();
+  return (
+    message.includes("required domestic documents") ||
+    message.includes("missing required export documents") ||
+    message.includes("missing uploaded files for material certifications") ||
+    message.includes("cannot publish because")
+  );
+};
+
 const isCertificationDocumentCode = (documentCode: string | undefined): boolean => {
   const normalizedDocumentCode = normalizeCertificationDocumentCode(documentCode);
   if (!normalizedDocumentCode) return false;
@@ -1225,10 +1235,18 @@ export default function AssessmentClient({
     };
 
     if (isEditing && productId) {
-      const updateResult = await updateProduct(productId, payload);
+      const canUpdatePublishedWithoutStatusTransition =
+        nextStatus === "published" &&
+        productData.status === "published" &&
+        editingShipmentStatus === "pending";
+
+      const updatePayload =
+        nextStatus === "published" && !canUpdatePublishedWithoutStatusTransition ?
+          { ...payload, status: "draft" as const } :
+          payload;
+
+      const updateResult = await updateProduct(productId, updatePayload);
       if (nextStatus === "published") {
-        const canUpdatePublishedWithoutStatusTransition =
-          productData.status === "published" && editingShipmentStatus === "pending";
         if (canUpdatePublishedWithoutStatusTransition) {
           return {
             result: {
@@ -1241,7 +1259,36 @@ export default function AssessmentClient({
           };
         }
 
-        const statusResult = await updateProductStatus(productId, "published");
+        if (updateResult.status === "published") {
+          return {
+            result: {
+              ...updateResult,
+              status: "published"
+            },
+            timestamp,
+            nextVersion,
+            payload
+          };
+        }
+
+        let statusResult;
+        try {
+          statusResult = await updateProductStatus(productId, "published");
+        } catch (error) {
+          if (isPublishBlockedByMissingDocumentsError(error)) {
+            return {
+              result: {
+                ...updateResult,
+                status: "draft"
+              },
+              timestamp,
+              nextVersion,
+              payload
+            };
+          }
+          throw error;
+        }
+
         return {
           result: {
             ...updateResult,
@@ -1259,10 +1306,55 @@ export default function AssessmentClient({
       return { result: updateResult, timestamp, nextVersion, payload };
     }
 
-    const result = await createProduct(
-      payload,
-      nextStatus === "published" ? "publish" : "draft"
-    );
+    if (nextStatus === "published") {
+      const createPayload: ProductAssessmentData = {
+        ...payload,
+        status: "draft"
+      };
+      const createResult = await createProduct(createPayload, "draft");
+
+      if (createResult.status === "published") {
+        return { result: createResult, timestamp, nextVersion, payload };
+      }
+
+      if (!isValidProductId(createResult.id)) {
+        throw new Error("Invalid product ID format.");
+      }
+
+      let statusResult;
+      try {
+        statusResult = await updateProductStatus(createResult.id, "published");
+      } catch (error) {
+        if (isPublishBlockedByMissingDocumentsError(error)) {
+          return {
+            result: {
+              ...createResult,
+              status: "draft"
+            },
+            timestamp,
+            nextVersion,
+            payload
+          };
+        }
+        throw error;
+      }
+
+      return {
+        result: {
+          ...createResult,
+          ...statusResult,
+          status: "published",
+          version: Math.max(createResult.version, statusResult.version),
+          shipmentId: statusResult.shipmentId ?? createResult.shipmentId,
+          updatedAt: statusResult.updatedAt ?? createResult.updatedAt
+        },
+        timestamp,
+        nextVersion,
+        payload
+      };
+    }
+
+    const result = await createProduct(payload, "draft");
     return { result, timestamp, nextVersion, payload };
   };
 
@@ -1334,21 +1426,18 @@ export default function AssessmentClient({
       return;
     }
     if (!isTrialPlan && !appRoutes.isDemo && isCertificationAvailabilityLoading) {
-      toast.info(t("toast.certificationDocumentsChecking"));
-      return;
+      toast.warning(t("toast.certificationDocumentsChecking"));
     }
 
     if (!isTrialPlan && !appRoutes.isDemo) {
       const unavailableMaterialCertifications =
         collectUnavailableMaterialCertificationLabels(productData);
       if (unavailableMaterialCertifications.length > 0) {
-        toast.error(
+        toast.warning(
           t("toast.missingMaterialCertificationDocuments", {
             certifications: unavailableMaterialCertifications.join(", ")
           })
         );
-        setCurrentStep(2);
-        return;
       }
 
       const missingRequiredExportDocuments =
@@ -1357,13 +1446,11 @@ export default function AssessmentClient({
         const documentPreview = `${missingRequiredExportDocuments
           .slice(0, 3)
           .join(", ")}${missingRequiredExportDocuments.length > 3 ? "..." : ""}`;
-        toast.error(
+        toast.warning(
           t("toast.missingExportDocuments", {
             documents: documentPreview
           })
         );
-        setCurrentStep(4);
-        return;
       }
     }
 
@@ -1371,9 +1458,10 @@ export default function AssessmentClient({
 
     try {
       const { result, timestamp, payload } = await persistProduct("published");
+      const publishedSuccessfully = result.status === "published";
       let ensuredShipmentId: string | null = result.shipmentId || null;
 
-      if (!ensuredShipmentId && isValidProductId(result.id)) {
+      if (publishedSuccessfully && !ensuredShipmentId && isValidProductId(result.id)) {
         try {
           ensuredShipmentId = await ensureShipmentForPublishedProduct(
             {
@@ -1394,18 +1482,23 @@ export default function AssessmentClient({
 
       setProductData((prev) => ({
         ...prev,
-        status: "published",
+        status: publishedSuccessfully ? "published" : "draft",
         version: result.version,
         createdAt: prev.createdAt || timestamp,
         updatedAt: timestamp
       }));
 
-      toast.success(
-        isEditing ?
-        t("toast.publishUpdated") :
-        t("toast.publishSuccess")
-      );
-      if (ensuredShipmentId && !isEditing) {
+      if (publishedSuccessfully) {
+        toast.success(
+          isEditing ?
+          t("toast.publishUpdated") :
+          t("toast.publishSuccess")
+        );
+      } else {
+        toast.warning(t("toast.publishDraftFallback"));
+      }
+
+      if (publishedSuccessfully && ensuredShipmentId && !isEditing) {
         toast.success(
           t("toast.logisticsCreated", {
             shipmentId: ensuredShipmentId
@@ -1420,7 +1513,7 @@ export default function AssessmentClient({
         }
         onCompleted?.({
           id: result.id,
-          status: "published",
+          status: publishedSuccessfully ? "published" : "draft",
           isUpdate: isEditing
         });
         onClose?.();
@@ -1434,7 +1527,11 @@ export default function AssessmentClient({
         router.push(appRoutes.toAppPath("/products"));
       }
     } catch (error) {
-      toast.error(formatApiErrorMessage(error, t("toast.publishFailed")));
+      if (isPublishBlockedByMissingDocumentsError(error)) {
+        toast.warning(t("toast.publishDraftFallback"));
+      } else {
+        toast.error(formatApiErrorMessage(error, t("toast.publishFailed")));
+      }
     } finally {
       setIsSubmitting(false);
     }

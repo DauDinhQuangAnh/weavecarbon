@@ -17,28 +17,29 @@ export default function StepIndicators({
   steps
 }: StepIndicatorsProps) {
   return (
-    <div className="flex items-center justify-between gap-1 md:gap-2 mb-8 overflow-x-auto pb-2">
+    <div className="mb-6 w-full">
+      <div className="flex w-full items-center">
       {steps.map((step, index) => {
         const StepIcon = step.icon;
         const isActive = currentStep === step.id;
         const isCompleted = currentStep > step.id;
 
         return (
-          <div key={step.id} className="flex items-center shrink-0">
-            <div className="flex flex-col items-center">
+          <div key={step.id} className="flex min-w-0 flex-1 items-center">
+            <div className="flex min-w-0 flex-1 flex-col items-center">
               <div
-                className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors ${
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors md:h-10 md:w-10 ${
                 isCompleted ?
                 "bg-primary text-primary-foreground" :
                 isActive ?
-                "bg-primary/10 text-primary border-2 border-primary" :
+                "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-background" :
                 "bg-muted text-muted-foreground"}`
                 }>
                 
                 <StepIcon className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span
-                className={`text-xs mt-1 md:mt-2 whitespace-nowrap text-center ${
+                className={`mt-2 hidden text-xs text-center md:block ${
                 isActive ?
                 "text-primary font-medium" :
                 "text-muted-foreground"}`
@@ -49,7 +50,7 @@ export default function StepIndicators({
             </div>
             {index < steps.length - 1 &&
             <div
-              className={`w-1 md:w-6 lg:w-24 h-0.5 mx-1 md:mx-2 shrink-0 ${
+              className={`mx-1 h-0.5 flex-1 md:mx-2 ${
               isCompleted ? "bg-primary" : "bg-muted"}`
               } />
 
@@ -57,6 +58,7 @@ export default function StepIndicators({
           </div>);
 
       })}
+      </div>
     </div>);
 
 }

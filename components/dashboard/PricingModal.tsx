@@ -106,6 +106,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
   const locale = useLocale();
   const isVi = locale === "vi";
   const [selectionStep, setSelectionStep] = useState<SelectionStep>("plans");
+  const [isMobileView, setIsMobileView] = useState(false);
 
   const normalizedCurrentPlan = normalizeSubscriptionPlan(currentPlan, "free");
   const currentPlanFamily = getSubscriptionPlanFamily(normalizedCurrentPlan);
@@ -115,6 +116,20 @@ const PricingModal: React.FC<PricingModalProps> = ({
       setSelectionStep("plans");
     }
   }, [open]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncMobileView = () => setIsMobileView(mediaQuery.matches);
+
+    syncMobileView();
+    mediaQuery.addEventListener("change", syncMobileView);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncMobileView);
+    };
+  }, []);
 
   const handleSubmitSelection = (
     planId: MainPlanId,
@@ -156,7 +171,11 @@ const PricingModal: React.FC<PricingModalProps> = ({
       }}
     >
       <DialogContent
-        className="max-w-6xl! max-h-[90vh] overflow-y-auto"
+        className={
+          isMobileView
+            ? "max-h-dvh overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]"
+            : "max-w-6xl! max-h-[90vh] overflow-y-auto"
+        }
         hideCloseButton={forceSelection}
         onEscapeKeyDown={(event) => {
           if (forceSelection) {
@@ -169,15 +188,15 @@ const PricingModal: React.FC<PricingModalProps> = ({
           }
         }}
       >
-        <DialogHeader className="pb-4 text-center">
-          <DialogTitle className="text-2xl font-bold">
+        <DialogHeader className={isMobileView ? "pb-1 text-center" : "pb-4 text-center"}>
+          <DialogTitle className={isMobileView ? "text-xl font-bold leading-snug" : "text-2xl font-bold"}>
             {selectionStep === "plans"
               ? t("title")
               : isVi
                 ? "Chọn mức mở rộng SKU cho gói Standard"
                 : "Choose the SKU expansion for the Standard plan"}
           </DialogTitle>
-          <DialogDescription className="text-base">
+          <DialogDescription className={isMobileView ? "text-sm leading-5" : "text-base"}>
             {selectionStep === "plans"
               ? t("description")
               : isVi
@@ -195,7 +214,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
         )}
 
         {selectionStep === "plans" ? (
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className={isMobileView ? "mt-3 grid grid-cols-1 gap-3" : "mt-4 grid gap-4 md:grid-cols-3"}>
             {pricingPlans.map((plan) => {
               const Icon = plan.icon;
               const isStarterCard = plan.id === "trial";
@@ -212,8 +231,12 @@ const PricingModal: React.FC<PricingModalProps> = ({
               const trialPrice = isVi ? "0đ" : "Free";
               const trialCycle = isVi ? "Kích hoạt tự động" : "Auto-enabled";
               const standardDescription = isVi
-                ? "Một gói Standard, chọn thêm mức SKU phù hợp"
-                : "One Standard plan with flexible SKU add-ons";
+                ? isMobileView
+                  ? "Chọn mức SKU phù hợp"
+                  : "Một gói Standard, chọn thêm mức SKU phù hợp"
+                : isMobileView
+                  ? "Choose the right SKU package"
+                  : "One Standard plan with flexible SKU add-ons";
               const standardPrice = "899,000 - 1,499,000";
 
               const planName = isStarterCard
@@ -244,7 +267,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
                       {isVi ? "Mua nhiều nhất" : t("popularBadge")}
                     </Badge>
                   )}
-                  <CardHeader className="pb-2 text-center">
+                  <CardHeader className={isMobileView ? "pb-1 text-center" : "pb-2 text-center"}>
                     <div
                       className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full ${plan.color}`}
                     >
@@ -262,14 +285,14 @@ const PricingModal: React.FC<PricingModalProps> = ({
                         {isStarterCard ? trialCycle : t("currencyPerMonth")}
                       </span>
                     </div>
-                    {isStarterCard && !trialExpired && (
+                    {isStarterCard && !trialExpired && !isMobileView && (
                       <p className="mt-1 text-xs font-medium text-emerald-700">
                         {isVi
                           ? "Trial 14 ngày tự động kích hoạt khi tạo tài khoản mới."
                           : "A 14-day Trial is automatically activated for new accounts."}
                       </p>
                     )}
-                    {isStandardCard && (
+                    {isStandardCard && !isMobileView && (
                       <p className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
                         {isVi
                           ? "Chọn thêm 20, 35 hoặc 50 SKU theo nhu cầu sử dụng."
@@ -277,9 +300,11 @@ const PricingModal: React.FC<PricingModalProps> = ({
                       </p>
                     )}
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ul className="space-y-2">
-                      {plan.featureKeys.map((featureKey) => {
+                  <CardContent className={isMobileView ? "space-y-3" : "space-y-4"}>
+                    <ul className={isMobileView ? "space-y-1.5" : "space-y-2"}>
+                      {(isMobileView
+                        ? plan.featureKeys.slice(0, plan.id === "export" ? 4 : 3)
+                        : plan.featureKeys).map((featureKey) => {
                         const included = includedFeaturesByPlan[plan.id].has(featureKey);
                         return (
                           <li key={`${plan.id}-${featureKey}`} className="flex items-start gap-2 text-sm">
@@ -295,11 +320,18 @@ const PricingModal: React.FC<PricingModalProps> = ({
                         );
                       })}
                     </ul>
+                    {isMobileView && plan.featureKeys.length > (plan.id === "export" ? 4 : 3) && (
+                      <p className="text-xs text-muted-foreground">
+                        {isVi
+                          ? `+${plan.featureKeys.length - (plan.id === "export" ? 4 : 3)} tính năng khác`
+                          : `+${plan.featureKeys.length - (plan.id === "export" ? 4 : 3)} more features`}
+                      </p>
+                    )}
 
                     {isStarterCard ? (
                       <Button
                         variant="secondary"
-                        className="h-auto w-full whitespace-normal py-2 text-center"
+                        className={isMobileView ? "w-full" : "h-auto w-full whitespace-normal py-2 text-center"}
                         disabled
                       >
                         {isVi ? "Trial được kích hoạt tự động" : "Trial is auto-enabled"}
@@ -430,7 +462,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
         )}
 
         {!forceSelection && (
-          <div className="mt-6 flex justify-center">
+          <div className={isMobileView ? "mt-4 flex justify-center" : "mt-6 flex justify-center"}>
             <Button variant="ghost" onClick={handleSkip}>
               {t("skip")}
             </Button>

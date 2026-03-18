@@ -1966,14 +1966,15 @@
         "draftSaveFailed": "Failed to save draft",
         "publishSuccess": "Product published successfully",
         "publishUpdated": "Product updated successfully",
+        "publishDraftFallback": "Product is saved as draft because required documents are still missing.",
         "publishFailed": "Failed to publish product",
         "invalidProductId": "Product ID is invalid. Please check backend response.",
         "logisticsCreated": "Logistics shipment created: {shipmentId}",
         "logisticsCreateFailed": "Product published but logistics shipment could not be created.",
         "trialDomesticOnly": "Trial only allows domestic addresses in {country}. Please choose a point on the map again.",
         "certificationDocumentsChecking": "Checking certification documents. Please try again in a few seconds.",
-        "missingMaterialCertificationDocuments": "Cannot publish yet. Missing uploaded files for material certifications: {certifications}.",
-        "missingExportDocuments": "Cannot publish yet. Missing required export documents: {documents}."
+        "missingMaterialCertificationDocuments": "Warning: missing uploaded files for material certifications: {certifications}.",
+        "missingExportDocuments": "Warning: missing required export documents: {documents}."
       },
       "unknownLocation": "Unknown location"
     },

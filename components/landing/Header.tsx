@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Leaf, Menu, X } from "lucide-react";
+import { Leaf, Menu } from "lucide-react";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
@@ -156,11 +156,7 @@ const Header = () => {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
               >
-                {isMenuOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
+                <Menu className="w-6 h-6" />
               </button>
             </div>
           </div>

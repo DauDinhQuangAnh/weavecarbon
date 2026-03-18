@@ -3,6 +3,7 @@
 import React from "react";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import DashboardHeaderButton from "./DashboardHeaderButton";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { LanguageToggle } from "../ui/LanguageToggle";
@@ -51,6 +52,7 @@ export default function DashboardLayoutContent({
   const isExportPage = pathname === "/export" || pathname === "/demo/export";
   const isAiSettingsPage =
     pathname === "/settings/ai" || pathname?.startsWith("/settings/ai/");
+  const isOverviewPage = pathname === "/overview" || pathname === "/demo/overview";
   const mobileContentTopPadding =
     isProductsPage
       ? "pt-[4.9rem]"
@@ -143,6 +145,22 @@ export default function DashboardLayoutContent({
         <div className="flex w-full items-center justify-between gap-3 px-2.5 md:px-3 lg:px-4">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <DashboardHeaderButton />
+            {!isOverviewPage ? (
+              <button
+                type="button"
+                aria-label="Go back"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-foreground hover:bg-muted lg:hidden"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.history.length > 1) {
+                    router.back();
+                    return;
+                  }
+                  router.push(pathname?.startsWith("/demo/") ? "/demo/overview" : "/overview");
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            ) : null}
             <div className="min-w-0 overflow-hidden">
               <div className="flex min-w-0 items-baseline gap-2 overflow-hidden whitespace-nowrap">
                 <h1

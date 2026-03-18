@@ -630,7 +630,7 @@ const OverviewPage: React.FC = () => {
                 {t("stats.exportReadiness")}
               </CardDescription>
               {isTrialPlan ? (
-                <CardTitle className="shrink-0 text-right text-xl font-bold leading-tight text-amber-800 md:text-2xl">
+                <CardTitle className="hidden shrink-0 text-right text-xl font-bold leading-tight text-amber-800 md:block md:text-2xl">
                   {t("stats.trialLocked")}
                 </CardTitle>
               ) : (
@@ -652,7 +652,7 @@ const OverviewPage: React.FC = () => {
                 >
                   {t("stats.upgradeCta")}
                 </Button>
-                <p className="flex-1 text-xs text-amber-800 md:text-sm">
+                <p className="hidden flex-1 text-xs text-amber-800 md:block md:text-sm">
                   {t("stats.trialLockedDescription")}
                 </p>
               </div>

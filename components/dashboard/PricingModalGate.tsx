@@ -255,13 +255,6 @@ export default function PricingModalGate() {
         setUpgradeSuccessOpen(true);
         setOpen(false);
         setPendingUpgrade(null, null, null, null);
-        toast({
-          title: "Chúc mừng bạn đã nâng cấp thành công",
-          description: `Gói ${toPlanActivationLabel(
-            pendingUpgradeDisplayPlan || nextPlan,
-            activatedProductsLimit
-          )} đã được kích hoạt.`
-        });
       }
 
     } catch (error) {
@@ -594,19 +587,19 @@ export default function PricingModalGate() {
         onSelectPlan={handleSelectPlan} />
 
       <Dialog open={upgradeSuccessOpen} onOpenChange={setUpgradeSuccessOpen}>
-        <DialogContent className="max-w-md border-emerald-200">
-          <DialogHeader className="items-center text-center">
-            <div className="mb-2 inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-              <CheckCircle2 className="h-8 w-8" />
+        <DialogContent className="max-w-sm border-emerald-200 p-5 sm:p-6 max-sm:left-1/2 max-sm:top-1/2 max-sm:h-auto max-sm:w-[calc(100vw-2rem)] max-sm:max-w-sm max-sm:translate-x-[-50%] max-sm:translate-y-[-50%] max-sm:rounded-xl">
+          <DialogHeader className="items-center gap-2 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="h-6 w-6" />
             </div>
-            <DialogTitle className="text-xl text-emerald-700">
+            <DialogTitle className="text-lg text-emerald-700 sm:text-xl">
               Nâng cấp thành công
             </DialogTitle>
-            <DialogDescription className="text-base text-slate-700">
+            <DialogDescription className="text-sm text-slate-700 sm:text-base">
               Gói {toPlanActivationLabel(upgradeSuccessPlan, upgradeSuccessProductsLimit)} đã được kích hoạt.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="mt-2">
             <Button
               className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
               onClick={() => setUpgradeSuccessOpen(false)}

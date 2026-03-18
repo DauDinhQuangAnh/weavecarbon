@@ -37,7 +37,6 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import {
   CERTIFICATION_DOCUMENT_CODE_BY_VALUE,
   normalizeCertificationDocumentCode
@@ -64,6 +63,7 @@ const MATERIAL_SOURCE_VALUES: Array<"domestic" | "imported" | "unknown"> = [
   "imported",
   "unknown"
 ];
+const MAX_VISIBLE_CERTIFICATION_BADGES = 3;
 
 const Step2Materials: React.FC<Step2MaterialsProps> = ({
   data,
@@ -341,10 +341,10 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3 md:pb-4">
+            <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-2">
                 <CardTitle className="text-lg">{t("mainMaterialsTitle")}</CardTitle>
                 <Tooltip>
@@ -356,7 +356,7 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center justify-start gap-2 md:w-auto md:justify-end">
                 {isValidTotal ? (
                   <Badge
                     variant="outline"
@@ -378,11 +378,11 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             {data.materials.map((material, index) => {
               const extMaterial = material as ExtendedMaterialInput;
               return (
-                <div key={material.id} className="p-4 rounded-lg border bg-card space-y-4">
+                <div key={material.id} className="rounded-lg border bg-card p-3 space-y-3 md:p-4 md:space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-muted-foreground">
@@ -507,45 +507,70 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
                         t("certificationsLockedHint")}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {CERTIFICATIONS.map((certification) => {
-                        const isSelected = (material.certifications || []).includes(
-                          certification.value
+                      {(() => {
+                        const certificationStates = CERTIFICATIONS.map((certification) => {
+                          const isSelected = (material.certifications || []).includes(
+                            certification.value
+                          );
+                          const isAvailable = isCertificationAvailable(
+                            certification.value
+                          );
+                          const isLocked =
+                            !isSelected &&
+                            !isAvailable &&
+                            !isCertificationAvailabilityLoading;
+
+                          return {
+                            certification,
+                            isSelected,
+                            isLocked
+                          };
+                        });
+
+                        const visibleCertificationStates = certificationStates.filter(
+                          (item) => !item.isLocked
                         );
-                        const isAvailable = isCertificationAvailable(
-                          certification.value
+                        const prioritizedVisibleStates = [...visibleCertificationStates].sort(
+                          (a, b) => Number(b.isSelected) - Number(a.isSelected)
                         );
-                        const isLocked =
-                          !isSelected &&
-                          !isAvailable &&
-                          !isCertificationAvailabilityLoading;
+                        const displayedCertificationStates = prioritizedVisibleStates.slice(
+                          0,
+                          MAX_VISIBLE_CERTIFICATION_BADGES
+                        );
+                        const hiddenCount =
+                          certificationStates.length - displayedCertificationStates.length;
 
                         return (
-                          <Badge
-                            key={certification.value}
-                            variant={isSelected ? "default" : "outline"}
-                            className={cn(
-                              "transition-colors",
-                              isLocked ?
-                                "cursor-not-allowed border-dashed text-muted-foreground hover:bg-transparent" :
-                                "cursor-pointer"
-                            )}
-                            onClick={() =>
-                              handleCertificationClick(
-                                material,
-                                certification.value,
-                                certification.label
-                              )
-                            }
-                          >
-                            {certification.label}
-                            {isLocked ? (
-                              <span className="ml-1 text-[10px]">
-                                {t("certificationUnavailable")}
-                              </span>
+                          <>
+                            {displayedCertificationStates.map(({ certification, isSelected }) => (
+                              <Badge
+                                key={certification.value}
+                                variant={isSelected ? "default" : "outline"}
+                                className="h-auto max-w-full shrink cursor-pointer whitespace-normal break-words px-2.5 py-1 text-left leading-snug transition-colors"
+                                onClick={() =>
+                                  handleCertificationClick(
+                                    material,
+                                    certification.value,
+                                    certification.label
+                                  )
+                                }
+                              >
+                                {certification.label}
+                              </Badge>
+                            ))}
+
+                            {hiddenCount > 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="h-auto border-dashed px-2.5 py-1 text-xs text-muted-foreground"
+                                title={t("certificationUnavailable")}
+                              >
+                                +{hiddenCount}
+                              </Badge>
                             ) : null}
-                          </Badge>
+                          </>
                         );
-                      })}
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -560,12 +585,12 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
         </Card>
 
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3 md:pb-4">
             <CardTitle className="text-lg">{t("accessoriesTitle")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             {data.accessories.map((accessory, index) => (
-              <div key={accessory.id} className="p-4 rounded-lg border bg-card">
+              <div key={accessory.id} className="rounded-lg border bg-card p-3 md:p-4">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-medium text-muted-foreground">
                     {t("accessoryItem", { index: index + 1 })}

@@ -265,15 +265,19 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
               </div>
             </div>
 
-            {data.energySources.length > 0 ? (
-              <div
-                className={`text-sm font-medium ${
-                  isValidEnergyTotal ? "text-green-600" : "text-yellow-600"
-                }`}
-              >
-                {t("energy.total", { value: totalEnergyPercentage })}
-              </div>
-            ) : null}
+            <div
+              className={`min-w-[5.25rem] text-right text-sm font-medium transition-colors ${
+                data.energySources.length === 0
+                  ? "text-transparent"
+                  : isValidEnergyTotal
+                    ? "text-green-600"
+                    : "text-yellow-600"
+              }`}
+            >
+              {t("energy.total", {
+                value: data.energySources.length === 0 ? 0 : totalEnergyPercentage
+              })}
+            </div>
           </div>
         </CardHeader>
 

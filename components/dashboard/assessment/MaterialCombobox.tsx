@@ -121,7 +121,7 @@ const MaterialCombobox: React.FC<MaterialComboboxProps> = ({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-87.5 p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={t("searchPlaceholder")}

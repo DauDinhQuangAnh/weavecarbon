@@ -746,7 +746,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         <CardContent>
           <Select value={data.destinationMarket} onValueChange={handleMarketChange}>
             <SelectTrigger
-              className="max-w-sm"
+              className="w-full md:max-w-sm"
               disabled={Boolean(starterDomesticMarket)}>
               <SelectValue placeholder={t("destinationMarket.placeholder")} />
             </SelectTrigger>
@@ -797,7 +797,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                         {selectedComplianceSummary.addedDocumentNames.map((documentName, index) =>
                     <Badge
                       key={`added-${index}`}
-                      className="border border-emerald-200 bg-emerald-50 text-emerald-700">
+                      className="h-auto max-w-full whitespace-normal break-words border border-emerald-200 bg-emerald-50 text-left text-emerald-700">
 
                             {documentName}
                           </Badge>
@@ -820,7 +820,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                         {selectedComplianceSummary.missingRequiredDocumentNames.map((documentName, index) =>
                     <Badge
                       key={`required-${index}`}
-                      className="border border-amber-200 bg-amber-50 text-amber-700">
+                      className="h-auto max-w-full whitespace-normal break-words border border-amber-200 bg-amber-50 text-left text-amber-700">
 
                             {documentName}
                           </Badge>
@@ -913,9 +913,9 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                     return (
                       <div
                         key={leg.id}
-                        className="flex items-center gap-4 p-3 rounded-lg border bg-card"
+                        className="flex flex-col gap-3 rounded-lg border bg-card p-3 md:flex-row md:items-center md:gap-4"
                       >
-                        <div className="flex items-center gap-2 min-w-25">
+                        <div className="flex w-full items-center gap-2 md:w-auto md:min-w-[6.25rem]">
                           <span className="text-sm font-medium text-muted-foreground">
                             {t("transport.leg", { index: index + 1 })}
                           </span>
@@ -930,7 +930,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                             updateTransportLeg(leg.id, { mode: value })
                           }
                         >
-                          <SelectTrigger className="w-45">
+                          <SelectTrigger className="w-full md:w-[11.25rem]">
                             <div className="flex items-center gap-2">
                               <TransportIcon mode={leg.mode} />
                               <SelectValue />
@@ -952,7 +952,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                           </SelectContent>
                         </Select>
 
-                        <div className="flex items-center gap-2 flex-1">
+                        <div className="flex w-full items-center gap-2 md:flex-1">
                           <Input
                             type="number"
                             min="0"
@@ -963,11 +963,11 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                               })
                             }
                             placeholder={t("transport.distancePlaceholder")}
-                            className="w-32"
+                            className="min-w-[5rem] flex-1 md:w-32 md:flex-none"
                           />
 
-                          <span className="text-sm text-muted-foreground">{t("transport.distanceUnit")}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
+                          <span className="shrink-0 text-sm text-muted-foreground">{t("transport.distanceUnit")}</span>
+                          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground md:ml-2">
                             {t("transport.co2Factor", { value: modeInfo?.co2Factor || 0 })}
                           </span>
                         </div>
@@ -978,7 +978,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 </div>
               ) : null}
 
-              <div className={data.transportLegs.length > 0 ? "flex items-center gap-2" : ""}>
+              <div className={data.transportLegs.length > 0 ? "flex flex-col gap-2 md:flex-row md:items-center" : ""}>
                 <Button
                   variant="outline"
                   onClick={addTransportLeg}

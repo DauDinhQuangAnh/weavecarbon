@@ -365,11 +365,11 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           </div>
 
           
-          <div className="flex gap-3 border-t border-slate-200 pt-4">
+          <div className="flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:gap-3">
             {canCancel &&
             <Button
               variant="destructive"
-              className="flex-1"
+              className="w-full sm:flex-1"
               onClick={() => {
                 void handleCancelShipment();
               }}
@@ -379,7 +379,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             }
             <Button
               variant="outline"
-              className="flex-1 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 sm:flex-1"
               onClick={() => {
                 if (appRoutes.isDemo) {
                   if (shipment.productId) {
@@ -413,7 +413,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               {t("viewLogistics")}
             </Button>
             <Button
-              className="flex-1 !bg-emerald-600 !text-white hover:!bg-emerald-700"
+              className="w-full !bg-emerald-600 !text-white hover:!bg-emerald-700 sm:flex-1"
               onClick={() => {
                 if (appRoutes.isDemo) {
                   if (shipment.productId) {

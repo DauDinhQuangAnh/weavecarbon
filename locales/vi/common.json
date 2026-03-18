@@ -1897,14 +1897,15 @@
         "draftSaveFailed": "Không thể lưu bản nháp",
         "publishSuccess": "Xuất bản sản phẩm thành công",
         "publishUpdated": "Cập nhật sản phẩm thành công",
+        "publishDraftFallback": "Sản phẩm được lưu nháp vì vẫn còn thiếu tài liệu bắt buộc.",
         "publishFailed": "Không thể xuất bản sản phẩm",
         "invalidProductId": "Mã sản phẩm không hợp lệ. Vui lòng kiểm tra phản hồi từ hệ thống.",
         "logisticsCreated": "Đã tạo chuyến hàng logistics: {shipmentId}",
         "logisticsCreateFailed": "Xuất bản thành công nhưng không tạo được logistics.",
         "trialDomesticOnly": "Gói Trial chỉ cho phép địa chỉ nội địa trong {country}. Vui lòng chọn lại điểm trên bản đồ.",
         "certificationDocumentsChecking": "Đang kiểm tra tài liệu chứng nhận. Vui lòng thử lại sau vài giây.",
-        "missingMaterialCertificationDocuments": "Chưa thể xuất bản. Thiếu file đã tải lên cho các chứng nhận nguyên liệu: {certifications}.",
-        "missingExportDocuments": "Chưa thể xuất bản. Thiếu các tài liệu xuất khẩu bắt buộc: {documents}."
+        "missingMaterialCertificationDocuments": "Cảnh báo: thiếu file đã tải lên cho các chứng nhận nguyên liệu: {certifications}.",
+        "missingExportDocuments": "Cảnh báo: thiếu các tài liệu xuất khẩu bắt buộc: {documents}."
       },
       "unknownLocation": "Vị trí chưa xác định"
     },
