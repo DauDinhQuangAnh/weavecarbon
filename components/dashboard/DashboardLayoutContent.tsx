@@ -46,6 +46,21 @@ export default function DashboardLayoutContent({
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isProductsPage = pathname === "/products" || pathname === "/demo/products";
+  const isLogisticsPage = pathname === "/logistics" || pathname === "/demo/logistics";
+  const isExportPage = pathname === "/export" || pathname === "/demo/export";
+  const isAiSettingsPage =
+    pathname === "/settings/ai" || pathname?.startsWith("/settings/ai/");
+  const mobileContentTopPadding =
+    isProductsPage
+      ? "pt-[4.9rem]"
+      : isLogisticsPage
+        ? "pt-[5rem]"
+        : isExportPage
+          ? "pt-[5rem]"
+          : isAiSettingsPage
+            ? "pt-[4.9rem]"
+          : "pt-[5.5rem]";
 
   useEffect(() => {
     if (loading || !user || user.user_type === "b2c") return;
@@ -138,10 +153,10 @@ export default function DashboardLayoutContent({
                 </h1>
                 {subtitle ? (
                   <>
-                    <span className="shrink-0 text-sm font-medium leading-tight text-muted-foreground md:text-base">
+                    <span className="hidden shrink-0 text-sm font-medium leading-tight text-muted-foreground md:inline md:text-base">
                       &bull;
                     </span>
-                    <p className="min-w-0 truncate text-sm font-medium leading-tight text-muted-foreground md:text-base">
+                    <p className="hidden min-w-0 truncate text-sm font-medium leading-tight text-muted-foreground md:block md:text-base">
                       {subtitle}
                     </p>
                   </>
@@ -155,7 +170,11 @@ export default function DashboardLayoutContent({
         </div>
       </header>
 
-      <div className="flex-1 px-2.5 pb-4 pt-[5.5rem] md:px-3 md:pb-6 md:pt-24 lg:px-4 lg:pt-4">{children}</div>
+      <div
+        className={`flex-1 px-2.5 pb-4 ${mobileContentTopPadding} md:px-3 md:pb-6 md:pt-24 lg:px-4 lg:pt-4`}
+      >
+        {children}
+      </div>
     </>);
 
 }

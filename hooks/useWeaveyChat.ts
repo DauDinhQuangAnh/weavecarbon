@@ -17,8 +17,46 @@ interface UseWeaveyChatOptions {
   variant?: "landing" | "dashboard";
 }
 
+const RAW_CHAT_ERROR_PATTERNS = [
+  /company_id/i,
+  /does not exist/i,
+  /undefined column/i,
+  /sqlstate/i,
+  /postgres/i,
+  /database error/i,
+  /列".+"は存在しません/,
+  /存在しません/,
+];
+
 const toErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error && error.message.trim().length > 0 ? error.message : fallback;
+
+const looksLikeTechnicalChatError = (value: string) =>
+  RAW_CHAT_ERROR_PATTERNS.some((pattern) => pattern.test(value));
+
+const sanitizeAssistantContent = (value: string, fallback: string) => {
+  const normalized = value.trim();
+  if (!normalized) return fallback;
+  return looksLikeTechnicalChatError(normalized) ? fallback : normalized;
+};
+
+const sanitizeChatMessage = (message: ChatMessage, fallback: string): ChatMessage =>
+  message.role === "assistant"
+    ? {
+        ...message,
+        content: sanitizeAssistantContent(message.content, fallback),
+      }
+    : message;
+
+const sanitizeConversationSummary = (
+  summary: ConversationSummary,
+  fallback: string
+): ConversationSummary => ({
+  ...summary,
+  lastMessagePreview: summary.lastMessagePreview
+    ? sanitizeAssistantContent(summary.lastMessagePreview, fallback)
+    : summary.lastMessagePreview,
+});
 
 const createLocalMessage = (
   role: "user" | "assistant",
@@ -82,7 +120,9 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
 
         if (ignore) return;
 
-        setConversations(conversationList.items);
+        setConversations(
+          conversationList.items.map((item) => sanitizeConversationSummary(item, localChatErrorMessage))
+        );
 
         if (conversationList.items.length === 0) {
           setActiveConversationId(null);
@@ -94,14 +134,23 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         if (ignore) return;
 
         setActiveConversationId(latestConversation.id);
-        setMessages(latestConversation.messages);
+        setMessages(
+          latestConversation.messages.map((message) =>
+            sanitizeChatMessage(message, localChatErrorMessage)
+          )
+        );
       } catch (error) {
         if (ignore) return;
 
         setMessages([]);
         setConversations([]);
         setActiveConversationId(null);
-        setLoadError(toErrorMessage(error, failedToLoadHistoryMessage));
+        setLoadError(
+          sanitizeAssistantContent(
+            toErrorMessage(error, failedToLoadHistoryMessage),
+            failedToLoadHistoryMessage
+          )
+        );
       } finally {
         if (!ignore) {
           setIsInitializing(false);
@@ -114,7 +163,7 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
     return () => {
       ignore = true;
     };
-  }, [failedToLoadHistoryMessage, isRemoteMode]);
+  }, [failedToLoadHistoryMessage, isRemoteMode, localChatErrorMessage]);
 
   const selectConversation = useCallback(
     async (conversationId: string) => {
@@ -128,14 +177,21 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
       try {
         const detail = await getChatConversation(conversationId);
         setActiveConversationId(detail.id);
-        setMessages(detail.messages);
+        setMessages(
+          detail.messages.map((message) => sanitizeChatMessage(message, localChatErrorMessage))
+        );
       } catch (error) {
-        setLoadError(toErrorMessage(error, failedToLoadHistoryMessage));
+        setLoadError(
+          sanitizeAssistantContent(
+            toErrorMessage(error, failedToLoadHistoryMessage),
+            failedToLoadHistoryMessage
+          )
+        );
       } finally {
         setIsInitializing(false);
       }
     },
-    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode]
+    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode, localChatErrorMessage]
   );
 
   const startNewChat = useCallback(() => {
@@ -177,19 +233,29 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         try {
           const detail = await getChatConversation(nextConversation.id);
           setActiveConversationId(detail.id);
-          setMessages(detail.messages);
+          setMessages(
+            detail.messages.map((message) => sanitizeChatMessage(message, localChatErrorMessage))
+          );
         } catch (error) {
-          setLoadError(toErrorMessage(error, failedToLoadHistoryMessage));
+          setLoadError(
+            sanitizeAssistantContent(
+              toErrorMessage(error, failedToLoadHistoryMessage),
+              failedToLoadHistoryMessage
+            )
+          );
         }
       } catch (error) {
-        const message = toErrorMessage(error, failedToLoadHistoryMessage);
+        const message = sanitizeAssistantContent(
+          toErrorMessage(error, failedToLoadHistoryMessage),
+          failedToLoadHistoryMessage
+        );
         setLoadError(message);
         throw error instanceof Error ? error : new Error(message);
       } finally {
         setDeletingConversationId(null);
       }
     },
-    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode]
+    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode, localChatErrorMessage]
   );
 
   const sendLocalMessage = useCallback(
@@ -200,12 +266,18 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
 
       try {
         const assistantContent = await getWeaveyResponse(input);
-        const assistantMessage = createLocalMessage("assistant", assistantContent);
+        const assistantMessage = createLocalMessage(
+          "assistant",
+          sanitizeAssistantContent(assistantContent, localChatErrorMessage)
+        );
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (error) {
         setMessages((prev) => [
           ...prev,
-          createLocalMessage("assistant", toErrorMessage(error, localChatErrorMessage)),
+          createLocalMessage(
+            "assistant",
+            sanitizeAssistantContent(toErrorMessage(error, localChatErrorMessage), localChatErrorMessage)
+          ),
         ]);
       } finally {
         setIsLoading(false);
@@ -232,16 +304,29 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
 
         setMessages((prev) => {
           const withoutOptimistic = prev.filter((message) => message.id !== optimisticUserMessage.id);
-          return [...withoutOptimistic, result.userMessage, result.assistantMessage];
+          return [
+            ...withoutOptimistic,
+            result.userMessage,
+            sanitizeChatMessage(result.assistantMessage, localChatErrorMessage),
+          ];
         });
         setActiveConversationId(result.conversation.id);
-        setConversations((prev) => upsertConversationSummary(prev, result.conversation));
+        setConversations((prev) =>
+          upsertConversationSummary(
+            prev,
+            sanitizeConversationSummary(result.conversation, localChatErrorMessage)
+          )
+        );
       } catch (error) {
         setMessages((prev) => [
           ...prev,
-          createLocalMessage("assistant", toErrorMessage(error, localChatErrorMessage), {
-            source: "client_error",
-          }),
+          createLocalMessage(
+            "assistant",
+            sanitizeAssistantContent(toErrorMessage(error, localChatErrorMessage), localChatErrorMessage),
+            {
+              source: "client_error",
+            }
+          ),
         ]);
       } finally {
         setIsLoading(false);

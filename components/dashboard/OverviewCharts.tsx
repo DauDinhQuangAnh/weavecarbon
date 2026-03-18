@@ -266,7 +266,7 @@ export default function OverviewCharts({
       </Card>
 
       <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-        <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100">
+        <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100 px-3 py-2.5 md:p-6">
           <CardTitle className="flex items-center gap-2 text-lg md:text-base">
             <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
             <span className="truncate">{t("chart.pie.title")}</span>

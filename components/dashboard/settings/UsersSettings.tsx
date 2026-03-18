@@ -425,6 +425,78 @@ const UsersSettings: React.FC = () => {
     }
   };
 
+  const renderMemberActions = (member: TeamMember, compact = false) => {
+    if (!canManageSubAccounts) {
+      return null;
+    }
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={
+              compact ?
+                "h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" :
+                "text-slate-600 hover:bg-slate-100"
+            }
+            disabled={isLoading}
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="border-slate-200 bg-white">
+          <DropdownMenuItem
+            className="text-slate-700 focus:bg-slate-100 focus:text-slate-800"
+            onClick={() => openRoleDialog(member)}
+          >
+            {t("changeRole")}
+          </DropdownMenuItem>
+
+          {member.status === "invited" && (
+            <DropdownMenuItem
+              className="text-slate-700 focus:bg-slate-100 focus:text-slate-800"
+              onClick={() => handleResendInvite(member)}
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              {t("resendInvite")}
+            </DropdownMenuItem>
+          )}
+
+          {member.role !== "admin" && (
+            <DropdownMenuItem
+              className="text-slate-700 focus:bg-slate-100 focus:text-slate-800"
+              onClick={() => handleToggleStatus(member)}
+            >
+              {member.status === "active" ? (
+                <>
+                  <X className="w-4 h-4 mr-2" />
+                  {t("disable")}
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  {t("enable")}
+                </>
+              )}
+            </DropdownMenuItem>
+          )}
+
+          {member.role !== "admin" && (
+            <DropdownMenuItem
+              onClick={() => handleRemove(member)}
+              className="text-rose-600 focus:bg-rose-50 focus:text-rose-700"
+            >
+              <X className="w-4 h-4 mr-2" />
+              {t("removeAccount")}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   const isLoading = loadingMembers || updating;
   const normalizedSearchKeyword = searchKeyword.trim().toLowerCase();
   const tableColumnCount = canManageSubAccounts ? 5 : 4;
@@ -473,20 +545,29 @@ const UsersSettings: React.FC = () => {
     <div className="space-y-4">
       <Card className="overflow-hidden border border-slate-200 shadow-sm">
         <CardHeader className="rounded-t-[inherit] border-b border-slate-200 bg-slate-50/70 p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Users className="w-5 h-5" />
-                {t("teamMembersCount", { count: members.length })}
-              </CardTitle>
-              <CardDescription>{t("teamMembersDesc")}</CardDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-700">
+                  <Users className="w-4 h-4" />
+                </span>
+                <CardTitle className="text-lg leading-tight sm:text-xl">
+                  {t("teamMembers")}
+                </CardTitle>
+                <Badge className="border border-primary/20 bg-primary/10 text-primary">
+                  {members.length}
+                </Badge>
+              </div>
+              <CardDescription className="max-w-[34rem] text-sm leading-5">
+                {t("teamMembersDesc")}
+              </CardDescription>
             </div>
-            {canManageSubAccounts ?
+            {canManageSubAccounts ? (
             <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                 <DialogTrigger asChild>
                   <Button
                     size="sm"
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
                     disabled={!companyId || isLoading}>
 
                     <UserPlus className="w-4 h-4 mr-2" />
@@ -624,11 +705,11 @@ const UsersSettings: React.FC = () => {
                     </Button>
                   </DialogFooter>
                 </DialogContent>
-              </Dialog> :
+              </Dialog>) : (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
                 {trialSubAccountHint}
               </p>
-            }
+            )}
           </div>
         </CardHeader>
         <CardContent className="bg-white p-4 pt-4">
@@ -658,7 +739,51 @@ const UsersSettings: React.FC = () => {
                 </p>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+              <div className="space-y-2 md:hidden">
+                {filteredMembers.length === 0 ? (
+                  <Card className="border border-slate-200 bg-slate-50/60 shadow-sm">
+                    <CardContent className="py-8 text-center text-sm text-slate-600">
+                      {normalizedSearchKeyword ? t("noSearchResults") : t("noTeamMembersFound")}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  paginatedMembers.map((member) => (
+                    <Card key={member.id} className="overflow-hidden border border-slate-200 bg-white shadow-sm">
+                      <CardContent className="space-y-3 p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-900">
+                              {member.full_name || t("noName")}
+                            </p>
+                            <p className="mt-1 break-all text-xs text-slate-600">
+                              {member.email}
+                            </p>
+                          </div>
+                          {renderMemberActions(member, true)}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {getRoleBadge(member.role)}
+                          {getStatusBadge(member.status)}
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <p className="text-[11px] font-medium text-slate-500">
+                            {t("memberHeaderLastLogin")}
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-slate-700">
+                            {member.last_login ?
+                              format(new Date(member.last_login), "dd/MM/yyyy HH:mm") :
+                              t("neverLogged")}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white md:block">
               <Table className="w-full">
                 <TableHeader className="bg-slate-50/80">
                   <TableRow className="border-slate-200">
@@ -701,67 +826,7 @@ const UsersSettings: React.FC = () => {
                     format(new Date(member.last_login), "dd/MM/yyyy HH:mm") :
                     t("neverLogged")}
                       </TableCell>
-                      {canManageSubAccounts && <TableCell>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-slate-600 hover:bg-slate-100"
-                          disabled={isLoading}>
-
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                        align="end"
-                        className="border-slate-200 bg-white">
-                              <DropdownMenuItem
-                          className="text-slate-700 focus:bg-slate-100 focus:text-slate-800"
-                          onClick={() => openRoleDialog(member)}>
-
-                                {t("changeRole")}
-                              </DropdownMenuItem>
-
-                              {member.status === "invited" &&
-                        <DropdownMenuItem
-                          className="text-slate-700 focus:bg-slate-100 focus:text-slate-800"
-                          onClick={() => handleResendInvite(member)}>
-
-                                  <Mail className="w-4 h-4 mr-2" />
-                                  {t("resendInvite")}
-                                </DropdownMenuItem>
-                        }
-                              {member.role !== "admin" &&
-                              <DropdownMenuItem
-                          className="text-slate-700 focus:bg-slate-100 focus:text-slate-800"
-                          onClick={() => handleToggleStatus(member)}>
-
-                                {member.status === "active" ?
-                          <>
-                                    <X className="w-4 h-4 mr-2" />
-                                    {t("disable")}
-                                  </> :
-
-                          <>
-                                    <Check className="w-4 h-4 mr-2" />
-                                    {t("enable")}
-                                  </>
-                          }
-                              </DropdownMenuItem>
-                              }
-                              {member.role !== "admin" &&
-                              <DropdownMenuItem
-                          onClick={() => handleRemove(member)}
-                          className="text-rose-600 focus:bg-rose-50 focus:text-rose-700">
-
-                                <X className="w-4 h-4 mr-2" />
-                                {t("removeAccount")}
-                              </DropdownMenuItem>
-                              }
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                      </TableCell>}
+                      {canManageSubAccounts && <TableCell>{renderMemberActions(member)}</TableCell>}
                     </TableRow>
                 )
                 }
@@ -770,7 +835,7 @@ const UsersSettings: React.FC = () => {
             </div>
 
               {filteredMembers.length > 0 && totalPages > 1 &&
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-center gap-2 md:justify-end">
                   <Button
                 variant="outline"
                 size="sm"

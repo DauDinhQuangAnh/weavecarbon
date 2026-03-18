@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import {
   Bot,
+  ChevronDown,
   Clock3,
   Loader2,
   Maximize2,
@@ -28,6 +29,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
@@ -67,12 +74,16 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(variant === "landing");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isLauncherArmed, setIsLauncherArmed] = useState(false);
+  const [isMobileHistoryOpen, setIsMobileHistoryOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [pendingDeleteConversation, setPendingDeleteConversation] =
     useState<ConversationSummary | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const launcherButtonRef = useRef<HTMLButtonElement>(null);
 
   const {
     messages,
@@ -93,22 +104,25 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
   });
 
   const isPageMode = displayMode === "page";
+  const isMobilePageMode = isPageMode && isMobileViewport;
   const isChatVisible = isPageMode || isOpen;
   const welcomeMessage = user ? t("welcomeUser") : t("welcomeGuest");
   const emptyStateMessage = statusMessage || welcomeMessage;
-  const deleteConversationTitle = "Delete conversation";
-  const deleteConversationAction = "Delete conversation";
-  const deletingConversationAction = "Deleting...";
-  const deleteConversationSuccess = "Conversation deleted.";
-  const deleteConversationFailed = "Unable to delete conversation.";
-  const deleteConversationCancel = "Cancel";
+  const deleteConversationTitle = t("deleteConversationTitle");
+  const deleteConversationAction = t("deleteConversationAction");
+  const deletingConversationAction = t("deletingConversationAction");
+  const deleteConversationSuccess = t("deleteConversationSuccess");
+  const deleteConversationFailed = t("deleteConversationFailed");
+  const deleteConversationCancel = t("cancel");
   const deleteConversationDescription = useMemo(() => {
     if (!pendingDeleteConversation) {
-      return "Are you sure you want to delete this conversation?";
+      return t("deleteConversationFallback");
     }
 
-    return `Are you sure you want to delete "${pendingDeleteConversation.title}"?`;
-  }, [pendingDeleteConversation]);
+    return t("deleteConversationDescription", {
+      title: pendingDeleteConversation.title,
+    });
+  }, [pendingDeleteConversation, t]);
 
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = "auto") => {
@@ -129,6 +143,27 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncViewport = () => {
+      const isMobile = mediaQuery.matches;
+      setIsMobileViewport(isMobile);
+
+      if (!isMobile) {
+        setIsLauncherArmed(false);
+      }
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
+
+  useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       scrollToBottom(messages.length > 0 ? "smooth" : "auto");
     });
@@ -144,6 +179,50 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
     }
   }, [isChatVisible]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setIsLauncherArmed(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isMobileViewport) {
+      setIsMobileHistoryOpen(false);
+    }
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    if (isMobilePageMode && activeConversationId) {
+      setIsMobileHistoryOpen(false);
+    }
+  }, [activeConversationId, isMobilePageMode]);
+
+  useEffect(() => {
+    if (!isMobileViewport || isOpen || isPageMode || !isLauncherArmed) {
+      return;
+    }
+
+    const clearArmedState = () => {
+      setIsLauncherArmed(false);
+    };
+
+    const timeoutId = window.setTimeout(clearArmedState, 3500);
+    const handlePointerDown = (event: PointerEvent) => {
+      if (launcherButtonRef.current?.contains(event.target as Node)) {
+        return;
+      }
+
+      clearArmedState();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isLauncherArmed, isMobileViewport, isOpen, isPageMode]);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!inputValue.trim() || isLoading || isInitializing) {
@@ -157,7 +236,30 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
   const closeChat = () => {
     setIsOpen(false);
     setIsExpanded(false);
+    setIsLauncherArmed(false);
   };
+
+  const openChat = useCallback(() => {
+    setIsExpanded(false);
+    setIsOpen(true);
+    setIsLauncherArmed(false);
+  }, []);
+
+  const handleLauncherClick = useCallback(() => {
+    if (isMobileViewport && !isLauncherArmed) {
+      setIsLauncherArmed(true);
+      return;
+    }
+
+    openChat();
+  }, [isLauncherArmed, isMobileViewport, openChat]);
+
+  const launcherClassName = cn(
+    "rounded-full transition-all duration-300",
+    isMobileViewport && !isLauncherArmed
+      ? "border border-white/80 bg-linear-to-r from-primary/55 to-accent/55 text-white/90 opacity-45 shadow-md backdrop-blur-[2px]"
+      : "bg-linear-to-r from-primary to-accent text-white shadow-lg hover:shadow-xl"
+  );
 
   const handleConfirmDeleteConversation = useCallback(async () => {
     if (!pendingDeleteConversation) {
@@ -239,11 +341,13 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
           </div>
         ) : (
           <Button
-            onClick={() => {
-              setIsExpanded(false);
-              setIsOpen(true);
-            }}
-            className="h-14 w-14 rounded-full bg-linear-to-r from-primary to-accent shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
+            ref={launcherButtonRef}
+            onClick={handleLauncherClick}
+            className={cn(
+              "h-14 w-14",
+              launcherClassName,
+              !isMobileViewport && "hover:scale-110"
+            )}
           >
             <MessageCircle className="h-6 w-6" />
           </Button>
@@ -253,6 +357,138 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
   }
 
   if (isPageMode) {
+    if (isMobilePageMode) {
+      return (
+        <>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="bg-linear-to-br from-primary to-accent px-3 py-3">
+              <div className="flex items-center gap-2">
+                {isRemoteMode ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileHistoryOpen(true)}
+                    className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-left shadow-sm backdrop-blur-sm transition-colors hover:bg-white/15"
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/18 text-white">
+                      <Clock3 className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
+                      {t("historyShort")}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                        {conversations.length}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 text-white/85" />
+                    </div>
+                  </button>
+                ) : (
+                  <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 shadow-sm backdrop-blur-sm">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/18 text-white">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 truncate text-sm font-semibold text-white">
+                      {t("assistantTitleDashboard")}
+                    </span>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 shrink-0 rounded-xl border border-white/15 bg-white/12 px-3 text-xs font-semibold text-white shadow-none backdrop-blur-sm hover:bg-white/20"
+                  onClick={startNewChat}
+                  title={t("newChat")}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <MessageSquarePlus className="h-4 w-4 shrink-0" />
+                    <span>{t("newChatShort")}</span>
+                  </span>
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex min-h-[58vh] flex-col bg-white">
+              <ScrollArea className="flex-1 px-3 py-4" ref={scrollAreaRef}>
+                <div className="space-y-3">
+                  {isInitializing && messages.length === 0 ? (
+                    <SystemNotice icon={<Loader2 className="h-4 w-4 animate-spin" />}>
+                      {t("loadingHistory")}
+                    </SystemNotice>
+                  ) : null}
+
+                  {!isInitializing && messages.length === 0 ? (
+                    <MobilePageEmptyState message={emptyStateMessage} />
+                  ) : null}
+
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} compact />
+                  ))}
+
+                  {isLoading ? <TypingBubble compact /> : null}
+                  <div ref={messagesEndRef} aria-hidden="true" />
+                </div>
+              </ScrollArea>
+
+              <div className="border-t border-border bg-white/95 p-3">
+                <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                  <Input
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    placeholder={t("inputPlaceholderDashboard")}
+                    className="h-10 flex-1 rounded-xl border-slate-200 bg-slate-50 px-3 text-sm shadow-none"
+                    disabled={isLoading || isInitializing}
+                  />
+
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="h-10 w-10 rounded-xl"
+                    disabled={isLoading || isInitializing || !inputValue.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {isRemoteMode ? (
+            <MobileConversationHistoryDialog
+              open={isMobileHistoryOpen}
+              conversations={conversations}
+              activeConversationId={activeConversationId}
+              isInitializing={isInitializing}
+              deletingConversationId={deletingConversationId}
+              onOpenChange={setIsMobileHistoryOpen}
+              onSelectConversation={selectConversation}
+              onRequestDeleteConversation={setPendingDeleteConversation}
+              title={t("historyShort")}
+              emptyLabel={t("noConversations")}
+              conversationsCountLabel={(count) => t("conversationsCount", { count })}
+              deleteConversationLabel={deleteConversationAction}
+            />
+          ) : null}
+
+          <DeleteConversationDialog
+            open={Boolean(pendingDeleteConversation)}
+            deletingConversationId={deletingConversationId}
+            title={deleteConversationTitle}
+            description={deleteConversationDescription}
+            cancelLabel={deleteConversationCancel}
+            confirmLabel={deleteConversationAction}
+            confirmingLabel={deletingConversationAction}
+            onOpenChange={(open) => {
+              if (!open && !deletingConversationId) {
+                setPendingDeleteConversation(null);
+              }
+            }}
+            onConfirm={handleConfirmDeleteConversation}
+          />
+        </>
+      );
+    }
+
     return (
       <>
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -292,7 +528,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
                 title={t("recentConversations")}
                 emptyLabel={t("noConversations")}
                 newChatLabel={t("newChat")}
-                messageCountLabel={(count) => `${count} messages`}
+                messageCountLabel={(count) => t("messagesCount", { count })}
                 deleteConversationLabel={deleteConversationAction}
               />
             ) : null}
@@ -437,7 +673,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
                 title={t("recentConversations")}
                 emptyLabel={t("noConversations")}
                 newChatLabel={t("newChat")}
-                messageCountLabel={(count) => `${count} messages`}
+                messageCountLabel={(count) => t("messagesCount", { count })}
                 deleteConversationLabel={deleteConversationAction}
               />
             ) : null}
@@ -490,11 +726,13 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
         </div>
       ) : (
         <Button
-          onClick={() => {
-            setIsExpanded(false);
-            setIsOpen(true);
-          }}
-          className="relative h-12 w-12 rounded-full bg-linear-to-r from-primary to-accent shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+          ref={launcherButtonRef}
+          onClick={handleLauncherClick}
+          className={cn(
+            "relative h-12 w-12",
+            launcherClassName,
+            !isMobileViewport && "hover:scale-105"
+          )}
         >
           <MessageCircle className="h-5 w-5" />
           <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
@@ -700,6 +938,140 @@ const ConversationSidebar: React.FC<{
     </aside>
   );
 };
+
+const MobileConversationHistoryDialog: React.FC<{
+  open: boolean;
+  conversations: ConversationSummary[];
+  activeConversationId: string | null;
+  isInitializing: boolean;
+  deletingConversationId: string | null;
+  onOpenChange: (open: boolean) => void;
+  onSelectConversation: (conversationId: string) => void;
+  onRequestDeleteConversation: (conversation: ConversationSummary) => void;
+  title: string;
+  emptyLabel: string;
+  conversationsCountLabel: (count: number) => string;
+  deleteConversationLabel: string;
+}> = ({
+  open,
+  conversations,
+  activeConversationId,
+  isInitializing,
+  deletingConversationId,
+  onOpenChange,
+  onSelectConversation,
+  onRequestDeleteConversation,
+  title,
+  emptyLabel,
+  conversationsCountLabel,
+  deleteConversationLabel,
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        hideCloseButton
+        className="max-w-md gap-0 overflow-hidden border-slate-200 bg-white p-0 shadow-xl sm:rounded-2xl max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:h-auto max-sm:max-h-[68dvh] max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-t-[28px] max-sm:rounded-b-none max-sm:border-b-0"
+      >
+        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-slate-200" />
+        <DialogHeader className="space-y-2 border-b border-slate-200 px-4 pb-3 pt-3 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-base font-semibold text-slate-900">{title}</DialogTitle>
+            <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+              {conversations.length}
+            </span>
+          </div>
+          <p className="text-sm text-slate-500">
+            {conversations.length > 0 ? conversationsCountLabel(conversations.length) : emptyLabel}
+          </p>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[56dvh] px-3 py-3">
+          <div className="space-y-1.5">
+            {isInitializing && conversations.length === 0 ? (
+              <SystemNotice icon={<Loader2 className="h-4 w-4 animate-spin" />}>
+                {title}
+              </SystemNotice>
+            ) : null}
+
+            {!isInitializing && conversations.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 px-3 py-5 text-center text-sm text-muted-foreground">
+                {emptyLabel}
+              </p>
+            ) : null}
+
+            {conversations.map((conversation) => (
+              <div
+                key={conversation.id}
+                className={cn(
+                  "rounded-2xl border px-3 py-2.5 transition-all",
+                  conversation.id === activeConversationId
+                    ? "border-primary/25 bg-primary/5 shadow-sm"
+                    : "border-slate-200 bg-white"
+                )}
+              >
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void onSelectConversation(conversation.id);
+                      onOpenChange(false);
+                    }}
+                    className="min-w-0 flex-1 rounded-lg text-left"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-1 text-sm font-semibold text-slate-900">
+                        {conversation.title}
+                      </p>
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {formatConversationTime(conversation.updatedAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-1 text-xs leading-5 text-slate-500">
+                      {conversation.lastMessagePreview || conversation.title}
+                    </p>
+                  </button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mt-0.5 h-8 w-8 shrink-0 rounded-full text-slate-500"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onRequestDeleteConversation(conversation);
+                    }}
+                    disabled={Boolean(deletingConversationId)}
+                    title={deleteConversationLabel}
+                    aria-label={`${deleteConversationLabel}: ${conversation.title}`}
+                  >
+                    {deletingConversationId === conversation.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const MobilePageEmptyState: React.FC<{ message: string }> = ({ message }) => (
+  <div className="flex min-h-[15rem] items-center justify-center">
+    <div className="w-full rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-8 text-center shadow-sm">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
+        <Sparkles className="h-4 w-4 text-primary" />
+      </div>
+      <div className="mt-4 prose prose-sm max-w-none text-sm leading-6 text-slate-600 [&_*]:text-slate-600">
+        <ReactMarkdown>{message}</ReactMarkdown>
+      </div>
+    </div>
+  </div>
+);
 
 const EmptyStateBubble: React.FC<{ message: string; compact?: boolean }> = ({
   message,

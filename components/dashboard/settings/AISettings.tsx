@@ -21,8 +21,8 @@ const AISettings: React.FC = () => {
   const canAccessUsersTab = isRoot && !isTrialPlan;
 
   React.useEffect(() => {
-    setPageTitle("AI", "Chat with Weavey and manage conversation history.");
-  }, [setPageTitle]);
+    setPageTitle(t("ai.title"), t("ai.subtitle"));
+  }, [setPageTitle, t]);
 
   React.useEffect(() => {
     if (!canAccessSettings) {
@@ -48,7 +48,7 @@ const AISettings: React.FC = () => {
         labels={{
           system: t("tabs.system"),
           users: t("tabs.users"),
-          ai: "AI",
+          ai: t("tabs.ai"),
         }}
       />
 

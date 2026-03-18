@@ -663,7 +663,7 @@ const ShippingOverviewMap: React.FC = () => {
   filter: "all" | "in_transit" | "pending" | "delivered" | "cancelled") =>
   {
     const base =
-    "border h-9 px-3 text-sm font-medium transition-colors";
+    "h-9 shrink-0 border px-3 text-sm font-medium leading-none transition-colors";
     if (statusFilter !== filter) {
       return `${base} border-slate-300 bg-white text-slate-800 hover:bg-slate-100`;
     }
@@ -750,32 +750,34 @@ const ShippingOverviewMap: React.FC = () => {
 
       
       <div className="space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Input
-            value={searchTerm}
-            onChange={(event) => {
-              setSearchTerm(event.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder={tTrack("searchPlaceholder")}
-            className="h-10 min-w-0 flex-1 border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 shadow-sm focus-visible:ring-primary/30" />
+        <div className="space-y-2 sm:flex sm:items-center sm:gap-2 sm:space-y-0">
+          <div className={cn("flex items-center gap-2", !isMobile && "min-w-0 flex-1")}>
+            <Input
+              value={searchTerm}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder={tTrack("searchPlaceholder")}
+              className="h-10 min-w-0 flex-1 border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 shadow-sm focus-visible:ring-primary/30" />
 
-          {isMobile &&
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-10 w-full justify-center gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50 sm:w-auto"
-            onClick={() => setShowMobileFilters((prev) => !prev)}>
-              <SlidersHorizontal className="h-4 w-4" />
-              <span>{filterToggleLabel}</span>
-            </Button>
-          }
+            {isMobile &&
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-10 shrink-0 gap-2 border-slate-300 bg-white px-3 text-slate-700 hover:bg-slate-50"
+              onClick={() => setShowMobileFilters((prev) => !prev)}>
+                <SlidersHorizontal className="h-4 w-4" />
+                <span>{filterToggleLabel}</span>
+              </Button>
+            }
+          </div>
 
           <div
             className={cn(
-              "flex shrink-0 items-center gap-2 whitespace-nowrap",
-              isMobile ? "mobile-scroll-row w-full pb-1" : "ml-auto",
+              "flex shrink-0 gap-2 whitespace-nowrap",
+              isMobile ? "w-full items-stretch overflow-x-auto pb-1" : "ml-auto items-center",
               isMobile && !showMobileFilters && "hidden"
             )}>
             <Button
@@ -971,36 +973,38 @@ const ShippingOverviewMap: React.FC = () => {
       </div>
 
       
-      <Card className="overflow-hidden border border-slate-300 shadow">
-        <CardHeader className="border-b border-slate-300 bg-slate-100/70 pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Globe className="w-5 h-5 text-primary" />
-            {t("mapTitle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <LazyMountOnView
-            className="w-full"
-            rootMargin="320px 0px"
-            placeholder={
-              <div
-                className="w-full animate-pulse rounded-md border border-slate-300 bg-slate-100"
-                style={{ height: mapHeight }}
+      {!isMobile && (
+        <Card className="overflow-hidden border border-slate-300 shadow">
+          <CardHeader className="border-b border-slate-300 bg-slate-100/70 pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Globe className="w-5 h-5 text-primary" />
+              {t("mapTitle")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <LazyMountOnView
+              className="w-full"
+              rootMargin="320px 0px"
+              placeholder={
+                <div
+                  className="w-full animate-pulse rounded-md border border-slate-300 bg-slate-100"
+                  style={{ height: mapHeight }}
+                />
+              }
+            >
+              <SupplyChainMap
+                nodes={allNodes}
+                routes={allRoutes}
+                center={[20, 80]}
+                zoom={2}
+                height={mapHeight}
+                defaultMapMode="2d"
+                showModeToggle={false}
               />
-            }
-          >
-            <SupplyChainMap
-              nodes={allNodes}
-              routes={allRoutes}
-              center={[20, 80]}
-              zoom={2}
-              height={mapHeight}
-              defaultMapMode="2d"
-              showModeToggle={false}
-            />
-          </LazyMountOnView>
-        </CardContent>
-      </Card>
+            </LazyMountOnView>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog
         open={!!detailShipment}

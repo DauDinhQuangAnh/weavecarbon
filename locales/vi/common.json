@@ -332,10 +332,22 @@
       "assistantTitleDashboard": "Trợ lý AI",
       "clearHistory": "Xóa lịch sử",
       "newChat": "Cuộc trò chuyện mới",
+      "newChatShort": "Mới",
       "recentConversations": "Lịch sử hội thoại",
+      "historyShort": "Lịch sử",
       "noConversations": "Chưa có hội thoại nào",
       "loadingHistory": "Đang tải lịch sử hội thoại...",
       "failedToLoadHistory": "Không thể tải lịch sử hội thoại.",
+      "deleteConversationTitle": "Xóa hội thoại",
+      "deleteConversationDescription": "Bạn có chắc muốn xóa \"{title}\" không?",
+      "deleteConversationFallback": "Bạn có chắc muốn xóa hội thoại này không?",
+      "deleteConversationAction": "Xóa hội thoại",
+      "deletingConversationAction": "Đang xóa...",
+      "deleteConversationSuccess": "Đã xóa hội thoại.",
+      "deleteConversationFailed": "Không thể xóa hội thoại.",
+      "cancel": "Hủy",
+      "messagesCount": "{count} tin nhắn",
+      "conversationsCount": "{count} hội thoại",
       "inheritedFromAdmin": "Đang dùng cấu hình AI mới nhất của quản trị viên công ty",
       "notConfiguredAdmin": "Weavey chưa được cấu hình. Hãy mở Cài đặt > AI để hoàn tất.",
       "notConfiguredMember": "Weavey chưa được cấu hình. Vui lòng nhờ quản trị viên công ty thiết lập AI trong Cài đặt.",
@@ -1378,7 +1390,12 @@
     "subtitle": "Quản lý hệ thống và người dùng",
     "tabs": {
       "system": "Hệ thống",
-      "users": "Người dùng"
+      "users": "Người dùng",
+      "ai": "AI"
+    },
+    "ai": {
+      "title": "AI",
+      "subtitle": "Trò chuyện với Weavey và quản lý lịch sử hội thoại."
     },
     "system": {
       "personalInfo": "Thông tin cá nhân",

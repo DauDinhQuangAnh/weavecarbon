@@ -138,7 +138,9 @@ const OVERVIEW_STAT_HEADER_INNER_CLASS =
 const OVERVIEW_STAT_LABEL_CLASS =
   "line-clamp-2 text-sm font-semibold leading-snug text-slate-700 md:text-[15px]";
 const OVERVIEW_STAT_VALUE_CLASS =
-  "shrink-0 text-right text-[2rem] font-bold leading-none text-slate-900 md:text-[2.2rem]";
+  "shrink-0 text-right text-2xl font-bold leading-none text-slate-900 md:text-3xl";
+const OVERVIEW_STAT_ACCENT_VALUE_CLASS =
+  "shrink-0 text-right text-2xl font-bold leading-none md:text-3xl";
 
 
 const normalizeEmissionKey = (value: string) =>
@@ -632,7 +634,8 @@ const OverviewPage: React.FC = () => {
                   {t("stats.trialLocked")}
                 </CardTitle>
               ) : (
-                <CardTitle className="shrink-0 text-right text-[2rem] font-bold leading-none text-primary md:text-[2.2rem]">
+                <CardTitle
+                  className={`${OVERVIEW_STAT_ACCENT_VALUE_CLASS} text-primary`}>
                   {stats.exportReadiness}%
                 </CardTitle>
               )}
@@ -662,7 +665,8 @@ const OverviewPage: React.FC = () => {
               <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
                 {t("stats.dataReliability")}
               </CardDescription>
-              <CardTitle className="shrink-0 text-right text-2xl font-bold leading-none text-amber-700 md:text-3xl">
+              <CardTitle
+                className={`${OVERVIEW_STAT_ACCENT_VALUE_CLASS} text-amber-700`}>
                 {stats.confidenceScore}%
               </CardTitle>
             </div>
@@ -802,9 +806,9 @@ const OverviewPage: React.FC = () => {
         </Card>
       </div>
 
-      <div className="mobile-scroll-row md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
         <Card
-          className="w-[19rem] shrink-0 cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md md:w-auto md:shrink"
+          className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
             if (!canMutate) {
               showNoPermissionToast();
@@ -838,7 +842,7 @@ const OverviewPage: React.FC = () => {
         </Card>
 
         <Card
-          className="w-[19rem] shrink-0 cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md md:w-auto md:shrink"
+          className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => navigate.push(appRoutes.toAppPath("/logistics"))}>
 
           <CardContent className="p-3 md:p-4">
@@ -866,7 +870,7 @@ const OverviewPage: React.FC = () => {
         </Card>
 
         <Card
-          className="w-[19rem] shrink-0 cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md md:w-auto md:shrink"
+          className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => navigate.push(appRoutes.toAppPath("/reports"))}>
 
           <CardContent className="p-3 md:p-4">

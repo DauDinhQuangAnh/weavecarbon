@@ -10,7 +10,6 @@ import {
   Clock,
   FileCheck,
   FileText,
-  Globe,
   Loader2,
   Pencil,
   Trash2,
@@ -51,6 +50,7 @@ import {
 import { resolveComplianceDocumentGroup, type ComplianceDocumentGroup } from "@/lib/complianceDocumentGroups";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
 import type { DocumentStatus, MarketCode, MarketCompliance } from "./types";
 import { computeMarketDocumentReadinessScore } from "./readiness";
 import ComplianceDetailModal from "./ComplianceDetailModal";
@@ -218,9 +218,11 @@ const ExportPage: React.FC = () => {
   const t = useTranslations("export");
   const { setPageTitle } = useDashboardTitle();
   const { canMutate } = usePermissions();
+  const { isMobile } = useBreakpoint();
 
   const [selectedMarket, setSelectedMarket] = useState<MarketCode | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [marketPickerOpen, setMarketPickerOpen] = useState(false);
   const [complianceData, setComplianceData] = useState<Record<MarketCode, MarketCompliance> | null>(
     null
   );
@@ -476,6 +478,13 @@ const ExportPage: React.FC = () => {
   const handleOpenMarketDetail = (market: MarketCode) => {
     setSelectedMarket(market);
     setIsDetailOpen(true);
+  };
+
+  const handleSelectMarketFromPicker = (market: MarketCode) => {
+    setMarketPickerOpen(false);
+    window.setTimeout(() => {
+      handleOpenMarketDetail(market);
+    }, 120);
   };
 
   const closeUploadModal = (force = false) => {
@@ -813,7 +822,7 @@ const ExportPage: React.FC = () => {
         <Card className="border border-slate-300 bg-slate-50 shadow-sm">
           <CardContent className="p-3 md:p-4">
             <div className="grid grid-cols-12 items-end gap-2">
-              <div className="col-span-4">
+              <div className="col-span-4 md:col-span-4">
                 <label
                   htmlFor={`${sectionId}-market-filter`}
                   className="sr-only text-xs font-semibold text-slate-700 md:not-sr-only md:mb-1 md:block"
@@ -838,7 +847,7 @@ const ExportPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="col-span-5">
+              <div className="col-span-8 md:col-span-5">
                 <label
                   htmlFor={`${sectionId}-search`}
                   className="sr-only text-xs font-semibold text-slate-700 md:not-sr-only md:mb-1 md:block"
@@ -855,7 +864,7 @@ const ExportPage: React.FC = () => {
                 />
               </div>
 
-              <div className="col-span-3">
+              <div className="col-span-12 md:col-span-3">
                 <Button
                   type="button"
                   size="sm"
@@ -998,11 +1007,7 @@ const ExportPage: React.FC = () => {
     <>
       <div className="space-y-4 md:space-y-6 no-horizontal-scroll">
         <div>
-          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <h3 className="flex items-center gap-2 text-base font-semibold">
-              <Globe className="h-5 w-5 text-primary" />
-              {t("marketReadiness")}
-            </h3>
+          <div className="mb-3 flex justify-start md:justify-end">
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-primary">
                 <span className="font-semibold">{readyMarkets}</span>
@@ -1015,114 +1020,180 @@ const ExportPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
-            {loading && (
-              <Card className="col-span-2 border border-slate-200 bg-white shadow-sm md:col-span-3 xl:col-span-4">
-                <CardContent className="space-y-3 p-6">
-                  <div className="h-5 w-1/3 animate-pulse rounded bg-slate-200" />
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
-                  <div className="h-2 w-full animate-pulse rounded bg-slate-200" />
-                </CardContent>
-              </Card>
-            )}
+          {isMobile ? (
+            <>
+              {loading && (
+                <Card className="border border-slate-200 bg-white shadow-sm">
+                  <CardContent className="space-y-3 p-6">
+                    <div className="h-5 w-1/3 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+                    <div className="h-2 w-full animate-pulse rounded bg-slate-200" />
+                  </CardContent>
+                </Card>
+              )}
 
-            {!loading && error && (
-              <Card className="col-span-2 border border-red-200 bg-red-50/60 shadow-sm md:col-span-3 xl:col-span-4">
-                <CardContent className="space-y-3 py-6 text-center">
-                  <p className="text-sm font-medium text-red-700">{error}</p>
-                  {isPlanRestricted ? (
-                    <Button size="sm" onClick={handleOpenUpgradeModal}>
-                      Upgrade plan
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={() => void loadComplianceData()}>
-                      {t("retry")}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+              {!loading && error && (
+                <Card className="border border-red-200 bg-red-50/60 shadow-sm">
+                  <CardContent className="space-y-3 py-6 text-center">
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                    {isPlanRestricted ? (
+                      <Button size="sm" onClick={handleOpenUpgradeModal}>
+                        Upgrade plan
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => void loadComplianceData()}>
+                        {t("retry")}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
-            {!loading &&
-              !error &&
-              availableMarkets.map((market) => {
-                const data = complianceData?.[market];
-                if (!data) return null;
-                const readinessScore =
-                  marketReadinessByScore[market] ?? computeMarketDocumentReadinessScore(data);
-                const marketTone = getMarketTone(readinessScore);
+              {!loading && !error && availableMarkets.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMarketPickerOpen(true)}
+                  className="h-auto w-full items-start justify-between rounded-2xl border-slate-200 bg-white px-4 py-3 text-left shadow-sm hover:bg-slate-50"
+                >
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {locale === "vi" ? "Thị trường xuất khẩu" : "Export markets"}
+                      </p>
+                      <Badge className="border border-slate-200 bg-slate-50 text-slate-700">
+                        {availableMarkets.length}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      {locale === "vi"
+                        ? "Chạm để chọn thị trường và xem chi tiết tuân thủ"
+                        : "Tap to choose a market and view compliance details"}
+                    </p>
+                  </div>
+                  <div className="ml-3 flex shrink-0 items-start gap-2 self-start pt-0.5">
+                    <ChevronRight className="h-4 w-4 text-slate-500" />
+                  </div>
+                </Button>
+              )}
 
-                return (
-                  <Card
-                    key={market}
-                    className={`group cursor-pointer overflow-hidden border shadow-sm transition-colors hover:bg-slate-50 ${marketTone.cardClassName}`}
-                    onClick={() => handleOpenMarketDetail(market)}
-                  >
-                    <div className={`h-1 ${marketTone.barClassName}`} />
-                    <CardContent className="p-2 md:p-3">
-                      <div className="flex items-start gap-2 md:gap-4">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg md:h-12 md:w-12 md:rounded-xl ${marketTone.iconClassName}`}>
-                          <span className="text-sm font-bold md:text-lg">{market}</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center justify-between gap-1">
-                            <p className="truncate text-xs font-semibold text-slate-900 md:text-sm">
-                              {data.marketName}
-                            </p>
-                            <Badge className={`px-1.5 py-0 text-[10px] md:px-2 md:text-xs ${getReadinessColor(readinessScore)}`}>{readinessScore}%</Badge>
+              {!loading && !error && availableMarkets.length === 0 && (
+                <Card className="border border-slate-200 bg-slate-50/60 shadow-sm">
+                  <CardContent className="py-8 text-center">
+                    <p className="text-sm font-medium text-slate-700">{t("carbonData.noData")}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 xl:grid-cols-4">
+              {loading && (
+                <Card className="col-span-2 border border-slate-200 bg-white shadow-sm md:col-span-3 xl:col-span-4">
+                  <CardContent className="space-y-3 p-6">
+                    <div className="h-5 w-1/3 animate-pulse rounded bg-slate-200" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+                    <div className="h-2 w-full animate-pulse rounded bg-slate-200" />
+                  </CardContent>
+                </Card>
+              )}
+
+              {!loading && error && (
+                <Card className="col-span-2 border border-red-200 bg-red-50/60 shadow-sm md:col-span-3 xl:col-span-4">
+                  <CardContent className="space-y-3 py-6 text-center">
+                    <p className="text-sm font-medium text-red-700">{error}</p>
+                    {isPlanRestricted ? (
+                      <Button size="sm" onClick={handleOpenUpgradeModal}>
+                        Upgrade plan
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => void loadComplianceData()}>
+                        {t("retry")}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {!loading &&
+                !error &&
+                availableMarkets.map((market) => {
+                  const data = complianceData?.[market];
+                  if (!data) return null;
+                  const readinessScore =
+                    marketReadinessByScore[market] ?? computeMarketDocumentReadinessScore(data);
+                  const marketTone = getMarketTone(readinessScore);
+
+                  return (
+                    <Card
+                      key={market}
+                      className={`group cursor-pointer overflow-hidden border shadow-sm transition-colors hover:bg-slate-50 ${marketTone.cardClassName}`}
+                      onClick={() => handleOpenMarketDetail(market)}
+                    >
+                      <div className={`h-1 ${marketTone.barClassName}`} />
+                      <CardContent className="p-2 md:p-3">
+                        <div className="flex items-start gap-2 md:gap-4">
+                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg md:h-12 md:w-12 md:rounded-xl ${marketTone.iconClassName}`}>
+                            <span className="text-sm font-bold md:text-lg">{market}</span>
                           </div>
-                          <p className="mb-1 truncate text-[10px] text-muted-foreground md:mb-2 md:text-xs">
-                            {t(`regulations.${market}`)}
-                          </p>
-                          <Progress value={readinessScore} className="h-1.5 md:h-2" />
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1 flex items-center justify-between gap-1">
+                              <p className="truncate text-xs font-semibold text-slate-900 md:text-sm">
+                                {data.marketName}
+                              </p>
+                              <Badge className={`px-1.5 py-0 text-[10px] md:px-2 md:text-xs ${getReadinessColor(readinessScore)}`}>{readinessScore}%</Badge>
+                            </div>
+                            <p className="mb-1 truncate text-[10px] text-muted-foreground md:mb-2 md:text-xs">
+                              {t(`regulations.${market}`)}
+                            </p>
+                            <Progress value={readinessScore} className="h-1.5 md:h-2" />
+                          </div>
                         </div>
-                      </div>
 
-
-                      <div className="mt-1.5 flex items-center justify-between border-t border-slate-200/80 pt-1.5 md:mt-3 md:pt-2.5">
-                        <div className="flex min-w-0 items-center gap-1 text-[10px] md:text-xs">
-                          {readinessScore >= 80 && (
-                            <>
-                              <CheckCircle2 className="h-3 w-3 text-green-500 md:h-4 md:w-4" />
-                              <span className="truncate text-green-600 dark:text-green-400">
-                                {t("exportReady")}
-                              </span>
-                            </>
-                          )}
-                          {readinessScore < 80 && readinessScore >= 50 && (
-                            <>
-                              <Clock className="h-3 w-3 text-yellow-500 md:h-4 md:w-4" />
-                              <span className="truncate text-yellow-600 dark:text-yellow-400">
-                                {data.recommendations.filter((item) => item.status === "active").length}{" "}
-                                {t("needsWork")}
-                              </span>
-                            </>
-                          )}
-                          {readinessScore < 50 && (
-                            <>
-                              <AlertCircle className="h-3 w-3 text-red-500 md:h-4 md:w-4" />
-                              <span className="truncate text-red-600 dark:text-red-400">{t("notReady")}</span>
-                            </>
-                          )}
+                        <div className="mt-1.5 flex items-center justify-between border-t border-slate-200/80 pt-1.5 md:mt-3 md:pt-2.5">
+                          <div className="flex min-w-0 items-center gap-1 text-[10px] md:text-xs">
+                            {readinessScore >= 80 && (
+                              <>
+                                <CheckCircle2 className="h-3 w-3 text-green-500 md:h-4 md:w-4" />
+                                <span className="truncate text-green-600 dark:text-green-400">
+                                  {t("exportReady")}
+                                </span>
+                              </>
+                            )}
+                            {readinessScore < 80 && readinessScore >= 50 && (
+                              <>
+                                <Clock className="h-3 w-3 text-yellow-500 md:h-4 md:w-4" />
+                                <span className="truncate text-yellow-600 dark:text-yellow-400">
+                                  {data.recommendations.filter((item) => item.status === "active").length}{" "}
+                                  {t("needsWork")}
+                                </span>
+                              </>
+                            )}
+                            {readinessScore < 50 && (
+                              <>
+                                <AlertCircle className="h-3 w-3 text-red-500 md:h-4 md:w-4" />
+                                <span className="truncate text-red-600 dark:text-red-400">{t("notReady")}</span>
+                              </>
+                            )}
+                          </div>
+                          <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-slate-600 transition-colors group-hover:text-slate-900 md:gap-1 md:text-xs">
+                            {t("details")}
+                            <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                          </span>
                         </div>
-                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-slate-600 transition-colors group-hover:text-slate-900 md:gap-1 md:text-xs">
-                          {t("details")}
-                          <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
-            {!loading && !error && availableMarkets.length === 0 && (
-              <Card className="col-span-2 border border-slate-200 bg-slate-50/60 shadow-sm md:col-span-3 xl:col-span-4">
-                <CardContent className="py-8 text-center">
-                  <p className="text-sm font-medium text-slate-700">{t("carbonData.noData")}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+              {!loading && !error && availableMarkets.length === 0 && (
+                <Card className="col-span-2 border border-slate-200 bg-slate-50/60 shadow-sm md:col-span-3 xl:col-span-4">
+                  <CardContent className="py-8 text-center">
+                    <p className="text-sm font-medium text-slate-700">{t("carbonData.noData")}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
@@ -1139,14 +1210,18 @@ const ExportPage: React.FC = () => {
                   key={group}
                   type="button"
                   onClick={() => setActiveDocumentGroup(group)}
-                  className={`h-full rounded-2xl border px-2.5 py-2.5 text-left transition-colors md:px-4 md:py-4 ${
+                  className={`h-full rounded-xl border px-3 pt-1.5 pb-1 text-left transition-colors md:rounded-2xl md:px-4 md:py-4 ${
                     isActive
-                      ? "border-slate-900 bg-slate-50 shadow-sm"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
+                      ? group === "export_compliance"
+                        ? "border-emerald-300 bg-emerald-50/70 shadow-sm md:border-slate-900 md:bg-slate-50"
+                        : "border-amber-300 bg-amber-50/80 shadow-sm md:border-slate-900 md:bg-slate-50"
+                      : group === "export_compliance"
+                        ? "border-emerald-100 bg-white hover:bg-emerald-50/40 md:border-slate-200 md:hover:bg-slate-50"
+                        : "border-amber-100 bg-white hover:bg-amber-50/40 md:border-slate-200 md:hover:bg-slate-50"
                   }`}
                 >
-                  <div className="flex min-h-[120px] flex-col gap-2 md:min-h-[128px] md:gap-3">
-                    <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-h-[70px] flex-col gap-[0.2rem] md:min-h-[128px] md:gap-3">
+                    <div className="hidden items-center justify-between gap-2 md:flex">
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg md:h-10 md:w-10 md:rounded-xl ${theme.iconWrapClassName}`}
                       >
@@ -1163,15 +1238,15 @@ const ExportPage: React.FC = () => {
                         {counts.uploadedCount}/{counts.total}
                       </Badge>
                     </div>
-                    <p className="line-clamp-2 text-[13px] font-semibold leading-4 text-slate-900 md:text-sm md:leading-5">
+                    <p className="min-h-[2.2rem] line-clamp-2 text-[12.5px] font-semibold leading-[1.1rem] text-slate-900 md:min-h-0 md:text-sm md:leading-5">
                       {copy.switchTitle}
                     </p>
-                    <div className="mt-auto grid grid-cols-2 gap-1.5 text-[10px] md:gap-2 md:text-xs">
-                      <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600">
+                    <div className="grid grid-cols-2 gap-1 pt-0 text-[9px] md:mt-auto md:gap-2 md:pt-0 md:text-xs">
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700 md:border-slate-200 md:bg-white md:text-slate-600 md:py-1">
                         {locale === "vi" ? "Duyệt" : "Approved"}:{" "}
                         <span className="font-semibold text-slate-900">{counts.approvedCount}</span>
                       </span>
-                      <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-600">
+                      <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-rose-700 md:border-slate-200 md:bg-white md:text-slate-600 md:py-1">
                         {locale === "vi" ? "Thiếu" : "Missing"}:{" "}
                         <span className="font-semibold text-rose-700">{counts.missingCount}</span>
                       </span>
@@ -1185,6 +1260,59 @@ const ExportPage: React.FC = () => {
           {renderDocumentManagerSection(activeDocumentGroup)}
         </div>
       </div>
+
+      <Dialog open={marketPickerOpen} onOpenChange={setMarketPickerOpen}>
+        <DialogContent className="max-w-[calc(100vw-1rem)] rounded-2xl border border-slate-200 bg-white p-0 sm:max-w-lg">
+          <DialogHeader className="border-b px-4 py-3">
+            <DialogTitle>
+              {locale === "vi" ? "Thị trường xuất khẩu" : "Export markets"}
+            </DialogTitle>
+            <DialogDescription className="text-slate-600">
+              {locale === "vi"
+                ? "Chọn một thị trường để xem chi tiết tuân thủ."
+                : "Choose a market to view compliance details."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70dvh] space-y-2 overflow-y-auto p-4">
+            {availableMarkets.map((market) => {
+              const data = complianceData?.[market];
+              if (!data) return null;
+              const readinessScore =
+                marketReadinessByScore[market] ?? computeMarketDocumentReadinessScore(data);
+              const marketTone = getMarketTone(readinessScore);
+
+              return (
+                <button
+                  key={market}
+                  type="button"
+                  onClick={() => handleSelectMarketFromPicker(market)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left shadow-sm transition-colors hover:bg-slate-50"
+                >
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${marketTone.iconClassName}`}
+                  >
+                    <span className="text-sm font-bold">{market}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {data.marketName}
+                      </p>
+                      <Badge className={`px-1.5 py-0 text-[10px] ${getReadinessColor(readinessScore)}`}>
+                        {readinessScore}%
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-slate-600">
+                      {t(`regulations.${market}`)}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={uploadModalOpen}

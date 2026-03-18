@@ -723,14 +723,14 @@ const ProductsClient: React.FC = () => {
 
   return (
     <>
-      <div className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-3 gap-2 md:gap-4">
+      <div className="space-y-2 md:space-y-6">
+        <div className="grid grid-cols-3 gap-1.5 md:gap-4">
           <Card className={statCardClass("all")}>
 
-            <CardContent className="p-2.5 md:p-4">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="h-7 w-7 rounded-md border border-slate-300 bg-slate-100 flex items-center justify-center md:h-10 md:w-10 md:rounded-lg">
-                  <Package className="h-3.5 w-3.5 text-primary md:h-5 md:w-5" />
+            <CardContent className="p-2 md:p-4">
+              <div className="flex items-center gap-1.5 md:gap-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-300 bg-slate-100 md:h-10 md:w-10 md:rounded-lg">
+                  <Package className="h-3 w-3 text-primary md:h-5 md:w-5" />
                 </div>
                 <div>
                   <p className="text-base font-bold leading-none text-slate-900 md:text-2xl">{stats.total}</p>
@@ -742,10 +742,10 @@ const ProductsClient: React.FC = () => {
 
           <Card className={statCardClass("draft")}>
 
-            <CardContent className="p-2.5 md:p-4">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="h-7 w-7 rounded-md border border-slate-300 bg-slate-200/80 flex items-center justify-center md:h-10 md:w-10 md:rounded-lg">
-                  <FileText className="h-3.5 w-3.5 text-slate-700 md:h-5 md:w-5" />
+            <CardContent className="p-2 md:p-4">
+              <div className="flex items-center gap-1.5 md:gap-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-300 bg-slate-200/80 md:h-10 md:w-10 md:rounded-lg">
+                  <FileText className="h-3 w-3 text-slate-700 md:h-5 md:w-5" />
                 </div>
                 <div>
                   <p className="text-base font-bold leading-none text-slate-900 md:text-2xl">{stats.draft}</p>
@@ -757,10 +757,10 @@ const ProductsClient: React.FC = () => {
 
           <Card className={statCardClass("published")}>
 
-            <CardContent className="p-2.5 md:p-4">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="h-7 w-7 rounded-md border border-emerald-300 bg-emerald-100/90 flex items-center justify-center md:h-10 md:w-10 md:rounded-lg">
-                  <TrendingUp className="h-3.5 w-3.5 text-emerald-700 md:h-5 md:w-5" />
+            <CardContent className="p-2 md:p-4">
+              <div className="flex items-center gap-1.5 md:gap-3">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md border border-emerald-300 bg-emerald-100/90 md:h-10 md:w-10 md:rounded-lg">
+                  <TrendingUp className="h-3 w-3 text-emerald-700 md:h-5 md:w-5" />
                 </div>
                 <div>
                   <p className="text-base font-bold leading-none text-slate-900 md:text-2xl">{stats.published}</p>
@@ -771,7 +771,7 @@ const ProductsClient: React.FC = () => {
           </Card>
         </div>
 
-        <div className="rounded-lg border border-slate-300 bg-slate-50 p-2.5 shadow md:p-3">
+        <div className="rounded-lg border border-slate-300 bg-slate-50 p-1.5 shadow md:p-3">
           <div className="relative min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <Input
@@ -793,7 +793,7 @@ const ProductsClient: React.FC = () => {
               </Button>
             }
           </div>
-          <div className="mt-2.5 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-1.5 flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <Button
                 type="button"
