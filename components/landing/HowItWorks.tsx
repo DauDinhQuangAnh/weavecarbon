@@ -67,7 +67,7 @@ const HowItWorks = () => {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="relative -mt-8 overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,rgba(44,68,29,0.08)_22%,rgba(44,68,29,0.32)_56%,#2c441d_100%)] pt-12 pb-14 sm:-mt-10 sm:pt-16 sm:pb-16 md:mt-0 md:bg-linear-to-t md:from-primary md:via-primary/5 md:to-background md:py-32"
+      className="relative -mt-8 overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,rgba(44,68,29,0.08)_22%,rgba(44,68,29,0.32)_56%,#2c441d_100%)] pt-[4.75rem] pb-14 sm:-mt-10 sm:pt-[4.75rem] sm:pb-16 md:mt-0 md:bg-linear-to-t md:from-primary md:via-primary/5 md:to-background md:py-32"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-8 md:hidden">
         <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-white/0 via-white/75 to-white" />

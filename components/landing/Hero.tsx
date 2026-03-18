@@ -37,7 +37,7 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative flex min-h-[100svh] w-full items-start justify-center overflow-x-clip overflow-y-hidden bg-gradient-hero pt-[calc(env(safe-area-inset-top)+4.5rem)] pb-2 sm:pt-[calc(env(safe-area-inset-top)+5.5rem)] sm:pb-6 lg:h-screen lg:items-center lg:pt-40 lg:pb-20">
+    <section className="relative flex w-full items-start justify-center overflow-x-clip overflow-y-hidden bg-gradient-hero pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-10 sm:pt-[calc(env(safe-area-inset-top)+6.5rem)] sm:pb-14 lg:min-h-[100svh] lg:items-center lg:pt-40 lg:pb-20">
       {/* Background decorations */}
       <div className="absolute inset-0 bg-linear-to-b from-primary-foreground to-secondary overflow-hidden pointer-events-none">
         {isDesktopHero ? (
