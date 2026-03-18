@@ -33,8 +33,8 @@ export default async function AuthLayout({
           <div className="w-full max-w-lg">
             
             <div className="text-center mb-8">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+              <Link href="/" className="inline-flex items-center gap-0 sm:gap-2">
+                <div className="hidden h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary sm:flex">
                   <Leaf className="w-6 h-6 text-primary" />
                 </div>
                 <span className="text-2xl font-display font-bold text-foreground">

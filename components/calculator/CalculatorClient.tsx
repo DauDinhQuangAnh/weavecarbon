@@ -119,32 +119,22 @@ export default function CalculatorClient() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-16">
+      <main className="pt-16 pb-16 md:pt-20">
         <div className="container mx-auto px-4 md:px-6">
           
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+            className="mb-5 inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground md:mb-6">
             
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm font-medium">{t("backToHome")}</span>
           </Link>
 
-          
-          <div className="mb-10 text-center md:mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
-              <Calculator className="w-4 h-4" />
-              <span className="text-sm font-medium">{t("badge")}</span>
-            </div>
-            <h1 className="mb-4 text-3xl font-display font-bold text-foreground md:text-5xl">
-              {t("title")}
-            </h1>
-            <p className="mx-auto max-w-2xl text-base text-muted-foreground md:text-lg">
-              {t("subtitle")}
-            </p>
-          </div>
-
-          <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-2 lg:gap-8">
+          <div
+            className={`mx-auto grid gap-5 ${
+              emissions ? "max-w-5xl lg:grid-cols-2 lg:gap-8" : "max-w-2xl"
+            }`}
+          >
             
             <Card className="border-border/50 shadow-soft">
               <CardHeader>
@@ -223,21 +213,18 @@ export default function CalculatorClient() {
             </Card>
 
             
-            <Card
-              className={`border-border/50 shadow-soft transition-all duration-300 ${emissions ? "opacity-100" : "opacity-50"}`}>
-              
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <Leaf className="w-5 h-5 text-primary" />
-                  </div>
-                  {t("result")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {emissions ?
-                <div className="space-y-6">
-                    
+            {emissions && (
+              <Card className="border-border/50 shadow-soft transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                      <Leaf className="w-5 h-5 text-primary" />
+                    </div>
+                    {t("result")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
                     <div className="text-center p-6 rounded-2xl bg-gradient-forest text-primary-foreground">
                       <p className="text-sm font-medium opacity-80 mb-2">
                         {t("result")}
@@ -248,13 +235,11 @@ export default function CalculatorClient() {
                       <p className="text-sm opacity-80">{t("kgCO2e")}</p>
                     </div>
 
-                    
                     <div className="space-y-4">
                       <h4 className="font-semibold text-foreground">
                         {t("breakdown")}
                       </h4>
 
-                      
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2 text-muted-foreground">
@@ -266,15 +251,14 @@ export default function CalculatorClient() {
                           </span>
                         </div>
                         <Progress
-                        value={getPercentage(
-                          emissions.material,
-                          emissions.total
-                        )}
-                        className="h-2" />
-                      
+                          value={getPercentage(
+                            emissions.material,
+                            emissions.total
+                          )}
+                          className="h-2"
+                        />
                       </div>
 
-                      
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2 text-muted-foreground">
@@ -286,15 +270,14 @@ export default function CalculatorClient() {
                           </span>
                         </div>
                         <Progress
-                        value={getPercentage(
-                          emissions.manufacturing,
-                          emissions.total
-                        )}
-                        className="h-2" />
-                      
+                          value={getPercentage(
+                            emissions.manufacturing,
+                            emissions.total
+                          )}
+                          className="h-2"
+                        />
                       </div>
 
-                      
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2 text-muted-foreground">
@@ -306,15 +289,14 @@ export default function CalculatorClient() {
                           </span>
                         </div>
                         <Progress
-                        value={getPercentage(
-                          emissions.transport,
-                          emissions.total
-                        )}
-                        className="h-2" />
-                      
+                          value={getPercentage(
+                            emissions.transport,
+                            emissions.total
+                          )}
+                          className="h-2"
+                        />
                       </div>
 
-                      
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2 text-muted-foreground">
@@ -326,22 +308,18 @@ export default function CalculatorClient() {
                           </span>
                         </div>
                         <Progress
-                        value={getPercentage(
-                          emissions.packaging,
-                          emissions.total
-                        )}
-                        className="h-2" />
-                      
+                          value={getPercentage(
+                            emissions.packaging,
+                            emissions.total
+                          )}
+                          className="h-2"
+                        />
                       </div>
                     </div>
-                  </div> :
-
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    <p className="text-center">{t("instruction")}</p>
                   </div>
-                }
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>

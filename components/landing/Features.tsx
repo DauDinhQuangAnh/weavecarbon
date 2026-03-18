@@ -48,7 +48,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
   const activeFeature = features[activeIndex];
   const mobileHeaderTitle =
     locale === "vi" ?
-      ["Tính năng mạnh mẽ", "Thời trang Bền vững"] :
+      ["Tính năng mạnh mẽ", "thời trang bền vững"] :
       [t("title")];
   const mobileHeaderSubtitle =
     locale === "vi" ?
@@ -875,7 +875,7 @@ const Features = () => {
   return (
     <section
       id="features"
-      className="relative z-30 -mt-28 overflow-hidden bg-linear-to-b from-secondary via-secondary/95 to-background pt-8 pb-16 sm:-mt-32 sm:pt-12 md:mt-0 md:py-32"
+      className="relative z-30 -mt-28 overflow-hidden bg-linear-to-b from-secondary via-secondary/95 to-background pt-8 pb-4 sm:-mt-32 sm:pt-12 md:mt-0 md:py-32"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-10 md:hidden">
         <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-secondary/0 via-secondary/70 to-secondary" />

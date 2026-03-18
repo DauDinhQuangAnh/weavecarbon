@@ -9,9 +9,9 @@
     "getStarted": "Bắt đầu"
   },
   "hero": {
-    "badge": "Nền tảng EU DPP & Theo dõi Carbon",
-    "title": "Đo lường Dấu chân Carbon",
-    "titleHighlight": "Thời trang",
+    "badge": "Nền tảng EU DPP & theo dõi carbon",
+    "title": "Đo lường dấu chân carbon",
+    "titleHighlight": "thời trang",
     "subtitle": "Hỗ trợ các thương hiệu thời trang Việt Nam đo lường dấu chân carbon cho tiêu chuẩn xuất khẩu 2026 và quản lý kinh tế tuần hoàn cho chất thải dệt may.",
     "cta": {
       "calculate": "Tính toán ngay",
@@ -32,18 +32,18 @@
   },
   "features": {
     "badge": "Tính năng",
-    "title": "Tính năng mạnh mẽ cho Thời trang Bền vững",
+    "title": "Tính năng mạnh mẽ cho thời trang bền vững",
     "subtitle": "Tất cả những gì bạn cần để theo dõi, giảm thiểu và báo cáo lượng khí thải carbon",
     "carbonProxy": {
-      "title": "Công cụ tính Carbon dự phòng",
+      "title": "Công cụ tính carbon dự phòng",
       "desc": "Tính CO₂e cho các sản phẩm có dữ liệu chuỗi cung ứng không đầy đủ bằng các hệ số phát thải proxy."
     },
     "circularHub": {
-      "title": "Trung tâm Tuần hoàn",
+      "title": "Trung tâm tuần hoàn",
       "desc": "Kết nối với các đơn vị tái chế và theo dõi hành trình tuần hoàn của chất thải dệt may."
     },
     "exportReady": {
-      "title": "Sẵn sàng Xuất khẩu",
+      "title": "Sẵn sàng xuất khẩu",
       "desc": "Đánh giá mức độ tuân thủ tiêu chuẩn xuất khẩu EU, US và JP với thông tin chi tiết."
     },
     "materialDb": {
@@ -63,7 +63,7 @@
       "desc": "Tính toán lượng khí thải carbon tự động dựa trên nguồn gốc sản xuất và tuyến đường vận chuyển đến điểm đến."
     },
     "carbonCredits": {
-      "title": "Tín dụng Carbon",
+      "title": "Tín dụng carbon",
       "desc": "Chuyển đổi các mặt hàng tái chế và quyên góp thành các khoản bù trừ carbon đã được xác minh cho báo cáo ESG của bạn."
     },
     "esgReports": {
@@ -72,32 +72,32 @@
     }
   },
   "howItWorks": {
-    "badge": "Cách Hoạt Động",
-    "title": "Cách Hoạt Động",
+    "badge": "Cách hoạt động",
+    "title": "Cách hoạt động",
     "subtitle": "Bắt đầu trong vài phút với quy trình bốn bước đơn giản",
     "step1": {
-      "title": "Kết nối Dữ liệu",
+      "title": "Kết nối dữ liệu",
       "desc": "Nhập mã SKU sản phẩm và thông tin chuỗi cung ứng",
       "item1": "Hỗ trợ đa vai trò",
       "item2": "Hợp tác nhóm",
       "item3": "Tích hợp API"
     },
     "step2": {
-      "title": "Tính toán Phát thải",
+      "title": "Tính toán phát thải",
       "desc": "Hệ thống tính toán CO₂e chính xác sử dụng các hệ số ngành",
       "item1": "Thư viện vật liệu",
       "item2": "Bản đồ giao thông",
       "item3": "Tải lên hàng loạt"
     },
     "step3": {
-      "title": "Theo dõi & Giảm thiểu",
+      "title": "Theo dõi & giảm thiểu",
       "desc": "Giám sát tiến độ và xác định cơ hội giảm thiểu",
       "item1": "Phân loại bởi AI",
       "item2": "Kết hợp NGO",
       "item3": "Theo dõi tác động"
     },
     "step4": {
-      "title": "Báo cáo & Xuất khẩu",
+      "title": "Báo cáo & xuất khẩu",
       "desc": "Tạo báo cáo tuân thủ cho các thị trường quốc tế",
       "item1": "EU DPP",
       "item2": "Giấy chứng nhận cacbon",
@@ -106,15 +106,15 @@
   },
   "stats": {
     "badge": "Tác động",
-    "title": "Tạo Tác Động Thực Sự",
+    "title": "Tạo tác động thực sự",
     "subtitle": "Tiến bộ đo lường được hướng tới ngành thời trang bền vững",
     "co2Tracked": {
       "title": "CO₂e theo dõi",
       "description": "Lượng khí thải carbon được tính toán hàng tháng"
     },
-    "brands": "Thương hiệu Thời trang",
+    "brands": "Thương hiệu thời trang",
     "exports": {
-      "title": "Sẵn sàng Xuất khẩu",
+      "title": "Sẵn sàng xuất khẩu",
       "description": "Tỷ lệ tuân thủ thành công"
     },
     "recycled": {
@@ -128,7 +128,7 @@
   },
   "cta": {
     "badge": "Bắt đầu ngay",
-    "title": "Sẵn sàng Chuyển đổi Chiến lược Carbon?",
+    "title": "Sẵn sàng chuyển đổi chiến lược carbon?",
     "subtitle": "Tham gia cùng các thương hiệu thời trang hàng đầu đo lường và giảm thiểu tác động môi trường",
     "email": "Nhập email của bạn",
     "button": "Đăng ký sớm",
@@ -141,12 +141,12 @@
     "resources": "Tài nguyên",
     "legal": "Pháp lý",
     "contact": "Liên hệ chúng tôi",
-    "representative": "Đại diện Dự án",
+    "representative": "Đại diện dự án",
     "rights": "Đã đăng ký bản quyền."
   },
   "calculator": {
-    "badge": "Động cơ Proxy Carbon",
-    "title": "Tính toán Carbon",
+    "badge": "Động cơ proxy carbon",
+    "title": "Tính toán carbon",
     "subtitle": "Tính lượng phát thải CO₂e cho sản phẩm thời trang của bạn",
     "description": "Sử dụng hệ số phát thải gần đúng cho dữ liệu chuỗi cung ứng không đầy đủ.",
     "productWeight": "Trọng lượng sản phẩm (kg)",
@@ -156,8 +156,8 @@
     "result": "Ước tính phát thải CO₂e",
     "instruction": "Điền vào biểu mẫu và nhấp vào 'Tính toán' để xem chi tiết lượng khí thải của bạn.",
     "kgCO2e": "kg CO₂e",
-    "breakdown": "Chi tiết Phát thải",
-    "material": "Sản xuất Vật liệu",
+    "breakdown": "Chi tiết phát thải",
+    "material": "Sản xuất vật liệu",
     "manufacturing": "Gia công",
     "transport": "Vận chuyển",
     "packaging": "Đóng gói",
@@ -194,9 +194,9 @@
   },
   "auth": {
     "welcome": "Chào mừng đến WEAVECARBON",
-    "welcomeb2b": "WEAVECARBON cho Doanh Nghiệp",
+    "welcomeb2b": "WEAVECARBON cho doanh nghiệp",
     "description": "Đăng nhập để truy cập bảng điều khiển",
-    "b2bSubtitle": "Theo dõi Carbon cho Doanh nghiệp Thời trang",
+    "b2bSubtitle": "Theo dõi carbon cho doanh nghiệp thời trang",
     "googleLogin": "Tiếp tục với Google",
     "orContinueWith": "hoặc tiếp tục với email",
     "demoSectionLabel": "dùng thử nhanh",
@@ -208,7 +208,7 @@
     "signup": "Đăng ký",
     "email": "Email",
     "password": "Mật khẩu",
-    "fullName": "Họ và Tên",
+    "fullName": "Họ và tên",
     "fullNamePlaceholder": "Nhập họ và tên của bạn",
     "loginButton": "Đăng nhập",
     "signupButton": "Tạo tài khoản",
@@ -270,7 +270,7 @@
     }
   },
   "onboarding": {
-    "title": "Thiết lập Doanh nghiệp",
+    "title": "Thiết lập doanh nghiệp",
     "subtitle": "Cho chúng tôi biết về công ty của bạn để bắt đầu",
     "companyName": "Tên công ty",
     "companyNamePlaceholder": "Nhập tên công ty",
@@ -281,11 +281,11 @@
     "targetMarkets": "Thị trường mục tiêu",
     "optional": "tùy chọn",
     "domesticDefault": "chọn 1 thị trường nội địa",
-    "starterPlan": "Gói Khởi động",
+    "starterPlan": "Gói khởi động",
     "starterPlanDesc": "Miễn phí 14 ngày đầu để bắt đầu",
     "starterPlanBillingNote": "Sau 14 ngày dùng thử, cần chọn gói trả phí để tiếp tục.",
     "starterPlanPriceRange": "149k - 299k VND",
-    "continue": "Tiếp tục đến Bảng điều khiển",
+    "continue": "Tiếp tục đến bảng điều khiển",
     "creating": "Đang tạo...",
     "error": "Lỗi",
     "success": "Thành công",
@@ -315,20 +315,20 @@
     "activeProducts": "sản phẩm đang hoạt động",
     "shipments": "Đơn vận chuyển",
     "ordersTracked": "đơn hàng được theo dõi",
-    "exportReadiness": "Sẵn sàng Xuất khẩu",
-    "addProduct": "Thêm Sản phẩm Mới",
+    "exportReadiness": "Sẵn sàng xuất khẩu",
+    "addProduct": "Thêm sản phẩm mới",
     "addProductDesc": "Tạo sản phẩm mới và tính toán dấu chân carbon",
-    "trackShipment": "Theo dõi Vận chuyển",
+    "trackShipment": "Theo dõi vận chuyển",
     "trackShipmentDesc": "Giám sát lượng phát thải vận chuyển cho đơn hàng",
-    "exportReport": "Tạo Báo cáo",
+    "exportReport": "Tạo báo cáo",
     "exportReportDesc": "Tạo báo cáo tuân thủ cho thị trường xuất khẩu",
     "getStarted": "Bắt đầu",
-    "targetMarkets": "Thị trường Mục tiêu",
+    "targetMarkets": "Thị trường mục tiêu",
     "targetMarketsDesc": "Các điểm đến xuất khẩu đã chọn",
     "weaveyChat": {
       "welcomeUser": "Chào bạn! Mình là Weavey, trợ lý AI của WeaveCarbon. Bạn cần mình hỗ trợ gì?",
       "welcomeGuest": "Chào bạn! Mình là **Weavey**.\n\nMình là trợ lý AI về phát triển bền vững của WeaveCarbon, sẵn sàng giúp bạn:\n\n- Tìm hiểu về **dấu chân carbon** và cách tính\n- Giải đáp về **quy định xuất khẩu xanh**\n- Hướng dẫn sử dụng **công cụ tính carbon**\n\nBạn cứ hỏi mình nhé!",
-      "assistantTitleLanding": "Trợ lý AI Bền vững",
+      "assistantTitleLanding": "Trợ lý AI bền vững",
       "assistantTitleDashboard": "Trợ lý AI",
       "clearHistory": "Xóa lịch sử",
       "newChat": "Cuộc trò chuyện mới",
@@ -354,16 +354,16 @@
       "kgCO2eThisMonth": "kg CO₂e tháng này",
       "skuTracking": "SKU Theo dõi",
       "activeProducts": "sản phẩm đang hoạt động",
-      "exportReadiness": "Sẵn sàng Xuất khẩu",
+      "exportReadiness": "Sẵn sàng xuất khẩu",
       "trialLocked": "Cần nâng cấp gói",
       "trialLockedDescription": "Nâng cấp lên Standard hoặc Export để sử dụng chỉ số sẵn sàng xuất khẩu.",
       "upgradeCta": "Nâng cấp gói",
-      "dataReliability": "Độ tin cậy Dữ liệu",
+      "dataReliability": "Độ tin cậy dữ liệu",
       "basedOnSKUs": "Dựa trên {count} SKU"
     },
     "chart": {
       "carbon": {
-        "title": "Xu hướng Carbon",
+        "title": "Xu hướng carbon",
         "description": "So sánh lượng khí thải thực tế với mục tiêu.",
         "expect": "Mục tiêu",
         "outcome": "Thực tế"
@@ -377,8 +377,8 @@
       }
     },
     "marketReadiness": {
-      "title": "Mức độ Sẵn sàng Xuất khẩu",
-      "subtitle": "Đánh giá theo Thị trường Mục tiêu",
+      "title": "Mức độ sẵn sàng xuất khẩu",
+      "subtitle": "Đánh giá theo thị trường mục tiêu",
       "trialLockedTitle": "Tính năng này chưa có trong gói Trial",
       "trialLockedDescription": "Nâng cấp lên Standard hoặc Export để xem mức độ sẵn sàng xuất khẩu theo thị trường mục tiêu.",
       "upgradeCta": "Nâng cấp gói"
@@ -404,21 +404,21 @@
     },
     "quickActions": {
       "addProduct": {
-        "title": "Thêm Sản phẩm Mới",
+        "title": "Thêm sản phẩm mới",
         "description": "Tạo sản phẩm và tính toán dấu chân carbon"
       },
       "trackShipment": {
-        "title": "Theo dõi Vận chuyển",
+        "title": "Theo dõi vận chuyển",
         "description": "Giám sát lượng phát thải vận chuyển"
       },
       "generateReport": {
-        "title": "Tạo Báo cáo",
+        "title": "Tạo báo cáo",
         "description": "Tạo báo cáo tuân thủ"
       },
       "getStarted": "Bắt đầu"
     },
     "targetMarkets": {
-      "title": "Thị trường Mục tiêu",
+      "title": "Thị trường mục tiêu",
       "description": "Các điểm đến xuất khẩu đã chọn"
     }
   },
@@ -922,7 +922,7 @@
     }
   },
   "export": {
-    "title": "Xuất khẩu & Tuân thủ",
+    "title": "Xuất khẩu & tuân thủ",
     "subtitle": "Quản lý hồ sơ xuất khẩu và kiểm tra tuân thủ quy định quốc tế",
     "marketReadiness": "Mức độ sẵn sàng theo thị trường",
     "certificates": "Chứng chỉ & Giấy tờ",
@@ -1127,7 +1127,7 @@
       }
     },
     "carbonData": {
-      "title": "Dữ liệu phát thải Carbon",
+      "title": "Dữ liệu phát thải carbon",
       "complete": "{completed}/{total} hoàn thiện",
       "completed": "{completed}/{total} hoàn thiện",
       "totalEmissions": "Tổng phát thải",
@@ -1291,13 +1291,13 @@
       "createReportSuccess": "Đã tạo báo cáo.",
       "deleteSuccess": "Đã xóa báo cáo \"{title}\"."
     },
-    "monthlyReport": "Báo cáo Carbon tháng {month}/{year}",
+    "monthlyReport": "Báo cáo carbon tháng {month}/{year}",
     "allProductsReport": "Báo cáo toàn bộ sản phẩm",
     "systemActivityReport": "Báo cáo hoạt động hệ thống",
     "auditLogReport": "Audit Log Report",
     "usersPermissionReport": "Báo cáo người dùng & quyền truy cập",
     "analyticsReport": "Báo cáo tổng hợp Analytics",
-    "calculationHistoryReport": "Lịch sử tính toán Carbon",
+    "calculationHistoryReport": "Lịch sử tính toán carbon",
     "standardOnly": {
       "title": "Báo cáo chi tiết cho gói Standard",
       "lockedTitle": "Báo cáo đang bị khóa theo gói hiện tại",
@@ -1827,7 +1827,7 @@
     "skuLabel": "SKU:",
     "documentedSource": "Có chứng từ",
     "estimatedSource": "Ước tính",
-    "carbonFootprintTitle": "Dấu chân Carbon",
+    "carbonFootprintTitle": "Dấu chân carbon",
     "perProductUnit": "kg CO₂e / sản phẩm",
     "materialsLabel": "Nguyên liệu",
     "productionLabel": "Sản xuất",
@@ -2032,7 +2032,7 @@
         "none": "Không",
         "partial": "Một phần",
         "full": "Toàn bộ",
-        "circular": "Tuần hoàn"
+        "circular": "tuần hoàn"
       }
     },
     "step4": {

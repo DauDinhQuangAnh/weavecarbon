@@ -2,33 +2,28 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  BarChart3,
+  FileCheck,
+  Leaf,
+  Loader2,
+  LogOut,
+  Menu,
+  Package,
+  Settings,
+  TrendingUp,
+  Truck,
+  X,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { authTokenStore } from "@/lib/apiClient";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
-import {
-  Leaf,
-  LogOut,
-  Loader2,
-  RotateCcw,
-  Package,
-  Truck,
-  FileCheck,
-  TrendingUp,
-  BarChart3,
-  Settings,
-  Menu,
-  X } from
-"lucide-react";
-import { useRouter } from "next/navigation";
 import { Company, Profile } from "@/types/app.type";
-import { useTranslations } from "next-intl";
-import { resetDemoDataset } from "@/lib/demo/storage";
-import { ensureDemoSession } from "@/lib/demo/session";
-import { writeSubscriptionLockState } from "@/lib/subscriptionLockState";
 
 interface DashboardSidebarProps {
   company: Company | null;
@@ -39,50 +34,54 @@ interface DashboardSidebarProps {
 }
 
 const menuItems = [
-{
-  icon: BarChart3,
-  labelKey: "overview",
-  path: "/overview"
-},
-{
-  icon: Package,
-  labelKey: "product",
-  path: "/products"
-},
-{
-  icon: Truck,
-  labelKey: "logistics",
-  path: "/logistics"
-},
-{ icon: FileCheck, labelKey: "export", path: "/export" },
-{
-  icon: TrendingUp,
-  labelKey: "reports",
-  path: "/reports"
-},
-{
-  icon: Settings,
-  labelKey: "settings",
-  path: "/settings"
-}];
-
+  {
+    icon: BarChart3,
+    labelKey: "overview",
+    path: "/overview",
+  },
+  {
+    icon: Package,
+    labelKey: "product",
+    path: "/products",
+  },
+  {
+    icon: Truck,
+    labelKey: "logistics",
+    path: "/logistics",
+  },
+  { icon: FileCheck, labelKey: "export", path: "/export" },
+  {
+    icon: TrendingUp,
+    labelKey: "reports",
+    path: "/reports",
+  },
+  {
+    icon: Settings,
+    labelKey: "settings",
+    path: "/settings",
+  },
+];
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   company,
   profile,
   currentPlan,
   sidebarOpen,
-  onToggleSidebar
+  onToggleSidebar,
 }) => {
   const t = useTranslations("sidebar");
-  const { user, signOut, isDemoSession } = useAuth();
-  const { canAccessSettings, isTrialPlan: isTrialPlanFromPermissions } = usePermissions();
+  const { user, signOut, isDemoSession, exitDemoSession } = useAuth();
+  const { canAccessSettings, isTrialPlan: isTrialPlanFromPermissions } =
+    usePermissions();
   const appRoutes = useAppRoutes();
   const router = useRouter();
   const pathname = usePathname();
-  const [isResettingDemo, setIsResettingDemo] = useState(false);
-  const hasSession = Boolean(user?.id || profile?.id || authTokenStore.getAccessToken());
+  const [isLeavingDemo, setIsLeavingDemo] = useState(false);
+  const hasSession = Boolean(
+    user?.id || profile?.id || authTokenStore.getAccessToken()
+  );
   const homeHref = hasSession ? appRoutes.homePath : "/";
+
   const handleSidebarNavigate = () => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("sidebarNavigate"));
@@ -97,84 +96,76 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     router.push("/");
   };
 
-  const handleResetDemo = async () => {
-    if (isResettingDemo) {
+  const handleExitDemo = async () => {
+    if (isLeavingDemo) {
       return;
     }
 
-    setIsResettingDemo(true);
+    setIsLeavingDemo(true);
     try {
-      resetDemoDataset();
-      ensureDemoSession();
-      writeSubscriptionLockState({
-        current_plan: "standard",
-        trial_ends_at: null,
-        trial_expired: false,
-        features_locked: false
-      });
-      window.location.reload();
+      await exitDemoSession();
+      router.push("/");
     } finally {
-      setIsResettingDemo(false);
+      setIsLeavingDemo(false);
     }
   };
 
   const isActive = (path: string) => {
     const targetPath = appRoutes.toAppPath(path);
-    return pathname === targetPath || pathname.startsWith(targetPath + "/");
+    return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
   };
 
   const menuPlan = currentPlan || company?.current_plan || null;
   const isTrialPlan =
-    isTrialPlanFromPermissions || getSubscriptionPlanFamily(menuPlan) === "trial";
+    isTrialPlanFromPermissions ||
+    getSubscriptionPlanFamily(menuPlan) === "trial";
 
   const visibleMenuItems = menuItems.filter((item) =>
-  item.path === "/settings" ?
-  !isDemoSession && canAccessSettings :
-  isTrialPlan && (item.path === "/export" || item.path === "/reports") ?
-  false :
-  true
+    item.path === "/settings"
+      ? !isDemoSession && canAccessSettings
+      : isTrialPlan && (item.path === "/export" || item.path === "/reports")
+        ? false
+        : true
   );
 
   return (
     <>
-      
-      {sidebarOpen &&
-      <div
-        className="fixed inset-0 bg-black/50 lg:hidden z-40"
-        onClick={onToggleSidebar} />
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onToggleSidebar}
+        />
+      )}
 
-      }
-
-      
       <aside
         className={`fixed left-0 top-0 z-50 flex h-dvh w-56 shrink-0 flex-col border-r border-border bg-card transition-transform duration-300 lg:z-20 lg:translate-x-0 ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
-        }>
-        
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="border-b border-border p-4">
-          <div className="flex justify-end mb-3 lg:hidden">
+          <div className="mb-3 flex justify-end lg:hidden">
             <Button
               className="lg:hidden"
               variant="ghost"
               size="icon"
-              onClick={onToggleSidebar}>
-              
-              {sidebarOpen ?
-              <X className="w-4 h-4" /> :
-
-              <Menu className="w-4 h-4" />
-              }
+              onClick={onToggleSidebar}
+            >
+              {sidebarOpen ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Menu className="h-4 w-4" />
+              )}
             </Button>
           </div>
           <Link href={homeHref} className="flex min-w-0 items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-forest rounded-lg flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-primary-foreground" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-forest">
+              <Leaf className="h-5 w-5 text-primary-foreground" />
             </div>
-            {sidebarOpen &&
-            <span className="truncate font-display font-bold text-foreground">
+            {sidebarOpen && (
+              <span className="truncate font-display font-bold text-foreground">
                 WEAVE<span className="text-primary">CARBON</span>
               </span>
-            }
+            )}
           </Link>
         </div>
 
@@ -183,37 +174,36 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             const active = isActive(item.path);
             return (
               <Link
-                onClick={handleSidebarNavigate}
                 key={item.path}
                 href={appRoutes.toAppPath(item.path)}
+                onClick={handleSidebarNavigate}
                 className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
-                active ?
-                "bg-primary/10 text-primary" :
-                "text-muted-foreground hover:bg-muted hover:text-foreground"}`
-                }>
-                
-                <item.icon className="w-5 h-5 shrink-0" />
-                {sidebarOpen &&
-                <span className="text-sm font-medium">
-                    {t(item.labelKey)}
-                  </span>
-                }
-              </Link>);
-
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                {sidebarOpen && (
+                  <span className="text-sm font-medium">{t(item.labelKey)}</span>
+                )}
+              </Link>
+            );
           })}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          {sidebarOpen &&
-          <div className="mb-3">
-              <p className="font-medium text-sm truncate">
+        <div className="border-t border-border p-4">
+          {sidebarOpen && (
+            <div className="mb-3">
+              <p className="truncate text-sm font-medium">
                 {profile?.full_name || user?.email}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="truncate text-xs text-muted-foreground">
                 {company?.name || "No company"}
               </p>
             </div>
-          }
+          )}
+
           {isDemoSession ? (
             <div className={sidebarOpen ? "space-y-3" : "flex justify-center"}>
               {sidebarOpen && (
@@ -222,32 +212,32 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                     Demo mode
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-900">
-                    Khôi phục dữ liệu mẫu
+                    Thoát khỏi chế độ demo
                   </p>
                 </div>
               )}
               <Button
                 variant="outline"
                 size="sm"
-                title="Khôi phục dữ liệu mẫu"
-                disabled={isResettingDemo}
+                title="Thoát demo"
+                disabled={isLeavingDemo}
                 className={
-                  sidebarOpen ?
-                    "mx-auto h-10 w-full max-w-[11.25rem] justify-start gap-2 border-emerald-300 bg-white text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-100" :
-                    "h-10 w-10 rounded-full border-emerald-300 bg-white p-0 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-50"
+                  sidebarOpen
+                    ? "mx-auto h-10 w-full max-w-[11.25rem] justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-100"
+                    : "h-10 w-10 rounded-full border-slate-300 bg-white p-0 text-slate-800 hover:border-slate-400 hover:bg-slate-50"
                 }
                 onClick={() => {
-                  void handleResetDemo();
+                  void handleExitDemo();
                 }}
               >
-                {isResettingDemo ? (
+                {isLeavingDemo ? (
                   <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
                 ) : (
-                  <RotateCcw className="h-4 w-4 shrink-0" />
+                  <LogOut className="h-4 w-4 shrink-0" />
                 )}
                 {sidebarOpen && (
                   <span className="truncate">
-                    {isResettingDemo ? "Đang làm mới demo..." : "Reset demo"}
+                    {isLeavingDemo ? "Đang thoát demo..." : "Thoát demo"}
                   </span>
                 )}
               </Button>
@@ -257,20 +247,20 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               variant="outline"
               size="sm"
               className={
-                sidebarOpen ?
-                  "mx-auto h-9 w-full max-w-[11.25rem] justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100" :
-                  "h-9 w-9 p-0"
+                sidebarOpen
+                  ? "mx-auto h-9 w-full max-w-[11.25rem] justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                  : "h-9 w-9 p-0"
               }
               onClick={handleSignOut}
             >
-              <LogOut className="w-4 h-4 shrink-0" />
+              <LogOut className="h-4 w-4 shrink-0" />
               {sidebarOpen && <span className="truncate">{t("signOut")}</span>}
             </Button>
           )}
         </div>
       </aside>
-    </>);
-
+    </>
+  );
 };
 
 export default DashboardSidebar;

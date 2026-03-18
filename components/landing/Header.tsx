@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Leaf, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import UserTypeDialog from "./UserTypeDialog";
@@ -12,10 +12,31 @@ import { usePathname, useRouter } from "next/navigation";
 
 const Header = () => {
   const navigate = useRouter();
+  const headerRef = useRef<HTMLElement>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showUserTypeDialog, setShowUserTypeDialog] = useState(false);
   const t = useTranslations("navigation");
   const pathname = usePathname();
+  const sectionOffsets: Record<string, number> = {
+    "#features": 28,
+    "#how-it-works": 22,
+    "#impact": 18,
+    "#contact": 14,
+  };
+
+  const getSectionOffset = (href: string) => {
+    const defaultOffset = sectionOffsets[href] ?? 16;
+
+    if (!window.matchMedia("(max-width: 1023px)").matches) {
+      return defaultOffset;
+    }
+
+    const mobileSectionOffsets: Record<string, number> = {
+      "#how-it-works": 32,
+    };
+
+    return mobileSectionOffsets[href] ?? defaultOffset;
+  };
 
   const navLinks = [
     { labelKey: "features", href: "#features" },
@@ -24,9 +45,47 @@ const Header = () => {
     { labelKey: "contact", href: "#contact" },
   ];
 
+  const scrollToSection = (href: string) => {
+    const target = document.querySelector<HTMLElement>(href);
+    if (!target) return;
+
+    const headerHeight = headerRef.current?.getBoundingClientRect().height ?? 0;
+    const top =
+      target.getBoundingClientRect().top +
+      window.scrollY -
+      headerHeight +
+      getSectionOffset(href);
+
+    if (window.location.hash !== href) {
+      window.history.replaceState(null, "", href);
+    }
+
+    window.scrollTo({
+      top: Math.max(top, 0),
+      behavior: "smooth",
+    });
+  };
+
+  const handleAnchorClick = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
+    if (!href.startsWith("#")) return;
+
+    event.preventDefault();
+    setIsMenuOpen(false);
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        scrollToSection(href);
+      });
+    });
+  };
+
   return (
     <>
       <motion.header
+        ref={headerRef}
         initial={{ y: -100 }}
         animate={{
           y: [null, 0],
@@ -62,6 +121,7 @@ const Header = () => {
                         key={link.labelKey}
                         href={link.href}
                         className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(event) => handleAnchorClick(event, link.href)}
                       >
                         {t(link.labelKey)}
                       </a>
@@ -120,14 +180,14 @@ const Header = () => {
                     {t(link.labelKey)}
                   </Link>
                 ) : (
-                  <a
-                    key={link.labelKey}
-                    href={link.href}
-                    className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {t(link.labelKey)}
-                  </a>
+                    <a
+                      key={link.labelKey}
+                      href={link.href}
+                      className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                      onClick={(event) => handleAnchorClick(event, link.href)}
+                    >
+                      {t(link.labelKey)}
+                    </a>
                 ),
               )}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">

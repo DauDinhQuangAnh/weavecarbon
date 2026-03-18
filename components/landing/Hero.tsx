@@ -6,7 +6,7 @@ import { ArrowRight, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
 import UserTypeDialog from "./UserTypeDialog";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Waves from "../icons/Waves";
 import { useEffect, useState } from "react";
 
@@ -18,7 +18,12 @@ const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
 const Hero = () => {
   const [showUserTypeDialog, setShowUserTypeDialog] = useState(false);
   const [isDesktopHero, setIsDesktopHero] = useState(false);
+  const locale = useLocale();
   const t = useTranslations("hero");
+  const heroTitle = t("title");
+  const trustText = t("trust");
+  const trustMatch =
+    locale === "vi" ? trustText.match(/^(.*)\s(Việt Nam)$/u) : null;
   // const tFeatures = useTranslations("features");
 
   useEffect(() => {
@@ -99,7 +104,7 @@ const Hero = () => {
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
             className="mb-5 text-3xl font-bold leading-[1.05] tracking-tight text-foreground sm:mb-6 sm:text-4xl md:text-5xl lg:text-7xl"
           >
-            {t("title")}{" "}
+            {heroTitle}{" "}
             <span className="text-gradient-forest">{t("titleHighlight")}</span>
           </motion.h1>
 
@@ -120,7 +125,7 @@ const Hero = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.6 }}
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
-            className="mb-10 flex flex-col items-stretch gap-3 sm:mb-12 sm:flex-row sm:items-center sm:gap-4 md:mb-16"
+            className="mb-7 flex flex-col items-stretch gap-3 sm:mb-10 sm:flex-row sm:items-center sm:gap-4 md:mb-16"
           >
             <Button
               variant="hero"
@@ -175,7 +180,14 @@ const Hero = () => {
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
             className="max-w-xl text-center text-sm leading-6 text-muted-foreground md:text-left"
           >
-            {t("trust")}
+            {trustMatch ? (
+              <>
+                <span>{trustMatch[1]} </span>
+                <span className="block sm:inline">{trustMatch[2]}</span>
+              </>
+            ) : (
+              trustText
+            )}
           </motion.p>
         </div>
       </div>

@@ -9,10 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
+  CardContent
 } from "@/components/ui/card";
 import SocialLogin from "@/components/auth/SocialLogin";
 import EmailAuthTabs from "@/components/auth/EmailAuthTabs";
@@ -439,13 +436,7 @@ const AuthForm: React.FC = () => {
   if (authDisabled) {
     return (
       <Card className="border-border/50 shadow-xl">
-        <CardHeader className="text-center pb-4">
-          <CardTitle className="text-xl">
-            {userType === "b2c" ? t("welcome") : t("welcomeb2b")}
-          </CardTitle>
-          <CardDescription>{t("description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <p className="text-sm text-muted-foreground text-center">
             {t("messages.authDisabled")}
           </p>
@@ -456,16 +447,7 @@ const AuthForm: React.FC = () => {
 
   return (
     <Card className="border-border/50 shadow-xl">
-      <CardHeader className="text-center pb-4">
-        <CardTitle className="text-xl">
-          {userType === "b2c" ?
-          t("welcome") :
-          t("welcomeb2b")}
-        </CardTitle>
-        <CardDescription>{t("description")}</CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-5 md:space-y-6">
+      <CardContent className="space-y-5 pt-6 md:space-y-6">
         <SocialLogin
           onGoogleLogin={handleGoogleLogin}
           isLoading={isLoading} />
@@ -488,18 +470,13 @@ const AuthForm: React.FC = () => {
 
         <div className="rounded-2xl border border-primary/12 bg-linear-to-r from-primary/[0.07] via-primary/[0.04] to-transparent p-4 sm:p-5">
           <div className="space-y-4">
-            <div className="space-y-2 text-left">
+            <div
+              className="space-y-2 text-left"
+              data-demo-copy={`${demoSectionTitle} ${demoSectionDescription}`}
+            >
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 <span>{demoSectionLabel}</span>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">
-                  {demoSectionTitle}
-                </p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {demoSectionDescription}
-                </p>
               </div>
             </div>
 
