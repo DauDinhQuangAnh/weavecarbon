@@ -93,9 +93,9 @@ const Header = () => {
         }}
         className="fixed top-0 left-0 right-0 z-50 overflow-x-clip backdrop-blur-md bg-white/70"
       >
-        <div className="container mx-auto px-3 sm:px-4 md:px-6">
-          <div className="flex h-14 items-center justify-between gap-2 sm:h-16 md:h-20">
-            <Link href="/" className="group flex min-w-0 flex-1 items-center gap-2">
+        <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4 md:px-6 lg:px-8 2xl:px-10">
+          <div className="relative flex h-14 items-center justify-between gap-2 sm:h-16 md:h-20">
+            <Link href="/" className="group flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-forest shadow-md transition-shadow group-hover:shadow-lg sm:h-10 sm:w-10">
                 <Leaf className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
               </div>
@@ -104,7 +104,7 @@ const Header = () => {
               </span>
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-6">
+            <nav className="hidden lg:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
               {pathname !== "/calculator" && (
                 <>
                   {navLinks.map((link) =>
@@ -168,7 +168,7 @@ const Header = () => {
 
         {isMenuOpen && (
           <div className="lg:hidden bg-background border-b border-border animate-fade-in">
-            <nav className="container mx-auto flex flex-col gap-4 px-4 py-4 md:px-6">
+            <nav className="mx-auto w-full max-w-[1800px] flex flex-col gap-4 px-4 py-4 md:px-6 lg:px-8 2xl:px-10">
               {navLinks.map((link) =>
                 link.href.startsWith("/") ? (
                   <Link

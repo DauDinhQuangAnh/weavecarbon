@@ -83,7 +83,7 @@ const Hero = () => {
       </div>
 
       <div className="container relative z-10 w-full max-w-full px-2 sm:px-6">
-        <div className="mx-auto w-full max-w-[min(100%,40rem)] rounded-[28px] border border-white/60 bg-white/65 px-3 py-3 text-center shadow-[0_24px_60px_-32px_rgba(31,47,20,0.55)] backdrop-blur-md sm:max-w-[min(100%,44rem)] sm:p-6 md:max-w-4xl md:p-8 lg:mx-0 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:text-left lg:shadow-none lg:backdrop-blur-none">
+        <div className="mx-auto w-full max-w-[min(100%,40rem)] rounded-[28px] border border-white/60 bg-white/65 px-3 py-3 text-center shadow-[0_24px_60px_-32px_rgba(31,47,20,0.55)] backdrop-blur-md sm:max-w-[min(100%,44rem)] sm:p-6 md:max-w-4xl md:p-8 lg:mx-0 lg:rounded-none lg:border-0 lg:bg-transparent lg:py-0 lg:pr-0 lg:pl-10 lg:text-left lg:shadow-none lg:backdrop-blur-none xl:pl-14">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

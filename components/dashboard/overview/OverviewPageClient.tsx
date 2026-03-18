@@ -598,7 +598,7 @@ const OverviewPage: React.FC = () => {
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 pt-2 md:pt-4">
+          <CardContent className="flex min-h-[3.5rem] items-center p-3 pt-2 md:min-h-[4rem] md:pt-4">
             <p className="text-sm font-medium text-slate-700 md:text-[15px]">
               {t("stats.kgCO2eThisMonth")}
             </p>
@@ -616,7 +616,7 @@ const OverviewPage: React.FC = () => {
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 pt-2 md:pt-4">
+          <CardContent className="flex min-h-[3.5rem] items-center p-3 pt-2 md:min-h-[4rem] md:pt-4">
             <p className="text-sm font-medium text-slate-700 md:text-[15px]">
               {t("stats.activeProducts")}
             </p>
@@ -643,13 +643,18 @@ const OverviewPage: React.FC = () => {
           </CardHeader>
           <CardContent className="p-3 pt-2 md:pt-4">
             {isTrialPlan ? (
-              <div className="space-y-3">
-                <p className="text-xs text-amber-800 md:text-sm">
-                  {t("stats.trialLockedDescription")}
-                </p>
-                <Button type="button" size="sm" onClick={handleOpenPricingModal}>
+              <div className="flex items-start gap-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={handleOpenPricingModal}
+                >
                   {t("stats.upgradeCta")}
                 </Button>
+                <p className="flex-1 text-xs text-amber-800 md:text-sm">
+                  {t("stats.trialLockedDescription")}
+                </p>
               </div>
             ) : (
               <Progress
@@ -671,7 +676,7 @@ const OverviewPage: React.FC = () => {
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 pt-2 md:pt-4">
+          <CardContent className="flex min-h-[3.5rem] items-center p-3 pt-2 md:min-h-[4rem] md:pt-4">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-700 md:text-[15px]">
               <Gauge className="w-4 h-4" />
               <span>{t("stats.basedOnSKUs", { count: stats.skuCount })}</span>
