@@ -988,12 +988,9 @@ const LeafHero3D = () => {
   const transitionCompleteTimeRef = useRef(0); // When transition finished (for float delay)
   const glowPlaneRef = useRef<THREE.Mesh | null>(null);
   const glowLightRef = useRef<THREE.PointLight | null>(null);
-  const mousePositionRef = useRef({ x: 0, y: 0 });
-  const targetRotationRef = useRef({ x: 0, y: 0 });
   // Leaf at origin (same as Blender)
   const initialLeafPositionRef = useRef({ x: 0, y: 0, z: 0 });
   const baseLeafScaleRef = useRef(2); // Base scale for the leaf model
-  const scrollProgressRef = useRef(0);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1061,23 +1058,6 @@ const LeafHero3D = () => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Mouse parallax effect - track mouse movement
-    const handleMouseMove = (event: MouseEvent) => {
-      mousePositionRef.current = {
-        x: (event.clientX / window.innerWidth) * 2 - 1,
-        y: -(event.clientY / window.innerHeight) * 2 + 1,
-      };
-    };
-
-    // Scroll effect - track scroll for leaf falling animation
-    const handleScroll = () => {
-      const maxScroll = window.innerHeight * 3;
-      scrollProgressRef.current = Math.min(window.scrollY / maxScroll, 1);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
     // Point light for the glow effect ONLY (appears after transition)
     const pointLight = new THREE.PointLight(0xa0ff80, 0);
     pointLight.position.set(0, 0, -0.5);
@@ -1112,12 +1092,12 @@ const LeafHero3D = () => {
     const gltfLoader = new GLTFLoader(manager);
     const totalFrames = 200;
 
-    // Load Sequence PNG
+    // Load Sequence WebP
     const loadedTextures: THREE.Texture[] = [];
     for (let i = 1; i <= totalFrames; i++) {
       const frameNumber = i.toString().padStart(4, "0");
       // Dùng manager để theo dõi tiến độ
-      textureLoader.load(`/textures/sequence/${frameNumber}.png`, (txt) => {
+      textureLoader.load(`/textures/sequence/${frameNumber}.webp`, (txt) => {
         // Đảm bảo thứ tự mảng đúng với frame (vì load bất đồng bộ)
         txt.colorSpace = THREE.SRGBColorSpace; // Quan trọng để màu không bị nhạt
         loadedTextures[i - 1] = txt;
@@ -1465,7 +1445,7 @@ const LeafHero3D = () => {
         }
       }
 
-      // Floating animation + Mouse parallax + Scroll falling
+      // Lightweight idle floating animation (no mouse/scroll interaction)
       // Only starts 2 seconds AFTER transition completes for smooth handoff
       if (hasAnimatedRef.current && leafModelRef.current) {
         const timeSinceTransition = transitionCompleteTimeRef.current > 0
@@ -1477,81 +1457,31 @@ const LeafHero3D = () => {
           ? Math.min(Math.max((timeSinceTransition - floatDelay) / 1000, 0), 1)
           : 0;
 
-        const scrollProgress = scrollProgressRef.current;
-
-        // Base floating animation (gets weaker as leaf falls)
+        // Base floating animation
         const floatSpeed = 0.0008;
-        const floatAmount = 0.05 * (1 - scrollProgress * 0.7); // Reduce floating as it falls
+        const floatAmount = 0.05;
         const rotateSpeed = 0.0003;
         const rotateAmount = 0.08;
+        const swaySpeed = 0.00045;
+        const swayAmount = 0.035;
 
         const floatY = Math.sin(time * floatSpeed) * floatAmount * floatStrength;
         const rotateX = Math.sin(time * rotateSpeed) * rotateAmount * floatStrength;
         const rotateZ = Math.cos(time * rotateSpeed * 0.7) * rotateAmount * floatStrength;
 
-        // Mouse parallax - smooth interpolation (reduced during falling)
-        const parallaxStrength = 0.15 * (1 - scrollProgress * 0.5) * floatStrength;
-        const lerpFactor = 0.05;
-
-        targetRotationRef.current.x +=
-          (mousePositionRef.current.y * parallaxStrength -
-            targetRotationRef.current.x) *
-          lerpFactor;
-        targetRotationRef.current.y +=
-          (mousePositionRef.current.x * parallaxStrength -
-            targetRotationRef.current.y) *
-          lerpFactor;
-
-        // Natural falling animation based on scroll
-        const fallDistance = scrollProgress * 8; // Fall 8 units down
-        const fallRotationX = scrollProgress * Math.PI * 2; // Tumble forward (2 full rotations)
-        const fallRotationY = scrollProgress * Math.PI * 1.5; // Spin around Y axis
-        const fallRotationZ = Math.sin(scrollProgress * Math.PI * 3) * 0.5; // Wobble side to side
-
-        // Horizontal sway (leaves drift as they fall)
-        const swayAmount = Math.sin(scrollProgress * Math.PI * 4) * 0.8 * floatStrength; // Drift left/right
-
-        // Scale down slightly as it falls (perspective)
-        const fallScale = 1 - scrollProgress * 0.3; // Shrink to 70% size
         const baseScale = baseLeafScaleRef.current;
-        leafModelRef.current.scale.set(
-          baseScale * fallScale,
-          baseScale * fallScale,
-          baseScale * fallScale,
-        );
+        leafModelRef.current.scale.set(baseScale, baseScale, baseScale);
 
-        // Apply combined transformations
-        leafModelRef.current.position.y =
-          initialLeafPositionRef.current.y + floatY - fallDistance;
+        // Apply floating transformations only
+        leafModelRef.current.position.y = initialLeafPositionRef.current.y + floatY;
 
         leafModelRef.current.position.x =
           initialLeafPositionRef.current.x +
-          mousePositionRef.current.x * 0.1 +
-          swayAmount;
+          Math.sin(time * swaySpeed) * swayAmount * floatStrength;
 
-        // Combine all rotations (floating, parallax, and falling)
-        leafModelRef.current.rotation.x =
-          rotateX + targetRotationRef.current.x + fallRotationX;
-        leafModelRef.current.rotation.y = fallRotationY;
-        leafModelRef.current.rotation.z =
-          rotateZ + targetRotationRef.current.y + fallRotationZ;
-
-        // Fade out glow as leaf falls
-        if (
-          glowPlaneRef.current &&
-          !Array.isArray(glowPlaneRef.current.material)
-        ) {
-          glowPlaneRef.current.material.opacity = Math.max(
-            0,
-            0.6 * (1 - scrollProgress * 1.5),
-          );
-        }
-        if (glowLightRef.current) {
-          glowLightRef.current.intensity = Math.max(
-            0,
-            15 * (1 - scrollProgress * 1.5),
-          );
-        }
+        leafModelRef.current.rotation.x = rotateX;
+        leafModelRef.current.rotation.y = 0;
+        leafModelRef.current.rotation.z = rotateZ;
       }
 
       // Render both scenes: sequence overlay first, then 3D on top
@@ -1564,9 +1494,6 @@ const LeafHero3D = () => {
 
     // Cleanup
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("scroll", handleScroll);
-
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
       }
