@@ -39,7 +39,7 @@ const CarbonFootprintCard: React.FC<CarbonFootprintCardProps> = ({
       }`}
     >
       <CardHeader className="border-b border-slate-200 bg-slate-50/70 pb-2">
-        <CardTitle className="flex items-center justify-between text-lg">
+        <CardTitle className="flex flex-col gap-2 text-lg sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Leaf className="h-5 w-5 text-primary" />
             {t("title")}
@@ -47,7 +47,7 @@ const CarbonFootprintCard: React.FC<CarbonFootprintCardProps> = ({
           {isPreliminary && (
             <Badge
               variant="outline"
-              className="border-amber-200 bg-amber-50 text-amber-700"
+              className="w-fit border-amber-200 bg-amber-50 text-amber-700"
             >
               <Clock className="mr-1 h-3 w-3" />
               {t("preliminary")}
@@ -62,7 +62,7 @@ const CarbonFootprintCard: React.FC<CarbonFootprintCardProps> = ({
             {isPreliminary ? t("preliminaryEstimate") : t("totalEmissions")}
           </div>
           <div
-            className={`mb-1 text-5xl font-bold ${
+            className={`mb-1 text-4xl font-bold sm:text-5xl ${
               isPreliminary ? "text-amber-600" : "text-emerald-700"
             }`}
           >
@@ -79,13 +79,16 @@ const CarbonFootprintCard: React.FC<CarbonFootprintCardProps> = ({
         </div>
 
         <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm font-medium">{t("confidenceLabel")}</span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2">
-                    <Badge className={`${confidenceConfig.bg} ${confidenceConfig.color}`}>
+                  <button
+                    type="button"
+                    className="flex max-w-full flex-wrap items-center gap-2 text-left sm:justify-end"
+                  >
+                    <Badge className={`${confidenceConfig.bg} ${confidenceConfig.color} max-w-full whitespace-normal text-left leading-relaxed`}>
                       {carbonDetail.confidenceLevel === "high" && (
                         <CheckCircle2 className="mr-1 h-3 w-3" />
                       )}
@@ -98,7 +101,7 @@ const CarbonFootprintCard: React.FC<CarbonFootprintCardProps> = ({
                       {confidenceLevelLabel} ({carbonDetail.confidenceScore}%)
                     </Badge>
                     <Info className="h-4 w-4 cursor-help text-muted-foreground" />
-                  </div>
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">
                   <p className="text-sm">{carbonDetail.calculationNote}</p>

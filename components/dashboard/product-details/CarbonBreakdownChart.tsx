@@ -96,13 +96,13 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
   return (
     <Card className="border border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-200 bg-slate-50/70">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5 text-primary" />
             {t("title")}
           </CardTitle>
           {hasAwaitingData && (
-            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+            <Badge variant="outline" className="w-fit border-amber-200 bg-amber-50 text-amber-700">
               <Clock className="mr-1 h-3 w-3" />
               {t("awaitingData")}
             </Badge>
@@ -112,7 +112,7 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
 
       <CardContent>
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-70">
+          <div className="h-64 sm:h-72">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -156,13 +156,13 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
               >
                 <CollapsibleTrigger asChild>
                   <div
-                    className={`flex cursor-pointer items-center justify-between rounded-lg p-3 transition-colors ${
+                    className={`flex cursor-pointer flex-col gap-3 rounded-lg p-3 text-left transition-colors sm:flex-row sm:items-center sm:justify-between ${
                       item.hasData
                         ? "border border-slate-200 bg-slate-50/60 hover:bg-slate-50"
                         : "border border-dashed border-amber-200 bg-amber-50/60"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                       <div
                         className={`h-3 w-3 rounded-full ${!item.hasData ? "bg-gray-300" : ""}`}
                         style={{
@@ -170,7 +170,9 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
                         }}
                       />
 
-                      <span className={`font-medium ${!item.hasData ? "text-muted-foreground" : ""}`}>
+                      <span
+                        className={`min-w-0 break-words font-medium ${!item.hasData ? "text-muted-foreground" : ""}`}
+                      >
                         {item.label}
                       </span>
 
@@ -195,9 +197,9 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
                       {item.hasData ? (
-                        <div className="text-right">
+                        <div className="text-left sm:text-right">
                           <span className="font-bold">{item.percentage}%</span>
                           <span className="ml-2 text-sm text-slate-600">
                             ({formatKgValue((item.co2e || 0) * quantityForBatch)} {batchUnitLabel})

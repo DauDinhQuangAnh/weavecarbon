@@ -31,6 +31,7 @@ interface Step6SaveHistoryProps {
   onSaveDraft: () => void;
   onPublish: () => void;
   isSubmitting?: boolean;
+  submissionMode?: "draft" | "publish" | null;
 }
 
 const Step6Content: React.FC<Step6SaveHistoryProps> = ({
@@ -39,7 +40,8 @@ const Step6Content: React.FC<Step6SaveHistoryProps> = ({
   draftHistory,
   onSaveDraft,
   onPublish,
-  isSubmitting = false
+  isSubmitting = false,
+  submissionMode = null
 }) => {
   const t = useTranslations("assessment.step6");
   const locale = useLocale();
@@ -70,6 +72,7 @@ const Step6Content: React.FC<Step6SaveHistoryProps> = ({
     isEditing && data.status === "published"
       ? t("actions.updatePublished")
       : t("actions.publish");
+  const publishProcessingLabel = t("actions.publishing");
 
   const isHighConfidence = data.carbonResults?.confidenceLevel === "high";
   const canSaveDraft = !isEditing && data.status !== "published";
@@ -215,8 +218,17 @@ const Step6Content: React.FC<Step6SaveHistoryProps> = ({
                 disabled={isSubmitting}
                 className="w-full sm:flex-1"
               >
-                <Save className="mr-2 h-5 w-5" />
-                {t("actions.saveDraft")}
+                {submissionMode === "draft" ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {t("actions.savingDraft")}
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-5 w-5" />
+                    {t("actions.saveDraft")}
+                  </>
+                )}
               </Button>
             ) : null}
             <Button
@@ -226,10 +238,17 @@ const Step6Content: React.FC<Step6SaveHistoryProps> = ({
               className={canSaveDraft ? "w-full sm:flex-1" : "w-full"}
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {t("actions.processing")}
-                </>
+                submissionMode === "publish" ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {publishProcessingLabel}
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-5 w-5" />
+                    {publishActionLabel}
+                  </>
+                )
               ) : (
                 <>
                   <Send className="mr-2 h-5 w-5" />

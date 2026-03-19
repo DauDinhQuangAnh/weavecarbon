@@ -66,12 +66,12 @@ const ComplianceStatus: React.FC<ComplianceStatusProps> = ({
     return (
       <Card className="border border-slate-200 shadow-sm">
         <CardHeader className="border-b border-slate-200 bg-slate-50/70">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShieldCheck className="w-5 h-5 text-primary" />
               {t("title")}
             </CardTitle>
-            <Badge className="border border-amber-200 bg-amber-50 text-amber-700">
+            <Badge className="w-fit border border-amber-200 bg-amber-50 text-amber-700">
               <AlertCircle className="w-3 h-3 mr-1" />
               {t("needMoreData")}
             </Badge>
@@ -100,12 +100,12 @@ const ComplianceStatus: React.FC<ComplianceStatusProps> = ({
   return (
     <Card className="border border-slate-200 shadow-sm">
       <CardHeader className="border-b border-slate-200 bg-slate-50/70">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <ShieldCheck className="w-5 h-5 text-primary" />
             {t("title")}
           </CardTitle>
-          <Badge className={exportBadgeClass}>
+          <Badge className={`${exportBadgeClass} w-fit`}>
             {exportReady ?
             <>
                 <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -130,17 +130,22 @@ const ComplianceStatus: React.FC<ComplianceStatusProps> = ({
             return (
               <div
                 key={index}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">
 
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 ${colorClass}`} />
-                  <span className="font-medium">{item.criterion}</span>
+                <div className="flex min-w-0 items-start gap-3">
+                  <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${colorClass}`} />
+                  <span className="min-w-0 text-sm font-medium leading-relaxed">{item.criterion}</span>
                 </div>
                 {item.note &&
                 <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-4 h-4 text-muted-foreground" />
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="self-end text-muted-foreground transition-colors hover:text-slate-700 sm:self-auto"
+                        >
+                          <Info className="h-4 w-4" />
+                        </button>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="text-sm">{item.note}</p>
@@ -162,7 +167,7 @@ const ComplianceStatus: React.FC<ComplianceStatusProps> = ({
         </div>
 
         
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
           <Button
             variant="outline"
             className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50"

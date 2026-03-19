@@ -29,6 +29,7 @@ interface StepContentProps {
   onSaveDraft: () => void;
   onPublish: () => void;
   isSubmitting?: boolean;
+  submissionMode?: "draft" | "publish" | null;
 }
 
 export default function StepContent({
@@ -46,7 +47,8 @@ export default function StepContent({
   draftHistory,
   onSaveDraft,
   onPublish,
-  isSubmitting
+  isSubmitting,
+  submissionMode
 }: StepContentProps) {
   switch (currentStep) {
     case 1:
@@ -103,7 +105,8 @@ export default function StepContent({
           draftHistory={draftHistory}
           onSaveDraft={onSaveDraft}
           onPublish={onPublish}
-          isSubmitting={isSubmitting} />);
+          isSubmitting={isSubmitting}
+          submissionMode={submissionMode} />);
 
 
     default:

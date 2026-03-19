@@ -672,6 +672,7 @@ export default function AssessmentClient({
   );
   const [draftHistory, setDraftHistory] = useState<DraftVersion[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionMode, setSubmissionMode] = useState<"draft" | "publish" | null>(null);
   const [starterDomesticMarket, setStarterDomesticMarket] = useState<string>("vietnam");
   const [availableCertificationDocumentCodes, setAvailableCertificationDocumentCodes] =
     useState<string[]>([]);
@@ -856,6 +857,7 @@ export default function AssessmentClient({
     setCurrentStep(1);
     setDraftHistory([]);
     setIsSubmitting(false);
+    setSubmissionMode(null);
     setProductData(resolveInitialProductData({ mode, isEditing, initialData, disableModalDraftRestore }));
   }, [disableModalDraftRestore, initialData, isEditing, mode, productId]);
 
@@ -1362,6 +1364,7 @@ export default function AssessmentClient({
     if (!canMutate) return;
     if (isEditing || productData.status === "published") return;
     if (isSubmitting) return;
+    setSubmissionMode("draft");
     setIsSubmitting(true);
 
     try {
@@ -1409,6 +1412,7 @@ export default function AssessmentClient({
       toast.error(formatApiErrorMessage(error, t("toast.draftSaveFailed")));
     } finally {
       setIsSubmitting(false);
+      setSubmissionMode(null);
     }
   };
 
@@ -1454,7 +1458,9 @@ export default function AssessmentClient({
       }
     }
 
+    setSubmissionMode("publish");
     setIsSubmitting(true);
+    const publishToastId = toast.loading(t("toast.publishLoading"));
 
     try {
       const { result, timestamp, payload } = await persistProduct("published");
@@ -1492,10 +1498,15 @@ export default function AssessmentClient({
         toast.success(
           isEditing ?
           t("toast.publishUpdated") :
-          t("toast.publishSuccess")
+          t("toast.publishSuccess"),
+          {
+            id: publishToastId
+          }
         );
       } else {
-        toast.warning(t("toast.publishDraftFallback"));
+        toast.warning(t("toast.publishDraftFallback"), {
+          id: publishToastId
+        });
       }
 
       if (publishedSuccessfully && ensuredShipmentId && !isEditing) {
@@ -1528,12 +1539,17 @@ export default function AssessmentClient({
       }
     } catch (error) {
       if (isPublishBlockedByMissingDocumentsError(error)) {
-        toast.warning(t("toast.publishDraftFallback"));
+        toast.warning(t("toast.publishDraftFallback"), {
+          id: publishToastId
+        });
       } else {
-        toast.error(formatApiErrorMessage(error, t("toast.publishFailed")));
+        toast.error(formatApiErrorMessage(error, t("toast.publishFailed")), {
+          id: publishToastId
+        });
       }
     } finally {
       setIsSubmitting(false);
+      setSubmissionMode(null);
     }
   };
 
@@ -1588,7 +1604,8 @@ export default function AssessmentClient({
             draftHistory={draftHistory}
             onSaveDraft={handleSaveDraft}
             onPublish={handlePublish}
-            isSubmitting={isSubmitting} />
+            isSubmitting={isSubmitting}
+            submissionMode={submissionMode} />
 
         </CardContent>
       </Card>

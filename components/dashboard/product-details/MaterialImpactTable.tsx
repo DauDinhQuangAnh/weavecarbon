@@ -37,7 +37,71 @@ const MaterialImpactTable: React.FC<MaterialImpactTableProps> = ({ materials }) 
       </CardHeader>
 
       <CardContent className="pt-4">
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white p-2">
+        <div className="space-y-3 md:hidden">
+          {materials.map((material, index) => (
+            <div
+              key={index}
+              className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">{material.material}</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {t("ratio")}: <span className="font-medium text-slate-900">{material.percentage}%</span>
+                    </p>
+                  </div>
+                  {material.source === "documented" ? (
+                    <Badge className="w-fit shrink-0 border border-emerald-200 bg-emerald-50 text-emerald-700">
+                      <FileCheck className="mr-1 h-3 w-3" />
+                      {t("verified")}
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="w-fit shrink-0 border-amber-200 bg-amber-50 text-amber-700"
+                    >
+                      <FileQuestion className="mr-1 h-3 w-3" />
+                      {t("proxy")}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-md bg-slate-50 p-2">
+                    <p className="text-xs text-slate-600">{t("emissionFactor")}</p>
+                    <p className="mt-1 font-semibold tabular-nums text-slate-900">
+                      {material.emissionFactor.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-slate-50 p-2">
+                    <p className="text-xs text-slate-600">{t("co2Column")}</p>
+                    <p className="mt-1 font-semibold tabular-nums text-emerald-700">
+                      {material.co2e.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 text-xs text-slate-600">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {t("sourceLabel")}
+                    {material.factorSource}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-semibold text-slate-900">{t("total")}</span>
+              <span className="font-semibold tabular-nums text-emerald-700">{totalCo2e.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 md:block">
           <Table className="w-full">
             <TableHeader className="bg-slate-50/80">
               <TableRow className="border-slate-200">

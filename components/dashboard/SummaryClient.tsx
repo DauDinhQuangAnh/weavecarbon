@@ -1874,7 +1874,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm pt-4">
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-slate-600">
                   {t("additionalInfo.status")}
                 </span>
@@ -1882,13 +1882,13 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
                   {STATUS_CONFIG[product.status].label}
                 </Badge>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-slate-600">
                   {t("additionalInfo.version")}
                 </span>
                 <span>v{product.version || 1}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-slate-600">
                   {t("additionalInfo.quantity")}
                 </span>
@@ -1897,13 +1897,13 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
                   {t("additionalInfo.products")}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-slate-600">
                   {t("additionalInfo.createdAt")}
                 </span>
                 <span>{new Date(product.createdAt).toLocaleDateString(displayLocale)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-slate-600">
                   {t("additionalInfo.updatedAt")}
                 </span>

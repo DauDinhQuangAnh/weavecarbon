@@ -105,6 +105,8 @@ export default function OverviewCharts({
   isAboveTarget ?
   `Latest period is ${formatDeltaKg(latestDeltaAbs)} kg CO2e (${latestDeltaPct.toFixed(1)}%) above target.` :
   `Latest period is ${formatDeltaKg(latestDeltaAbs)} kg CO2e (${latestDeltaPct.toFixed(1)}%) below target.`;
+  const lastLabelOffset = isMobile ? -10 : 8;
+  const lastLabelAnchor = isMobile ? "end" : "start";
 
   return (
     <div className="grid grid-cols-1 gap-3 md:gap-6 lg:grid-cols-3">
@@ -205,9 +207,10 @@ export default function OverviewCharts({
                       }
                       return (
                         <text
-                          x={props.x + 8}
+                          x={props.x + lastLabelOffset}
                           y={props.y + 14}
-                          fontSize={12}
+                          textAnchor={lastLabelAnchor}
+                          fontSize={isMobile ? 11 : 12}
                           fontWeight={600}
                           fill="hsl(150 70% 22%)"
                           stroke="hsl(0 0% 100%)"
@@ -241,9 +244,10 @@ export default function OverviewCharts({
                       }
                       return (
                         <text
-                          x={props.x + 8}
+                          x={props.x + lastLabelOffset}
                           y={props.y - 10}
-                          fontSize={12}
+                          textAnchor={lastLabelAnchor}
+                          fontSize={isMobile ? 11 : 12}
                           fontWeight={600}
                           fill="hsl(150 35% 30%)"
                           stroke="hsl(0 0% 100%)"
