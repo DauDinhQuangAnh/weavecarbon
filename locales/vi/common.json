@@ -2452,6 +2452,10 @@
     "currencyPerMonth": "VND/tháng",
     "contact": "Liên hệ",
     "contactSales": "Liên hệ {name} - {phone}",
+    "enterpriseContact": {
+      "button": "Liên hệ tư vấn",
+      "badge": "Đại diện dự án"
+    },
     "selectPlan": "Chọn gói này",
     "currentPlanButton": "Bạn đang sử dụng gói này",
     "higherPlanActiveButton": "Đang ở gói cao hơn",

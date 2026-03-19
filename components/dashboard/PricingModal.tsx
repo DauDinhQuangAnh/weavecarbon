@@ -10,7 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Check, Crown, Sparkles, X, Zap } from "lucide-react";
+import { ArrowLeft, Check, Crown, Mail, Phone, Sparkles, X, Zap } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
 import {
   getSubscriptionPlanFamily,
   normalizeSubscriptionPlan,
@@ -33,6 +38,12 @@ interface PricingModalProps {
 
 type MainPlanId = "trial" | "standard" | "export";
 type SelectionStep = "plans" | "standard-options";
+
+const ENTERPRISE_CONTACT = {
+  name: "DoanThi My Trinh",
+  phone: "0828 413 747",
+  email: "mytrinh.bb@gmail.com"
+} as const;
 
 const pricingPlans: Array<{
   id: MainPlanId;
@@ -107,6 +118,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
   const isVi = locale === "vi";
   const [selectionStep, setSelectionStep] = useState<SelectionStep>("plans");
   const [isMobileView, setIsMobileView] = useState(false);
+  const [enterpriseContactOpen, setEnterpriseContactOpen] = useState(false);
 
   const normalizedCurrentPlan = normalizeSubscriptionPlan(currentPlan, "free");
   const currentPlanFamily = getSubscriptionPlanFamily(normalizedCurrentPlan);
@@ -114,6 +126,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
   useEffect(() => {
     if (open) {
       setSelectionStep("plans");
+      setEnterpriseContactOpen(false);
     }
   }, [open]);
 
@@ -355,6 +368,58 @@ const PricingModal: React.FC<PricingModalProps> = ({
                       <Button variant="secondary" className="w-full" disabled>
                         {isVi ? "Không áp dụng" : "Not applicable"}
                       </Button>
+                    ) : plan.id === "export" ? (
+                      <Popover
+                        open={enterpriseContactOpen}
+                        onOpenChange={setEnterpriseContactOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                          >
+                            {t("enterpriseContact.button")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          side={isMobileView ? "top" : "bottom"}
+                          align="center"
+                          sideOffset={10}
+                          collisionPadding={16}
+                          className="w-[min(20rem,calc(100vw-2rem))] rounded-[1.6rem] border border-emerald-950/25 bg-[#1f2a18] p-0 text-emerald-50 shadow-2xl"
+                        >
+                          <div className="space-y-4 p-5">
+                            <div className="space-y-1">
+                              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-emerald-200/70">
+                                {t("enterpriseContact.badge")}
+                              </p>
+                              <p className="text-xl font-bold leading-tight text-white">
+                                {ENTERPRISE_CONTACT.name}
+                              </p>
+                            </div>
+                            <div className="space-y-3 border-t border-white/10 pt-4">
+                              <a
+                                href={`tel:${ENTERPRISE_CONTACT.phone.replace(/\s+/g, "")}`}
+                                className="flex items-center gap-3 text-sm font-medium text-emerald-50 transition-colors hover:text-emerald-200"
+                              >
+                                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                                  <Phone className="h-4 w-4" />
+                                </span>
+                                <span>{ENTERPRISE_CONTACT.phone}</span>
+                              </a>
+                              <a
+                                href={`mailto:${ENTERPRISE_CONTACT.email}`}
+                                className="flex items-center gap-3 text-sm font-medium text-emerald-50 transition-colors hover:text-emerald-200"
+                              >
+                                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                                  <Mail className="h-4 w-4" />
+                                </span>
+                                <span className="break-all">{ENTERPRISE_CONTACT.email}</span>
+                              </a>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     ) : (
                       <Button
                         variant={plan.popular ? "default" : "outline"}

@@ -2511,6 +2511,10 @@
     "currencyPerMonth": "VND/month",
     "contact": "Contact",
     "contactSales": "Contact {name} - {phone}",
+    "enterpriseContact": {
+      "button": "Contact sales",
+      "badge": "Project representative"
+    },
     "selectPlan": "Choose this plan",
     "currentPlanButton": "You are currently using this plan",
     "higherPlanActiveButton": "On a higher plan",
