@@ -236,60 +236,80 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       
       <Card className="border border-slate-200 shadow-sm">
         <CardHeader className={`border-b ${statusPalette.header}`}>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                {shipment.productName}
+                <Package className="h-5 w-5 shrink-0" />
+                <span className="truncate">{shipment.productName}</span>
               </CardTitle>
-              <CardDescription className="text-slate-600">
+              <CardDescription className="break-words text-slate-600">
                 {shipment.id} | {t("containerLabel")}: {shipment.containerNo}
               </CardDescription>
             </div>
-            {getStatusBadge(shipment.status)}
+            <div className="self-start sm:self-auto">
+              {getStatusBadge(shipment.status)}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-4">
           
           <div className={`rounded-lg border p-4 ${statusPalette.location}`}>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full animate-pulse ${statusPalette.locationDot}`} />
               <span className="font-medium">{t("currentLocation")}</span>
             </div>
-            <p className={`text-lg font-semibold ${statusPalette.locationText}`}>
+            <p className={`break-words text-lg font-semibold ${statusPalette.locationText}`}>
               {shipment.currentLocation}
             </p>
           </div>
 
           
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-center">
-              <Calendar className="mx-auto mb-1 h-5 w-5 text-slate-500" />
-              <p className="text-xs text-slate-500">{t("departureDate")}</p>
-              <p className="font-medium text-slate-800">
-                {formatShipmentDate(shipment.departureDate, displayLocale)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-center">
-              <Clock className="mx-auto mb-1 h-5 w-5 text-slate-500" />
-              <p className="text-xs text-slate-500">{t("estimatedArrival")}</p>
-              <p className="font-medium text-slate-800">
-                {formatShipmentDateTime(shipment.estimatedArrival, displayLocale)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-center">
-              <Anchor className="mx-auto mb-1 h-5 w-5 text-slate-500" />
-              <p className="text-xs text-slate-500">{t("carrier")}</p>
-              <p className="truncate text-sm font-medium text-slate-800">{shipment.carrier}</p>
-            </div>
-            <div className="rounded-lg border border-orange-200 bg-orange-50/70 p-3 text-center">
-              <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center text-xs font-bold text-orange-500">
-                CO2
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left md:text-center">
+              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
+                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500">{t("departureDate")}</p>
+                  <p className="font-medium text-slate-800">
+                    {formatShipmentDate(shipment.departureDate, displayLocale)}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-slate-500">{t("emissions")}</p>
-              <p className="font-medium text-orange-600">
-                {formatExactValue(shipment.totalCO2)} {t("units.kg")}
-              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left md:text-center">
+              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500">{t("estimatedArrival")}</p>
+                  <p className="font-medium text-slate-800">
+                    {formatShipmentDateTime(shipment.estimatedArrival, displayLocale)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left md:col-span-1 md:text-center">
+              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
+                <Anchor className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500">{t("carrier")}</p>
+                  <p className="break-words text-sm font-medium text-slate-800 md:truncate">
+                    {shipment.carrier}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="col-span-2 rounded-lg border border-orange-200 bg-orange-50/70 p-3 text-left md:col-span-1 md:text-center">
+              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-bold text-orange-500">
+                  CO2
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500">{t("emissions")}</p>
+                  <p className="font-medium text-orange-600">
+                    {formatExactValue(shipment.totalCO2)} {t("units.kg")}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

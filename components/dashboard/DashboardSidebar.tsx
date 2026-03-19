@@ -9,12 +9,10 @@ import {
   Leaf,
   Loader2,
   LogOut,
-  Menu,
   Package,
   Settings,
   TrendingUp,
   Truck,
-  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -138,25 +136,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-dvh w-56 shrink-0 flex-col border-r border-border bg-card transition-transform duration-300 lg:z-20 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex min-h-0 w-56 shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-transform duration-300 lg:z-20 lg:h-dvh lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="border-b border-border p-4">
-          <div className="mb-3 flex justify-end lg:hidden">
-            <Button
-              className="lg:hidden"
-              variant="ghost"
-              size="icon"
-              onClick={onToggleSidebar}
-            >
-              {sidebarOpen ? (
-                <X className="h-4 w-4" />
-              ) : (
-                <Menu className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+        <div className="border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-4">
           <Link href={homeHref} className="flex min-w-0 items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-forest">
               <Leaf className="h-5 w-5 text-primary-foreground" />
@@ -169,7 +153,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col items-center gap-1 p-4">
+        <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-4 py-4">
           {visibleMenuItems.map((item) => {
             const active = isActive(item.path);
             return (
@@ -192,7 +176,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           })}
         </nav>
 
-        <div className="border-t border-border p-4">
+        <div className="border-t border-border px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 lg:p-4">
           {sidebarOpen && (
             <div className="mb-3">
               <p className="truncate text-sm font-medium">

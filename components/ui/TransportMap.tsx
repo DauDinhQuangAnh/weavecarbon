@@ -590,7 +590,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium flex items-center gap-2">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
               <Navigation className="w-4 h-4" />
               {tMap("routeDetails")}
               <span className="text-xs text-muted-foreground font-normal">
@@ -599,13 +599,70 @@ const TransportMap: React.FC<TransportMapProps> = ({
             </p>
             {legs.map((leg, index) => {
               const Icon = getModeIcon(leg.mode);
+              const legCardClass =
+                selectedLeg === index ?
+                  "border border-sky-300 bg-sky-50/70 shadow-sm" :
+                  "border border-slate-200 bg-white hover:bg-slate-50";
               return (
                 <div
                   key={leg.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer
-                    ${selectedLeg === index ? "border border-sky-300 bg-sky-50/70 shadow-sm" : "border border-slate-200 bg-white hover:bg-slate-50"}`}
+                  className={`cursor-pointer rounded-lg p-3 transition-all ${legCardClass}`}
                   onClick={() => handleLegClick(index)}>
 
+                  <div className="mb-3 sm:hidden">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
+                          style={{ backgroundColor: getModeColor(leg.mode) }}>
+
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-900">
+                            {leg.origin.name}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{leg.destination.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Badge
+                        variant={leg.type === "international" ? "default" : "secondary"}
+                        className="shrink-0 text-[10px]">
+
+                        {leg.type === "international" ? tTrack("international") : tTrack("domestic")}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-md bg-slate-50 px-2 py-1.5">
+                        <p className="text-[10px] text-muted-foreground">
+                          {tMap("stats.totalDistance")}
+                        </p>
+                        <p className="mt-0.5 text-xs font-semibold text-slate-800">
+                          {formatDistanceKm(leg.distanceKm)} {tTrack("units.km")}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-slate-50 px-2 py-1.5">
+                        <p className="text-[10px] text-muted-foreground">
+                          {locale === "vi" ? "Loại" : "Mode"}
+                        </p>
+                        <p className="mt-0.5 text-xs font-semibold text-slate-800">
+                          {getRouteTypeLabel(leg.routeType)}
+                        </p>
+                      </div>
+                      <div className="col-span-2 rounded-md bg-orange-50 px-2 py-1.5">
+                        <p className="text-[10px] text-orange-500">CO2</p>
+                        <p className="mt-0.5 text-xs font-semibold text-orange-600">
+                          {formatExactValue(leg.co2Kg)} {tTrack("units.kgCo2")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden items-center gap-3 sm:flex">
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-transform hover:scale-110"
                     style={{ backgroundColor: getModeColor(leg.mode) }}>
@@ -640,6 +697,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
 
                     {leg.type === "international" ? tTrack("international") : tTrack("domestic")}
                   </Badge>
+                  </div>
                 </div>);
 
             })}

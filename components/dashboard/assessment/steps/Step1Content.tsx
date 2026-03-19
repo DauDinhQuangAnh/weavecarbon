@@ -36,7 +36,6 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
 
     toast.warning(t("quantityNotice.title"), {
       id: "assessment-quantity-note",
-      duration: 5000,
       description:
       <ul className="list-disc pl-4 space-y-1 text-sm">
           <li>{t("quantityNotice.item1")}</li>

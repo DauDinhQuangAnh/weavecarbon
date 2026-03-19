@@ -371,8 +371,7 @@ const AuthForm: React.FC = () => {
       if (result.needsConfirmation) {
         toast({
           title: t("messages.checkEmailTitle"),
-          description: t("messages.checkEmailDescription"),
-          duration: 6000
+          description: t("messages.checkEmailDescription")
         });
         setActiveTab("login");
         redirectToCheckEmail({
@@ -383,8 +382,7 @@ const AuthForm: React.FC = () => {
       } else {
         toast({
           title: t("messages.signupSuccessTitle"),
-          description: t("messages.signupSuccessDescription"),
-          duration: 3000
+          description: t("messages.signupSuccessDescription")
         });
         const destination = await resolvePostLoginPath();
         router.push(destination);

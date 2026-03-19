@@ -10,7 +10,7 @@ import {
 const PLAN_LOCKED_MESSAGE = "Gói Trial 14 ngày đã hết hạn. Vui lòng nâng cấp gói để tiếp tục thao tác.";
 
 export const showPlanLockedToast = () => {
-  toast.warning(PLAN_LOCKED_MESSAGE, { duration: 4000 });
+  toast.warning(PLAN_LOCKED_MESSAGE);
 };
 
 export const showNoPermissionToast = () => {
@@ -19,6 +19,6 @@ export const showNoPermissionToast = () => {
     return;
   }
 
-  toast.info(NO_PERMISSION_MESSAGE, { duration: 3000 });
+  toast.info(NO_PERMISSION_MESSAGE);
 };
 

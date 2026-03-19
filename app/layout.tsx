@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -9,6 +8,11 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import { getScopedMessages } from "@/lib/i18n/messages";
 import { ROOT_NAMESPACES } from "@/lib/i18n/namespaces";
 import { getBackendHealth } from "@/lib/backendHealth";
+import {
+  DEFAULT_TOAST_DURATION,
+  DEFAULT_TOAST_POSITION,
+  DEFAULT_TOAST_SWIPE_DIRECTIONS
+} from "@/lib/toastConfig";
 import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 
 const beVietnamProBody = Be_Vietnam_Pro({
@@ -54,12 +58,12 @@ export default async function RootLayout({
             <NextIntlClientProvider locale={locale} messages={messages}>
               <LanguageProvider>
                 {children}
-                <Toaster />
                 <SonnerToaster
-                  position="top-right"
+                  position={DEFAULT_TOAST_POSITION}
                   richColors
-                  closeButton
-                  duration={3000} />
+                  closeButton={false}
+                  duration={DEFAULT_TOAST_DURATION}
+                  swipeDirections={[...DEFAULT_TOAST_SWIPE_DIRECTIONS]} />
               </LanguageProvider>
             </NextIntlClientProvider>
           </AuthProvider>
