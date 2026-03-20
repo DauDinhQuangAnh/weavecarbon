@@ -124,6 +124,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
   const formatExactValue = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
+  const mapSubject = shipment?.id || shipment?.productName || "";
+  const mapSubjectMeta = shipment ?
+  [
+  shipment.productName && shipment.productName !== shipment.id ? shipment.productName : null,
+  shipment.sku ? `${t("skuLabel")}: ${shipment.sku}` : null].
+  filter((value): value is string => Boolean(value)).
+  join(" | ") :
+  undefined;
   const statusPalette =
   shipment && shipment.status in STATUS_PALETTE ?
   STATUS_PALETTE[shipment.status as keyof typeof STATUS_PALETTE] :
@@ -229,8 +237,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
       <TransportMap
         legs={shipment.legs}
         onRefresh={onRefresh}
-        mapSubject={shipment.productName}
-        mapSubjectMeta={`${t("skuLabel")}: ${shipment.sku}`} />
+        mapSubject={mapSubject}
+        mapSubjectMeta={mapSubjectMeta} />
 
 
       
