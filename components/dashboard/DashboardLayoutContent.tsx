@@ -9,6 +9,7 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { LanguageToggle } from "../ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
+import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
   resolveSubscriptionState,
@@ -103,7 +104,7 @@ export default function DashboardLayoutContent({
     let cancelled = false;
     const enforceStarterRestrictions = async () => {
       try {
-        const payload = await api.get<SubscriptionApiPayload>("/subscription");
+        const payload: SubscriptionApiPayload = await getSubscriptionApiPayload();
         const resolved = resolveSubscriptionState(payload);
         let effectivePlan = resolved.plan;
 

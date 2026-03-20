@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { api, authTokenStore, isApiError } from "@/lib/apiClient";
+import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import {
   TARGET_MARKET_OPTIONS,
   formatTargetMarketLabel,
@@ -231,7 +232,10 @@ const SystemSettings: React.FC = () => {
     });
   };
 
-  const loadCompany = React.useCallback(async (showLoader = true) => {
+  const loadCompany = React.useCallback(async (
+    showLoader = true,
+    forceSubscriptionRefresh = false
+  ) => {
     if (showLoader) {
       setLoading(true);
     }
@@ -252,8 +256,9 @@ const SystemSettings: React.FC = () => {
     }
 
     try {
-      const subscriptionResult = await api.
-      get<SubscriptionData>("/subscription", { disableResponseCache: true }).
+      const subscriptionResult = await getSubscriptionApiPayload<SubscriptionData>({
+        force: forceSubscriptionRefresh
+      }).
       then((data) => ({ status: "fulfilled" as const, value: data })).
       catch((reason) => ({ status: "rejected" as const, reason }));
       let accountCreatedAtFromApi: string | null = null;
@@ -412,7 +417,7 @@ const SystemSettings: React.FC = () => {
     }
 
     const handleProductUsageUpdated = () => {
-      void loadCompany(false);
+      void loadCompany(false, true);
     };
 
     const handleWindowFocus = () => {

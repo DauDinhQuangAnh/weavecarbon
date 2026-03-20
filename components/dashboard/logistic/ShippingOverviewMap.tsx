@@ -68,6 +68,25 @@ interface Shipment {
   carrier: string;
 }
 
+type ShipmentIdentity = Pick<Shipment, "shipmentId" | "id"> | Pick<TrackShipment, "shipmentId" | "id">;
+
+const isSameShipment = (
+  left: ShipmentIdentity | null | undefined,
+  right: ShipmentIdentity | null | undefined
+) => {
+  if (!left || !right) return false;
+  if (left.shipmentId && right.shipmentId && left.shipmentId === right.shipmentId) {
+    return true;
+  }
+  if (left.shipmentId && left.shipmentId === right.id) {
+    return true;
+  }
+  if (right.shipmentId && right.shipmentId === left.id) {
+    return true;
+  }
+  return left.id === right.id;
+};
+
 const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   const normalizedReference = referenceNumber.replace(/[^a-zA-Z0-9]/g, "");
   if (normalizedReference) {
@@ -353,30 +372,51 @@ const ShippingOverviewMap: React.FC = () => {
   const ITEMS_PER_PAGE = 8;
   const mapHeight = isMobile ? "min(62dvh, 420px)" : "520px";
   const filterToggleLabel = locale === "vi" ? "Bộ lọc" : "Filters";
-  const openDetails = async (shipment: Shipment) => {
-    const requestSeq = detailRequestSeqRef.current + 1;
-    detailRequestSeqRef.current = requestSeq;
-    setDetailShipment(toDetailShipment(shipment));
+  const shipmentFallbacks = useMemo(
+    () => ({
+      shipmentName: t("fallbacks.shipment"),
+      unknownCarrier: t("fallbacks.unknownCarrier")
+    }),
+    [t]
+  );
 
-    if (!isValidUuid(shipment.shipmentId)) {
-      return;
-    }
-
-    try {
-      const detail = await fetchLogisticsShipmentById(shipment.shipmentId);
-      if (requestSeq !== detailRequestSeqRef.current) {
-        return;
-      }
-      let mappedShipment = mapShipmentToOverview(detail, {
-        shipmentName: t("fallbacks.shipment"),
-        unknownCarrier: t("fallbacks.unknownCarrier")
+  const syncShipmentState = useCallback((shipment: Shipment) => {
+    setAllShipments((current) => {
+      let didUpdate = false;
+      const next = current.map((candidate) => {
+        if (!isSameShipment(candidate, shipment)) {
+          return candidate;
+        }
+        didUpdate = true;
+        return shipment;
       });
+      return didUpdate ? next : current;
+    });
+    setDetailShipment((current) =>
+      current && isSameShipment(current, shipment) ? toDetailShipment(shipment) : current
+    );
+    setQrShipment((current) =>
+      current && isSameShipment(current, shipment) ? shipment : current
+    );
+  }, []);
+
+  const loadShipmentDetail = useCallback(
+    async (shipmentId: string, requestSeq?: number): Promise<Shipment | null> => {
+      const isStale = () =>
+        typeof requestSeq === "number" && requestSeq !== detailRequestSeqRef.current;
+
+      const detail = await fetchLogisticsShipmentById(shipmentId);
+      if (isStale()) {
+        return null;
+      }
+
+      let mappedShipment = mapShipmentToOverview(detail, shipmentFallbacks);
 
       if (mappedShipment.productId && isValidUuid(mappedShipment.productId)) {
         try {
           const product = await fetchProductById(mappedShipment.productId);
-          if (requestSeq !== detailRequestSeqRef.current) {
-            return;
+          if (isStale()) {
+            return null;
           }
           mappedShipment = reconcileShipmentWithProductTransport(
             mappedShipment,
@@ -387,11 +427,45 @@ const ShippingOverviewMap: React.FC = () => {
         }
       }
 
-      setDetailShipment(
-        toDetailShipment(
-          mappedShipment
-        )
-      );
+      return mappedShipment;
+    },
+    [shipmentFallbacks]
+  );
+
+  const refreshDetailShipment = useCallback(async () => {
+    if (!detailShipment?.shipmentId || !isValidUuid(detailShipment.shipmentId)) {
+      return;
+    }
+
+    const requestSeq = detailRequestSeqRef.current + 1;
+    detailRequestSeqRef.current = requestSeq;
+
+    try {
+      const refreshedShipment = await loadShipmentDetail(detailShipment.shipmentId, requestSeq);
+      if (!refreshedShipment) {
+        return;
+      }
+      syncShipmentState(refreshedShipment);
+    } catch {
+
+    }
+  }, [detailShipment, loadShipmentDetail, syncShipmentState]);
+
+  const openDetails = async (shipment: Shipment) => {
+    const requestSeq = detailRequestSeqRef.current + 1;
+    detailRequestSeqRef.current = requestSeq;
+    setDetailShipment(toDetailShipment(shipment));
+
+    if (!isValidUuid(shipment.shipmentId)) {
+      return;
+    }
+
+    try {
+      const detailedShipment = await loadShipmentDetail(shipment.shipmentId, requestSeq);
+      if (!detailedShipment) {
+        return;
+      }
+      syncShipmentState(detailedShipment);
     } catch {
 
     }
@@ -408,13 +482,13 @@ const ShippingOverviewMap: React.FC = () => {
     }
 
     try {
-      const detail = await fetchLogisticsShipmentById(shipment.shipmentId);
-      const resolved = mapShipmentToOverview(detail, {
-        shipmentName: t("fallbacks.shipment"),
-        unknownCarrier: t("fallbacks.unknownCarrier")
-      });
+      const resolved = await loadShipmentDetail(shipment.shipmentId);
+      if (!resolved) {
+        return;
+      }
 
       if (resolved.productId && isValidUuid(resolved.productId)) {
+        syncShipmentState(resolved);
         setQrShipment(resolved);
       }
     } catch {
@@ -431,16 +505,13 @@ const ShippingOverviewMap: React.FC = () => {
     try {
       const shipmentSummaries = await fetchAllLogisticsShipments();
       const userShipments = shipmentSummaries.map((shipment) =>
-      mapShipmentToOverview(shipment, {
-        shipmentName: t("fallbacks.shipment"),
-        unknownCarrier: t("fallbacks.unknownCarrier")
-      })
+      mapShipmentToOverview(shipment, shipmentFallbacks)
       );
       setAllShipments(userShipments);
       setDetailShipment((current) => {
         if (!current) return null;
         const matchedShipment = userShipments.find((shipment) =>
-        shipment.shipmentId === current.shipmentId || shipment.id === current.id
+        isSameShipment(shipment, current)
         );
         return matchedShipment ? toDetailShipment(matchedShipment) : null;
       });
@@ -448,7 +519,7 @@ const ShippingOverviewMap: React.FC = () => {
         if (!current) return null;
         return (
         userShipments.find((shipment) =>
-        shipment.shipmentId === current.shipmentId || shipment.id === current.id
+        isSameShipment(shipment, current)
         ) ||
         null
         );
@@ -462,7 +533,7 @@ const ShippingOverviewMap: React.FC = () => {
         setIsLoading(false);
       }
     }
-  }, [t]);
+  }, [shipmentFallbacks]);
 
   useEffect(() => {
     void loadUserShipments(true);
@@ -1023,7 +1094,7 @@ const ShippingOverviewMap: React.FC = () => {
               <ShipmentDetails
                 shipment={detailShipment}
                 onRefresh={() => {
-                  void loadUserShipments(false);
+                  void refreshDetailShipment();
                 }} />
             </div>
           </DialogContent>

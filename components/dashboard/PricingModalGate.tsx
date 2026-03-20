@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, authTokenStore, isUnauthorizedApiError } from "@/lib/apiClient";
+import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import {
   resolveSubscriptionState,
   type SubscriptionApiPayload } from
@@ -183,7 +184,7 @@ export default function PricingModalGate() {
     }
   }, []);
 
-  const loadCurrentPlan = useCallback(async () => {
+  const loadCurrentPlan = useCallback(async (options?: { force?: boolean }) => {
     if (loading || !user || user.user_type === "b2c") {
       setOpen(false);
       return;
@@ -198,8 +199,8 @@ export default function PricingModalGate() {
     }
 
     try {
-      const payload = await api.get<SubscriptionApiPayload>("/subscription", {
-        disableResponseCache: true
+      const payload: SubscriptionApiPayload = await getSubscriptionApiPayload({
+        force: options?.force === true
       });
       const resolved = resolveSubscriptionState(payload);
       const productsLimit =
@@ -288,7 +289,7 @@ export default function PricingModalGate() {
     );
 
     if (paymentStatus.status === "paid") {
-      await loadCurrentPlan();
+      await loadCurrentPlan({ force: true });
       return "paid" as const;
     }
 
@@ -440,7 +441,7 @@ export default function PricingModalGate() {
         title: "Đã ghi nhận thanh toán",
         description: "Đang xác nhận giao dịch và cập nhật gói dịch vụ của bạn..."
       });
-      void loadCurrentPlan();
+      void loadCurrentPlan({ force: true });
     } else {
       setPendingUpgrade(null, null, null, null);
       toast({

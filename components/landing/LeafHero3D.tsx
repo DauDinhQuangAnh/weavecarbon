@@ -962,7 +962,6 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import { useEffect, useRef, useState } from "react";
 
 const LeafHero3D = () => {
@@ -1064,15 +1063,16 @@ const LeafHero3D = () => {
     scene.add(pointLight);
     glowLightRef.current = pointLight;
 
+    // Use lightweight scene lights so we don't need a large HDR environment file.
+    const fillLight = new THREE.HemisphereLight(0xf4fff6, 0x1f2f24, 0.78);
+    scene.add(fillLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.05);
+    keyLight.position.set(2.2, 3.4, 4.2);
+    scene.add(keyLight);
+
     // --- 2. LOADING MANAGER (CHÌA KHÓA VẤN ĐỀ) ---
     const manager = new THREE.LoadingManager();
-
-    const rgbeLoader = new RGBELoader(manager); // <--- QUAN TRỌNG: Truyền manager vào đây
-    rgbeLoader.load("/hdri/studio_kominka.hdr", (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      scene.environment = texture;
-      // scene.background = texture;
-    });
 
     // Cập nhật % loading
     manager.onProgress = (url, itemsLoaded, itemsTotal) => {
@@ -1270,7 +1270,7 @@ const LeafHero3D = () => {
           // Apply scale
           leafModelRef.current.scale.set(LEAF_SCALE, LEAF_SCALE, LEAF_SCALE);
 
-          // Configure materials to receive HDRI environment lighting
+          // Configure materials for the scene lighting and fade transition.
           leafModelRef.current.traverse((child) => {
             if (child instanceof THREE.Mesh) {
               const materials = Array.isArray(child.material)
@@ -1278,7 +1278,6 @@ const LeafHero3D = () => {
                 : [child.material];
 
               materials.forEach((mat) => {
-                // Ensure material can receive HDRI environment lighting
                 if (
                   mat instanceof THREE.MeshStandardMaterial ||
                   mat instanceof THREE.MeshPhysicalMaterial

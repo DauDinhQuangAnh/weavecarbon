@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
+import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import {
   resolveSubscriptionState,
   type SubscriptionApiPayload
@@ -163,9 +164,8 @@ export default function DashboardSidebarShell({
       try {
         const fallbackPlan =
           resolvedCompany?.current_plan || company?.current_plan || null;
-        const subscription = await api.get<SubscriptionApiPayload>("/subscription", {
-          disableResponseCache: true
-        });
+        const subscription: SubscriptionApiPayload =
+          await getSubscriptionApiPayload();
         const resolved = resolveSubscriptionState(subscription, {
           fallbackPlan
         });
