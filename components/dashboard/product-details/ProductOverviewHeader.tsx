@@ -103,45 +103,25 @@ const ProductOverviewHeader: React.FC<ProductOverviewHeaderProps> = ({
   };
 
   return (
-    <div className="mb-6 space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-          <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 sm:h-14 sm:w-14">
-              <Package className="h-6 w-6 text-slate-700 sm:h-7 sm:w-7" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="break-words text-lg font-bold text-slate-900 sm:text-xl">
-                {product.productName}
-              </h1>
-              <p className="break-all text-sm text-slate-600">
-                {tProductDetail("header.skuLabel")}: {product.productCode}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex w-full flex-col gap-3 lg:w-auto lg:items-end">
-            <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3 lg:justify-end">
-              <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                <Package className="h-4 w-4" />
-                <span>{toDisplayText(product.category, productTypeLabels)}</span>
+    <div className="mb-4 sm:mb-6">
+      <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 sm:h-12 sm:w-12">
+                <Package className="h-5 w-5 text-slate-700 sm:h-6 sm:w-6" />
               </div>
-
-              <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                <Globe className="h-4 w-4" />
-                <span>{toDisplayText(product.destinationMarket, marketLabels)}</span>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                <Scale className="h-4 w-4" />
-                <span>
-                  {`${(product.weight || "").trim()} ${(product.unit || "").trim()}`.trim() ||
-                    tSummary("na")}
-                </span>
+              <div className="min-w-0">
+                <h1 className="break-words text-base font-bold text-slate-900 sm:text-lg">
+                  {product.productName}
+                </h1>
+                <p className="break-all text-xs text-slate-600 sm:text-sm">
+                  {tProductDetail("header.skuLabel")}: {product.productCode}
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
               <Badge className={`${PRODUCT_STATUS_CLASS[productStatus]} whitespace-nowrap font-medium`}>
                 {productStatusLabelMap[productStatus]}
               </Badge>
@@ -151,6 +131,25 @@ const ProductOverviewHeader: React.FC<ProductOverviewHeaderProps> = ({
               </Badge>
             </div>
           </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:text-sm">
+              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>{toDisplayText(product.category, productTypeLabels)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:text-sm">
+              <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>{toDisplayText(product.destinationMarket, marketLabels)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:text-sm">
+              <Scale className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>
+                {`${(product.weight || "").trim()} ${(product.unit || "").trim()}`.trim() ||
+                  tSummary("na")}
+              </span>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

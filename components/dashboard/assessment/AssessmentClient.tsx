@@ -1586,7 +1586,7 @@ export default function AssessmentClient({
             </CardDescription>
           }
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 pb-4 pt-3 md:p-6">
           <StepContent
             currentStep={currentStep}
             data={productData}
@@ -1610,12 +1610,12 @@ export default function AssessmentClient({
         </CardContent>
       </Card>
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:flex sm:items-center sm:justify-between">
         <Button
           variant="outline"
           onClick={handleBack}
           disabled={currentStep === 1 && !isModalMode}
-          className="gap-2 w-full sm:w-auto">
+          className="w-full gap-2 whitespace-nowrap sm:w-auto">
 
           <ArrowLeft className="w-4 h-4" />
           {isModalMode && currentStep === 1 ? t("buttons.close") : t("buttons.back")}
@@ -1625,7 +1625,7 @@ export default function AssessmentClient({
         <Button
           onClick={handleNext}
           disabled={!canProceed()}
-          className="gap-2 w-full sm:w-auto">
+          className="w-full gap-2 whitespace-nowrap sm:w-auto">
 
             {t("buttons.next")}
             <ArrowRight className="w-4 h-4" />
@@ -1634,7 +1634,7 @@ export default function AssessmentClient({
         <Button
           variant="outline"
           onClick={onClose}
-          className="gap-2 w-full sm:w-auto">
+          className="w-full gap-2 whitespace-nowrap sm:w-auto">
 
             {t("buttons.close")}
             <CheckCircle2 className="w-4 h-4" />
@@ -1643,7 +1643,7 @@ export default function AssessmentClient({
         <Button
           variant="outline"
           onClick={() => router.push(appRoutes.toAppPath("/products"))}
-          className="gap-2 w-full sm:w-auto">
+          className="w-full gap-2 whitespace-nowrap sm:w-auto">
 
             {t("buttons.backToProducts")}
             <CheckCircle2 className="w-4 h-4" />

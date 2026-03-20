@@ -801,6 +801,18 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
           }
         }
 
+        const shouldPreservePublishedStatus =
+          Boolean(prefetchedProduct) &&
+          prefetchedProduct?.id === hydratedProduct.id &&
+          isPublishedProductStatus(prefetchedProduct?.status) &&
+          !isPublishedProductStatus(hydratedProduct.status);
+        if (shouldPreservePublishedStatus) {
+          hydratedProduct = {
+            ...hydratedProduct,
+            status: "published"
+          };
+        }
+
         if (!cancelled) {
           setProduct(hydratedProduct);
           setShipmentTransportSnapshot(nextShipmentSnapshot);
@@ -1740,7 +1752,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             <Card className="border border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+              <CardHeader className="px-4 py-3 sm:p-6 border-b border-slate-200 bg-slate-50/70">
                 <CardTitle className="text-lg">
                   {t("productionInfo.title")}
                 </CardTitle>
@@ -1799,7 +1811,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
             
             <Card className="border border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+              <CardHeader className="px-4 py-3 sm:p-6 border-b border-slate-200 bg-slate-50/70">
                 <CardTitle className="text-lg">
                   {t("logisticsInfo.title")}
                 </CardTitle>
@@ -1868,46 +1880,74 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
           
           <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+            <CardHeader className="px-4 py-3 sm:p-6 border-b border-slate-200 bg-slate-50/70">
               <CardTitle className="text-lg">
                 {t("additionalInfo.title")}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm pt-4">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-600">
-                  {t("additionalInfo.status")}
-                </span>
-                <Badge className={STATUS_CONFIG[product.status].className}>
-                  {STATUS_CONFIG[product.status].label}
-                </Badge>
+            <CardContent className="text-sm pt-4">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:hidden">
+                <div className="min-w-0">
+                  <p className="text-slate-600">{t("additionalInfo.status")}</p>
+                  <Badge className={`${STATUS_CONFIG[product.status].className} mt-1`}>
+                    {STATUS_CONFIG[product.status].label}
+                  </Badge>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-slate-600">{t("additionalInfo.version")}</p>
+                  <p className="font-medium text-slate-900">v{product.version || 1}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-slate-600">{t("additionalInfo.quantity")}</p>
+                  <p className="font-medium text-slate-900">
+                    {product.quantity?.toLocaleString(displayLocale) || t("na")} {t("additionalInfo.products")}
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-slate-600">{t("additionalInfo.createdAt")}</p>
+                  <p className="font-medium text-slate-900">{new Date(product.createdAt).toLocaleDateString(displayLocale)}</p>
+                </div>
+                <div className="min-w-0 col-span-2">
+                  <p className="text-slate-600">{t("additionalInfo.updatedAt")}</p>
+                  <p className="font-medium text-slate-900">{new Date(product.updatedAt).toLocaleDateString(displayLocale)}</p>
+                </div>
               </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-600">
-                  {t("additionalInfo.version")}
-                </span>
-                <span>v{product.version || 1}</span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-600">
-                  {t("additionalInfo.quantity")}
-                </span>
-                <span>
-                  {product.quantity?.toLocaleString(displayLocale) || t("na")}{" "}
-                  {t("additionalInfo.products")}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-600">
-                  {t("additionalInfo.createdAt")}
-                </span>
-                <span>{new Date(product.createdAt).toLocaleDateString(displayLocale)}</span>
-              </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-600">
-                  {t("additionalInfo.updatedAt")}
-                </span>
-                <span>{new Date(product.updatedAt).toLocaleDateString(displayLocale)}</span>
+
+              <div className="hidden space-y-3 sm:block">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">
+                    {t("additionalInfo.status")}
+                  </span>
+                  <Badge className={STATUS_CONFIG[product.status].className}>
+                    {STATUS_CONFIG[product.status].label}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">
+                    {t("additionalInfo.version")}
+                  </span>
+                  <span>v{product.version || 1}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">
+                    {t("additionalInfo.quantity")}
+                  </span>
+                  <span>
+                    {product.quantity?.toLocaleString(displayLocale) || t("na")} {t("additionalInfo.products")}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">
+                    {t("additionalInfo.createdAt")}
+                  </span>
+                  <span>{new Date(product.createdAt).toLocaleDateString(displayLocale)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">
+                    {t("additionalInfo.updatedAt")}
+                  </span>
+                  <span>{new Date(product.updatedAt).toLocaleDateString(displayLocale)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>

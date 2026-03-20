@@ -343,9 +343,9 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
     <TooltipProvider>
       <div className="space-y-4 md:space-y-6">
         <Card>
-          <CardHeader className="pb-3 md:pb-4">
-            <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2">
+          <CardHeader className="px-3 pb-3 pt-3 md:px-6 md:pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <CardTitle className="text-lg">{t("mainMaterialsTitle")}</CardTitle>
                 <Tooltip>
                   <TooltipTrigger>
@@ -356,7 +356,7 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="flex w-full items-center justify-start gap-2 md:w-auto md:justify-end">
+              <div className="flex shrink-0 items-center justify-end gap-2">
                 {isValidTotal ? (
                   <Badge
                     variant="outline"
@@ -378,7 +378,7 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-3 md:space-y-4">
+          <CardContent className="space-y-3 px-3 pb-3 md:space-y-3 md:px-6 md:pb-6">
             {data.materials.map((material, index) => {
               const extMaterial = material as ExtendedMaterialInput;
               return (

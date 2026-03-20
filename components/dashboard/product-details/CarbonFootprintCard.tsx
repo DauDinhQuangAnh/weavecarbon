@@ -38,7 +38,7 @@ const CarbonFootprintCard: React.FC<CarbonFootprintCardProps> = ({
           : "border-slate-200 bg-white"
       }`}
     >
-      <CardHeader className="border-b border-slate-200 bg-slate-50/70 pb-2">
+      <CardHeader className="border-b border-slate-200 bg-slate-50/70 px-4 pt-3 pb-2 sm:px-6 sm:pt-6 sm:pb-2">
         <CardTitle className="flex flex-col gap-2 text-lg sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Leaf className="h-5 w-5 text-primary" />

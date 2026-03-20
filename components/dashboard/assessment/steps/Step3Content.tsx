@@ -201,7 +201,7 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
       ) : null}
 
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className="px-3 pb-3 pt-3 md:px-6 md:pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Factory className="w-5 h-5 text-primary" />
@@ -213,13 +213,13 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {PRODUCTION_PROCESSES.map((process) => (
               <label
                 key={process.value}
                 className={`
-                  flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors
+                  flex items-center gap-3 rounded-lg border px-3 py-3 cursor-pointer transition-colors md:p-4
                   ${
                     data.productionProcesses?.includes(process.value)
                       ? "bg-primary/5 border-primary/30"
@@ -253,7 +253,7 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
       </Card>
 
       <Card>
-        <CardHeader className="pb-4">
+        <CardHeader className="px-3 pb-3 pt-3 md:px-6 md:pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-yellow-500/10">
@@ -281,13 +281,13 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-3 pb-3 md:px-6 md:pb-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {ENERGY_SOURCES.map((source) => (
               <label
                 key={source.value}
                 className={`
-                  flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                  flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors md:p-3
                   ${
                     isSourceSelected(source.value)
                       ? "bg-yellow-500/5 border-yellow-500/30"
@@ -315,7 +315,7 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
           </div>
 
           {data.energySources.length > 1 ? (
-            <div className="mt-6 p-4 rounded-lg border bg-muted/30">
+            <div className="mt-6 rounded-lg border bg-muted/30 px-3 py-3 md:p-4">
               <p className="text-sm font-medium mb-4">{t("energy.distributionTitle")}</p>
               <div className="space-y-4">
                 {data.energySources.map((energy) => {

@@ -65,7 +65,7 @@ const ComplianceStatus: React.FC<ComplianceStatusProps> = ({
   if (locked) {
     return (
       <Card className="border border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+        <CardHeader className="border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShieldCheck className="w-5 h-5 text-primary" />
@@ -99,7 +99,7 @@ const ComplianceStatus: React.FC<ComplianceStatusProps> = ({
 
   return (
     <Card className="border border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+      <CardHeader className="border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <ShieldCheck className="w-5 h-5 text-primary" />

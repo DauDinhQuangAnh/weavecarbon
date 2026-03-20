@@ -1147,8 +1147,32 @@ const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
   const createdAt = toIsoString(source.createdAt ?? source.created_at);
   const updatedAt = toIsoString(source.updatedAt ?? source.updated_at);
 
-  const status = toProductStatus(source.status);
-  const rawStatus = normalizeProductStatusToken(source.status);
+  const explicitStatusToken = normalizeProductStatusToken(
+    source.status ?? source.product_status ?? source.state
+  );
+  const hasPublishedTimestamp = Boolean(
+    asNonEmptyString(source.publishedAt ?? source.published_at)
+  );
+  const booleanPublishFlag = [
+    source.isPublished,
+    source.is_published,
+    source.active,
+    source.is_active
+  ].find((candidate) => typeof candidate === "boolean") as boolean | undefined;
+
+  const status: ProductStatus =
+    isPublishedProductStatus(explicitStatusToken) ?
+      "published" :
+    explicitStatusToken === "draft" ?
+      "draft" :
+    hasPublishedTimestamp ?
+      "published" :
+    booleanPublishFlag === true ?
+      "published" :
+      "draft";
+  const rawStatus = normalizeProductStatusToken(
+    source.status ?? source.product_status ?? source.state
+  );
   if (rawStatus === "archived") {
     return null;
   }
