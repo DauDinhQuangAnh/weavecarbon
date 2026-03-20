@@ -1388,6 +1388,8 @@
   "settings": {
     "title": "Cài đặt",
     "subtitle": "Quản lý hệ thống và người dùng",
+    "mobileLanguageTitle": "Ngôn ngữ",
+    "mobileLanguageDesc": "Đổi ngôn ngữ hiển thị cho ứng dụng.",
     "tabs": {
       "system": "Hệ thống",
       "users": "Người dùng",

@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Building2, Save, X, Zap, User, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,6 +118,7 @@ const isEndpointUnavailableError = (error: unknown) => {
 
 const SystemSettings: React.FC = () => {
   const t = useTranslations("settings.system");
+  const tSettings = useTranslations("settings");
   const tPricing = useTranslations("pricingModal");
   const locale = useLocale();
   const isVi = locale === "vi";
@@ -669,47 +671,61 @@ const SystemSettings: React.FC = () => {
                 {t("personalInfoDesc")}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="w-full md:w-auto">
               {!personalEditMode ?
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
-                type="button"
-                onClick={() => setPersonalEditMode(true)}>
+              <div className="grid grid-cols-2 gap-2 md:flex">
+                  <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                  type="button"
+                  onClick={() => setPersonalEditMode(true)}>
 
-                  {t("edit")}
-                </Button> :
+                    {t("edit")}
+                  </Button>
+                  <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                  type="button"
+                  onClick={() => setPasswordDialogOpen(true)}>
+
+                    <KeyRound className="w-4 h-4" />
+                    {t("changePassword")}
+                  </Button>
+                </div> :
 
               <>
-                  <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-slate-700 hover:bg-slate-200"
-                  onClick={handleCancelPersonalEdit}>
+                  <div className="flex gap-2">
+                    <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-slate-700 hover:bg-slate-200"
+                    onClick={handleCancelPersonalEdit}>
 
-                    <X className="w-4 h-4 mr-1" /> {t("cancel")}
-                  </Button>
-                  <Button
-                  size="sm"
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={handlePersonalSave}
-                  disabled={personalSaving}>
+                      <X className="w-4 h-4 mr-1" /> {t("cancel")}
+                    </Button>
+                    <Button
+                    size="sm"
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    onClick={handlePersonalSave}
+                    disabled={personalSaving}>
 
-                    <Save className="w-4 h-4 mr-1" /> {t("save")}
-                  </Button>
+                      <Save className="w-4 h-4 mr-1" /> {t("save")}
+                    </Button>
+                    <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                    type="button"
+                    onClick={() => setPasswordDialogOpen(true)}>
+
+                      <KeyRound className="w-4 h-4" />
+                      {t("changePassword")}
+                    </Button>
+                  </div>
                 </>
               }
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
-                type="button"
-                onClick={() => setPasswordDialogOpen(true)}>
-
-                <KeyRound className="w-4 h-4" />
-                {t("changePassword")}
-              </Button>
             </div>
           </div>
         </CardHeader>
@@ -744,6 +760,17 @@ const SystemSettings: React.FC = () => {
                 className="border-slate-300 bg-slate-100 text-slate-800 disabled:text-slate-800 disabled:opacity-100"
                 disabled />
 
+            </div>
+            <div className="md:col-span-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1.5">
+                  <Label>{tSettings("mobileLanguageTitle")}</Label>
+                  <p className="text-xs text-slate-600">{tSettings("mobileLanguageDesc")}</p>
+                </div>
+                <div className="shrink-0">
+                  <LanguageToggle />
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

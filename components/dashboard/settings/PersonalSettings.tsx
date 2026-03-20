@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Save, X, User, KeyRound, CalendarDays, Mail } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ const isEndpointUnavailableError = (error: unknown) => {
 
 const PersonalSettings: React.FC = () => {
   const t = useTranslations("settings.system");
+  const tSettings = useTranslations("settings");
   const locale = useLocale();
   const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
   const { user, updateUser, refreshUser } = useAuth();
@@ -296,43 +298,56 @@ const PersonalSettings: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 lg:justify-end">
+            <div className="w-full lg:w-auto">
               {!personalEditMode ?
-              <Button
-                variant="outline"
-                className="gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
-                type="button"
-                onClick={() => setPersonalEditMode(true)}>
+              <div className="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+                  <Button
+                  variant="outline"
+                  className="w-full gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                  type="button"
+                  onClick={() => setPersonalEditMode(true)}>
 
-                  {t("edit")}
-                </Button> :
+                    {t("edit")}
+                  </Button>
+                  <Button
+                  variant="outline"
+                  className="w-full gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                  type="button"
+                  onClick={() => setPasswordDialogOpen(true)}>
+
+                    <KeyRound className="w-4 h-4" />
+                    {t("changePassword")}
+                  </Button>
+                </div> :
 
               <>
-                  <Button
-                  variant="ghost"
-                  className="text-slate-700 hover:bg-slate-200"
-                  onClick={handleCancelPersonalEdit}>
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <Button
+                    variant="ghost"
+                    className="text-slate-700 hover:bg-slate-200"
+                    onClick={handleCancelPersonalEdit}>
 
-                    <X className="w-4 h-4 mr-1" /> {t("cancel")}
-                  </Button>
-                  <Button
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={handlePersonalSave}
-                  disabled={personalSaving}>
+                      <X className="w-4 h-4 mr-1" /> {t("cancel")}
+                    </Button>
+                    <Button
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    onClick={handlePersonalSave}
+                    disabled={personalSaving}>
 
-                    <Save className="w-4 h-4 mr-1" /> {t("save")}
-                  </Button>
+                      <Save className="w-4 h-4 mr-1" /> {t("save")}
+                    </Button>
+                    <Button
+                    variant="outline"
+                    className="gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                    type="button"
+                    onClick={() => setPasswordDialogOpen(true)}>
+
+                      <KeyRound className="w-4 h-4" />
+                      {t("changePassword")}
+                    </Button>
+                  </div>
                 </>
               }
-              <Button
-                variant="outline"
-                className="gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
-                type="button"
-                onClick={() => setPasswordDialogOpen(true)}>
-
-                <KeyRound className="w-4 h-4" />
-                {t("changePassword")}
-              </Button>
             </div>
           </div>
         </CardHeader>
@@ -373,6 +388,19 @@ const PersonalSettings: React.FC = () => {
                 className="border-slate-200 bg-white/85 text-slate-800 disabled:text-slate-800 disabled:opacity-100"
                 disabled />
 
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 md:col-span-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {tSettings("mobileLanguageTitle")}
+                  </Label>
+                  <p className="text-xs text-slate-600">{tSettings("mobileLanguageDesc")}</p>
+                </div>
+                <div className="shrink-0">
+                  <LanguageToggle />
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

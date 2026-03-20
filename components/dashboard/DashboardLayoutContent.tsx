@@ -54,16 +54,17 @@ export default function DashboardLayoutContent({
   const isAiSettingsPage =
     pathname === "/settings/ai" || pathname?.startsWith("/settings/ai/");
   const isOverviewPage = pathname === "/overview" || pathname === "/demo/overview";
+  const shouldShowMobileBackButton = !isOverviewPage;
   const mobileContentTopPadding =
     isProductsPage
-      ? "pt-[4.9rem]"
+      ? "pt-[4.5rem]"
       : isLogisticsPage
-        ? "pt-[5rem]"
+        ? "pt-[4.6rem]"
         : isExportPage
-          ? "pt-[5rem]"
+          ? "pt-[4.6rem]"
           : isAiSettingsPage
-            ? "pt-[4.9rem]"
-          : "pt-[5.5rem]";
+            ? "pt-[4.5rem]"
+          : "pt-[4.4rem]";
 
   useEffect(() => {
     if (loading || !user || user.user_type === "b2c") return;
@@ -142,30 +143,14 @@ export default function DashboardLayoutContent({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-border bg-card/95 py-2.5 backdrop-blur lg:sticky lg:top-0 lg:z-20 lg:bg-card lg:py-3">
+      <header className="fixed inset-x-0 top-0 z-30 border-b border-slate-200 bg-white/95 py-2.5 backdrop-blur lg:sticky lg:top-0 lg:z-20 lg:bg-white lg:py-3">
         <div className="flex w-full items-center justify-between gap-3 px-2.5 md:px-3 lg:px-4">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <DashboardHeaderButton />
-            {!isOverviewPage ? (
-              <button
-                type="button"
-                aria-label="Go back"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-foreground hover:bg-muted lg:hidden"
-                onClick={() => {
-                  if (typeof window !== "undefined" && window.history.length > 1) {
-                    router.back();
-                    return;
-                  }
-                  router.push(pathname?.startsWith("/demo/") ? "/demo/overview" : "/overview");
-                }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-            ) : null}
             <div className="min-w-0 overflow-hidden">
               <div className="flex min-w-0 items-baseline gap-2 overflow-hidden whitespace-nowrap">
                 <h1
-                  className="truncate text-xl font-extrabold leading-tight tracking-tight text-[#2c441d] md:text-2xl"
+                  className="truncate text-xl font-extrabold leading-tight tracking-tight text-slate-800 md:text-2xl"
                   style={{ fontFamily: "\"Plus Jakarta Sans\", system-ui, sans-serif" }}
                 >
                   {title}
@@ -183,7 +168,25 @@ export default function DashboardLayoutContent({
               </div>
             </div>
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 lg:hidden">
+            {shouldShowMobileBackButton ? (
+              <button
+                type="button"
+                aria-label="Go back"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground hover:bg-muted"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.history.length > 1) {
+                    router.back();
+                    return;
+                  }
+                  router.push(pathname?.startsWith("/demo/") ? "/demo/overview" : "/overview");
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+          <div className="hidden shrink-0 lg:block">
             <LanguageToggle />
           </div>
         </div>

@@ -1388,6 +1388,8 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Manage system and users",
+    "mobileLanguageTitle": "Language",
+    "mobileLanguageDesc": "Change the app display language.",
     "tabs": {
       "system": "System",
       "users": "Users",
