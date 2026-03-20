@@ -125,13 +125,6 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const formatExactValue = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
   const mapSubject = shipment?.id || shipment?.productName || "";
-  const mapSubjectMeta = shipment ?
-  [
-  shipment.productName && shipment.productName !== shipment.id ? shipment.productName : null,
-  shipment.sku ? `${t("skuLabel")}: ${shipment.sku}` : null].
-  filter((value): value is string => Boolean(value)).
-  join(" | ") :
-  undefined;
   const statusPalette =
   shipment && shipment.status in STATUS_PALETTE ?
   STATUS_PALETTE[shipment.status as keyof typeof STATUS_PALETTE] :
@@ -238,19 +231,20 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
         legs={shipment.legs}
         onRefresh={onRefresh}
         mapSubject={mapSubject}
-        mapSubjectMeta={mapSubjectMeta} />
+        stackSubjectOnMobile
+        showSubjectMeta={false} />
 
 
       
       <Card className="border border-slate-200 shadow-sm">
-        <CardHeader className={`border-b ${statusPalette.header}`}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className={`border-b p-4 sm:p-6 ${statusPalette.header}`}>
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Package className="h-5 w-5 shrink-0" />
                 <span className="truncate">{shipment.productName}</span>
               </CardTitle>
-              <CardDescription className="break-words text-slate-600">
+              <CardDescription className="mt-1 break-words text-xs text-slate-600 sm:text-sm">
                 {shipment.id} | {t("containerLabel")}: {shipment.containerNo}
               </CardDescription>
             </div>
@@ -259,45 +253,45 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6 px-2 pt-3 md:px-6">
+        <CardContent className="space-y-5 px-3 pt-3 sm:space-y-6 sm:px-4 md:px-6">
           
-          <div className={`rounded-lg border p-4 ${statusPalette.location}`}>
+          <div className={`rounded-lg border p-3 sm:p-4 ${statusPalette.location}`}>
             <div className="mb-2 flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full animate-pulse ${statusPalette.locationDot}`} />
-              <span className="font-medium">{t("currentLocation")}</span>
+              <span className="text-sm font-medium sm:text-base">{t("currentLocation")}</span>
             </div>
-            <p className={`break-words text-lg font-semibold ${statusPalette.locationText}`}>
+            <p className={`break-words text-base font-semibold sm:text-lg ${statusPalette.locationText}`}>
               {shipment.currentLocation}
             </p>
           </div>
 
           
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left md:text-center">
-              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
-                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-left md:p-3 md:text-center">
+              <div className="flex items-start gap-2.5 md:flex-col md:items-center md:gap-1">
+                <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 sm:h-5 sm:w-5" />
                 <div className="min-w-0">
                   <p className="text-xs text-slate-500">{t("departureDate")}</p>
-                  <p className="font-medium text-slate-800">
+                  <p className="text-sm font-medium text-slate-800">
                     {formatShipmentDate(shipment.departureDate, displayLocale)}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left md:text-center">
-              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
-                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-left md:p-3 md:text-center">
+              <div className="flex items-start gap-2.5 md:flex-col md:items-center md:gap-1">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 sm:h-5 sm:w-5" />
                 <div className="min-w-0">
                   <p className="text-xs text-slate-500">{t("estimatedArrival")}</p>
-                  <p className="font-medium text-slate-800">
+                  <p className="text-sm font-medium text-slate-800">
                     {formatShipmentDateTime(shipment.estimatedArrival, displayLocale)}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-left md:col-span-1 md:text-center">
-              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
-                <Anchor className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+            <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-left md:col-span-1 md:p-3 md:text-center">
+              <div className="flex items-start gap-2.5 md:flex-col md:items-center md:gap-1">
+                <Anchor className="mt-0.5 h-4 w-4 shrink-0 text-slate-500 sm:h-5 sm:w-5" />
                 <div className="min-w-0">
                   <p className="text-xs text-slate-500">{t("carrier")}</p>
                   <p className="break-words text-sm font-medium text-slate-800 md:truncate">
@@ -306,14 +300,14 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                 </div>
               </div>
             </div>
-            <div className="col-span-2 rounded-lg border border-orange-200 bg-orange-50/70 p-3 text-left md:col-span-1 md:text-center">
-              <div className="flex items-start gap-3 md:flex-col md:items-center md:gap-1">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-xs font-bold text-orange-500">
+            <div className="col-span-2 rounded-lg border border-orange-200 bg-orange-50/70 p-2.5 text-left md:col-span-1 md:p-3 md:text-center">
+              <div className="flex items-start gap-2.5 md:flex-col md:items-center md:gap-1">
+                <div className="flex h-4 w-4 shrink-0 items-center justify-center text-[10px] font-bold text-orange-500 sm:h-5 sm:w-5 sm:text-xs">
                   CO2
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs text-slate-500">{t("emissions")}</p>
-                  <p className="font-medium text-orange-600">
+                  <p className="text-sm font-medium text-orange-600">
                     {formatExactValue(shipment.totalCO2)} {t("units.kg")}
                   </p>
                 </div>
@@ -323,8 +317,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
           
           <div>
-            <h4 className="font-medium mb-4">{t("timeline")}</h4>
-            <div className="space-y-4">
+            <h4 className="mb-3 text-sm font-medium sm:mb-4 sm:text-base">{t("timeline")}</h4>
+            <div className="space-y-3 sm:space-y-4">
               {shipment.legs.map((leg, index) => {
                 const Icon = getModeIcon(leg.mode);
                 const isComplete =
@@ -338,11 +332,11 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                 return (
                   <div
                     key={leg.id}
-                    className="flex gap-4 rounded-lg border border-slate-200 bg-slate-50/40 p-3">
+                    className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50/40 p-2.5 sm:gap-4 sm:p-3">
 
                     <div className="flex flex-col items-center">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${
                         isComplete ?
                         "bg-emerald-100 text-emerald-600" :
                         isActive ?
@@ -361,25 +355,23 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
                       }
                     </div>
                     <div className="flex-1 pb-1">
-                      <div className="flex items-center justify-between">
-                        <h5 className="font-medium text-slate-800">
+                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <h5 className="text-sm font-medium text-slate-800 sm:text-base">
                           {t("legNumber")} {leg.legNumber}:{" "}
                           {getModeLabel(leg.mode)}
                         </h5>
                         <Badge
-                          className={
-                          leg.type === "international" ?
+                          className={`${leg.type === "international" ?
                           "border border-sky-200 bg-sky-50 text-sky-700 text-xs" :
-                          "border border-slate-200 bg-slate-50 text-slate-700 text-xs"
-                          }>
-
+                          "border border-slate-200 bg-slate-50 text-slate-700 text-xs"} self-start sm:self-auto`}
+                        >
                           {t("legNumber")} {leg.legNumber ?? index + 1}
                         </Badge>
                       </div>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 break-words text-xs text-slate-600 sm:text-sm">
                         {leg.origin.name} {"->"} {leg.destination.name}
                       </p>
-                      <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 sm:gap-x-4">
                         <span>{formatDistanceKm(leg.distanceKm)} {t("units.km")}</span>
                         <span className="text-orange-600">
                           {formatExactValue(leg.co2Kg)} {t("units.kgCo2")}
@@ -393,18 +385,8 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
           </div>
 
           
-          <div className="flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:gap-3">
-            {canCancel &&
-            <Button
-              variant="destructive"
-              className="w-full sm:flex-1"
-              onClick={() => {
-                void handleCancelShipment();
-              }}
-              disabled={isCancelling}>
-                {isCancelling ? t("cancelling") : t("cancelShipment")}
-              </Button>
-            }
+          <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:contents">
             <Button
               variant="outline"
               className="w-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 sm:flex-1"
@@ -463,6 +445,18 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
               
               {t("viewCarbonHistory")}
             </Button>
+            </div>
+            {canCancel &&
+            <Button
+              variant="destructive"
+              className="w-full sm:flex-1"
+              onClick={() => {
+                void handleCancelShipment();
+              }}
+              disabled={isCancelling}>
+                {isCancelling ? t("cancelling") : t("cancelShipment")}
+              </Button>
+            }
           </div>
         </CardContent>
       </Card>

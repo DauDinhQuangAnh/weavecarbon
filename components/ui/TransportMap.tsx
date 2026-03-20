@@ -24,6 +24,8 @@ interface TransportMapProps {
   onRefresh?: () => void;
   mapSubject?: string;
   mapSubjectMeta?: string;
+  showSubjectMeta?: boolean;
+  stackSubjectOnMobile?: boolean;
 }
 
 type RoutePoint = {
@@ -38,7 +40,9 @@ const TransportMap: React.FC<TransportMapProps> = ({
   legs,
   onRefresh,
   mapSubject,
-  mapSubjectMeta
+  mapSubjectMeta,
+  showSubjectMeta = true,
+  stackSubjectOnMobile = false
 }) => {
   const tTrack = useTranslations("trackShipment");
   const tMap = useTranslations("trackShipment.map");
@@ -518,28 +522,53 @@ const TransportMap: React.FC<TransportMapProps> = ({
           }
         }
       `}</style>
-      <CardHeader className="border-b border-slate-200 bg-slate-50/70 pb-2">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-lg">
+      <CardHeader
+        className={`border-b border-slate-200 bg-slate-50/70 p-3 pb-2 sm:p-6 sm:pb-2 ${
+          stackSubjectOnMobile ? "pt-8" : ""
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3 sm:items-center">
+          <div className="min-w-0 space-y-1">
+            {stackSubjectOnMobile && mapSubject ?
+            <div className="flex items-start gap-2 sm:hidden">
+                <Globe className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium leading-4 text-slate-700">
+                    {tMap("title.default")}
+                  </p>
+                  <p className="truncate text-lg font-semibold leading-6 text-slate-900">
+                    {mapSubject}
+                  </p>
+                </div>
+              </div> :
+            null}
+            <CardTitle
+              className={`items-center gap-2 text-lg ${stackSubjectOnMobile && mapSubject ? "hidden sm:flex" : "flex"}`}
+            >
               <Globe className="w-5 h-5 text-primary" />
               {mapSubject ?
               tMap("title.withSubject", { subject: mapSubject }) :
               tMap("title.default")}
             </CardTitle>
-            {mapSubjectMeta &&
-            <p className="pl-7 text-xs text-muted-foreground">{mapSubjectMeta}</p>
+            {showSubjectMeta && mapSubjectMeta &&
+            <p className={`${stackSubjectOnMobile && mapSubject ? "pl-6 sm:pl-7" : "pl-7"} text-xs text-muted-foreground`}>
+                {mapSubjectMeta}
+              </p>
             }
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {isAnimating &&
             <Badge variant="outline" className="animate-pulse">
                 {tMap("animating")}
               </Badge>
             }
               {onRefresh &&
-            <Button variant="outline" size="sm" onClick={onRefresh}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
+              onClick={onRefresh}>
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
                   {tTrack("refresh")}
                 </Button>
             }
@@ -609,7 +638,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
                   className={`cursor-pointer rounded-lg p-3 transition-all ${legCardClass}`}
                   onClick={() => handleLegClick(index)}>
 
-                  <div className="mb-3 sm:hidden">
+                  <div className="mb-0 sm:hidden">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
                         <div
@@ -653,9 +682,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
                           {getRouteTypeLabel(leg.routeType)}
                         </p>
                       </div>
-                      <div className="col-span-2 rounded-md bg-orange-50 px-2 py-1.5">
-                        <p className="text-[10px] text-orange-500">CO2</p>
-                        <p className="mt-0.5 text-xs font-semibold text-orange-600">
+                      <div className="col-span-2 rounded-md bg-orange-50 px-2 pt-1.5 pb-1">
+                        <p className="text-xs font-semibold text-orange-600">
                           {formatExactValue(leg.co2Kg)} {tTrack("units.kgCo2")}
                         </p>
                       </div>

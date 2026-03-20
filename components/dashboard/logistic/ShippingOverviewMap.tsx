@@ -1084,7 +1084,7 @@ const ShippingOverviewMap: React.FC = () => {
         }}>
 
         {detailShipment &&
-        <DialogContent className="h-dvh w-screen max-w-[100vw] overflow-hidden rounded-none p-0 [&>button]:right-1.5 [&>button]:top-3 [&>button]:h-10 [&>button]:w-10 [&>button>svg]:h-5 [&>button>svg]:w-5 md:[&>button]:right-3 md:[&>button]:top-3 md:[&>button]:h-8 md:[&>button]:w-8 md:[&>button>svg]:h-4 md:[&>button>svg]:w-4 md:h-[min(92dvh,56rem)] md:w-[min(96vw,68rem)] md:max-w-none md:rounded-xl">
+        <DialogContent className="h-dvh w-screen max-w-[100vw] overflow-hidden rounded-none p-0 [&>button]:fixed [&>button]:z-30 [&>button]:right-1.5 [&>button]:top-3 [&>button]:h-10 [&>button]:w-10 [&>button>svg]:h-5 [&>button>svg]:w-5 md:[&>button]:absolute md:[&>button]:right-3 md:[&>button]:top-3 md:[&>button]:h-8 md:[&>button]:w-8 md:[&>button>svg]:h-4 md:[&>button>svg]:w-4 md:h-[min(92dvh,56rem)] md:w-[min(96vw,68rem)] md:max-w-none md:rounded-xl">
             <DialogHeader className="sr-only">
               <DialogTitle>
                 {t("routeDetails")}: {detailShipment.productName}

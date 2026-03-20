@@ -146,8 +146,8 @@ const TrackShipmentClient: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-3">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-3">
         <ShipmentList
           shipments={filteredShipments}
           selectedShipment={selectedShipment}

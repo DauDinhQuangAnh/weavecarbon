@@ -69,7 +69,7 @@ const ShipmentList: React.FC<ShipmentListProps> = ({
     <div className="space-y-4 xl:col-span-1">
       
       <Card>
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="space-y-3 p-3.5 sm:p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -102,7 +102,7 @@ const ShipmentList: React.FC<ShipmentListProps> = ({
       </Card>
 
       
-      <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
+      <div className="space-y-3 xl:max-h-150 xl:overflow-y-auto xl:pr-2">
         {shipments.map((shipment) =>
         <Card
           key={shipment.id}
@@ -113,30 +113,30 @@ const ShipmentList: React.FC<ShipmentListProps> = ({
           }
           onClick={() => onSelectShipment(shipment)}>
           
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-mono text-sm text-muted-foreground">
+            <CardContent className="p-3.5 sm:p-4">
+              <div className="mb-2.5 flex items-start justify-between gap-2 sm:mb-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-mono text-xs text-muted-foreground sm:text-sm">
                     {shipment.id}
                   </p>
-                  <h3 className="font-medium">{shipment.productName}</h3>
+                  <h3 className="truncate text-sm font-medium sm:text-base">{shipment.productName}</h3>
                 </div>
-                {getStatusBadge(shipment.status)}
+                <div className="shrink-0">{getStatusBadge(shipment.status)}</div>
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
                   <MapPin className="w-3 h-3 text-green-600" />
                   <span className="truncate">{shipment.origin}</span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-muted-foreground sm:gap-2">
                   <MapPin className="w-3 h-3 text-red-600" />
                   <span className="truncate">{shipment.destination}</span>
                 </div>
               </div>
 
               {shipment.status !== "pending" &&
-            <div className="mt-3">
+            <div className="mt-2.5 sm:mt-3">
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="text-muted-foreground">
                       {t("progress")}
