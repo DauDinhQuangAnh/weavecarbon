@@ -259,7 +259,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6 pt-4">
+        <CardContent className="space-y-6 px-2 pt-3 md:px-6">
           
           <div className={`rounded-lg border p-4 ${statusPalette.location}`}>
             <div className="mb-2 flex items-center gap-2">

@@ -547,7 +547,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
         </div>
       </CardHeader>
       <CardContent className="bg-white p-0">
-        <div className="relative h-100 border-b border-slate-200 bg-slate-100/60">
+        <div className="relative h-96 border-b border-slate-200 bg-slate-100/60 md:h-100">
           {isLoading &&
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100/90">
               <div className="text-center">
