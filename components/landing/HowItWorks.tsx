@@ -9,12 +9,33 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const HowItWorks = () => {
   const t = useTranslations("howItWorks");
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+  const [reducedEffects, setReducedEffects] = useState(false);
+
+  useEffect(() => {
+    const syncReducedEffects = () => {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
+
+      setReducedEffects(
+        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6,
+      );
+    };
+
+    syncReducedEffects();
+    window.addEventListener("resize", syncReducedEffects);
+    return () => {
+      window.removeEventListener("resize", syncReducedEffects);
+    };
+  }, []);
 
   const steps = [
     {
@@ -68,6 +89,7 @@ const HowItWorks = () => {
       id="how-it-works"
       ref={sectionRef}
       className="relative -mt-8 overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,rgba(44,68,29,0.08)_22%,rgba(44,68,29,0.32)_56%,#2c441d_100%)] pt-[4.75rem] pb-14 sm:-mt-10 sm:pt-[4.75rem] sm:pb-16 md:mt-0 md:bg-linear-to-t md:from-primary md:via-primary/5 md:to-background md:py-32"
+      style={{ contain: "layout paint" }}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-8 md:hidden">
         <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-white/0 via-white/75 to-white" />
@@ -75,8 +97,16 @@ const HowItWorks = () => {
 
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-48 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div
+          className={`absolute top-1/4 -left-48 w-96 h-96 rounded-full bg-primary/5 ${
+            reducedEffects ? "opacity-60 blur-2xl" : "blur-3xl"
+          }`}
+        />
+        <div
+          className={`absolute bottom-1/4 -right-48 w-96 h-96 rounded-full bg-primary/5 ${
+            reducedEffects ? "opacity-60 blur-2xl" : "blur-3xl"
+          }`}
+        />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -110,12 +140,16 @@ const HowItWorks = () => {
         <div className="max-w-6xl mx-auto">
           <div className="relative">
             {/* Animated vertical line for mobile/tablet */}
-            <motion.div
-              initial={{ height: 0 }}
-              animate={isInView ? { height: "100%" } : { height: 0 }}
-              transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
-              className="lg:hidden absolute left-8 top-0 w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20"
-            />
+            {reducedEffects ? (
+              <div className="lg:hidden absolute left-8 top-0 h-full w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20" />
+            ) : (
+              <motion.div
+                initial={{ height: 0 }}
+                animate={isInView ? { height: "100%" } : { height: 0 }}
+                transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
+                className="lg:hidden absolute left-8 top-0 w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20"
+              />
+            )}
 
             {steps.map((step, index) => {
               const isEven = index % 2 === 0;
@@ -137,12 +171,16 @@ const HowItWorks = () => {
                           ease: "easeOut",
                           delay: index * 0.15,
                         }}
-                        className="flex-1"
+                        className="flex-1 transform-gpu"
                       >
                         <motion.div
-                          whileHover={{ scale: 1.02, y: -8 }}
+                          whileHover={reducedEffects ? undefined : { scale: 1.02, y: -8 }}
                           transition={{ duration: 0.3 }}
-                          className="relative bg-card/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 group"
+                          className={`relative rounded-3xl p-8 shadow-lg transition-all duration-300 group ${
+                            reducedEffects ?
+                              "bg-card hover:shadow-xl" :
+                              "bg-card/80 backdrop-blur-sm hover:shadow-2xl"
+                          }`}
                           style={{
                             borderWidth: "1px",
                             borderColor: step.borderColor,
@@ -161,7 +199,7 @@ const HowItWorks = () => {
                                 {step.number}
                               </span>
                               <motion.div
-                                whileHover={{ rotate: 360, scale: 1.1 }}
+                                whileHover={reducedEffects ? undefined : { rotate: 360, scale: 1.1 }}
                                 transition={{ duration: 0.6 }}
                                 className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg"
                                 style={{ background: step.gradient }}
@@ -179,22 +217,16 @@ const HowItWorks = () => {
 
                             {/* Checklist */}
                             <ul className="space-y-3">
-                              {step.items.map((item, itemIndex) => (
-                                <motion.li
+                              {step.items.map((item) => (
+                                <li
                                   key={item}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  whileInView={{ opacity: 1, x: 0 }}
-                                  viewport={{ once: true }}
-                                  transition={{
-                                    delay: index * 0.15 + itemIndex * 0.1,
-                                  }}
                                   className="flex items-start gap-3 text-sm text-muted-foreground group/item"
                                 >
                                   <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5 group-hover/item:scale-110 transition-transform" />
                                   <span className="group-hover/item:text-foreground transition-colors">
                                     {t(item)}
                                   </span>
-                                </motion.li>
+                                </li>
                               ))}
                             </ul>
                           </div>
@@ -211,7 +243,7 @@ const HowItWorks = () => {
                             duration: 0.5,
                             delay: index * 0.15 + 0.3,
                           }}
-                          className="relative"
+                          className="relative transform-gpu"
                         >
                           <div
                             className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-2xl ring-8 ring-background"
@@ -219,35 +251,32 @@ const HowItWorks = () => {
                           >
                             {step.number}
                           </div>
-                          {/* Pulse effect */}
-                          <motion.div
-                            animate={{
-                              scale: [1, 1.3, 1],
-                              opacity: [0.5, 0, 0.5],
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                              delay: index * 0.5,
-                            }}
-                            className="absolute inset-0 rounded-full -z-10"
+                          <div
+                            className="absolute inset-0 -z-10 rounded-full opacity-20 blur-md"
                             style={{ background: step.gradient }}
                           />
                         </motion.div>
 
                         {/* Connecting line */}
                         {index < steps.length - 1 && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            whileInView={{ height: "100%" }}
-                            viewport={{ once: true }}
-                            transition={{
-                              duration: 0.8,
-                              delay: index * 0.15 + 0.5,
-                            }}
-                            className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
-                            style={{ height: "calc(100% + 6rem)" }}
-                          />
+                          reducedEffects ? (
+                            <div
+                              className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
+                              style={{ height: "calc(100% + 6rem)" }}
+                            />
+                          ) : (
+                            <motion.div
+                              initial={{ height: 0 }}
+                              whileInView={{ height: "100%" }}
+                              viewport={{ once: true }}
+                              transition={{
+                                duration: 0.8,
+                                delay: index * 0.15 + 0.5,
+                              }}
+                              className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
+                              style={{ height: "calc(100% + 6rem)" }}
+                            />
+                          )
                         )}
                       </div>
 
@@ -281,10 +310,12 @@ const HowItWorks = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: index * 0.15 }}
-                        className="flex-1 pb-2 sm:pb-4"
+                        className="flex-1 pb-2 sm:pb-4 transform-gpu"
                       >
                         <div
-                          className="bg-card/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                          className={`rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                            reducedEffects ? "bg-card" : "bg-card/80 backdrop-blur-sm"
+                          }`}
                           style={{
                             borderWidth: "1px",
                             borderColor: step.borderColor,

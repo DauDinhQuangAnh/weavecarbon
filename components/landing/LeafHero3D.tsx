@@ -990,6 +990,9 @@ const LeafHero3D = () => {
   // Leaf at origin (same as Blender)
   const initialLeafPositionRef = useRef({ x: 0, y: 0, z: 0 });
   const baseLeafScaleRef = useRef(2); // Base scale for the leaf model
+  const isDocumentVisibleRef = useRef(true);
+  const isHeroVisibleRef = useRef(true);
+  const lastRenderTimeRef = useRef(0);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -997,6 +1000,16 @@ const LeafHero3D = () => {
     const container = containerRef.current; // Capture for cleanup
     const width = container.clientWidth;
     const height = container.clientHeight;
+    const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
+    const maxPixelRatio =
+      prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6 ?
+        1 :
+        1.5;
+    const targetRenderFps = maxPixelRatio === 1 ? 24 : 30;
 
     // --- 1. SETUP THREE.JS ---
     const scene = new THREE.Scene();
@@ -1048,12 +1061,17 @@ const LeafHero3D = () => {
       height,
     );
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: maxPixelRatio > 1,
+      powerPreference:
+        maxPixelRatio > 1 ? "high-performance" : "low-power",
+    });
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setSize(width, height);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -1070,6 +1088,41 @@ const LeafHero3D = () => {
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.05);
     keyLight.position.set(2.2, 3.4, 4.2);
     scene.add(keyLight);
+
+    const resetAnimationClocks = () => {
+      lastRenderTimeRef.current = 0;
+      lastTimeRef.current = 0;
+    };
+
+    const handleVisibilityChange = () => {
+      isDocumentVisibleRef.current = document.visibilityState === "visible";
+      if (isDocumentVisibleRef.current) {
+        resetAnimationClocks();
+      }
+    };
+
+    let viewportObserver: IntersectionObserver | null = null;
+    if ("IntersectionObserver" in window) {
+      viewportObserver = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry) return;
+
+          isHeroVisibleRef.current = entry.isIntersecting;
+          if (isHeroVisibleRef.current) {
+            resetAnimationClocks();
+          }
+        },
+        {
+          root: null,
+          rootMargin: "0px",
+          threshold: 0.05,
+        },
+      );
+      viewportObserver.observe(container);
+    }
+
+    handleVisibilityChange();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // --- 2. LOADING MANAGER (CHÌA KHÓA VẤN ĐỀ) ---
     const manager = new THREE.LoadingManager();
@@ -1333,6 +1386,19 @@ const LeafHero3D = () => {
     const animate = (time: number) => {
       animationFrameRef.current = requestAnimationFrame(animate);
 
+      if (!isDocumentVisibleRef.current || !isHeroVisibleRef.current) {
+        return;
+      }
+
+      const renderInterval = 1000 / targetRenderFps;
+      if (
+        lastRenderTimeRef.current !== 0 &&
+        time - lastRenderTimeRef.current < renderInterval
+      ) {
+        return;
+      }
+      lastRenderTimeRef.current = time;
+
       // CHỈ CHẠY KHI ĐÃ LOAD XONG - Use ref to avoid re-render issues
       if (!isLoadedRef.current) {
         renderer.clear();
@@ -1493,6 +1559,11 @@ const LeafHero3D = () => {
 
     // Cleanup
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (viewportObserver) {
+        viewportObserver.disconnect();
+      }
+
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
       }

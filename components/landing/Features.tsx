@@ -1,5 +1,5 @@
 "use client";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useInView } from "motion/react";
 import {
   BarChart3,
   Globe,
@@ -38,13 +38,20 @@ type FeatureItem = {
 interface FeatureLayoutProps {
   features: FeatureItem[];
   t: (key: string) => string;
+  reducedEffects?: boolean;
 }
 
-const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
+const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({
+  features,
+  t,
+  reducedEffects = false,
+}) => {
   const locale = useLocale();
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(0);
+  const sliderRef = useRef<HTMLDivElement | null>(null);
   const touchStartXRef = useRef<number | null>(null);
+  const isSliderInView = useInView(sliderRef, { amount: 0.35 });
   const activeFeature = features[activeIndex];
   const mobileHeaderTitle =
     locale === "vi" ?
@@ -82,7 +89,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
   };
 
   useEffect(() => {
-    if (features.length <= 1) return;
+    if (reducedEffects || features.length <= 1 || !isSliderInView) return;
 
     const timer = window.setTimeout(() => {
       setDirection(1);
@@ -92,7 +99,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
     return () => {
       window.clearTimeout(timer);
     };
-  }, [activeIndex, features.length]);
+  }, [activeIndex, features.length, isSliderInView, reducedEffects]);
 
   return (
     <>
@@ -100,7 +107,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
       <div className="absolute inset-0 bg-linear-to-b from-secondary to-background overflow-hidden pointer-events-none">
         {/* Large forest orb */}
         <div
-          className="absolute top-12 -left-20 w-64 h-64 rounded-full blur-3xl"
+          className={`absolute top-12 -left-20 w-64 h-64 rounded-full ${reducedEffects ? "blur-2xl" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 30% 40% / 0.5) 0%, hsl(96 41% 25% / 0.3) 100%)",
@@ -109,7 +116,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
 
         {/* Top right accent */}
         <div
-          className="absolute top-32 -right-16 w-56 h-56 rounded-full blur-3xl"
+          className={`absolute top-32 -right-16 w-56 h-56 rounded-full ${reducedEffects ? "blur-2xl" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(40 20% 85% / 0.4) 0%, hsl(30 30% 80% / 0.2) 100%)",
@@ -118,7 +125,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
 
         {/* Bottom accent */}
         <div
-          className="absolute -bottom-20 left-1/3 w-64 h-64 rounded-full blur-3xl"
+          className={`absolute -bottom-20 left-1/3 w-64 h-64 rounded-full ${reducedEffects ? "blur-2xl" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(25 45% 50% / 0.35) 0%, hsl(96 30% 35% / 0.25) 100%)",
@@ -127,7 +134,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
 
         {/* Bottom right accent */}
         <div
-          className="absolute -bottom-12 -right-20 w-56 h-56 rounded-full blur-3xl"
+          className={`absolute -bottom-12 -right-20 w-56 h-56 rounded-full ${reducedEffects ? "blur-2xl" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 40% 30% / 0.4) 0%, hsl(96 30% 40% / 0.3) 100%)",
@@ -136,7 +143,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 relative z-10">
+      <div ref={sliderRef} className="container mx-auto px-4 relative z-10">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -145,7 +152,11 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="mx-auto mb-10 max-w-[22rem] text-center"
         >
-          <span className="mb-4 inline-flex rounded-full border border-primary/10 bg-white/55 px-4 py-1.5 text-sm font-medium text-primary shadow-sm backdrop-blur-sm">
+          <span
+            className={`mb-4 inline-flex rounded-full border border-primary/10 px-4 py-1.5 text-sm font-medium text-primary shadow-sm ${
+              reducedEffects ? "bg-white/85" : "bg-white/55 backdrop-blur-sm"
+            }`}
+          >
             {t("badge")}
           </span>
           <h2 className="mb-4 text-[2.15rem] font-display font-bold leading-[1.08] tracking-tight text-foreground">
@@ -168,36 +179,47 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
           className="mx-auto max-w-sm"
         >
           <div
-            className="relative overflow-hidden rounded-[2rem] border border-white/65 bg-white/45 p-3 shadow-[0_26px_70px_-40px_rgba(45,74,28,0.5)] backdrop-blur-md"
+            className={`relative overflow-hidden rounded-[2rem] border border-white/65 p-3 shadow-[0_26px_70px_-40px_rgba(45,74,28,0.5)] ${
+              reducedEffects ? "bg-white/90" : "bg-white/45 backdrop-blur-md"
+            }`}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
-            <div
-              className="pointer-events-none absolute inset-x-5 top-1 h-20 rounded-full blur-3xl"
-              style={{
-                background:
-                  "radial-gradient(circle, hsl(96 35% 38% / 0.22) 0%, hsl(96 35% 38% / 0) 72%)",
-              }}
-            />
+            {!reducedEffects && (
+              <div
+                className="pointer-events-none absolute inset-x-5 top-1 h-20 rounded-full blur-3xl"
+                style={{
+                  background:
+                    "radial-gradient(circle, hsl(96 35% 38% / 0.22) 0%, hsl(96 35% 38% / 0) 72%)",
+                }}
+              />
+            )}
 
             <div className="relative min-h-[19.5rem]">
-              <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <AnimatePresence
+                mode={reducedEffects ? "sync" : "wait"}
+                initial={false}
+                custom={direction}
+              >
                 <motion.div
                   key={activeFeature.titleKey}
                   custom={direction}
                   initial={{
                     opacity: 0,
-                    x: direction >= 0 ? 42 : -42,
-                    scale: 0.96,
+                    x: reducedEffects ? 0 : direction >= 0 ? 42 : -42,
+                    scale: reducedEffects ? 0.985 : 0.96,
                   }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{
                     opacity: 0,
-                    x: direction >= 0 ? -42 : 42,
-                    scale: 0.96,
+                    x: reducedEffects ? 0 : direction >= 0 ? -42 : 42,
+                    scale: reducedEffects ? 0.985 : 0.96,
                   }}
-                  transition={{ duration: 0.32, ease: "easeOut" }}
-                  className="absolute inset-0"
+                  transition={{
+                    duration: reducedEffects ? 0.2 : 0.32,
+                    ease: "easeOut",
+                  }}
+                  className="absolute inset-0 transform-gpu"
                 >
                   <div
                     className="relative flex h-full flex-col overflow-hidden rounded-[1.65rem] border border-primary/10 bg-white/88 px-5 pb-5 pt-5 shadow-[0_22px_60px_-42px_rgba(51,77,34,0.52)]"
@@ -247,9 +269,14 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
 interface DesktopLayoutProps {
   features: FeatureItem[];
   t: (key: string) => string;
+  reducedEffects?: boolean;
 }
 
-const MobileGridLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
+const MobileGridLayout: React.FC<FeatureLayoutProps> = ({
+  features,
+  t,
+  reducedEffects = false,
+}) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   return (
@@ -323,7 +350,9 @@ const MobileGridLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
                 onClick={() =>
                   setExpandedIndex(expandedIndex === index ? null : index)
                 }
-                className="relative min-h-fit cursor-pointer rounded-2xl border border-primary/10 bg-card/80 p-5 backdrop-blur-sm transition-all duration-300 hover:border-primary/30 sm:p-6"
+                className={`relative min-h-fit cursor-pointer rounded-2xl border border-primary/10 p-5 transition-all duration-300 hover:border-primary/30 sm:p-6 ${
+                  reducedEffects ? "bg-card" : "bg-card/80 backdrop-blur-sm"
+                }`}
                 style={{
                   borderColor:
                     expandedIndex === index ? feature.glowColor : "inherit",
@@ -384,168 +413,99 @@ const MobileGridLayout: React.FC<FeatureLayoutProps> = ({ features, t }) => {
 const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
   features,
   t,
+  reducedEffects = false,
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const constellationRef = useRef<HTMLDivElement | null>(null);
+  const isConstellationInView = useInView(constellationRef, { amount: 0.25 });
 
   return (
     <>
       {/* Background blur mesh */}
       <div className="absolute inset-0 bg-linear-to-b from-secondary to-background overflow-hidden pointer-events-none">
         {/* Top left - Large forest orb */}
-        <motion.div
-          className="absolute top-8 -left-24 w-96 h-96 rounded-full blur-3xl"
+        <div
+          className={`absolute top-8 -left-24 w-96 h-96 rounded-full ${reducedEffects ? "blur-2xl opacity-60" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 30% 40% / 0.6) 0%, hsl(96 41% 25% / 0.4) 100%)",
           }}
-          initial={{ scale: 0.8, opacity: 0, x: -100 }}
-          whileInView={{ scale: 1, opacity: 0.7, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.7, 0.5, 0.7],
-          }}
         />
 
         {/* Top right - Medium linen orb */}
-        <motion.div
-          className="absolute top-32 -right-20 w-80 h-80 rounded-full blur-3xl"
+        <div
+          className={`absolute top-32 -right-20 w-80 h-80 rounded-full ${reducedEffects ? "blur-2xl opacity-55" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(40 20% 85% / 0.5) 0%, hsl(30 30% 80% / 0.3) 100%)",
           }}
-          initial={{ scale: 0.8, opacity: 0, x: 100 }}
-          whileInView={{ scale: 1, opacity: 0.6, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-          animate={{
-            y: [0, -30, 0],
-            scale: [1, 1.15, 1],
-          }}
         />
 
         {/* Center - Large primary orb with subtle pulse */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 rounded-full blur-3xl"
+        <div
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 rounded-full ${reducedEffects ? "blur-2xl opacity-45" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 41% 19% / 0.25) 0%, hsl(96 30% 40% / 0.2) 50%, hsl(96 10% 90% / 0.15) 100%)",
           }}
-          initial={{ scale: 0.7, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 0.4 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
-          animate={{
-            scale: [1, 1.05, 1],
-            rotate: [0, 5, 0],
-          }}
         />
 
         {/* Bottom left - Small earth accent */}
-        <motion.div
-          className="absolute bottom-20 left-1/4 w-64 h-64 rounded-full blur-3xl"
+        <div
+          className={`absolute bottom-20 left-1/4 w-64 h-64 rounded-full ${reducedEffects ? "blur-2xl opacity-50" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(25 45% 50% / 0.4) 0%, hsl(96 30% 35% / 0.3) 100%)",
           }}
-          initial={{ scale: 0.5, opacity: 0, y: 50 }}
-          whileInView={{ scale: 1, opacity: 0.5, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.4 }}
-          animate={{
-            x: [0, 20, 0],
-            scale: [1, 1.2, 1],
-          }}
         />
 
         {/* Bottom right - Medium forest orb */}
-        <motion.div
-          className="absolute -bottom-16 right-1/4 w-72 h-72 rounded-full blur-3xl"
+        <div
+          className={`absolute -bottom-16 right-1/4 w-72 h-72 rounded-full ${reducedEffects ? "blur-2xl opacity-55" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 40% 30% / 0.45) 0%, hsl(96 30% 40% / 0.35) 100%)",
           }}
-          initial={{ scale: 0.8, opacity: 0, y: 80 }}
-          whileInView={{ scale: 1, opacity: 0.6, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.2, ease: "easeOut", delay: 0.5 }}
-          animate={{
-            x: [0, -25, 0],
-            y: [0, 15, 0],
-          }}
         />
 
         {/* Middle left - Accent orb */}
-        <motion.div
-          className="absolute top-1/3 left-0 w-56 h-56 rounded-full blur-3xl"
+        <div
+          className={`absolute top-1/3 left-0 w-56 h-56 rounded-full ${reducedEffects ? "blur-2xl opacity-45" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 35% 35% / 0.35) 0%, hsl(96 30% 40% / 0.25) 100%)",
           }}
-          initial={{ scale: 0.6, opacity: 0, x: -50 }}
-          whileInView={{ scale: 1, opacity: 0.45, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.6 }}
-          animate={{
-            y: [0, -20, 0],
-            opacity: [0.45, 0.6, 0.45],
-          }}
         />
 
         {/* Middle right - Accent orb */}
-        <motion.div
-          className="absolute top-2/3 right-0 w-60 h-60 rounded-full blur-3xl"
+        <div
+          className={`absolute top-2/3 right-0 w-60 h-60 rounded-full ${reducedEffects ? "blur-2xl opacity-50" : "blur-3xl"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(40 25% 80% / 0.4) 0%, hsl(30 30% 80% / 0.3) 100%)",
           }}
-          initial={{ scale: 0.7, opacity: 0, x: 50 }}
-          whileInView={{ scale: 1, opacity: 0.5, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
-          animate={{
-            y: [0, 25, 0],
-            x: [0, -15, 0],
-          }}
         />
 
         {/* Subtle ambient particles */}
-        <motion.div
-          className="absolute top-1/4 right-1/3 w-40 h-40 rounded-full blur-2xl"
+        <div
+          className={`absolute top-1/4 right-1/3 w-40 h-40 rounded-full ${reducedEffects ? "blur-xl opacity-40" : "blur-2xl opacity-40"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(96 25% 50% / 0.3) 0%, hsl(96 30% 40% / 0.2) 100%)",
           }}
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 0.4 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, delay: 0.8 }}
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.4, 0.6, 0.4],
-          }}
         />
 
-        <motion.div
-          className="absolute bottom-1/3 left-1/3 w-48 h-48 rounded-full blur-2xl"
+        <div
+          className={`absolute bottom-1/3 left-1/3 w-48 h-48 rounded-full ${reducedEffects ? "blur-xl opacity-45" : "blur-2xl opacity-45"}`}
           style={{
             background:
               "radial-gradient(circle, hsl(25 40% 60% / 0.35) 0%, hsl(40 25% 85% / 0.25) 100%)",
-          }}
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 0.45 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, delay: 0.9 }}
-          animate={{
-            scale: [1, 1.25, 1],
-            rotate: [0, 10, 0],
           }}
         />
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-6">
+      <div ref={constellationRef} className="container mx-auto px-6">
         {/* Interactive circular constellation */}
         <div className="relative max-w-5xl mx-auto h-225 flex items-center justify-center">
           {/* Circular path SVG */}
@@ -556,7 +516,7 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
             aria-hidden="true"
           >
             {/* Main circle */}
-            <motion.circle
+            <circle
               cx="500"
               cy="450"
               r="340"
@@ -564,15 +524,8 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
               strokeWidth="2"
               strokeOpacity="0.3"
               fill="none"
-              initial={{ pathLength: 0, opacity: 0 }}
-              whileInView={{ pathLength: 1, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 2,
-                ease: "easeInOut",
-              }}
             />
-            <motion.circle
+            <circle
               cx="500"
               cy="450"
               r="340"
@@ -581,10 +534,6 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
               strokeOpacity="0.14"
               strokeDasharray="10 14"
               fill="none"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
             />
           </svg>
 
@@ -592,22 +541,30 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
             <motion.div
               key={`orbit-dot-${rotation}`}
               aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2 transform-gpu"
               initial={{ rotate: rotation, opacity: 0 }}
-              animate={{ rotate: rotation + 360, opacity: 1 }}
-              transition={{
-                rotate: {
-                  duration: 12,
-                  repeat: Infinity,
-                  ease: "linear",
-                  delay: index * 0.35,
-                },
-                opacity: {
-                  duration: 0.6,
-                  delay: 0.5 + index * 0.1,
-                  ease: "easeOut",
-                },
-              }}
+              animate={
+                isConstellationInView ?
+                  { rotate: rotation + 360, opacity: 1 } :
+                  { rotate: rotation, opacity: 0.78 }
+              }
+              transition={
+                isConstellationInView ?
+                  {
+                    rotate: {
+                      duration: 18,
+                      repeat: Infinity,
+                      ease: "linear",
+                      delay: index * 0.35,
+                    },
+                    opacity: {
+                      duration: 0.6,
+                      delay: 0.5 + index * 0.1,
+                      ease: "easeOut",
+                    },
+                  } :
+                  { duration: 0.3, ease: "easeOut" }
+              }
             >
               <div
                 className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/70"
@@ -645,7 +602,7 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
             return (
               <motion.div
                 key={feature.titleKey}
-                className="absolute"
+                className="absolute transform-gpu"
                 style={{
                   left: `calc(47.5% + ${x}px)`,
                   top: `calc(47% + ${y}px)`,
@@ -667,14 +624,18 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
                   className="absolute inset-0 w-20 h-20 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 rounded-full opacity-30 blur-xl"
                   style={{ background: feature.glowColor }}
                   animate={{
-                    scale: hoveredIndex === index ? [1, 1.5, 1] : 1,
-                    opacity: hoveredIndex === index ? [0.3, 0.7, 0.3] : 0.2,
+                    scale: hoveredIndex === index ? [1, 1.35, 1] : 1,
+                    opacity: hoveredIndex === index ? [0.28, 0.55, 0.28] : 0.18,
                   }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                  transition={
+                    hoveredIndex === index ?
+                      {
+                        duration: 1.6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      } :
+                      { duration: 0.2, ease: "easeOut" }
+                  }
                 />
 
                 {/* Icon container */}
@@ -735,7 +696,7 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
 
           {/* Decorative floating particles */}
           {DESKTOP_DECORATIVE_PARTICLES.map((particle, i) => (
-            <motion.div
+            <div
               key={`particle-${i}`}
               aria-hidden="true"
               className="absolute rounded-full pointer-events-none"
@@ -746,17 +707,6 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
                 height: particle.size,
                 background:
                   "radial-gradient(circle, hsl(96 41% 19% / 0.18) 0%, hsl(96 41% 19% / 0) 72%)",
-              }}
-              animate={{
-                y: [0, -particle.drift, 0],
-                opacity: [0.18, 0.4, 0.18],
-                scale: [1, 1.18, 1],
-              }}
-              transition={{
-                duration: particle.duration,
-                repeat: Infinity,
-                delay: particle.delay,
-                ease: "easeInOut",
               }}
             />
           ))}
@@ -770,6 +720,7 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
 const Features = () => {
   const t = useTranslations("features");
   const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [reducedEffects, setReducedEffects] = useState(false);
 
   useEffect(() => {
     const syncViewportMode = () => {
@@ -794,6 +745,26 @@ const Features = () => {
     return () => {
       window.removeEventListener("resize", syncViewportMode);
       window.removeEventListener("orientationchange", syncViewportMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncReducedEffects = () => {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
+
+      setReducedEffects(
+        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6,
+      );
+    };
+
+    syncReducedEffects();
+    window.addEventListener("resize", syncReducedEffects);
+    return () => {
+      window.removeEventListener("resize", syncReducedEffects);
     };
   }, []);
 
@@ -876,6 +847,7 @@ const Features = () => {
     <section
       id="features"
       className="relative z-30 mt-0 overflow-hidden bg-linear-to-b from-secondary via-secondary/95 to-background pt-14 pb-4 sm:mt-0 sm:pt-14 md:mt-0 md:pt-12 md:pb-24"
+      style={{ contain: "layout paint" }}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-10 md:hidden">
         <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-secondary/0 via-secondary/70 to-secondary" />
@@ -883,11 +855,23 @@ const Features = () => {
       </div>
 
       {viewportMode === "mobile" ? (
-        <MobileSliderLayout features={features} t={t} />
+        <MobileSliderLayout
+          features={features}
+          t={t}
+          reducedEffects={reducedEffects}
+        />
       ) : viewportMode === "tablet" ? (
-        <MobileGridLayout features={features} t={t} />
+        <MobileGridLayout
+          features={features}
+          t={t}
+          reducedEffects={reducedEffects}
+        />
       ) : (
-        <DesktopCircularLayout features={features} t={t} />
+        <DesktopCircularLayout
+          features={features}
+          t={t}
+          reducedEffects={reducedEffects}
+        />
       )}
     </section>
   );

@@ -122,7 +122,7 @@ const Stats = () => {
         </div>
       </div>
 
-      <div className="absolute -bottom-96 left-0 right-0 z-0">
+      <div className="pointer-events-none absolute -bottom-[30rem] left-0 right-0 z-0 md:-bottom-[32rem]">
         <StatsWave />
       </div>
     </section>

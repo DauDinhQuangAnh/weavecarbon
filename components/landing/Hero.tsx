@@ -1,14 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { motion } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { ArrowRight, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
 import UserTypeDialog from "./UserTypeDialog";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Waves from "../icons/Waves";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
   ssr: false,
@@ -18,8 +18,10 @@ const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
 const Hero = () => {
   const [showUserTypeDialog, setShowUserTypeDialog] = useState(false);
   const [isDesktopHero, setIsDesktopHero] = useState(false);
+  const heroRef = useRef<HTMLElement | null>(null);
   const locale = useLocale();
   const t = useTranslations("hero");
+  const isHeroInView = useInView(heroRef, { amount: 0.15 });
   const heroTitle = t("title");
   const trustText = t("trust");
   const trustMatch =
@@ -37,7 +39,10 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative flex w-full items-start justify-center overflow-x-clip overflow-y-hidden bg-gradient-hero pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-10 sm:pt-[calc(env(safe-area-inset-top)+6.5rem)] sm:pb-14 lg:min-h-[100svh] lg:items-center lg:pt-40 lg:pb-20">
+    <section
+      ref={heroRef}
+      className="relative flex w-full items-start justify-center overflow-x-clip overflow-y-hidden bg-gradient-hero pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-10 sm:pt-[calc(env(safe-area-inset-top)+6.5rem)] sm:pb-14 lg:min-h-[100svh] lg:items-center lg:pt-40 lg:pb-20"
+    >
       {/* Background decorations */}
       <div className="absolute inset-0 bg-linear-to-b from-primary-foreground to-secondary overflow-hidden pointer-events-none">
         {isDesktopHero ? (
@@ -195,7 +200,7 @@ const Hero = () => {
       {/* Bottom gradient fade */}
       <div className="pointer-events-none absolute inset-x-0 top-14 z-0 flex justify-center sm:top-16 lg:top-0">
         <Waves
-          animated={isDesktopHero}
+          animated={isDesktopHero && isHeroInView}
           className={
             isDesktopHero ?
               "block h-[20rem] w-full opacity-80 lg:h-auto lg:opacity-100" :
