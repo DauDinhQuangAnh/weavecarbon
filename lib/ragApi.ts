@@ -1,6 +1,6 @@
 const RAG_CONFIG_STORAGE_KEY = "weavecarbon_rag_runtime_config_v1";
 
-const DEFAULT_RAG_BASE_URL = "http://127.0.0.1:8000";
+const DEFAULT_RAG_BASE_URL = "https://weavecarbon.com/rag";
 const DEFAULT_COLUMNS = ["chunk"];
 const DEFAULT_NUMBER_DOCS_RETRIEVAL = 3;
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -35,6 +35,49 @@ const clampInteger = (value: unknown, fallback: number, min: number, max: number
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
 const normalizeBaseUrl = (value: string) => trimTrailingSlash(value.trim());
+
+const LEGACY_LOOPBACK_BASE_URLS = new Set([
+  "http://127.0.0.1:8000",
+  "http://localhost:8000",
+]);
+
+const isRelativeBaseUrl = (value: string) => {
+  const normalized = normalizeBaseUrl(value);
+  return normalized.startsWith("/") && !normalized.startsWith("//");
+};
+
+const isAbsoluteHttpBaseUrl = (value: string) => {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized) return false;
+
+  try {
+    const parsed = new URL(normalized);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const isLoopbackBaseUrl = (value: string) => {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized) return false;
+
+  if (LEGACY_LOOPBACK_BASE_URLS.has(normalized)) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+};
+
+const shouldMigrateLoopbackBaseUrl = (candidateBaseUrl: string, fallbackBaseUrl: string) =>
+  (isLoopbackBaseUrl(candidateBaseUrl) || isRelativeBaseUrl(candidateBaseUrl)) &&
+  isAbsoluteHttpBaseUrl(fallbackBaseUrl) &&
+  !isLoopbackBaseUrl(fallbackBaseUrl);
 
 const parseCommaSeparatedColumns = (value: string | null | undefined) => {
   if (!value) return [] as string[];
@@ -186,7 +229,23 @@ export const readRagRuntimeConfig = (): RagRuntimeConfig => {
     const raw = window.localStorage.getItem(RAG_CONFIG_STORAGE_KEY);
     if (!raw) return defaults;
     const parsed = JSON.parse(raw);
-    return sanitizeRuntimeConfig(parsed);
+    const sanitized = sanitizeRuntimeConfig(parsed);
+
+    if (!shouldMigrateLoopbackBaseUrl(sanitized.baseUrl, defaults.baseUrl)) {
+      return sanitized;
+    }
+
+    const migratedConfig: RagRuntimeConfig = {
+      ...sanitized,
+      baseUrl: defaults.baseUrl,
+    };
+
+    window.localStorage.setItem(
+      RAG_CONFIG_STORAGE_KEY,
+      JSON.stringify(migratedConfig),
+    );
+
+    return migratedConfig;
   } catch {
     return defaults;
   }

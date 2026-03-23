@@ -25,6 +25,19 @@ const clampInteger = (value: unknown, fallback: number, min: number, max: number
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
+const isLoopbackOrRelativeBaseUrl = (value: string) => {
+  const normalized = trimTrailingSlash(value.trim());
+  if (!normalized) return false;
+  if (normalized.startsWith("/") && !normalized.startsWith("//")) return true;
+
+  try {
+    const parsed = new URL(normalized);
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+};
+
 const normalizeAbsoluteBaseUrl = (value: string) => {
   const raw = trimTrailingSlash(value.trim());
   if (!raw) return "";
@@ -60,11 +73,13 @@ const normalizeRuntimeConfig = (value: unknown): RagRuntimeConfig => {
     .map((entry) => asString(entry, ""))
     .filter((entry, index, all) => entry.length > 0 && all.indexOf(entry) === index);
 
+  const rawBaseUrl =
+    asString(value.rag_base_url, "") ||
+    asString(value.baseUrl, "") ||
+    defaults.baseUrl;
+
   return {
-    baseUrl:
-      asString(value.rag_base_url, "") ||
-      asString(value.baseUrl, "") ||
-      defaults.baseUrl,
+    baseUrl: isLoopbackOrRelativeBaseUrl(rawBaseUrl) ? defaults.baseUrl : rawBaseUrl,
     collectionName:
       asString(value.collection_name, "") ||
       asString(value.collectionName, "") ||

@@ -1,5 +1,5 @@
 import { api } from "@/lib/apiClient";
-import type { RagRuntimeConfig } from "@/lib/ragApi";
+import { getDefaultRagRuntimeConfig, type RagRuntimeConfig } from "@/lib/ragApi";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -16,6 +16,19 @@ const asNullableString = (value: unknown) => {
 };
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const isLoopbackOrRelativeBaseUrl = (value: string) => {
+  const normalized = trimTrailingSlash(value.trim());
+  if (!normalized) return false;
+  if (normalized.startsWith("/") && !normalized.startsWith("//")) return true;
+
+  try {
+    const parsed = new URL(normalized);
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+};
 
 const normalizeChatSettingsBaseUrl = (value: string) => {
   const raw = trimTrailingSlash(value.trim());
@@ -157,14 +170,16 @@ const normalizeConversationDetail = (value: unknown): ConversationDetail => {
 
 const normalizeRagConfig = (value: unknown): RagRuntimeConfig | null => {
   if (!isObject(value)) return null;
+  const defaults = getDefaultRagRuntimeConfig();
 
   const columnsRaw = Array.isArray(value.columns_to_answer) ? value.columns_to_answer : [];
   const columnsToAnswer = columnsRaw
     .map((entry) => asString(entry, ""))
     .filter((entry, index, all) => entry.length > 0 && all.indexOf(entry) === index);
 
-  const baseUrl = asString(value.rag_base_url, "");
+  const rawBaseUrl = asString(value.rag_base_url, "");
   const collectionName = asString(value.collection_name, "");
+  const baseUrl = isLoopbackOrRelativeBaseUrl(rawBaseUrl) ? defaults.baseUrl : rawBaseUrl;
 
   if (!baseUrl || !collectionName || columnsToAnswer.length === 0) {
     return null;
