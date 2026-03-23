@@ -748,7 +748,7 @@ const ShippingOverviewMap: React.FC = () => {
   `group cursor-pointer overflow-hidden border border-slate-300 bg-white shadow transition-all hover:border-slate-400 hover:shadow-lg border-t-2 ${STATUS_PALETTE[status].cardAccent}`;
 
   const shipmentHeaderClass = (status: Shipment["status"]) =>
-  `border-b border-slate-300/90 pb-2 ${STATUS_PALETTE[status].headerTone}`;
+    `border-b border-slate-300/90 pt-2 pb-2 ${STATUS_PALETTE[status].headerTone}`;
 
   if (isLoading) {
     return (
