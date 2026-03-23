@@ -132,6 +132,10 @@
     "subtitle": "Join leading fashion brands measuring and reducing their environmental impact",
     "email": "Enter your email",
     "button": "Get Early Access",
+    "submitting": "Sending...",
+    "success": "We have received your contact request. Please check your email.",
+    "error": "Unable to submit your contact request right now. Please try again.",
+    "invalidEmail": "Please enter a valid email address.",
     "terms": "By subscribing, you agree to our Terms and Privacy Policy"
   },
   "footer": {
@@ -1510,6 +1514,7 @@
       "companyNotSet": "Company is not set.",
       "companyContextMissing": "Company context is missing.",
       "defaultTeamMember": "Team Member",
+      "b2cEmailNotAllowedForSubAccount": "This email is already registered as a B2C account, so it cannot be added as a B2B sub-account.",
       "searchPlaceholder": "Search by name or email",
       "searchResults": "{matched}/{total} users",
       "noTeamMembersFound": "No team members found.",

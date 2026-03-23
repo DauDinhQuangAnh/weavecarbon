@@ -1,19 +1,44 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { api, isApiError } from "@/lib/apiClient";
 import { motion } from "motion/react";
 import { ArrowRight, Mail } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 const CTA = () => {
   const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const t = useTranslations("cta");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    setEmail("");
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      toast.error(t("invalidEmail"));
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await api.post("/contact/lead", {
+        email: normalizedEmail
+      });
+      toast.success(t("success"));
+      setEmail("");
+    } catch (error) {
+      if (isApiError(error) && error.code === "VALIDATION_ERROR") {
+        toast.error(t("invalidEmail"));
+      } else {
+        toast.error(t("error"));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -84,6 +109,7 @@ const CTA = () => {
                       placeholder={t("email")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting}
                       className="w-full h-14 pl-12 pr-4 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                       required
                     />
@@ -93,8 +119,9 @@ const CTA = () => {
                     variant="hero"
                     size="xl"
                     className="shrink-0"
+                    disabled={isSubmitting}
                   >
-                    {t("button")}
+                    {isSubmitting ? t("submitting") : t("button")}
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </div>

@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
-import { api } from "@/lib/apiClient";
+import { api, isApiError } from "@/lib/apiClient";
 import {
   Card,
   CardContent,
@@ -216,7 +216,11 @@ const UsersSettings: React.FC = () => {
       toast.success(t("inviteSuccess", { email: inviteEmail }));
     } catch (error) {
       console.error("Failed to invite member:", error);
-      toast.error(error instanceof Error ? error.message : t("inviteFailed"));
+      if (isApiError(error) && error.code === "B2C_EMAIL_NOT_ALLOWED_FOR_B2B") {
+        toast.error(t("b2cEmailNotAllowedForSubAccount"));
+      } else {
+        toast.error(error instanceof Error ? error.message : t("inviteFailed"));
+      }
     } finally {
       setUpdating(false);
     }

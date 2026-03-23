@@ -132,6 +132,10 @@
     "subtitle": "Tham gia cùng các thương hiệu thời trang hàng đầu đo lường và giảm thiểu tác động môi trường",
     "email": "Nhập email của bạn",
     "button": "Đăng ký sớm",
+    "submitting": "Đang gửi...",
+    "success": "Chúng tôi đã nhận được thông tin liên hệ. Vui lòng kiểm tra email của bạn.",
+    "error": "Hiện chưa thể gửi yêu cầu liên hệ. Vui lòng thử lại.",
+    "invalidEmail": "Vui lòng nhập địa chỉ email hợp lệ.",
     "terms": "Bằng việc đăng ký, bạn đồng ý với Điều khoản và Chính sách Bảo mật của chúng tôi"
   },
   "footer": {
@@ -1517,6 +1521,7 @@
       "companyContextMissing": "Thiếu ngữ cảnh công ty.",
       "companyNotSet": "Công ty chưa được thiết lập.",
       "defaultTeamMember": "Thành viên",
+      "b2cEmailNotAllowedForSubAccount": "Email này đã được đăng ký là tài khoản B2C nên không thể thêm làm tài khoản phụ B2B.",
       "inviteFailed": "Mời thành viên thất bại.",
       "noTeamMembersFound": "Không tìm thấy thành viên nào.",
       "removeFailed": "Xóa thành viên thất bại.",
