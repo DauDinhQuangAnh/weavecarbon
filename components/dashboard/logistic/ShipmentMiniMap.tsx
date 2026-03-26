@@ -181,7 +181,7 @@ const ShipmentMiniMap: React.FC<ShipmentMiniMapProps> = ({
       }
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      <div className="absolute bottom-1 left-1 right-1 bg-background/80 backdrop-blur rounded px-2 py-1">
+      <div className="absolute left-2 right-2 top-2 bg-background/85 backdrop-blur rounded px-2 py-1 shadow-sm">
         <p className="text-xs text-center truncate font-medium">
           {currentLocation.name}
         </p>

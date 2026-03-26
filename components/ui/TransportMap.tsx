@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { TransportLeg } from "@/types/transport";
 import { configureMapboxRuntime } from "@/lib/mapbox";
+import { fetchRoadRoute, isRoadTransportMode } from "@/lib/roadRouting";
 
 interface TransportMapProps {
   legs: TransportLeg[];
@@ -34,6 +35,73 @@ type RoutePoint = {
   lng: number;
   isOrigin: boolean;
   isDestination: boolean;
+};
+
+type LineCoordinate = [number, number];
+
+type ResolvedRoadRoute = {
+  geometry: LineCoordinate[];
+  distanceKm: number;
+  co2Kg: number;
+};
+
+const roundMetricValue = (value: number) =>
+  Math.round((Math.max(0, value) + Number.EPSILON) * 1000) / 1000;
+
+const buildStraightLineCoordinates = (leg: TransportLeg): LineCoordinate[] => [
+  [leg.origin.lng, leg.origin.lat],
+  [leg.destination.lng, leg.destination.lat]
+];
+
+const getPolylineDistance = (coordinates: LineCoordinate[]) => {
+  if (coordinates.length < 2) return 0;
+
+  let total = 0;
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const [previousLng, previousLat] = coordinates[index - 1];
+    const [nextLng, nextLat] = coordinates[index];
+    total += Math.hypot(nextLng - previousLng, nextLat - previousLat);
+  }
+
+  return total;
+};
+
+const interpolateAlongPolyline = (
+  coordinates: LineCoordinate[],
+  progress: number
+): LineCoordinate => {
+  if (coordinates.length === 0) return [0, 0];
+  if (coordinates.length === 1) return coordinates[0];
+
+  const totalDistance = getPolylineDistance(coordinates);
+  if (totalDistance <= 0) {
+    return coordinates[0];
+  }
+
+  let remainingDistance = Math.max(0, Math.min(1, progress)) * totalDistance;
+
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const previousPoint = coordinates[index - 1];
+    const nextPoint = coordinates[index];
+    const segmentDistance = Math.hypot(
+      nextPoint[0] - previousPoint[0],
+      nextPoint[1] - previousPoint[1]
+    );
+
+    if (remainingDistance <= segmentDistance) {
+      const segmentProgress =
+        segmentDistance > 0 ? remainingDistance / segmentDistance : 0;
+
+      return [
+        previousPoint[0] + (nextPoint[0] - previousPoint[0]) * segmentProgress,
+        previousPoint[1] + (nextPoint[1] - previousPoint[1]) * segmentProgress
+      ];
+    }
+
+    remainingDistance -= segmentDistance;
+  }
+
+  return coordinates[coordinates.length - 1];
 };
 
 const TransportMap: React.FC<TransportMapProps> = ({
@@ -56,10 +124,30 @@ const TransportMap: React.FC<TransportMapProps> = ({
   const [selectedLeg, setSelectedLeg] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [resolvedRoadRoutes, setResolvedRoadRoutes] = useState<
+    Record<string, ResolvedRoadRoute>
+  >({});
   const formatDistanceKm = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
   const formatExactValue = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
+
+  const displayLegs = React.useMemo(
+    () =>
+      legs.map((leg) => {
+        const resolvedRoadRoute = resolvedRoadRoutes[leg.id];
+        if (!resolvedRoadRoute) {
+          return leg;
+        }
+
+        return {
+          ...leg,
+          distanceKm: resolvedRoadRoute.distanceKm,
+          co2Kg: resolvedRoadRoute.co2Kg
+        };
+      }),
+    [legs, resolvedRoadRoutes]
+  );
 
   const getModeIcon = (mode: string) => {
     switch (mode) {
@@ -110,46 +198,146 @@ const TransportMap: React.FC<TransportMapProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    try {
-      configureMapboxRuntime(mapboxgl);
+    let isCancelled = false;
+    let initTimer: ReturnType<typeof setTimeout> | null = null;
+    let createdMap: mapboxgl.Map | null = null;
 
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/dark-v11",
-        center: [108.2772, 14.0583],
-        zoom: 2,
-        projection: "mercator",
-        bearing: 0,
-        pitch: 0,
-        maxPitch: 0
-      });
-
-      mapRef.current = map;
-      map.addControl(new mapboxgl.NavigationControl());
-
-      const onMapLoad = () => {
+    const onMapLoad = () => {
+      if (!isCancelled) {
         setIsLoading(false);
-      };
+      }
+    };
 
-      map.on("load", onMapLoad);
-
-      map.on("error", () => {
+    const onMapError = () => {
+      if (!isCancelled) {
         setIsLoading(false);
-      });
+      }
+    };
 
-      return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-        if (map) {
+    initTimer = setTimeout(() => {
+      if (isCancelled || !mapContainerRef.current || mapRef.current) {
+        return;
+      }
+
+      try {
+        configureMapboxRuntime(mapboxgl);
+
+        const map = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: "mapbox://styles/mapbox/dark-v11",
+          center: [108.2772, 14.0583],
+          zoom: 2,
+          projection: "mercator",
+          bearing: 0,
+          pitch: 0,
+          maxPitch: 0,
+          performanceMetricsCollection: false
+        });
+
+        createdMap = map;
+        mapRef.current = map;
+        map.addControl(new mapboxgl.NavigationControl());
+        map.on("load", onMapLoad);
+        map.on("error", onMapError);
+
+        if (isCancelled) {
+          map.off("load", onMapLoad);
+          map.off("error", onMapError);
           map.remove();
-          mapRef.current = null;
+          if (mapRef.current === map) {
+            mapRef.current = null;
+          }
         }
-      };
-    } catch {
-      setIsLoading(false);
-    }
+      } catch {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }, 0);
+
+    return () => {
+      isCancelled = true;
+      if (initTimer) {
+        clearTimeout(initTimer);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (createdMap) {
+        createdMap.off("load", onMapLoad);
+        createdMap.off("error", onMapError);
+        createdMap.remove();
+      }
+      if (mapRef.current === createdMap) {
+        mapRef.current = null;
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const roadLegs = legs.filter((leg) => isRoadTransportMode(leg.mode));
+    if (roadLegs.length === 0) {
+      setResolvedRoadRoutes({});
+      return;
+    }
+
+    const resolveRoadLegRoutes = async () => {
+      const resolvedEntries = await Promise.all(
+        roadLegs.map(async (leg) => {
+          const route = await fetchRoadRoute(
+            {
+              lat: leg.origin.lat,
+              lng: leg.origin.lng
+            },
+            {
+              lat: leg.destination.lat,
+              lng: leg.destination.lng
+            }
+          );
+
+          if (!route) {
+            return [leg.id, null] as const;
+          }
+
+          const distanceKm = route.distanceKm;
+          const co2Kg =
+            leg.emissionFactor > 0 ?
+              roundMetricValue(distanceKm * leg.emissionFactor) :
+              leg.co2Kg;
+
+          return [
+            leg.id,
+            {
+              geometry: route.geometry,
+              distanceKm,
+              co2Kg
+            }
+          ] as const;
+        })
+      );
+
+      if (isCancelled) return;
+
+      setResolvedRoadRoutes(
+        resolvedEntries.reduce<Record<string, ResolvedRoadRoute>>((accumulator, entry) => {
+          const [legId, resolvedRoute] = entry;
+          if (!resolvedRoute) {
+            return accumulator;
+          }
+          accumulator[legId] = resolvedRoute;
+          return accumulator;
+        }, {})
+      );
+    };
+
+    void resolveRoadLegRoutes();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [legs]);
 
   const animateMarker = (leg: TransportLeg, legIndex: number) => {
     if (!mapRef.current) return;
@@ -189,18 +377,14 @@ const TransportMap: React.FC<TransportMapProps> = ({
     const marker = new mapboxgl.Marker(el);
     animationMarkerRef.current = marker;
 
-    const start = [leg.origin.lng, leg.origin.lat];
-    const end = [leg.destination.lng, leg.destination.lat];
-
-    const distance = Math.sqrt(
-      Math.pow(end[0] - start[0], 2) + Math.pow(end[1] - start[1], 2)
-    );
+    const pathCoordinates =
+      resolvedRoadRoutes[leg.id]?.geometry || buildStraightLineCoordinates(leg);
+    const distance = getPolylineDistance(pathCoordinates);
     const totalSteps = Math.max(100, Math.min(300, distance * 20));
     let currentStep = 0;
 
     const bounds = new mapboxgl.LngLatBounds();
-    bounds.extend([leg.origin.lng, leg.origin.lat]);
-    bounds.extend([leg.destination.lng, leg.destination.lat]);
+    pathCoordinates.forEach((coordinate) => bounds.extend(coordinate));
 
     let maxZoom;
     if (distance < 0.5) {
@@ -241,8 +425,10 @@ const TransportMap: React.FC<TransportMapProps> = ({
       2 * progress * progress :
       1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-      const currentLng = start[0] + (end[0] - start[0]) * easeProgress;
-      const currentLat = start[1] + (end[1] - start[1]) * easeProgress;
+      const [currentLng, currentLat] = interpolateAlongPolyline(
+        pathCoordinates,
+        easeProgress
+      );
 
       marker.setLngLat([currentLng, currentLat]).addTo(map);
 
@@ -269,7 +455,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
       }
 
       if (mapRef.current) {
-        legs.forEach((_, idx) => {
+        displayLegs.forEach((_, idx) => {
           const lineId = `route-line-${idx}`;
           const glowId = `route-glow-${idx}`;
           if (mapRef.current!.getLayer(lineId)) {
@@ -283,9 +469,9 @@ const TransportMap: React.FC<TransportMapProps> = ({
         });
       }
 
-      if (mapRef.current && legs.length > 0) {
+      if (mapRef.current && displayLegs.length > 0) {
         const allPoints: RoutePoint[] = [];
-        legs.forEach((leg, index) => {
+        displayLegs.forEach((leg, index) => {
           if (index === 0) {
             allPoints.push({
               ...leg.origin,
@@ -296,7 +482,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
           allPoints.push({
             ...leg.destination,
             isOrigin: false,
-            isDestination: index === legs.length - 1
+            isDestination: index === displayLegs.length - 1
           });
         });
 
@@ -310,7 +496,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
       }
     } else {
       setSelectedLeg(legIndex);
-      animateMarker(legs[legIndex], legIndex);
+      animateMarker(displayLegs[legIndex], legIndex);
     }
   };
 
@@ -327,10 +513,10 @@ const TransportMap: React.FC<TransportMapProps> = ({
 
     setSelectedLeg(null);
     setIsAnimating(false);
-  }, [legs]);
+  }, [displayLegs]);
 
   useEffect(() => {
-    if (!mapRef.current || legs.length === 0) return;
+    if (!mapRef.current || displayLegs.length === 0) return;
 
     const map = mapRef.current;
 
@@ -341,7 +527,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
 
-        legs.forEach((_, idx) => {
+        displayLegs.forEach((_, idx) => {
           const lineId = `route-line-${idx}`;
           const glowId = `route-glow-${idx}`;
           const sourceId = `route-source-${idx}`;
@@ -350,10 +536,12 @@ const TransportMap: React.FC<TransportMapProps> = ({
           if (map.getSource(sourceId)) map.removeSource(sourceId);
         });
 
-        legs.forEach((leg, idx) => {
+        displayLegs.forEach((leg, idx) => {
           const sourceId = `route-source-${idx}`;
           const lineId = `route-line-${idx}`;
           const glowId = `route-glow-${idx}`;
+          const lineCoordinates =
+            resolvedRoadRoutes[leg.id]?.geometry || buildStraightLineCoordinates(leg);
 
           map.addSource(sourceId, {
             type: "geojson",
@@ -362,9 +550,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
               properties: {},
               geometry: {
                 type: "LineString",
-                coordinates: [
-                [leg.origin.lng, leg.origin.lat],
-                [leg.destination.lng, leg.destination.lat]]
+                coordinates: lineCoordinates
 
               }
             } as GeoJSON.Feature
@@ -406,7 +592,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
         });
 
         const allPoints: RoutePoint[] = [];
-        legs.forEach((leg, index) => {
+        displayLegs.forEach((leg, index) => {
           if (index === 0) {
             allPoints.push({
               ...leg.origin,
@@ -417,7 +603,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
           allPoints.push({
             ...leg.destination,
             isOrigin: false,
-            isDestination: index === legs.length - 1
+            isDestination: index === displayLegs.length - 1
           });
         });
 
@@ -492,11 +678,11 @@ const TransportMap: React.FC<TransportMapProps> = ({
         map.off("load", handleLoad);
       };
     }
-  }, [legs, getModeColor, tMap]);
+  }, [displayLegs, getModeColor, resolvedRoadRoutes, tMap]);
 
-  const totalDistance = legs.reduce((sum, leg) => sum + leg.distanceKm, 0);
-  const totalCO2 = legs.reduce((sum, leg) => sum + leg.co2Kg, 0);
-  const estimatedDays = legs.reduce((days, leg) => {
+  const totalDistance = displayLegs.reduce((sum, leg) => sum + leg.distanceKm, 0);
+  const totalCO2 = displayLegs.reduce((sum, leg) => sum + leg.co2Kg, 0);
+  const estimatedDays = displayLegs.reduce((days, leg) => {
     const distanceKm = Math.max(0, leg.distanceKm);
     if (leg.mode === "air") return days + 1;
     if (leg.mode === "ship") {
@@ -626,7 +812,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
                 {tMap("clickHint")}
               </span>
             </p>
-            {legs.map((leg, index) => {
+            {displayLegs.map((leg, index) => {
               const Icon = getModeIcon(leg.mode);
               const legCardClass =
                 selectedLeg === index ?

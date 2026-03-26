@@ -68,6 +68,14 @@ const getTypeEmoji = (type: string) => {
   }
 };
 
+const getRouteCoordinates = (route: SupplyChainRoute) =>
+  route.geometry && route.geometry.length >= 2 ?
+    route.geometry :
+    [
+      [route.from.lng, route.from.lat],
+      [route.to.lng, route.to.lat]
+    ];
+
 const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodes,
   routes,
@@ -167,10 +175,15 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     if (!mapRef.current) return;
 
     const map = mapRef.current;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     const addRoutesAndMarkers = () => {
+      if (!mapRef.current || mapRef.current !== map) {
+        return;
+      }
+
       if (!map.loaded() || !map.getCanvas()) {
-        setTimeout(addRoutesAndMarkers, 100);
+        retryTimer = setTimeout(addRoutesAndMarkers, 100);
         return;
       }
 
@@ -201,9 +214,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
                 properties: {},
                 geometry: {
                   type: "LineString",
-                  coordinates: [
-                  [route.from.lng, route.from.lat],
-                  [route.to.lng, route.to.lat]]
+                  coordinates: getRouteCoordinates(route)
 
                 }
               } as GeoJSON.Feature
@@ -321,7 +332,20 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         map.off("load", onMapLoad);
       };
       map.once("load", onMapLoad);
+
+      return () => {
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+        }
+        map.off("load", onMapLoad);
+      };
     }
+
+    return () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
   }, [nodes, routes, onNodeClick, onRouteClick, t, getNodeTypeLabel]);
 
   if (error) {

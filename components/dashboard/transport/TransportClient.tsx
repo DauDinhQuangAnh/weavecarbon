@@ -35,6 +35,7 @@ import {
   type ProductRecord } from
 "@/lib/productsApi";
 import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
+import { fetchRoadRoute, isRoadTransportMode } from "@/lib/roadRouting";
 
 export interface AddressData {
   streetAddress: string;
@@ -97,6 +98,24 @@ const parseCoordinate = (value?: string) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
+
+const formatRouteDistanceKm = (value: number) =>
+  String(Math.round((Math.max(0, value) + Number.EPSILON) * 10) / 10);
+
+const buildRoadRouteKey = (
+  mode: LegInput["mode"],
+  originLat: number,
+  originLng: number,
+  destinationLat: number,
+  destinationLng: number
+) =>
+  [
+    mode,
+    originLat.toFixed(6),
+    originLng.toFixed(6),
+    destinationLat.toFixed(6),
+    destinationLng.toFixed(6)
+  ].join(":");
 
 const toRouteType = (mode: LegInput["mode"]): TransportLeg["routeType"] => {
   if (mode === "ship") return "sea";
@@ -560,6 +579,10 @@ const TransportClient: React.FC<TransportClientProps> = ({
   const [shipmentError, setShipmentError] = useState<string | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResolvingRoadRoutes, setIsResolvingRoadRoutes] = useState(false);
+  const autoRoadRouteSyncRef = React.useRef<
+    Record<string, {routeKey: string;distanceKm: string;}>
+  >({});
 
   useEffect(() => {
     setPageTitle(t("title"), t("subtitle"));
@@ -656,6 +679,152 @@ const TransportClient: React.FC<TransportClientProps> = ({
       isCancelled = true;
     };
   }, [hasLookupInput, shipmentId, productId, productCode, productName, reloadCounter, t]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const cachedUpdates: Array<{id: string;distanceKm: string;}> = [];
+    const pendingLegs: Array<{
+      id: string;
+      routeKey: string;
+      originLat: number;
+      originLng: number;
+      destinationLat: number;
+      destinationLng: number;
+    }> = [];
+
+    legs.forEach((leg) => {
+      if (!isRoadTransportMode(leg.mode)) {
+        delete autoRoadRouteSyncRef.current[leg.id];
+        return;
+      }
+
+      const originLat = parseCoordinate(leg.origin.lat);
+      const originLng = parseCoordinate(leg.origin.lng);
+      const destinationLat = parseCoordinate(leg.destination.lat);
+      const destinationLng = parseCoordinate(leg.destination.lng);
+      if (
+        originLat === null ||
+        originLng === null ||
+        destinationLat === null ||
+        destinationLng === null
+      ) {
+        return;
+      }
+
+      const routeKey = buildRoadRouteKey(
+        leg.mode,
+        originLat,
+        originLng,
+        destinationLat,
+        destinationLng
+      );
+      const cached = autoRoadRouteSyncRef.current[leg.id];
+
+      if (cached && cached.routeKey === routeKey) {
+        if (!leg.distanceKm.trim() && cached.distanceKm !== leg.distanceKm) {
+          cachedUpdates.push({
+            id: leg.id,
+            distanceKm: cached.distanceKm
+          });
+        }
+        return;
+      }
+
+      pendingLegs.push({
+        id: leg.id,
+        routeKey,
+        originLat,
+        originLng,
+        destinationLat,
+        destinationLng
+      });
+    });
+
+    if (cachedUpdates.length > 0) {
+      setLegs((current) =>
+        current.map((leg) => {
+          const cachedUpdate = cachedUpdates.find((item) => item.id === leg.id);
+          if (!cachedUpdate || leg.distanceKm === cachedUpdate.distanceKm) {
+            return leg;
+          }
+          return {
+            ...leg,
+            distanceKm: cachedUpdate.distanceKm,
+            co2Kg: undefined
+          };
+        })
+      );
+    }
+
+    if (pendingLegs.length === 0) {
+      setIsResolvingRoadRoutes(false);
+      return;
+    }
+
+    setIsResolvingRoadRoutes(true);
+
+    const syncRoadLegDistances = async () => {
+      const resolvedUpdates = await Promise.all(
+        pendingLegs.map(async (candidate) => {
+          const route = await fetchRoadRoute(
+            {
+              lat: candidate.originLat,
+              lng: candidate.originLng
+            },
+            {
+              lat: candidate.destinationLat,
+              lng: candidate.destinationLng
+            }
+          );
+
+          if (!route) return null;
+
+          return {
+            id: candidate.id,
+            routeKey: candidate.routeKey,
+            distanceKm: formatRouteDistanceKm(route.distanceKm)
+          };
+        })
+      );
+
+      if (isCancelled) return;
+
+      const nextUpdates = resolvedUpdates.filter(
+        (item): item is {id: string;routeKey: string;distanceKm: string;} => item !== null
+      );
+
+      nextUpdates.forEach((update) => {
+        autoRoadRouteSyncRef.current[update.id] = {
+          routeKey: update.routeKey,
+          distanceKm: update.distanceKm
+        };
+      });
+
+      if (nextUpdates.length > 0) {
+        setLegs((current) =>
+          current.map((leg) => {
+            const nextUpdate = nextUpdates.find((item) => item.id === leg.id);
+            if (!nextUpdate || leg.distanceKm === nextUpdate.distanceKm) {
+              return leg;
+            }
+            return {
+              ...leg,
+              distanceKm: nextUpdate.distanceKm,
+              co2Kg: undefined
+            };
+          })
+        );
+      }
+
+      setIsResolvingRoadRoutes(false);
+    };
+
+    void syncRoadLegDistances();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [legs]);
 
   const handleAddLeg = () => {
     setLegs((current) => [...current, createDraftLeg(transportScope)]);
@@ -896,7 +1065,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
   };
 
   const isShipmentLoading = hasLookupInput && shipmentLoadState === "loading";
-  const isBusy = isShipmentLoading || isSaving;
+  const isBusy = isShipmentLoading || isSaving || isResolvingRoadRoutes;
   const canRetryShipment =
   hasLookupInput && (
   shipmentLoadState === "error" || shipmentLoadState === "not_found");

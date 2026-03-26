@@ -1,5 +1,7 @@
 const DEFAULT_MAPBOX_GEOCODING_BASE_URL =
   "https://api.mapbox.com/geocoding/v5/mapbox.places";
+const DEFAULT_MAPBOX_DIRECTIONS_BASE_URL =
+  "https://api.mapbox.com/directions/v5/mapbox";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
@@ -9,8 +11,13 @@ const rawMapboxGeocodingBaseUrl = (
   process.env.NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL ||
   DEFAULT_MAPBOX_GEOCODING_BASE_URL
 ).trim();
+const rawMapboxDirectionsBaseUrl = (
+  process.env.NEXT_PUBLIC_MAPBOX_DIRECTIONS_BASE_URL ||
+  DEFAULT_MAPBOX_DIRECTIONS_BASE_URL
+).trim();
 
 export const MAPBOX_GEOCODING_BASE_URL = trimTrailingSlash(rawMapboxGeocodingBaseUrl);
+export const MAPBOX_DIRECTIONS_BASE_URL = trimTrailingSlash(rawMapboxDirectionsBaseUrl);
 
 export const hasMapboxPublicToken = () => MAPBOX_PUBLIC_TOKEN.startsWith("pk.");
 
@@ -78,6 +85,42 @@ export const buildMapboxForwardGeocodingUrl = (
   if (options.types && options.types.length > 0) {
     params.set("types", options.types.join(","));
   }
+
+  return `${base}?${params.toString()}`;
+};
+
+export const buildMapboxDrivingDirectionsUrl = (
+  coordinates: Array<[number, number]>,
+  options: {
+    language?: string;
+    overview?: "full" | "simplified" | "false";
+    geometries?: "geojson" | "polyline" | "polyline6";
+    steps?: boolean;
+  } = {}
+) => {
+  if (!MAPBOX_PUBLIC_TOKEN) return null;
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+
+  const validCoordinates = coordinates.filter(
+    (coordinate): coordinate is [number, number] =>
+      Array.isArray(coordinate) &&
+      coordinate.length === 2 &&
+      Number.isFinite(coordinate[0]) &&
+      Number.isFinite(coordinate[1])
+  );
+
+  if (validCoordinates.length < 2) return null;
+
+  const coordinatePath = validCoordinates
+    .map(([lng, lat]) => `${lng},${lat}`)
+    .join(";");
+  const base = `${MAPBOX_DIRECTIONS_BASE_URL}/driving/${coordinatePath}`;
+  const params = buildBaseSearchParams(options.language);
+
+  params.set("alternatives", "false");
+  params.set("overview", options.overview || "full");
+  params.set("geometries", options.geometries || "geojson");
+  params.set("steps", options.steps ? "true" : "false");
 
   return `${base}?${params.toString()}`;
 };

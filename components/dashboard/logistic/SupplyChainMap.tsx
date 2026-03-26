@@ -1,7 +1,8 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Globe, Map } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { fetchRoadRoute } from "@/lib/roadRouting";
 
 export interface SupplyChainNode {
   id: string;
@@ -23,6 +24,7 @@ export interface SupplyChainRoute {
   status: "completed" | "in_transit" | "pending";
   co2Kg?: number;
   distanceKm?: number;
+  geometry?: Array<[number, number]>;
 }
 
 interface SupplyChainMapProps {
@@ -66,6 +68,58 @@ const SupplyChainMap: React.FC<SupplyChainMapProps> = (props) => {
   } = props;
 
   const [mapMode, setMapMode] = useState<"2d" | "3d">(defaultMapMode);
+  const [resolvedRouteGeometry, setResolvedRouteGeometry] = useState<
+    Record<string, Array<[number, number]>>
+  >({});
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const roadRoutes = mapProps.routes.filter((route) => route.mode === "truck");
+    if (roadRoutes.length === 0) {
+      setResolvedRouteGeometry({});
+      return;
+    }
+
+    const resolveRoadRouteGeometry = async () => {
+      const resolvedEntries = await Promise.all(
+        roadRoutes.map(async (route) => {
+          const resolvedRoute = await fetchRoadRoute(route.from, route.to);
+          return [route.id, resolvedRoute?.geometry || null] as const;
+        })
+      );
+
+      if (isCancelled) return;
+
+      setResolvedRouteGeometry(
+        resolvedEntries.reduce<Record<string, Array<[number, number]>>>(
+          (accumulator, [routeId, geometry]) => {
+            if (!geometry || geometry.length < 2) {
+              return accumulator;
+            }
+            accumulator[routeId] = geometry;
+            return accumulator;
+          },
+          {}
+        )
+      );
+    };
+
+    void resolveRoadRouteGeometry();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [mapProps.routes]);
+
+  const resolvedRoutes = useMemo(
+    () =>
+      mapProps.routes.map((route) => ({
+        ...route,
+        geometry: resolvedRouteGeometry[route.id] || route.geometry
+      })),
+    [mapProps.routes, resolvedRouteGeometry]
+  );
 
   return (
     <div className="space-y-3">
@@ -99,9 +153,9 @@ const SupplyChainMap: React.FC<SupplyChainMapProps> = (props) => {
 
       <Suspense fallback={<LoadingPlaceholder height={height} />}>
         {mapMode === "3d" ?
-        <LazyMap3D {...mapProps} height={height} /> :
+        <LazyMap3D {...mapProps} routes={resolvedRoutes} height={height} /> :
 
-        <LazyMapContent {...mapProps} height={height} />
+        <LazyMapContent {...mapProps} routes={resolvedRoutes} height={height} />
         }
       </Suspense>
     </div>);

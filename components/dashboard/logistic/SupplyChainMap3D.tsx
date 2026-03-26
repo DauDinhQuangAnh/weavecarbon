@@ -57,6 +57,14 @@ const getMarkerColor = (status?: string) => {
   return "#3b82f6";
 };
 
+const getRouteCoordinates = (route: SupplyChainRoute) =>
+  route.geometry && route.geometry.length >= 2 ?
+    route.geometry :
+    [
+      [route.from.lng, route.from.lat],
+      [route.to.lng, route.to.lat]
+    ];
+
 const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
   nodes,
   routes,
@@ -136,8 +144,18 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
     if (!mapRef.current) return;
 
     const map = mapRef.current;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     const addRoutesAndMarkers = () => {
+      if (!mapRef.current || mapRef.current !== map) {
+        return;
+      }
+
+      if (!map.loaded() || !map.isStyleLoaded()) {
+        retryTimer = setTimeout(addRoutesAndMarkers, 100);
+        return;
+      }
+
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
 
@@ -159,9 +177,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
             properties: {},
             geometry: {
               type: "LineString",
-              coordinates: [
-              [route.from.lng, route.from.lat],
-              [route.to.lng, route.to.lat]]
+              coordinates: getRouteCoordinates(route)
 
             }
           } as GeoJSON.Feature
@@ -256,8 +272,25 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
     if (map.loaded()) {
       addRoutesAndMarkers();
     } else {
-      map.on("load", addRoutesAndMarkers);
+      const handleLoad = () => {
+        addRoutesAndMarkers();
+        map.off("load", handleLoad);
+      };
+      map.once("load", handleLoad);
+
+      return () => {
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+        }
+        map.off("load", handleLoad);
+      };
     }
+
+    return () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
   }, [nodes, routes, onNodeClick, onRouteClick, t, getNodeTypeLabel]);
 
   if (isLoading) {
