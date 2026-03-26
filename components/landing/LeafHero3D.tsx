@@ -964,6 +964,10 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { useEffect, useRef, useState } from "react";
 
+type LeafSurfaceMaterial =
+  | THREE.MeshPhysicalMaterial
+  | THREE.MeshStandardMaterial;
+
 const LeafHero3D = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [, setLoadingProgress] = useState(0);
@@ -980,6 +984,7 @@ const LeafHero3D = () => {
     THREE.MeshBasicMaterial
   > | null>(null);
   const leafModelRef = useRef<THREE.Object3D | null>(null);
+  const leafMaterialsRef = useRef<LeafSurfaceMaterial[]>([]);
   const hasAnimatedRef = useRef(false);
   const isLoadedRef = useRef(false);
   const transitionStartTimeRef = useRef(0);
@@ -989,7 +994,7 @@ const LeafHero3D = () => {
   const glowLightRef = useRef<THREE.PointLight | null>(null);
   // Leaf at origin (same as Blender)
   const initialLeafPositionRef = useRef({ x: 0, y: 0, z: 0 });
-  const baseLeafScaleRef = useRef(2); // Base scale for the leaf model
+  const baseLeafScaleRef = useRef(1.9); // Base scale for the leaf model
   const isDocumentVisibleRef = useRef(true);
   const isHeroVisibleRef = useRef(true);
   const lastRenderTimeRef = useRef(0);
@@ -1006,10 +1011,12 @@ const LeafHero3D = () => {
     ).matches;
     const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
     const maxPixelRatio =
-      prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6 ?
+      prefersReducedMotion || hardwareConcurrency <= 4 ?
         1 :
-        1.5;
-    const targetRenderFps = maxPixelRatio === 1 ? 24 : 30;
+      isCoarsePointer || hardwareConcurrency <= 6 ?
+        1.25 :
+        2;
+    const targetRenderFps = maxPixelRatio <= 1.25 ? 24 : 30;
 
     // --- 1. SETUP THREE.JS ---
     const scene = new THREE.Scene();
@@ -1063,7 +1070,7 @@ const LeafHero3D = () => {
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: maxPixelRatio > 1,
+      antialias: true,
       powerPreference:
         maxPixelRatio > 1 ? "high-performance" : "low-power",
     });
@@ -1092,6 +1099,18 @@ const LeafHero3D = () => {
     const resetAnimationClocks = () => {
       lastRenderTimeRef.current = 0;
       lastTimeRef.current = 0;
+    };
+
+    const updateLeafMaterialState = (
+      opacity: number,
+      useTransparency: boolean,
+    ) => {
+      leafMaterialsRef.current.forEach((material) => {
+        material.transparent = useTransparency;
+        material.opacity = opacity;
+        material.depthWrite = !useTransparency;
+        material.needsUpdate = true;
+      });
     };
 
     const handleVisibilityChange = () => {
@@ -1169,6 +1188,10 @@ const LeafHero3D = () => {
     const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 10);
     orthoCamera.position.set(0, 0, 1);
 
+    // Keep the sequence slightly smaller than full-viewport so it matches
+    // the resting 3D leaf more closely during the cross-fade.
+    const SEQUENCE_VISUAL_SCALE = 0.95;
+
     // "Cover" mode: maintain PNG aspect ratio while filling the viewport
     const vpAspect = width / height;
     const imgAspect = 1920 / 1080;
@@ -1183,7 +1206,10 @@ const LeafHero3D = () => {
       geoW = 2 * (imgAspect / vpAspect);
     }
 
-    const geometry = new THREE.PlaneGeometry(geoW, geoH);
+    const geometry = new THREE.PlaneGeometry(
+      geoW * SEQUENCE_VISUAL_SCALE,
+      geoH * SEQUENCE_VISUAL_SCALE,
+    );
     const material = new THREE.MeshBasicMaterial({
       transparent: true,
       opacity: 0,
@@ -1303,7 +1329,7 @@ const LeafHero3D = () => {
           // Leaf stays at origin - camera shift handles the right-side positioning
           const LEAF_POSITION = { x: 0, y: 0, z: 0 };
           const LEAF_ROTATION = { x: 0, y: 0, z: 0 };
-          const LEAF_SCALE = 2; // ← CHANGE THIS VALUE to adjust 3D model size
+          const LEAF_SCALE = 1.9; // Slightly smaller so the hero feels less cramped
           baseLeafScaleRef.current = LEAF_SCALE; // Store for animation loop
 
           // Apply transform values
@@ -1324,8 +1350,10 @@ const LeafHero3D = () => {
           leafModelRef.current.scale.set(LEAF_SCALE, LEAF_SCALE, LEAF_SCALE);
 
           // Configure materials for the scene lighting and fade transition.
+          const leafMaterials = new Set<LeafSurfaceMaterial>();
           leafModelRef.current.traverse((child) => {
             if (child instanceof THREE.Mesh) {
+              child.frustumCulled = false;
               const materials = Array.isArray(child.material)
                 ? child.material
                 : [child.material];
@@ -1335,15 +1363,19 @@ const LeafHero3D = () => {
                   mat instanceof THREE.MeshStandardMaterial ||
                   mat instanceof THREE.MeshPhysicalMaterial
                 ) {
-                  // Only set transparency for fade transition - keep all other properties from Blender
+                  // Thin folds look clipped at shallow angles unless both sides render.
+                  mat.side = THREE.DoubleSide;
                   mat.transparent = true;
                   mat.opacity = 0; // Start invisible for fade-in effect
+                  mat.depthWrite = false;
                   mat.toneMapped = false; // Disable tone mapping to match sequence PNG colors
                   mat.needsUpdate = true;
+                  leafMaterials.add(mat);
                 }
               });
             }
           });
+          leafMaterialsRef.current = Array.from(leafMaterials);
 
           scene.add(leafModelRef.current);
 
@@ -1437,6 +1469,7 @@ const LeafHero3D = () => {
             hasAnimatedRef.current = true;
             transitionStartTimeRef.current = time;
             isTransitioningRef.current = true;
+            updateLeafMaterialState(0, true);
             leafModelRef.current.visible = true;
           }
           // If model isn't loaded yet, we'll retry next frame
@@ -1463,19 +1496,7 @@ const LeafHero3D = () => {
         }
 
         // Fade in 3D model
-        if (leafModelRef.current) {
-          leafModelRef.current.traverse((child) => {
-            if (child instanceof THREE.Mesh && child.material) {
-              if (Array.isArray(child.material)) {
-                child.material.forEach((mat) => {
-                  mat.opacity = easeProgress;
-                });
-              } else {
-                child.material.opacity = easeProgress;
-              }
-            }
-          });
-        }
+        updateLeafMaterialState(easeProgress, true);
 
         // Fade in glow effect (delayed and slower for more natural appearance)
         // Glow starts appearing only after 40% of transition is complete
@@ -1504,6 +1525,7 @@ const LeafHero3D = () => {
         if (progress >= 1) {
           isTransitioningRef.current = false;
           transitionCompleteTimeRef.current = time; // Record when transition finished
+          updateLeafMaterialState(1, false);
           if (sequencePlaneRef.current) {
             sequencePlaneRef.current.visible = false;
           }
@@ -1610,6 +1632,7 @@ const LeafHero3D = () => {
           }
         });
       }
+      leafMaterialsRef.current = [];
 
       // Dispose renderer
       if (rendererRef.current) {
