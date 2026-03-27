@@ -47,17 +47,18 @@ export default function StepIndicators({
         })}
       </div>
 
-      <div className="hidden w-full items-center md:flex">
+      <div className="hidden w-full items-start md:flex">
         {steps.map((step, index) => {
           const StepIcon = step.icon;
           const isActive = currentStep === step.id;
           const isCompleted = currentStep > step.id;
+          const showConnector = index < steps.length - 1;
 
           return (
-            <div key={step.id} className="flex min-w-0 flex-1 items-center">
-              <div className="flex min-w-0 flex-1 flex-col items-center">
+            <React.Fragment key={step.id}>
+              <div className="flex min-w-0 flex-1 flex-col items-center text-center">
                 <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
                   isCompleted ?
                   "bg-primary text-primary-foreground" :
                   isActive ?
@@ -67,7 +68,7 @@ export default function StepIndicators({
                   <StepIcon className="w-5 h-5" />
                 </div>
                 <span
-                  className={`mt-2 text-center text-sm ${
+                  className={`mt-2 max-w-24 text-sm leading-snug ${
                   isActive ?
                   "text-primary font-medium" :
                   "text-muted-foreground"}`
@@ -75,14 +76,18 @@ export default function StepIndicators({
                   {step.title}
                 </span>
               </div>
-              {index < steps.length - 1 &&
+              {showConnector &&
               <div
-                className={`mx-2 h-0.5 flex-1 ${
+                aria-hidden="true"
+                className="flex flex-1 items-start px-3 pt-5">
+                <div
+                  className={`h-0.5 w-full ${
                 isCompleted ? "bg-primary" : "bg-muted"}`
-                } />
+                  } />
+              </div>
 
               }
-            </div>);
+            </React.Fragment>);
         })}
       </div>
     </div>);

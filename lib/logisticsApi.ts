@@ -915,6 +915,21 @@ const buildBoundaryHubs = (shipment: LogisticsShipmentDetail) => {
   return hubs;
 };
 
+const hubKindToTransportLocationType = (
+  kind: RouteHubKind
+): TransportLeg["origin"]["type"] => {
+  switch (kind) {
+    case "airport":
+      return "airport";
+    case "port":
+      return "port";
+    case "rail_terminal":
+      return "rail_terminal";
+    default:
+      return "warehouse";
+  }
+};
+
 const sanitizeTransitPlaceholder = (
   label: string | null,
   replacement: string) => {
@@ -1158,6 +1173,8 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
         lat: fallbackOriginPoint.lat,
         lng: fallbackOriginPoint.lng,
         type:
+        boundaryHubBefore ?
+        hubKindToTransportLocationType(boundaryHubBefore.kind) :
         mode === "ship" ?
         "port" :
         mode === "air" ?
@@ -1169,6 +1186,8 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
         lat: fallbackDestinationPoint.lat,
         lng: fallbackDestinationPoint.lng,
         type:
+        boundaryHubAfter ?
+        hubKindToTransportLocationType(boundaryHubAfter.kind) :
         mode === "ship" ?
         "port" :
         mode === "air" ?

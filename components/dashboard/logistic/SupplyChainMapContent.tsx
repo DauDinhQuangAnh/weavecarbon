@@ -68,13 +68,16 @@ const getTypeEmoji = (type: string) => {
   }
 };
 
-const getRouteCoordinates = (route: SupplyChainRoute) =>
-  route.geometry && route.geometry.length >= 2 ?
-    route.geometry :
-    [
-      [route.from.lng, route.from.lat],
-      [route.to.lng, route.to.lat]
-    ];
+const getRenderableRouteCoordinates = (route: SupplyChainRoute) => {
+  if (route.geometry && route.geometry.length >= 2) {
+    return route.geometry;
+  }
+
+  return [
+    [route.from.lng, route.from.lat],
+    [route.to.lng, route.to.lat]
+  ] as Array<[number, number]>;
+};
 
 const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodes,
@@ -205,6 +208,10 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         routes.forEach((route, idx) => {
           const sourceId = `route-source-${idx}`;
           const lineId = `route-line-${idx}`;
+          const routeCoordinates = getRenderableRouteCoordinates(route);
+          if (!routeCoordinates || routeCoordinates.length < 2) {
+            return;
+          }
 
           try {
             map.addSource(sourceId, {
@@ -214,7 +221,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
                 properties: {},
                 geometry: {
                   type: "LineString",
-                  coordinates: getRouteCoordinates(route)
+                  coordinates: routeCoordinates
 
                 }
               } as GeoJSON.Feature

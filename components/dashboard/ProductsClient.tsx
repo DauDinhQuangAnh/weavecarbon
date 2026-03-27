@@ -46,7 +46,10 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
-import { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
+import {
+  ProductAssessmentData,
+  ProductAssessmentSessionDraft
+} from "@/components/dashboard/assessment/steps/types";
 import {
   deleteProduct,
   fetchProductById,
@@ -100,6 +103,59 @@ const resolveStarterDomesticMarket = (domesticMarket: unknown, targetMarkets: un
   const marketCode = normalizeDomesticMarketCode(domesticMarket, targetMarkets);
   return TARGET_MARKET_TO_DESTINATION_MARKET[marketCode] || "vietnam";
 };
+
+const TOTAL_ASSESSMENT_STEPS = 6;
+
+const normalizeAssessmentDraftStep = (step: number | null | undefined) => {
+  const safeStep = Math.trunc(step || 1);
+  return Math.min(TOTAL_ASSESSMENT_STEPS, Math.max(1, safeStep));
+};
+
+const hasAddressDraftValue = (
+  address: ProductAssessmentData["originAddress"] | ProductAssessmentData["destinationAddress"]
+) =>
+  Boolean(
+    address.streetNumber ||
+    address.street ||
+    address.ward ||
+    address.district ||
+    address.city ||
+    address.stateRegion ||
+    address.country ||
+    address.postalCode ||
+    typeof address.lat === "number" ||
+    typeof address.lng === "number"
+  );
+
+const hasAssessmentDraftContent = (draft: ProductAssessmentSessionDraft | null) => {
+  if (!draft) return false;
+
+  const { data, currentStep } = draft;
+  if (normalizeAssessmentDraftStep(currentStep) > 1) {
+    return true;
+  }
+
+  return Boolean(
+    data.productCode.trim() ||
+    data.productName.trim() ||
+    data.productType.trim() ||
+    data.weightPerUnit > 0 ||
+    data.quantity > 0 ||
+    data.materials.length > 0 ||
+    data.accessories.length > 0 ||
+    data.productionProcesses.length > 0 ||
+    data.energySources.length > 0 ||
+    data.manufacturingLocation.trim() ||
+    data.wasteRecovery.trim() ||
+    data.destinationMarket.trim() ||
+    data.transportLegs.length > 0 ||
+    data.estimatedTotalDistance > 0 ||
+    hasAddressDraftValue(data.originAddress) ||
+    hasAddressDraftValue(data.destinationAddress)
+  );
+};
+
+type AssessmentModalMode = "create" | "edit" | null;
 
 const ProductsClient: React.FC = () => {
   const router = useRouter();
@@ -163,11 +219,17 @@ const ProductsClient: React.FC = () => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [assessmentModalMode, setAssessmentModalMode] =
+    useState<AssessmentModalMode>(null);
+  const [assessmentModalInstanceKey, setAssessmentModalInstanceKey] = useState(0);
   const [assessmentProductId, setAssessmentProductId] = useState<string | null>(
     null
   );
+  const [assessmentInitialStep, setAssessmentInitialStep] = useState(1);
   const [assessmentInitialData, setAssessmentInitialData] =
   useState<ProductAssessmentData | null>(null);
+  const [assessmentSessionDraft, setAssessmentSessionDraft] =
+  useState<ProductAssessmentSessionDraft | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [pendingDeleteProduct, setPendingDeleteProduct] = useState<ProductRecord | null>(null);
@@ -229,9 +291,27 @@ const ProductsClient: React.FC = () => {
     []
   );
 
+  const persistAssessmentSessionDraft = useCallback(
+    (draft: ProductAssessmentSessionDraft | null) => {
+      if (!draft || !hasAssessmentDraftContent(draft)) {
+        setAssessmentSessionDraft(null);
+        return;
+      }
+
+      setAssessmentSessionDraft({
+        ...draft,
+        currentStep: normalizeAssessmentDraftStep(draft.currentStep),
+        updatedAt: draft.updatedAt || new Date().toISOString()
+      });
+    },
+    []
+  );
+
   const closeAssessmentModal = useCallback(() => {
     setShowAssessmentModal(false);
+    setAssessmentModalMode(null);
     setAssessmentProductId(null);
+    setAssessmentInitialStep(1);
     setAssessmentInitialData(null);
   }, []);
 
@@ -244,10 +324,23 @@ const ProductsClient: React.FC = () => {
       notifyTrialSkuLimitReached();
       return;
     }
+    setAssessmentModalMode("create");
+    setAssessmentModalInstanceKey((current) => current + 1);
     setAssessmentProductId(null);
-    setAssessmentInitialData(null);
+    setAssessmentInitialStep(
+      assessmentSessionDraft ?
+      normalizeAssessmentDraftStep(assessmentSessionDraft.currentStep) :
+      1
+    );
+    setAssessmentInitialData(assessmentSessionDraft?.data || null);
     setShowAssessmentModal(true);
-  }, [canMutate, notifyNoPermission, notifyTrialSkuLimitReached, trialSkuLimitReached]);
+  }, [
+    assessmentSessionDraft,
+    canMutate,
+    notifyNoPermission,
+    notifyTrialSkuLimitReached,
+    trialSkuLimitReached
+  ]);
 
   const openEditAssessment = useCallback(
     async (product: ProductRecord) => {
@@ -261,6 +354,7 @@ const ProductsClient: React.FC = () => {
       }
 
       setEditingProductId(product.id);
+      setAssessmentInitialStep(1);
       try {
         const fullProduct = await fetchProductById(product.id);
 
@@ -383,6 +477,8 @@ const ProductsClient: React.FC = () => {
 
         setAssessmentProductId(editableProduct.id);
         setAssessmentInitialData(mapProductToAssessmentData(editableProduct));
+        setAssessmentModalMode("edit");
+        setAssessmentModalInstanceKey((current) => current + 1);
         setShowAssessmentModal(true);
       } catch {
         toast.error(t("errors.failedOpenProductDetail"));
@@ -391,6 +487,17 @@ const ProductsClient: React.FC = () => {
       }
     },
     [canMutate, mapProductToAssessmentData, notifyNoPermission, t]
+  );
+
+  const handleAssessmentSessionDraftChange = useCallback(
+    (draft: ProductAssessmentSessionDraft | null) => {
+      if (!showAssessmentModal || assessmentModalMode !== "create") {
+        return;
+      }
+
+      persistAssessmentSessionDraft(draft);
+    },
+    [assessmentModalMode, persistAssessmentSessionDraft, showAssessmentModal]
   );
 
   const handleDeleteProduct = useCallback(
@@ -862,7 +969,6 @@ const ProductsClient: React.FC = () => {
           </div>
         </div>
 
-        
         <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {loading ?
           Array.from({ length: 6 }).map((_, index) =>
@@ -1050,21 +1156,33 @@ const ProductsClient: React.FC = () => {
         <DialogContent className="h-dvh w-screen max-w-[100vw] overflow-y-auto rounded-none p-4 md:h-[95vh] md:w-[95vw] md:max-w-6xl md:rounded-lg md:p-6">
           <DialogHeader>
             <DialogTitle>
-              {assessmentProductId ? t("assessmentDialog.editTitle") : t("assessmentDialog.createTitle")}
+              {assessmentModalMode === "edit" ?
+                t("assessmentDialog.editTitle") :
+                t("assessmentDialog.createTitle")}
             </DialogTitle>
             <DialogDescription>
-              {assessmentProductId ?
-              t("assessmentDialog.editDescription") :
-              t("assessmentDialog.createDescription")}
+              {assessmentModalMode === "edit" ?
+                t("assessmentDialog.editDescription") :
+                t("assessmentDialog.createDescription")}
             </DialogDescription>
           </DialogHeader>
           <AssessmentClient
+            key={`${assessmentModalMode || "idle"}-${assessmentProductId || "new"}-${assessmentModalInstanceKey}`}
             mode="modal"
             productId={assessmentProductId}
             initialData={assessmentInitialData}
+            initialStep={assessmentInitialStep}
             disableModalDraftRestore
+            onSessionDraftChange={
+              assessmentModalMode === "create" ?
+                handleAssessmentSessionDraftChange :
+                undefined
+            }
             onClose={closeAssessmentModal}
-            onCompleted={() => {
+            onCompleted={(result) => {
+              if (!result.isUpdate) {
+                setAssessmentSessionDraft(null);
+              }
               void loadProducts();
               dispatchProductUsageUpdatedEvent();
               closeAssessmentModal();

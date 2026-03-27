@@ -35,7 +35,11 @@ import {
   type ProductRecord } from
 "@/lib/productsApi";
 import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
-import { fetchRoadRoute, isRoadTransportMode } from "@/lib/roadRouting";
+import {
+  fetchRoadRoute,
+  isRoadTransportMode,
+  type RoadRouteFailureReason
+} from "@/lib/roadRouting";
 
 export interface AddressData {
   streetAddress: string;
@@ -578,6 +582,9 @@ const TransportClient: React.FC<TransportClientProps> = ({
   );
   const [shipmentError, setShipmentError] = useState<string | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
+  const [roadRouteFailureByLegId, setRoadRouteFailureByLegId] = useState<
+    Record<string, RoadRouteFailureReason>
+  >({});
   const [isSaving, setIsSaving] = useState(false);
   const [isResolvingRoadRoutes, setIsResolvingRoadRoutes] = useState(false);
   const autoRoadRouteSyncRef = React.useRef<
@@ -757,6 +764,16 @@ const TransportClient: React.FC<TransportClientProps> = ({
     }
 
     if (pendingLegs.length === 0) {
+      setRoadRouteFailureByLegId((current) => {
+        const next = { ...current };
+        Object.keys(next).forEach((legId) => {
+          const matchedLeg = legs.find((leg) => leg.id === legId);
+          if (!matchedLeg || !isRoadTransportMode(matchedLeg.mode)) {
+            delete next[legId];
+          }
+        });
+        return next;
+      });
       setIsResolvingRoadRoutes(false);
       return;
     }
@@ -766,7 +783,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
     const syncRoadLegDistances = async () => {
       const resolvedUpdates = await Promise.all(
         pendingLegs.map(async (candidate) => {
-          const route = await fetchRoadRoute(
+          const routeResolution = await fetchRoadRoute(
             {
               lat: candidate.originLat,
               lng: candidate.originLng
@@ -777,12 +794,18 @@ const TransportClient: React.FC<TransportClientProps> = ({
             }
           );
 
-          if (!route) return null;
+          if (!routeResolution.ok) {
+            return {
+              failureReason: routeResolution.failureReason,
+              id: candidate.id,
+              routeKey: candidate.routeKey
+            };
+          }
 
           return {
             id: candidate.id,
             routeKey: candidate.routeKey,
-            distanceKm: formatRouteDistanceKm(route.distanceKm)
+            distanceKm: formatRouteDistanceKm(routeResolution.route.distanceKm)
           };
         })
       );
@@ -790,7 +813,12 @@ const TransportClient: React.FC<TransportClientProps> = ({
       if (isCancelled) return;
 
       const nextUpdates = resolvedUpdates.filter(
-        (item): item is {id: string;routeKey: string;distanceKm: string;} => item !== null
+        (item): item is {id: string;routeKey: string;distanceKm: string;} =>
+          Boolean(item && "distanceKm" in item)
+      );
+      const nextFailures = resolvedUpdates.filter(
+        (item): item is {failureReason: RoadRouteFailureReason;id: string;routeKey: string;} =>
+          Boolean(item && "failureReason" in item)
       );
 
       nextUpdates.forEach((update) => {
@@ -798,6 +826,26 @@ const TransportClient: React.FC<TransportClientProps> = ({
           routeKey: update.routeKey,
           distanceKm: update.distanceKm
         };
+      });
+
+      setRoadRouteFailureByLegId((current) => {
+        const next = { ...current };
+
+        legs.forEach((leg) => {
+          if (!isRoadTransportMode(leg.mode)) {
+            delete next[leg.id];
+          }
+        });
+
+        nextUpdates.forEach((update) => {
+          delete next[update.id];
+        });
+
+        nextFailures.forEach((failure) => {
+          next[failure.id] = failure.failureReason;
+        });
+
+        return next;
       });
 
       if (nextUpdates.length > 0) {
@@ -831,16 +879,28 @@ const TransportClient: React.FC<TransportClientProps> = ({
   };
 
   const handleRemoveLeg = (id: string) => {
+    setRoadRouteFailureByLegId((current) => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
     setLegs((current) =>
     current.length > 1 ? current.filter((leg) => leg.id !== id) : current
     );
   };
 
-  const updateLeg = (
+const updateLeg = (
   id: string,
   field: keyof LegInput,
   value: string | AddressData) =>
   {
+    setRoadRouteFailureByLegId((current) => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
     setLegs((current) =>
     current.map((leg) => {
       if (leg.id !== id) return leg;
@@ -1156,6 +1216,17 @@ const TransportClient: React.FC<TransportClientProps> = ({
 
         }
 
+        {Object.keys(roadRouteFailureByLegId).length > 0 &&
+        <Card className="border-amber-200 bg-amber-50/50">
+            <CardContent className="p-4 text-sm text-amber-800">
+              <div className="inline-flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{t("status.roadRouteUnconfirmed")}</span>
+              </div>
+            </CardContent>
+          </Card>
+        }
+
         {hasLookupInput && !isShipmentLoading && displayLegs.length === 0 &&
         <Card className="border-dashed border-amber-300 bg-amber-50/40">
             <CardContent className="p-4 text-sm text-amber-700">
@@ -1180,6 +1251,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
               hasLocationPermission={hasLocationPermission}
               onUpdate={updateLeg}
               onRemove={handleRemoveLeg}
+              roadRouteIssue={roadRouteFailureByLegId[leg.id] ? t("status.roadRouteUnconfirmed") : null}
               calculateCO2={calculateLegCO2} />
 
             )}

@@ -2,7 +2,7 @@ export interface TransportLocation {
   name: string;
   lat: number;
   lng: number;
-  type: "address" | "port" | "airport" | "warehouse";
+  type: "address" | "port" | "airport" | "warehouse" | "rail_terminal";
 }
 
 export interface TransportLeg {

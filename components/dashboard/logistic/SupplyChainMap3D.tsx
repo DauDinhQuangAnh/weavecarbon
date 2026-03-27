@@ -57,13 +57,16 @@ const getMarkerColor = (status?: string) => {
   return "#3b82f6";
 };
 
-const getRouteCoordinates = (route: SupplyChainRoute) =>
-  route.geometry && route.geometry.length >= 2 ?
-    route.geometry :
-    [
-      [route.from.lng, route.from.lat],
-      [route.to.lng, route.to.lat]
-    ];
+const getRenderableRouteCoordinates = (route: SupplyChainRoute) => {
+  if (route.geometry && route.geometry.length >= 2) {
+    return route.geometry;
+  }
+
+  return [
+    [route.from.lng, route.from.lat],
+    [route.to.lng, route.to.lat]
+  ] as Array<[number, number]>;
+};
 
 const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
   nodes,
@@ -169,6 +172,10 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
       routes.forEach((route, idx) => {
         const sourceId = `route-source-${idx}`;
         const lineId = `route-line-${idx}`;
+        const routeCoordinates = getRenderableRouteCoordinates(route);
+        if (!routeCoordinates || routeCoordinates.length < 2) {
+          return;
+        }
 
         map.addSource(sourceId, {
           type: "geojson",
@@ -177,7 +184,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
             properties: {},
             geometry: {
               type: "LineString",
-              coordinates: getRouteCoordinates(route)
+              coordinates: routeCoordinates
 
             }
           } as GeoJSON.Feature

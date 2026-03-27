@@ -95,6 +95,7 @@ export const buildMapboxDrivingDirectionsUrl = (
     language?: string;
     overview?: "full" | "simplified" | "false";
     geometries?: "geojson" | "polyline" | "polyline6";
+    radiuses?: Array<number | "unlimited" | null | undefined>;
     steps?: boolean;
   } = {}
 ) => {
@@ -121,6 +122,23 @@ export const buildMapboxDrivingDirectionsUrl = (
   params.set("overview", options.overview || "full");
   params.set("geometries", options.geometries || "geojson");
   params.set("steps", options.steps ? "true" : "false");
+
+  if (Array.isArray(options.radiuses) && options.radiuses.length > 0) {
+    const normalizedRadiuses = validCoordinates.map((_, index) => {
+      const radius = options.radiuses?.[index];
+      if (radius === "unlimited") {
+        return radius;
+      }
+      if (typeof radius === "number" && Number.isFinite(radius) && radius >= 0) {
+        return String(radius);
+      }
+      return "unlimited";
+    });
+
+    if (normalizedRadiuses.length >= 2) {
+      params.set("radiuses", normalizedRadiuses.join(";"));
+    }
+  }
 
   return `${base}?${params.toString()}`;
 };

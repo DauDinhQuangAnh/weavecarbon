@@ -495,7 +495,21 @@
     },
     "deleteConfirmFallbackName": "this product",
     "toasts": {
-      "deleteSuccess": "Deleted product \"{name}\"."
+      "deleteSuccess": "Deleted product \"{name}\".",
+      "draftSessionCleared": "Cleared the in-progress session."
+    },
+    "draftSession": {
+      "title": "In-Progress Session",
+      "description": "We kept the information you entered up to the \"{step}\" step.",
+      "emptyLabel": "Untitled product",
+      "productCodeFallback": "No product code yet",
+      "lastSaved": "Last updated: {time}",
+      "stepBadge": "Step {current}/{total}",
+      "materials": "{count} materials",
+      "processes": "{count} processes",
+      "transportLegs": "{count} transport legs",
+      "resume": "Resume entry",
+      "clear": "Clear draft"
     },
     "clearSearchAria": "Clear search query",
     "assessmentDialog": {
@@ -1571,6 +1585,7 @@
     },
     "supplyChainMap": {
       "loading": "Loading map...",
+      "roadRouteUnavailable": "Unable to determine the detailed road route. Move the selected point closer to a road.",
       "modes": {
         "twoD": "2D",
         "twoDAria": "2D map",
@@ -1716,7 +1731,8 @@
         "estimatedDays": "shipping days"
       },
       "routeDetails": "Route details",
-      "clickHint": "(Click to simulate)"
+      "clickHint": "(Click to simulate)",
+      "roadRouteUnavailable": "Unable to determine the detailed road route. Move the selected point closer to a road."
     },
     "skuLabel": "SKU",
     "containerLabel": "Container",
@@ -1788,6 +1804,7 @@
       "retryLoadData": "Reload data",
       "loadingRoute": "Loading transport route...",
       "noMapDataHint": "No map data for this product yet. You can enter transport information manually below.",
+      "roadRouteUnconfirmed": "Unable to determine the detailed road route for one or more legs. The current distance is still an estimate.",
       "loadingShort": "Loading"
     },
     "units": {
@@ -1981,6 +1998,7 @@
         "logisticsCreateFailed": "Product published but logistics shipment could not be created.",
         "trialDomesticOnly": "Trial only allows domestic addresses in {country}. Please choose a point on the map again.",
         "certificationDocumentsChecking": "Checking certification documents. Please try again in a few seconds.",
+        "roadRouteRequired": "All road legs must be resolved to exact road routes before publishing the product.",
         "missingMaterialCertificationDocuments": "Warning: missing uploaded files for material certifications: {certifications}.",
         "missingExportDocuments": "Warning: missing required export documents: {documents}."
       },
@@ -2162,12 +2180,16 @@
       },
       "transport": {
         "title": "Transport Modes",
-        "subtitle": "Add transport legs from origin to destination",
+        "subtitle": "Transport legs are suggested and refreshed automatically from the selected origin and destination",
         "totalDistance": "Total: ~{value} km",
         "leg": "Leg {index}",
         "distancePlaceholder": "Estimated km",
+        "distancePlaceholderRoad": "Exact route km",
         "distanceUnit": "km",
         "co2Factor": "({value} kg CO₂e/ton.km)",
+        "routeResolving": "Resolving the exact road route between the two points...",
+        "routeResolved": "Road distance is filled automatically from the exact route, not a straight-line estimate.",
+        "routeUnconfirmed": "The exact road route for this leg could not be resolved yet. Move the selected points closer to a road and try again.",
         "addLeg": "Add transport leg",
         "clearAllLegs": "Clear all legs"
       },
@@ -2187,6 +2209,11 @@
     "locationPicker": {
       "browserNotSupported": "Your browser does not support geolocation",
       "cannotGetLocation": "Unable to get current location",
+      "permissionDenied": "Location permission is blocked. Please allow location access in your browser.",
+      "positionUnavailable": "The device could not determine your location. Try again in an open area or with Wi-Fi enabled.",
+      "locationTimeout": "Location lookup took too long. Please try again.",
+      "secureContextRequired": "Current location only works on HTTPS or localhost.",
+      "locating": "Locating...",
       "searchPlaceholder": "Search address...",
       "currentLocation": "Current location",
       "mapHint": "Click the map or drag the marker to set an exact location"

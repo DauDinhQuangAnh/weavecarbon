@@ -37,6 +37,7 @@ interface TransportLegCardProps {
   hasLocationPermission: boolean;
   onUpdate: (id: string, field: keyof LegInput, value: string | AddressData) => void;
   onRemove: (id: string) => void;
+  roadRouteIssue?: string | null;
   calculateCO2: (leg: LegInput) => number;
 }
 
@@ -47,6 +48,7 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
   hasLocationPermission,
   onUpdate,
   onRemove,
+  roadRouteIssue,
   calculateCO2
 }) => {
   const t = useTranslations("transport");
@@ -169,6 +171,12 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
               {t("locationPermissionHint")}
             </p>
           }
+          {roadRouteIssue ?
+          <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <Info className="mr-1 inline h-3 w-3" />
+              {roadRouteIssue}
+            </div> :
+          null}
         </div>
 
         
@@ -191,4 +199,3 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
 };
 
 export default TransportLegCard;
-

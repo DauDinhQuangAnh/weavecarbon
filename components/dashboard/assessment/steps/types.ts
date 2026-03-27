@@ -29,6 +29,7 @@ export interface TransportLeg {
   estimatedDistance?: number;
   emissionFactor?: number;
   co2Kg?: number;
+  routeResolved?: boolean;
 }
 
 export interface AddressInput {
@@ -78,6 +79,12 @@ export interface ProductAssessmentData {
   version: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ProductAssessmentSessionDraft {
+  currentStep: number;
+  data: ProductAssessmentData;
+  updatedAt: string;
 }
 
 export interface CarbonBreakdown {

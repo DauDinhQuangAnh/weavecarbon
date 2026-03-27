@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LazyMountOnView from "@/components/ui/LazyMountOnView";
 import {
   Globe,
@@ -16,6 +16,7 @@ import {
   Clock,
   CheckCircle2,
   QrCode,
+  X,
   XCircle } from
 "lucide-react";
 import SupplyChainMap, {
@@ -64,6 +65,7 @@ interface Shipment {
     name: string;
   };
   legs: TransportLeg[];
+  legsHydrated: boolean;
   totalCO2: number;
   carrier: string;
 }
@@ -87,6 +89,11 @@ const isSameShipment = (
   return left.id === right.id;
 };
 
+const findMatchingShipment = (
+  shipments: Shipment[],
+  target: ShipmentIdentity | null | undefined
+) => shipments.find((shipment) => isSameShipment(shipment, target)) || null;
+
 const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   const normalizedReference = referenceNumber.replace(/[^a-zA-Z0-9]/g, "");
   if (normalizedReference) {
@@ -95,10 +102,14 @@ const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   return `WC-${fallbackId.slice(0, 8).toUpperCase()}`;
 };
 
+const hasHydratedShipmentDetail = (
+  shipment: LogisticsShipmentSummary | LogisticsShipmentDetail
+): shipment is LogisticsShipmentDetail => "legs" in shipment && "products" in shipment;
+
 const toShipmentDetailLike = (
 shipment: LogisticsShipmentSummary | LogisticsShipmentDetail)
 : LogisticsShipmentDetail => {
-  if ("legs" in shipment && "products" in shipment) {
+  if (hasHydratedShipmentDetail(shipment)) {
     return shipment;
   }
   return {
@@ -154,6 +165,7 @@ fallbacks: {shipmentName: string;unknownCarrier: string;})
       name: fallbackLocation.name
     },
     legs,
+    legsHydrated: hasHydratedShipmentDetail(shipment),
     totalCO2: detailLike.total_co2e,
     carrier:
     detailLike.legs.find((leg) => leg.carrier_name.trim().length > 0)?.carrier_name ||
@@ -303,6 +315,30 @@ const toDetailShipment = (shipment: Shipment): TrackShipment => ({
   containerNo: buildContainerNo(shipment.id, shipment.id)
 });
 
+const mergeSummaryIntoDetailShipment = (
+  current: TrackShipment,
+  shipment: Shipment
+): TrackShipment => {
+  const summaryDetail = toDetailShipment(shipment);
+  return {
+    ...current,
+    id: summaryDetail.id,
+    shipmentId: summaryDetail.shipmentId,
+    productId: summaryDetail.productId,
+    productName: summaryDetail.productName,
+    sku: summaryDetail.sku,
+    status: summaryDetail.status,
+    simulationEnabled: summaryDetail.simulationEnabled,
+    progress: summaryDetail.progress,
+    origin: summaryDetail.origin,
+    destination: summaryDetail.destination,
+    estimatedArrival: summaryDetail.estimatedArrival,
+    departureDate: summaryDetail.departureDate,
+    currentLocation: summaryDetail.currentLocation || current.currentLocation,
+    totalCO2: summaryDetail.totalCO2
+  };
+};
+
 const STATUS_PALETTE: Record<
   Shipment["status"],
   {
@@ -361,6 +397,7 @@ const ShippingOverviewMap: React.FC = () => {
   const [allShipments, setAllShipments] = useState<Shipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [detailShipment, setDetailShipment] = useState<TrackShipment | null>(null);
+  const [detailLoadingShipment, setDetailLoadingShipment] = useState<Shipment | null>(null);
   const [qrShipment, setQrShipment] = useState<Shipment | null>(null);
   const detailRequestSeqRef = useRef(0);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -379,6 +416,12 @@ const ShippingOverviewMap: React.FC = () => {
     }),
     [t]
   );
+
+  const closeDetailDialog = useCallback(() => {
+    detailRequestSeqRef.current += 1;
+    setDetailShipment(null);
+    setDetailLoadingShipment(null);
+  }, []);
 
   const syncShipmentState = useCallback((shipment: Shipment) => {
     setAllShipments((current) => {
@@ -454,9 +497,17 @@ const ShippingOverviewMap: React.FC = () => {
   const openDetails = async (shipment: Shipment) => {
     const requestSeq = detailRequestSeqRef.current + 1;
     detailRequestSeqRef.current = requestSeq;
-    setDetailShipment(toDetailShipment(shipment));
+    setDetailLoadingShipment(shipment);
+
+    if (shipment.legsHydrated) {
+      setDetailShipment(toDetailShipment(shipment));
+    } else {
+      setDetailShipment(null);
+    }
 
     if (!isValidUuid(shipment.shipmentId)) {
+      setDetailShipment(toDetailShipment(shipment));
+      setDetailLoadingShipment(null);
       return;
     }
 
@@ -466,8 +517,13 @@ const ShippingOverviewMap: React.FC = () => {
         return;
       }
       syncShipmentState(detailedShipment);
+      setDetailShipment(toDetailShipment(detailedShipment));
     } catch {
-
+      setDetailShipment((current) => current);
+    } finally {
+      if (requestSeq === detailRequestSeqRef.current) {
+        setDetailLoadingShipment(null);
+      }
     }
   };
 
@@ -510,23 +566,20 @@ const ShippingOverviewMap: React.FC = () => {
       setAllShipments(userShipments);
       setDetailShipment((current) => {
         if (!current) return null;
-        const matchedShipment = userShipments.find((shipment) =>
-        isSameShipment(shipment, current)
-        );
-        return matchedShipment ? toDetailShipment(matchedShipment) : null;
+        const matchedShipment = findMatchingShipment(userShipments, current);
+        if (!matchedShipment) {
+          return null;
+        }
+        return matchedShipment.legsHydrated ?
+          toDetailShipment(matchedShipment) :
+          mergeSummaryIntoDetailShipment(current, matchedShipment);
       });
       setQrShipment((current) => {
         if (!current) return null;
-        return (
-        userShipments.find((shipment) =>
-        isSameShipment(shipment, current)
-        ) ||
-        null
-        );
+        return findMatchingShipment(userShipments, current);
       });
     } catch {
       setAllShipments([]);
-      setDetailShipment(null);
       setQrShipment(null);
     } finally {
       if (showLoader) {
@@ -1078,24 +1131,47 @@ const ShippingOverviewMap: React.FC = () => {
       )}
 
       <Dialog
-        open={!!detailShipment}
+        open={!!detailShipment || !!detailLoadingShipment}
         onOpenChange={(open) => {
-          if (!open) setDetailShipment(null);
+          if (!open) {
+            closeDetailDialog();
+          }
         }}>
 
-        {detailShipment &&
-        <DialogContent className="h-dvh w-screen max-w-[100vw] overflow-hidden rounded-none p-0 [&>button]:fixed [&>button]:z-30 [&>button]:right-1.5 [&>button]:top-3 [&>button]:h-10 [&>button]:w-10 [&>button>svg]:h-5 [&>button>svg]:w-5 md:[&>button]:absolute md:[&>button]:right-3 md:[&>button]:top-3 md:[&>button]:h-8 md:[&>button]:w-8 md:[&>button>svg]:h-4 md:[&>button>svg]:w-4 md:h-[min(92dvh,56rem)] md:w-[min(96vw,68rem)] md:max-w-none md:rounded-xl">
+        {(detailShipment || detailLoadingShipment) &&
+        <DialogContent
+          hideCloseButton
+          className="h-dvh w-screen max-w-[100vw] overflow-hidden rounded-none p-0 md:h-[min(92dvh,56rem)] md:w-[min(96vw,68rem)] md:max-w-none md:rounded-xl"
+        >
             <DialogHeader className="sr-only">
               <DialogTitle>
-                {t("routeDetails")}: {detailShipment.productName}
+                {t("routeDetails")}: {(detailShipment || detailLoadingShipment)?.productName}
               </DialogTitle>
             </DialogHeader>
+            <DialogClose className="absolute right-2 top-2 z-30 rounded-sm bg-background/95 p-2 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:right-3 md:top-3">
+              <X className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
             <div className="h-full overflow-y-auto overflow-x-hidden p-0 md:p-4">
-              <ShipmentDetails
-                shipment={detailShipment}
-                onRefresh={() => {
-                  void refreshDetailShipment();
-                }} />
+              {detailShipment ?
+                <ShipmentDetails
+                  shipment={detailShipment}
+                  onRefresh={() => {
+                    void refreshDetailShipment();
+                  }} /> :
+                <div className="flex h-full min-h-[320px] items-center justify-center p-6">
+                  <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="animate-pulse space-y-4">
+                      <div className="h-6 w-2/3 rounded bg-slate-200" />
+                      <div className="h-56 rounded-lg bg-slate-100" />
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="h-20 rounded-lg bg-slate-100" />
+                        <div className="h-20 rounded-lg bg-slate-100" />
+                        <div className="h-20 rounded-lg bg-slate-100" />
+                      </div>
+                    </div>
+                  </div>
+                </div>}
             </div>
           </DialogContent>
         }

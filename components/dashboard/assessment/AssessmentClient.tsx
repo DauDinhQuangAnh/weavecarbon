@@ -34,7 +34,8 @@ import {
   DraftVersion,
   MarketComplianceDocumentSummary,
   PRODUCT_TYPES,
-  ProductAssessmentData
+  ProductAssessmentData,
+  ProductAssessmentSessionDraft
 } from "./steps/types";
 import {
   createProduct,
@@ -316,6 +317,12 @@ const buildAddressLabel = (
   return parts.length > 0 ? parts.join(", ") : unknownLocationLabel;
 };
 
+const hasPositiveDistance = (value: number | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+const hasResolvedRoadDistance = (leg: ProductAssessmentData["transportLegs"][number]) =>
+  leg.mode !== "road" || (leg.routeResolved === true && hasPositiveDistance(leg.estimatedDistance));
+
 const toShipmentLocationInput = (
   address: AddressInput,
   fallbackCountry = "Vietnam",
@@ -348,43 +355,10 @@ const buildShipmentLegsFromProduct = (
   payload: ProductAssessmentData,
   unknownLocationLabel = ""
 ) => {
-  const explicitLegs = (payload.transportLegs || []).filter((leg) => {
-    const hasDistance =
-      typeof leg.estimatedDistance === "number" &&
-      Number.isFinite(leg.estimatedDistance) &&
-      leg.estimatedDistance > 0;
-    return hasDistance || leg.mode;
-  });
+  const explicitLegs = (payload.transportLegs || []).filter((leg) => Boolean(leg.mode));
 
   if (explicitLegs.length === 0) {
-    const fallbackDistance =
-      typeof payload.estimatedTotalDistance === "number" &&
-      Number.isFinite(payload.estimatedTotalDistance) &&
-      payload.estimatedTotalDistance > 0 ?
-        payload.estimatedTotalDistance :
-        0;
-
-    if (fallbackDistance <= 0) {
-      return [];
-    }
-
-    const emissionFactor = DEFAULT_TRANSPORT_FACTOR_BY_MODE.road;
-    return [
-      {
-        leg_order: 1,
-        transport_mode: "road" as const,
-        origin_location: buildAddressLabel(payload.originAddress, unknownLocationLabel),
-        destination_location: buildAddressLabel(
-          payload.destinationAddress,
-          unknownLocationLabel
-        ),
-        distance_km: fallbackDistance,
-        co2e: Math.max(0, fallbackDistance * emissionFactor),
-        emission_factor_used: emissionFactor,
-        carrier_name: "",
-        vehicle_type: ""
-      }
-    ];
+    return [];
   }
 
   const fallbackDistancePerLeg =
@@ -396,11 +370,12 @@ const buildShipmentLegsFromProduct = (
 
   return explicitLegs.map((leg, index) => {
     const distanceKm =
-      typeof leg.estimatedDistance === "number" &&
-      Number.isFinite(leg.estimatedDistance) &&
-      leg.estimatedDistance > 0 ?
+      hasPositiveDistance(leg.estimatedDistance) &&
+      hasResolvedRoadDistance(leg) ?
         leg.estimatedDistance :
-        fallbackDistancePerLeg;
+      leg.mode !== "road" && fallbackDistancePerLeg > 0 ?
+        fallbackDistancePerLeg :
+        0;
 
     const emissionFactor =
       typeof leg.emissionFactor === "number" &&
@@ -492,8 +467,10 @@ const MODAL_CREATE_DRAFT_STORAGE_KEY = "assessment_modal_create_draft_v1";
 interface AssessmentClientProps {
   mode?: AssessmentMode;
   initialData?: ProductAssessmentData | null;
+  initialStep?: number;
   productId?: string | null;
   disableModalDraftRestore?: boolean;
+  onSessionDraftChange?: (draft: ProductAssessmentSessionDraft | null) => void;
   onClose?: () => void;
   onCompleted?: (result: {
     id: string;
@@ -635,11 +612,18 @@ const isSameValue = (a: unknown, b: unknown) => {
   }
 };
 
+const normalizeInitialStep = (step: number | null | undefined) => {
+  const safeStep = Math.trunc(step || 1);
+  return Math.min(STEP_CONFIG.length, Math.max(1, safeStep));
+};
+
 export default function AssessmentClient({
   mode = "page",
   initialData = null,
+  initialStep = 1,
   productId = null,
   disableModalDraftRestore = false,
+  onSessionDraftChange,
   onClose,
   onCompleted
 }: AssessmentClientProps) {
@@ -666,7 +650,9 @@ export default function AssessmentClient({
     title: t(step.titleKey)
   }));
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() =>
+    normalizeInitialStep(initialStep)
+  );
   const [productData, setProductData] = useState<ProductAssessmentData>(() =>
   resolveInitialProductData({ mode, isEditing, initialData, disableModalDraftRestore })
   );
@@ -854,12 +840,12 @@ export default function AssessmentClient({
 
   useEffect(() => {
     skipCreateDraftPersistenceRef.current = false;
-    setCurrentStep(1);
+    setCurrentStep(normalizeInitialStep(initialStep));
     setDraftHistory([]);
     setIsSubmitting(false);
     setSubmissionMode(null);
     setProductData(resolveInitialProductData({ mode, isEditing, initialData, disableModalDraftRestore }));
-  }, [disableModalDraftRestore, initialData, isEditing, mode, productId]);
+  }, [disableModalDraftRestore, initialData, initialStep, isEditing, mode, productId]);
 
   useEffect(() => {
     if (!isStarterPlan) return;
@@ -957,6 +943,24 @@ export default function AssessmentClient({
     saveModalCreateDraft(productData);
   }, [disableModalDraftRestore, isModalMode, isEditing, productData]);
 
+  useEffect(() => {
+    if (!isModalMode || isEditing || skipCreateDraftPersistenceRef.current) {
+      return;
+    }
+
+    onSessionDraftChange?.({
+      currentStep: normalizeInitialStep(currentStep),
+      data: productData,
+      updatedAt: productData.updatedAt || new Date().toISOString()
+    });
+  }, [
+    currentStep,
+    isEditing,
+    isModalMode,
+    onSessionDraftChange,
+    productData
+  ]);
+
   const availableMaterialCertificationDocumentSet = React.useMemo(
     () =>
       new Set(
@@ -1037,6 +1041,9 @@ export default function AssessmentClient({
     isTrialPlan &&
     (isAddressOutsideTrialDomestic(productData.originAddress.country, starterDomesticMarket) ||
       isAddressOutsideTrialDomestic(productData.destinationAddress.country, starterDomesticMarket));
+  const hasUnresolvedRoadTransportLegs = productData.transportLegs.some(
+    (leg) => !hasResolvedRoadDistance(leg)
+  );
 
   const canProceed = () => {
     switch (currentStep) {
@@ -1063,7 +1070,12 @@ export default function AssessmentClient({
           return productData.productionProcesses.length > 0 && total === 100;
         }
       case 4:
-        return !!productData.destinationMarket && !hasTrialDomesticAddressMismatch;
+        return (
+          !!productData.destinationMarket &&
+          productData.transportLegs.length > 0 &&
+          !hasTrialDomesticAddressMismatch &&
+          !hasUnresolvedRoadTransportLegs
+        );
       default:
         return true;
     }
@@ -1149,6 +1161,9 @@ export default function AssessmentClient({
           Number.isFinite(payload.estimatedTotalDistance) &&
           payload.estimatedTotalDistance > 0);
       if (!hasLogisticsInput) return null;
+      if (payload.transportLegs.some((leg) => !hasResolvedRoadDistance(leg))) {
+        return null;
+      }
 
       const existingShipmentId = await findExistingShipmentForProduct(product);
       if (existingShipmentId) {
@@ -1426,6 +1441,11 @@ export default function AssessmentClient({
           country: expectedCountry
         })
       );
+      setCurrentStep(4);
+      return;
+    }
+    if (hasUnresolvedRoadTransportLegs) {
+      toast.warning(t("toast.roadRouteRequired"));
       setCurrentStep(4);
       return;
     }

@@ -16,9 +16,13 @@ import {
   Ship,
   Truck
 } from "lucide-react";
-import type { TransportLeg } from "@/types/transport";
+import type { TransportLeg, TransportLocation } from "@/types/transport";
 import { configureMapboxRuntime } from "@/lib/mapbox";
-import { fetchRoadRoute, isRoadTransportMode } from "@/lib/roadRouting";
+import {
+  isRoadTransportMode,
+  type RoadRoutePointSource
+} from "@/lib/roadRouting";
+import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeometry";
 
 interface TransportMapProps {
   legs: TransportLeg[];
@@ -39,14 +43,30 @@ type RoutePoint = {
 
 type LineCoordinate = [number, number];
 
-type ResolvedRoadRoute = {
-  geometry: LineCoordinate[];
-  distanceKm: number;
-  co2Kg: number;
-};
+const SIMULATION_MIN_DURATION_MS = 6000;
+const SIMULATION_MAX_DURATION_MS = 18000;
+const SIMULATION_MS_PER_KM = 35;
+const MAP_CAMERA_TRANSITION_MS = 1500;
 
 const roundMetricValue = (value: number) =>
   Math.round((Math.max(0, value) + Number.EPSILON) * 1000) / 1000;
+
+const mapLocationTypeToRoadPointSource = (
+  type: TransportLocation["type"]
+): RoadRoutePointSource | undefined => {
+  switch (type) {
+    case "airport":
+      return "hub_airport";
+    case "port":
+      return "hub_port";
+    case "rail_terminal":
+      return "hub_rail_terminal";
+    case "warehouse":
+      return "warehouse";
+    default:
+      return undefined;
+  }
+};
 
 const buildStraightLineCoordinates = (leg: TransportLeg): LineCoordinate[] => [
   [leg.origin.lng, leg.origin.lat],
@@ -65,6 +85,9 @@ const getPolylineDistance = (coordinates: LineCoordinate[]) => {
 
   return total;
 };
+
+const clamp = (value: number, minimum: number, maximum: number) =>
+  Math.min(maximum, Math.max(minimum, value));
 
 const interpolateAlongPolyline = (
   coordinates: LineCoordinate[],
@@ -124,9 +147,31 @@ const TransportMap: React.FC<TransportMapProps> = ({
   const [selectedLeg, setSelectedLeg] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [resolvedRoadRoutes, setResolvedRoadRoutes] = useState<
-    Record<string, ResolvedRoadRoute>
-  >({});
+  const {
+    geometryById: resolvedRoadGeometryById,
+    metricsById: resolvedRoadMetricsById,
+    statusById: roadGeometryStatusById
+  } = useResolvedRoadRouteGeometry(legs, {
+    getDestination: (leg) => ({
+      lat: leg.destination.lat,
+      lng: leg.destination.lng
+    }),
+    getDestinationSource: (leg) => mapLocationTypeToRoadPointSource(leg.destination.type),
+    getId: (leg) => leg.id,
+    getOrigin: (leg) => ({
+      lat: leg.origin.lat,
+      lng: leg.origin.lng
+    }),
+    getOriginSource: (leg) => mapLocationTypeToRoadPointSource(leg.origin.type),
+    getResolvedMetrics: (leg, route) => ({
+      co2Kg:
+        leg.emissionFactor > 0 ?
+          roundMetricValue(route.distanceKm * leg.emissionFactor) :
+          leg.co2Kg,
+      distanceKm: route.distanceKm
+    }),
+    isRoadRoute: (leg) => isRoadTransportMode(leg.mode)
+  });
   const formatDistanceKm = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
   const formatExactValue = (value: number) =>
@@ -135,18 +180,18 @@ const TransportMap: React.FC<TransportMapProps> = ({
   const displayLegs = React.useMemo(
     () =>
       legs.map((leg) => {
-        const resolvedRoadRoute = resolvedRoadRoutes[leg.id];
-        if (!resolvedRoadRoute) {
+        const resolvedRoadMetrics = resolvedRoadMetricsById[leg.id];
+        if (!resolvedRoadMetrics) {
           return leg;
         }
 
         return {
           ...leg,
-          distanceKm: resolvedRoadRoute.distanceKm,
-          co2Kg: resolvedRoadRoute.co2Kg
+          distanceKm: resolvedRoadMetrics.distanceKm ?? leg.distanceKm,
+          co2Kg: resolvedRoadMetrics.co2Kg ?? leg.co2Kg
         };
       }),
-    [legs, resolvedRoadRoutes]
+    [legs, resolvedRoadMetricsById]
   );
 
   const getModeIcon = (mode: string) => {
@@ -274,75 +319,39 @@ const TransportMap: React.FC<TransportMapProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    const roadLegs = legs.filter((leg) => isRoadTransportMode(leg.mode));
-    if (roadLegs.length === 0) {
-      setResolvedRoadRoutes({});
-      return;
+  const getDisplayGeometry = useCallback((leg: TransportLeg): LineCoordinate[] => {
+    if (!isRoadTransportMode(leg.mode)) {
+      return buildStraightLineCoordinates(leg);
     }
 
-    const resolveRoadLegRoutes = async () => {
-      const resolvedEntries = await Promise.all(
-        roadLegs.map(async (leg) => {
-          const route = await fetchRoadRoute(
-            {
-              lat: leg.origin.lat,
-              lng: leg.origin.lng
-            },
-            {
-              lat: leg.destination.lat,
-              lng: leg.destination.lng
-            }
-          );
+    const resolvedGeometry = resolvedRoadGeometryById[leg.id];
+    if (resolvedGeometry && resolvedGeometry.length >= 2) {
+      return resolvedGeometry;
+    }
 
-          if (!route) {
-            return [leg.id, null] as const;
-          }
+    return buildStraightLineCoordinates(leg);
+  }, [resolvedRoadGeometryById]);
 
-          const distanceKm = route.distanceKm;
-          const co2Kg =
-            leg.emissionFactor > 0 ?
-              roundMetricValue(distanceKm * leg.emissionFactor) :
-              leg.co2Kg;
-
-          return [
-            leg.id,
-            {
-              geometry: route.geometry,
-              distanceKm,
-              co2Kg
-            }
-          ] as const;
-        })
-      );
-
-      if (isCancelled) return;
-
-      setResolvedRoadRoutes(
-        resolvedEntries.reduce<Record<string, ResolvedRoadRoute>>((accumulator, entry) => {
-          const [legId, resolvedRoute] = entry;
-          if (!resolvedRoute) {
-            return accumulator;
-          }
-          accumulator[legId] = resolvedRoute;
-          return accumulator;
-        }, {})
-      );
-    };
-
-    void resolveRoadLegRoutes();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [legs]);
+  const failedRoadLegIds = React.useMemo(
+    () =>
+      displayLegs
+        .filter(
+          (leg) => isRoadTransportMode(leg.mode) && roadGeometryStatusById[leg.id] === "failed"
+        )
+        .map((leg) => leg.id),
+    [displayLegs, roadGeometryStatusById]
+  );
 
   const animateMarker = (leg: TransportLeg, legIndex: number) => {
     if (!mapRef.current) return;
 
     const map = mapRef.current;
+    const pathCoordinates = getDisplayGeometry(leg);
+    if (!pathCoordinates || pathCoordinates.length < 2) {
+      setIsAnimating(false);
+      return;
+    }
+
     setIsAnimating(true);
 
     if (animationMarkerRef.current) {
@@ -377,11 +386,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
     const marker = new mapboxgl.Marker(el);
     animationMarkerRef.current = marker;
 
-    const pathCoordinates =
-      resolvedRoadRoutes[leg.id]?.geometry || buildStraightLineCoordinates(leg);
     const distance = getPolylineDistance(pathCoordinates);
-    const totalSteps = Math.max(100, Math.min(300, distance * 20));
-    let currentStep = 0;
 
     const bounds = new mapboxgl.LngLatBounds();
     pathCoordinates.forEach((coordinate) => bounds.extend(coordinate));
@@ -399,7 +404,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
 
     map.fitBounds(bounds, {
       padding: { top: 80, bottom: 80, left: 80, right: 80 },
-      duration: 1000,
+      duration: MAP_CAMERA_TRANSITION_MS,
       maxZoom
     });
 
@@ -414,12 +419,26 @@ const TransportMap: React.FC<TransportMapProps> = ({
       map.setPaintProperty(glowId, "line-opacity", 0.5);
     }
 
-    const animate = () => {
-      if (currentStep >= totalSteps) {
-        currentStep = 0;
+    const animationDurationMs = clamp(
+      Math.round(Math.max(0, leg.distanceKm) * SIMULATION_MS_PER_KM),
+      SIMULATION_MIN_DURATION_MS,
+      SIMULATION_MAX_DURATION_MS
+    );
+    let loopStartedAt: number | null = null;
+
+    const animate = (timestamp: number) => {
+      if (loopStartedAt === null) {
+        loopStartedAt = timestamp;
       }
 
-      const progress = currentStep / totalSteps;
+      const elapsedMs = timestamp - loopStartedAt;
+      if (elapsedMs >= animationDurationMs) {
+        loopStartedAt = timestamp;
+      }
+
+      const normalizedElapsedMs =
+        loopStartedAt === null ? 0 : Math.max(0, timestamp - loopStartedAt);
+      const progress = normalizedElapsedMs / animationDurationMs;
       const easeProgress =
       progress < 0.5 ?
       2 * progress * progress :
@@ -432,11 +451,10 @@ const TransportMap: React.FC<TransportMapProps> = ({
 
       marker.setLngLat([currentLng, currentLat]).addTo(map);
 
-      currentStep++;
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationFrameRef.current = requestAnimationFrame(animate);
   };
 
   const handleLegClick = (legIndex: number) => {
@@ -491,12 +509,31 @@ const TransportMap: React.FC<TransportMapProps> = ({
         mapRef.current.fitBounds(bounds, {
           padding: { top: 80, bottom: 80, left: 80, right: 80 },
           maxZoom: 10,
-          duration: 1000
+          duration: MAP_CAMERA_TRANSITION_MS
         });
       }
     } else {
       setSelectedLeg(legIndex);
-      animateMarker(displayLegs[legIndex], legIndex);
+      const nextLeg = displayLegs[legIndex];
+      const nextLegGeometry = getDisplayGeometry(nextLeg);
+      if (!nextLegGeometry || nextLegGeometry.length < 2) {
+        setSelectedLeg(legIndex);
+        setIsAnimating(false);
+
+        if (mapRef.current) {
+          const bounds = new mapboxgl.LngLatBounds();
+          bounds.extend([nextLeg.origin.lng, nextLeg.origin.lat]);
+          bounds.extend([nextLeg.destination.lng, nextLeg.destination.lat]);
+          mapRef.current.fitBounds(bounds, {
+            padding: { top: 80, bottom: 80, left: 80, right: 80 },
+            maxZoom: 10,
+            duration: MAP_CAMERA_TRANSITION_MS
+          });
+        }
+        return;
+      }
+
+      animateMarker(nextLeg, legIndex);
     }
   };
 
@@ -540,8 +577,10 @@ const TransportMap: React.FC<TransportMapProps> = ({
           const sourceId = `route-source-${idx}`;
           const lineId = `route-line-${idx}`;
           const glowId = `route-glow-${idx}`;
-          const lineCoordinates =
-            resolvedRoadRoutes[leg.id]?.geometry || buildStraightLineCoordinates(leg);
+          const lineCoordinates = getDisplayGeometry(leg);
+          if (!lineCoordinates || lineCoordinates.length < 2) {
+            return;
+          }
 
           map.addSource(sourceId, {
             type: "geojson",
@@ -658,7 +697,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
           map.fitBounds(bounds, {
             padding: { top: 80, bottom: 80, left: 80, right: 80 },
             maxZoom: 10,
-            duration: 1000
+            duration: MAP_CAMERA_TRANSITION_MS
           });
         }
       } catch {
@@ -678,7 +717,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
         map.off("load", handleLoad);
       };
     }
-  }, [displayLegs, getModeColor, resolvedRoadRoutes, tMap]);
+  }, [displayLegs, getDisplayGeometry, getModeColor, tMap]);
 
   const totalDistance = displayLegs.reduce((sum, leg) => sum + leg.distanceKm, 0);
   const totalCO2 = displayLegs.reduce((sum, leg) => sum + leg.co2Kg, 0);
@@ -804,6 +843,12 @@ const TransportMap: React.FC<TransportMapProps> = ({
             </div>
           </div>
 
+          {failedRoadLegIds.length > 0 &&
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {tMap("roadRouteUnavailable")}
+            </div>
+          }
+
           <div className="space-y-2">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
               <Navigation className="w-4 h-4" />
@@ -814,6 +859,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
             </p>
             {displayLegs.map((leg, index) => {
               const Icon = getModeIcon(leg.mode);
+              const hasRoadRouteFailure =
+                isRoadTransportMode(leg.mode) && roadGeometryStatusById[leg.id] === "failed";
               const legCardClass =
                 selectedLeg === index ?
                   "border border-sky-300 bg-sky-50/70 shadow-sm" :
@@ -873,6 +920,11 @@ const TransportMap: React.FC<TransportMapProps> = ({
                           {formatExactValue(leg.co2Kg)} {tTrack("units.kgCo2")}
                         </p>
                       </div>
+                      {hasRoadRouteFailure ?
+                      <div className="col-span-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+                          {tMap("roadRouteUnavailable")}
+                        </div> :
+                      null}
                     </div>
                   </div>
 
@@ -912,6 +964,11 @@ const TransportMap: React.FC<TransportMapProps> = ({
                     {leg.type === "international" ? tTrack("international") : tTrack("domestic")}
                   </Badge>
                   </div>
+                  {hasRoadRouteFailure ?
+                  <p className="mt-2 hidden text-xs text-amber-700 sm:block">
+                      {tMap("roadRouteUnavailable")}
+                    </p> :
+                  null}
                 </div>);
 
             })}

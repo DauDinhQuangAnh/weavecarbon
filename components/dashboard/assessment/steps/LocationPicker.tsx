@@ -14,25 +14,69 @@ import {
   buildMapboxReverseGeocodingUrl,
   configureMapboxRuntime
 } from "@/lib/mapbox";
+import { type RoadRoutePointSource } from "@/lib/roadRouting";
 import { AddressInput } from "./types";
+
+export interface LocationPickerChangeMeta {
+  source: RoadRoutePointSource;
+}
 
 interface LocationPickerProps {
   address: AddressInput;
-  onChange: (address: AddressInput) => void;
+  onChange: (address: AddressInput, meta?: LocationPickerChangeMeta) => void;
   label: string;
   defaultCenter?: [number, number];
 }
 
 interface GeocodingResult {
+  id?: string;
   place_name: string;
   center: [number, number];
+  place_type?: string[];
   context?: Array<{
     id: string;
     text: string;
   }>;
   address?: string;
   text?: string;
+  properties?: {
+    address?: string;
+  };
 }
+
+const REVERSE_GEOCODING_TYPES = [
+  "address",
+  "neighborhood",
+  "locality",
+  "place",
+  "district",
+  "region",
+  "postcode",
+  "country"
+] as const;
+
+const REVERSE_GEOCODING_TYPE_PRIORITY: Record<string, number> = {
+  address: 0,
+  street: 1,
+  neighborhood: 2,
+  locality: 3,
+  place: 4,
+  district: 5,
+  region: 6,
+  postcode: 7,
+  country: 8
+};
+
+const FORWARD_GEOCODING_TYPE_PRIORITY: Record<string, number> = {
+  address: 0,
+  poi: 1,
+  neighborhood: 2,
+  locality: 3,
+  place: 4,
+  district: 5,
+  region: 6,
+  country: 7
+};
 
 const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
@@ -60,52 +104,141 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const addressRef = useRef(address);
   addressRef.current = address;
 
-  const parseGeocodingResult = useCallback(
-    (feature: GeocodingResult): Partial<AddressInput> => {
-      const result: Partial<AddressInput> = {};
-
-      if (feature.address) {
-        result.streetNumber = feature.address;
-      }
-      if (feature.text) {
-        result.street = feature.text;
+  const applyLocationPart = useCallback(
+    (result: Partial<AddressInput>, partId: string | undefined, partText: string | undefined) => {
+      const normalizedPartId = String(partId || "").trim().toLowerCase();
+      const normalizedPartText = String(partText || "").trim();
+      if (!normalizedPartId || !normalizedPartText) {
+        return;
       }
 
-      if (feature.context) {
-        feature.context.forEach((ctx) => {
-          if (ctx.id.startsWith("locality") || ctx.id.startsWith("neighborhood")) {
-            result.ward = ctx.text;
-          } else if (ctx.id.startsWith("district")) {
-            result.district = ctx.text;
-          } else if (ctx.id.startsWith("place")) {
-            result.city = ctx.text;
-          } else if (ctx.id.startsWith("region")) {
-            result.stateRegion = ctx.text;
-          } else if (ctx.id.startsWith("country")) {
-            result.country = ctx.text;
-          } else if (ctx.id.startsWith("postcode")) {
-            result.postalCode = ctx.text;
-          }
-        });
+      if (normalizedPartId.startsWith("locality") || normalizedPartId.startsWith("neighborhood")) {
+        result.ward = normalizedPartText;
+        return;
       }
 
-      return result;
+      if (normalizedPartId.startsWith("district")) {
+        result.district = normalizedPartText;
+        return;
+      }
+
+      if (normalizedPartId.startsWith("place")) {
+        result.city = normalizedPartText;
+        return;
+      }
+
+      if (normalizedPartId.startsWith("region")) {
+        result.stateRegion = normalizedPartText;
+        return;
+      }
+
+      if (normalizedPartId.startsWith("country")) {
+        result.country = normalizedPartText;
+        return;
+      }
+
+      if (normalizedPartId.startsWith("postcode")) {
+        result.postalCode = normalizedPartText;
+      }
     },
     []
   );
 
+  const parseGeocodingResult = useCallback(
+    (feature: GeocodingResult): Partial<AddressInput> => {
+      const result: Partial<AddressInput> = {};
+      const topLevelType = feature.place_type?.[0] || feature.id?.split(".")[0] || "";
+      const featureAddress = feature.address || feature.properties?.address;
+
+      if (featureAddress && (topLevelType === "address" || topLevelType === "street")) {
+        result.streetNumber = featureAddress;
+      }
+      if (feature.text && (topLevelType === "address" || topLevelType === "street")) {
+        result.street = feature.text;
+      }
+
+      applyLocationPart(result, topLevelType, feature.text);
+
+      if (feature.context) {
+        feature.context.forEach((ctx) => {
+          applyLocationPart(result, ctx.id, ctx.text);
+        });
+      }
+
+      if (!result.stateRegion && result.city) {
+        result.stateRegion = result.city;
+      }
+
+      if (!result.city && result.stateRegion) {
+        result.city = result.stateRegion;
+      }
+
+      return result;
+    },
+    [applyLocationPart]
+  );
+
+  const pickBestReverseGeocodingFeature = useCallback((features: GeocodingResult[]) => {
+    return features.reduce<GeocodingResult | null>((bestFeature, feature) => {
+      if (!bestFeature) {
+        return feature;
+      }
+
+      const bestType = bestFeature.place_type?.[0] || bestFeature.id?.split(".")[0] || "";
+      const currentType = feature.place_type?.[0] || feature.id?.split(".")[0] || "";
+      const bestPriority = REVERSE_GEOCODING_TYPE_PRIORITY[bestType] ?? Number.MAX_SAFE_INTEGER;
+      const currentPriority =
+        REVERSE_GEOCODING_TYPE_PRIORITY[currentType] ?? Number.MAX_SAFE_INTEGER;
+
+      if (currentPriority < bestPriority) {
+        return feature;
+      }
+
+      if (currentPriority > bestPriority) {
+        return bestFeature;
+      }
+
+      const bestHasAddress = Boolean(bestFeature.address || bestFeature.properties?.address);
+      const currentHasAddress = Boolean(feature.address || feature.properties?.address);
+
+      if (currentHasAddress && !bestHasAddress) {
+        return feature;
+      }
+
+      return bestFeature;
+    }, null);
+  }, []);
+
+  const sortForwardGeocodingResults = useCallback((features: GeocodingResult[]) => {
+    return [...features].sort((left, right) => {
+      const leftType = left.place_type?.[0] || left.id?.split(".")[0] || "";
+      const rightType = right.place_type?.[0] || right.id?.split(".")[0] || "";
+      const leftPriority =
+        FORWARD_GEOCODING_TYPE_PRIORITY[leftType] ?? Number.MAX_SAFE_INTEGER;
+      const rightPriority =
+        FORWARD_GEOCODING_TYPE_PRIORITY[rightType] ?? Number.MAX_SAFE_INTEGER;
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      return left.place_name.length - right.place_name.length;
+    });
+  }, []);
+
   const reverseGeocode = useCallback(
-    async (lng: number, lat: number) => {
+    async (lng: number, lat: number, source: RoadRoutePointSource = "manual") => {
       try {
         const reverseGeocodingUrl = buildMapboxReverseGeocodingUrl(lng, lat, {
-          language: mapLanguage
+          language: mapLanguage,
+          types: [...REVERSE_GEOCODING_TYPES]
         });
         if (!reverseGeocodingUrl) {
           onChangeRef.current({
             ...addressRef.current,
             lat,
             lng
-          });
+          }, { source });
           return;
         }
 
@@ -113,7 +246,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         const data = await response.json();
 
         if (data.features && data.features.length > 0) {
-          const feature = data.features[0];
+          const feature = pickBestReverseGeocodingFeature(data.features) || data.features[0];
           const addressParts = parseGeocodingResult(feature);
 
           onChangeRef.current({
@@ -121,7 +254,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             ...addressParts,
             lat,
             lng
-          });
+          }, { source });
           return;
         }
 
@@ -129,17 +262,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           ...addressRef.current,
           lat,
           lng
-        });
+        }, { source });
       } catch (error) {
         console.error("Reverse geocoding error:", error);
         onChangeRef.current({
           ...addressRef.current,
           lat,
           lng
-        });
+        }, { source });
       }
     },
-    [mapLanguage, parseGeocodingResult]
+    [mapLanguage, parseGeocodingResult, pickBestReverseGeocodingFeature]
   );
 
   const addMarker = useCallback(
@@ -159,7 +292,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
       marker.on("dragend", async () => {
         const lngLat = marker.getLngLat();
-        await reverseGeocode(lngLat.lng, lngLat.lat);
+        await reverseGeocode(lngLat.lng, lngLat.lat, "manual");
       });
 
       markerRef.current = marker;
@@ -206,7 +339,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
           marker.on("dragend", async () => {
             const lngLat = marker.getLngLat();
-            await reverseGeocode(lngLat.lng, lngLat.lat);
+            await reverseGeocode(lngLat.lng, lngLat.lat, "manual");
           });
 
           markerRef.current = marker;
@@ -216,7 +349,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       map.on("click", async (event) => {
         const { lng, lat } = event.lngLat;
         addMarker(lng, lat);
-        await reverseGeocode(lng, lat);
+        await reverseGeocode(lng, lat, "map_click");
       });
 
       return () => {
@@ -238,7 +371,8 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       try {
         const forwardGeocodingUrl = buildMapboxForwardGeocodingUrl(query, {
           limit: 5,
-          language: mapLanguage
+          language: mapLanguage,
+          types: ["address", "poi", "neighborhood", "locality", "place", "district", "region"]
         });
         if (!forwardGeocodingUrl) {
           setSearchResults([]);
@@ -247,14 +381,18 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
         const response = await fetch(forwardGeocodingUrl);
         const data = await response.json();
-        setSearchResults(data.features || []);
+        setSearchResults(
+          Array.isArray(data.features) ?
+            sortForwardGeocodingResults(data.features) :
+            []
+        );
         setShowResults(true);
       } catch (error) {
         console.error("Search error:", error);
         setSearchResults([]);
       }
     },
-    [mapLanguage]
+    [mapLanguage, sortForwardGeocodingResults]
   );
 
   const selectLocation = (result: GeocodingResult) => {
@@ -267,7 +405,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       ...addressParts,
       lat,
       lng
-    });
+    }, { source: "search" });
 
     setSearchQuery(result.place_name);
     setShowResults(false);
@@ -286,7 +424,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert(t("browserNotSupported"));
+      window.alert(t("browserNotSupported"));
       return;
     }
 
@@ -294,18 +432,20 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       async (position) => {
         const { longitude, latitude } = position.coords;
         addMarker(longitude, latitude);
-        await reverseGeocode(longitude, latitude);
+        setShowResults(false);
+        setSearchResults([]);
+        await reverseGeocode(longitude, latitude, "current_location");
       },
       () => {
-        alert(t("cannotGetLocation"));
+        window.alert(t("cannotGetLocation"));
       }
     );
   };
 
-  const aptSuiteValue = [address.ward, address.district].
-    map((part) => part.trim()).
-    filter(Boolean).
-    join(", ");
+  const aptSuiteValue = [address.ward, address.district]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <Card>
@@ -393,10 +533,10 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
                   return;
                 }
 
-                const [ward, ...districtParts] = nextValue.
-                  split(",").
-                  map((part) => part.trim()).
-                  filter(Boolean);
+                const [ward, ...districtParts] = nextValue
+                  .split(",")
+                  .map((part) => part.trim())
+                  .filter(Boolean);
 
                 onChange({
                   ...address,
@@ -412,7 +552,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               {tAddress("provinceLabel")}
             </Label>
             <Input
-              value={address.stateRegion || ""}
+              value={address.stateRegion || address.city || ""}
               placeholder={tAddress("stateProvincePlaceholder")}
               onChange={(event) =>
                 onChange({
@@ -446,11 +586,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             <span>
               {address.lat.toFixed(6)}, {address.lng.toFixed(6)}
             </span>
-            {address.city ? (
+            {address.city || address.stateRegion ? (
               <>
-                <span className="mx-1">•</span>
+                <span className="mx-1">|</span>
                 <span>
-                  {address.city}, {address.country}
+                  {address.city || address.stateRegion}, {address.country}
                 </span>
               </>
             ) : null}

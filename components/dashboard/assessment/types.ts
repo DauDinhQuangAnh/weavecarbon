@@ -29,6 +29,7 @@ export interface TransportLeg {
   estimatedDistance?: number;
   emissionFactor?: number;
   co2Kg?: number;
+  routeResolved?: boolean;
 }
 
 export interface AddressInput {

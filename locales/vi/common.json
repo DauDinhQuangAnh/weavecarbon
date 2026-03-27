@@ -495,7 +495,21 @@
     },
     "deleteConfirmFallbackName": "sản phẩm này",
     "toasts": {
-      "deleteSuccess": "Đã xóa sản phẩm \"{name}\"."
+      "deleteSuccess": "Đã xóa sản phẩm \"{name}\".",
+      "draftSessionCleared": "Đã xóa phiên nhập dở."
+    },
+    "draftSession": {
+      "title": "Phiên nhập dở",
+      "description": "Hệ thống đang giữ lại dữ liệu bạn đã nhập đến bước \"{step}\".",
+      "emptyLabel": "Sản phẩm chưa đặt tên",
+      "productCodeFallback": "Chưa có mã sản phẩm",
+      "lastSaved": "Cập nhật lần cuối: {time}",
+      "stepBadge": "Bước {current}/{total}",
+      "materials": "{count} vật liệu",
+      "processes": "{count} quy trình",
+      "transportLegs": "{count} chặng vận chuyển",
+      "resume": "Tiếp tục nhập",
+      "clear": "Xóa bản tạm"
     },
     "clearSearchAria": "Xóa nội dung tìm kiếm",
     "assessmentDialog": {
@@ -1571,6 +1585,7 @@
     },
     "supplyChainMap": {
       "loading": "Đang tải bản đồ...",
+      "roadRouteUnavailable": "Không thể xác định tuyến đường bộ chi tiết. Hãy điều chỉnh vị trí gần đường hơn.",
       "modes": {
         "twoD": "2D",
         "twoDAria": "Bản đồ 2D",
@@ -1716,7 +1731,8 @@
         "estimatedDays": "ngày vận chuyển"
       },
       "routeDetails": "Chi tiết tuyến đường",
-      "clickHint": "(Bấm để mô phỏng)"
+      "clickHint": "(Bấm để mô phỏng)",
+      "roadRouteUnavailable": "Không thể xác định tuyến đường bộ chi tiết. Hãy điều chỉnh vị trí gần đường hơn."
     },
     "skuLabel": "SKU",
     "containerLabel": "Container",
@@ -1786,6 +1802,7 @@
       "loadingShort": "Đang tải",
       "noMapDataHint": "Chưa có dữ liệu bản đồ cho sản phẩm này. Bạn có thể nhập thủ công thông tin vận chuyển bên dưới.",
       "notFoundShipment": "Không có lô hàng nào khớp với dữ liệu hiện tại.",
+      "roadRouteUnconfirmed": "Không thể xác định tuyến đường bộ chi tiết cho một hoặc nhiều chặng. Khoảng cách hiện đang là giá trị ước tính.",
       "retryLoadData": "Tải lại dữ liệu",
       "unknownError": "Lỗi không xác định"
     },
@@ -1912,6 +1929,7 @@
         "logisticsCreateFailed": "Xuất bản thành công nhưng không tạo được logistics.",
         "trialDomesticOnly": "Gói Trial chỉ cho phép địa chỉ nội địa trong {country}. Vui lòng chọn lại điểm trên bản đồ.",
         "certificationDocumentsChecking": "Đang kiểm tra tài liệu chứng nhận. Vui lòng thử lại sau vài giây.",
+        "roadRouteRequired": "Cần xác định xong toàn bộ tuyến đường bộ thực tế trước khi xuất bản sản phẩm.",
         "missingMaterialCertificationDocuments": "Cảnh báo: thiếu file đã tải lên cho các chứng nhận nguyên liệu: {certifications}.",
         "missingExportDocuments": "Cảnh báo: thiếu các tài liệu xuất khẩu bắt buộc: {documents}."
       },
@@ -2093,12 +2111,16 @@
       },
       "transport": {
         "title": "Phương thức vận chuyển",
-        "subtitle": "Thêm các chặng vận chuyển từ điểm đi đến điểm đến",
+        "subtitle": "Hệ thống tự động gợi ý và cập nhật các chặng vận chuyển theo vị trí xuất phát và điểm đến",
         "totalDistance": "Tổng: ~{value} km",
         "leg": "Chặng {index}",
         "distancePlaceholder": "Km ước tính",
+        "distancePlaceholderRoad": "Km theo tuyến thật",
         "distanceUnit": "km",
         "co2Factor": "({value} kg CO₂e/tấn.km)",
+        "routeResolving": "Đang xác định tuyến đường bộ thực tế giữa 2 điểm...",
+        "routeResolved": "Khoảng cách đường bộ được lấy tự động từ tuyến thực tế, không dùng đường chim bay.",
+        "routeUnconfirmed": "Chưa xác định được tuyến đường bộ thực tế cho chặng này. Hãy chọn lại 2 điểm gần đường để hệ thống định tuyến chính xác.",
         "addLeg": "Thêm chặng vận chuyển",
         "clearAllLegs": "Xóa tất cả chặng"
       },
@@ -2118,6 +2140,11 @@
     "locationPicker": {
       "browserNotSupported": "Trình duyệt của bạn không hỗ trợ định vị",
       "cannotGetLocation": "Không thể lấy vị trí hiện tại",
+      "permissionDenied": "Trình duyệt đang chặn quyền vị trí. Hãy cho phép truy cập vị trí rồi thử lại.",
+      "positionUnavailable": "Thiết bị chưa xác định được vị trí. Hãy thử lại ở nơi thoáng hơn hoặc bật Wi-Fi.",
+      "locationTimeout": "Hết thời gian lấy vị trí. Hãy thử lại.",
+      "secureContextRequired": "Chức năng lấy vị trí hiện tại chỉ hoạt động trên HTTPS hoặc localhost.",
+      "locating": "Đang lấy vị trí...",
       "searchPlaceholder": "Tìm địa chỉ...",
       "currentLocation": "Vị trí hiện tại",
       "mapHint": "Nhấn vào bản đồ hoặc kéo điểm đánh dấu để chọn vị trí chính xác"

@@ -262,6 +262,25 @@ const asNumber = (value: unknown, fallback = 0) => {
   return fallback;
 };
 
+const asBoolean = (value: unknown, fallback = false) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0" || normalized === "no") {
+      return false;
+    }
+  }
+  return fallback;
+};
+
 const asArray = <T = unknown,>(value: unknown): T[] =>
 Array.isArray(value) ? value as T[] : [];
 
@@ -809,7 +828,8 @@ map((item, index) => {
     return {
       id: `leg-${index + 1}`,
       mode,
-      estimatedDistance: undefined
+      estimatedDistance: undefined,
+      routeResolved: mode === "road" ? false : undefined
     } as TransportLeg;
   }
 
@@ -858,6 +878,11 @@ map((item, index) => {
   co2KgRaw === undefined || co2KgRaw === null ?
   undefined :
   asNumber(co2KgRaw);
+  const normalizedRouteResolved =
+  item.routeResolved ??
+  item.route_resolved ??
+  item.is_route_resolved ??
+  item.isRouteResolved;
 
   return {
     id: asString(item.id ?? item.leg_id ?? item.legId, `leg-${index + 1}`),
@@ -873,6 +898,10 @@ map((item, index) => {
     co2Kg:
     normalizedCo2Kg !== undefined && Number.isFinite(normalizedCo2Kg) ?
     Math.max(0, normalizedCo2Kg) :
+    undefined,
+    routeResolved:
+    mode === "road" ?
+    asBoolean(normalizedRouteResolved, false) :
     undefined
   } as TransportLeg;
 });
@@ -1276,7 +1305,8 @@ const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
       transportLegs.push({
         id: "leg-1",
         mode: fallbackMode ?? "road",
-        estimatedDistance: estimatedTotalDistance > 0 ? estimatedTotalDistance : undefined
+        estimatedDistance: estimatedTotalDistance > 0 ? estimatedTotalDistance : undefined,
+        routeResolved: (fallbackMode ?? "road") === "road" ? false : undefined
       });
     }
   }
