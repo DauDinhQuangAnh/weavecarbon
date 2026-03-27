@@ -149,8 +149,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const {
     geometryById: resolvedRoadGeometryById,
-    metricsById: resolvedRoadMetricsById,
-    statusById: roadGeometryStatusById
+    metricsById: resolvedRoadMetricsById
   } = useResolvedRoadRouteGeometry(legs, {
     getDestination: (leg) => ({
       lat: leg.destination.lat,
@@ -331,16 +330,6 @@ const TransportMap: React.FC<TransportMapProps> = ({
 
     return buildStraightLineCoordinates(leg);
   }, [resolvedRoadGeometryById]);
-
-  const failedRoadLegIds = React.useMemo(
-    () =>
-      displayLegs
-        .filter(
-          (leg) => isRoadTransportMode(leg.mode) && roadGeometryStatusById[leg.id] === "failed"
-        )
-        .map((leg) => leg.id),
-    [displayLegs, roadGeometryStatusById]
-  );
 
   const animateMarker = (leg: TransportLeg, legIndex: number) => {
     if (!mapRef.current) return;
@@ -843,12 +832,6 @@ const TransportMap: React.FC<TransportMapProps> = ({
             </div>
           </div>
 
-          {failedRoadLegIds.length > 0 &&
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {tMap("roadRouteUnavailable")}
-            </div>
-          }
-
           <div className="space-y-2">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
               <Navigation className="w-4 h-4" />
@@ -859,8 +842,6 @@ const TransportMap: React.FC<TransportMapProps> = ({
             </p>
             {displayLegs.map((leg, index) => {
               const Icon = getModeIcon(leg.mode);
-              const hasRoadRouteFailure =
-                isRoadTransportMode(leg.mode) && roadGeometryStatusById[leg.id] === "failed";
               const legCardClass =
                 selectedLeg === index ?
                   "border border-sky-300 bg-sky-50/70 shadow-sm" :
@@ -920,11 +901,6 @@ const TransportMap: React.FC<TransportMapProps> = ({
                           {formatExactValue(leg.co2Kg)} {tTrack("units.kgCo2")}
                         </p>
                       </div>
-                      {hasRoadRouteFailure ?
-                      <div className="col-span-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
-                          {tMap("roadRouteUnavailable")}
-                        </div> :
-                      null}
                     </div>
                   </div>
 
@@ -964,11 +940,6 @@ const TransportMap: React.FC<TransportMapProps> = ({
                     {leg.type === "international" ? tTrack("international") : tTrack("domestic")}
                   </Badge>
                   </div>
-                  {hasRoadRouteFailure ?
-                  <p className="mt-2 hidden text-xs text-amber-700 sm:block">
-                      {tMap("roadRouteUnavailable")}
-                    </p> :
-                  null}
                 </div>);
 
             })}

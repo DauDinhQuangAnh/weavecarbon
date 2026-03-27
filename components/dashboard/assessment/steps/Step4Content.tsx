@@ -58,6 +58,7 @@ interface LocationPickerProps {
   ) => void;
   label: string;
   defaultCenter?: [number, number];
+  showCurrentLocationButton?: boolean;
 }
 
 type AddressRole = "origin" | "destination";
@@ -266,9 +267,6 @@ const SUGGESTED_TRANSPORT_LEG_ID_PREFIX = "suggested-leg-";
 const isSuggestedTransportLeg = (legId: string) =>
   legId.startsWith(SUGGESTED_TRANSPORT_LEG_ID_PREFIX);
 
-const isResolvedRoadTransportLeg = (leg: TransportLeg) =>
-  leg.mode !== "road" || (leg.routeResolved === true && hasPositiveDistance(leg.estimatedDistance));
-
 const mapHubKindToRoadPointSource = (
   kind: RouteHubKind
 ): RoadRoutePointSource => {
@@ -374,9 +372,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     destination: "manual",
     origin: "manual"
   });
-  const [roadFailureByLegId, setRoadFailureByLegId] = React.useState<
-    Record<string, RoadRouteFailureReason>
-  >({});
 
   const updateOriginAddress = (
     address: AddressInput,
@@ -740,12 +735,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
   const updateTransportLeg = (id: string, updates: Partial<TransportLeg>) => {
     const timestamp = Date.now();
-    setRoadFailureByLegId((current) => {
-      if (!current[id]) return current;
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
     const nextLegs = data.transportLegs.map((leg) =>
       leg.id === id ?
         (() => {
@@ -934,9 +923,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   const [displaySuggestedRoute, setDisplaySuggestedRoute] = React.useState<SuggestedRoute>(
     suggestedRoute
   );
-  const [displaySuggestedRoadFailures, setDisplaySuggestedRoadFailures] = React.useState<
-    RoadLegHydrationFailure[]
-  >([]);
 
   const autoSuggestedTransportLegs = React.useMemo(
     () =>
@@ -947,17 +933,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       routeResolved: leg.routeResolved
     })),
     [displaySuggestedRoute]
-  );
-  const autoSuggestedRoadFailureById = React.useMemo(
-    () =>
-      displaySuggestedRoadFailures.reduce<Record<string, RoadRouteFailureReason>>(
-        (accumulator, failure) => {
-          accumulator[`${SUGGESTED_TRANSPORT_LEG_ID_PREFIX}${failure.legIndex + 1}`] = failure.reason;
-          return accumulator;
-        },
-        {}
-      ),
-    [displaySuggestedRoadFailures]
   );
 
   const currentRouteSignature = React.useMemo(
@@ -991,7 +966,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     let isCancelled = false;
 
     setDisplaySuggestedRoute(suggestedRoute);
-    setDisplaySuggestedRoadFailures([]);
 
     const hydrateSuggestedRoute = async () => {
       if (isDomesticRoute) {
@@ -1010,13 +984,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
           origin: resolvedRoute.snappedOrigin
         });
 
-        setDisplaySuggestedRoadFailures(
-          resolvedRoute.roadFailures.map((failure) => ({
-            legId: `suggested-preview-${failure.legIndex + 1}`,
-            legIndex: failure.legIndex,
-            reason: failure.reason
-          }))
-        );
         setDisplaySuggestedRoute(resolvedRoute.route);
         if (snappedUpdates) {
           onChange(snappedUpdates);
@@ -1039,7 +1006,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         origin: hydrationOutcome.snappedOrigin
       });
 
-      setDisplaySuggestedRoadFailures(hydrationOutcome.failures);
       setDisplaySuggestedRoute({
         ...suggestedRoute,
         legs: hydrationOutcome.legs.map((leg) => ({
@@ -1078,27 +1044,11 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     }, []);
 
     if (roadLegIndexes.length === 0) {
-      setRoadFailureByLegId((current) => {
-        const next = { ...current };
-        data.transportLegs.forEach((leg) => {
-          if (leg.mode === "road") {
-            delete next[leg.id];
-          }
-        });
-        Object.keys(next).forEach((legId) => {
-          const matchingLeg = data.transportLegs.find((leg) => leg.id === legId);
-          if (!matchingLeg || matchingLeg.mode !== "road") {
-            delete next[legId];
-          }
-        });
-        return next;
-      });
       return;
     }
 
     const syncRoadLegs = async () => {
       const nextLegs = [...data.transportLegs];
-      const nextFailures: Record<string, RoadRouteFailureReason> = {};
       let hasUpdates = false;
       let snappedOrigin: RoutePoint | undefined;
       let snappedDestination: RoutePoint | undefined;
@@ -1106,11 +1056,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       for (const legIndex of roadLegIndexes) {
         const endpoints = resolveRoadLegEndpoints(nextLegs, legIndex);
         const currentLeg = nextLegs[legIndex];
-        const legId = currentLeg?.id;
         if (!endpoints) {
-          if (legId) {
-            nextFailures[legId] = "invalid_coordinates";
-          }
           if (
             currentLeg &&
             (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
@@ -1136,9 +1082,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
               endpoints.originSource || "manual"
         });
         if (!routeResolution.ok) {
-          if (legId) {
-            nextFailures[legId] = routeResolution.failureReason;
-          }
           if (
             currentLeg &&
             (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
@@ -1187,18 +1130,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       });
       const shouldApplyAddressUpdates = Boolean(snappedUpdates);
 
-      setRoadFailureByLegId((current) => {
-        const next = { ...current };
-        Object.keys(next).forEach((legId) => {
-          const matchingLeg = data.transportLegs.find((leg) => leg.id === legId);
-          if (!matchingLeg || matchingLeg.mode !== "road") {
-            delete next[legId];
-          }
-        });
-        Object.assign(next, nextFailures);
-        return next;
-      });
-
       if (!hasUpdates && !shouldApplyAddressUpdates) return;
 
       onChange({
@@ -1246,35 +1177,13 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       });
 
     if (isEquivalentToSuggested) {
-      setRoadFailureByLegId((current) => {
-        const next = { ...current };
-        Object.keys(next).forEach((legId) => {
-          if (isSuggestedTransportLeg(legId)) {
-            delete next[legId];
-          }
-        });
-        Object.assign(next, autoSuggestedRoadFailureById);
-        return next;
-      });
       return;
     }
-
-    setRoadFailureByLegId((current) => {
-      const next = { ...current };
-      Object.keys(next).forEach((legId) => {
-        if (isSuggestedTransportLeg(legId)) {
-          delete next[legId];
-        }
-      });
-      Object.assign(next, autoSuggestedRoadFailureById);
-      return next;
-    });
 
     onChange({
       transportLegs: autoSuggestedTransportLegs
     });
   }, [
-    autoSuggestedRoadFailureById,
     autoSuggestedTransportLegs,
     currentRouteSignature,
     data.transportLegs,
@@ -1306,7 +1215,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     }
 
     addressSourceRef.current.destination = "manual";
-    setRoadFailureByLegId({});
 
     onChange({
       destinationMarket: market,
@@ -1471,6 +1379,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 address={data.originAddress}
                 onChange={updateOriginAddress}
                 defaultCenter={[106.6297, 10.8231]}
+                showCurrentLocationButton
               />
               {hasOriginOutsideTrialDomestic ?
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -1491,6 +1400,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 address={data.destinationAddress}
                 onChange={updateDestinationAddress}
                 defaultCenter={getDestinationDefaultCenter(data.destinationMarket)}
+                showCurrentLocationButton={false}
               />
               {hasDestinationOutsideTrialDomestic ?
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -1531,14 +1441,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 <div className="space-y-3">
                   {data.transportLegs.map((leg, index) => {
                     const modeInfo = TRANSPORT_MODES.find((mode) => mode.value === leg.mode);
-                    const roadFailureReason = leg.mode === "road" ? roadFailureByLegId[leg.id] : undefined;
-                    const isRoadLegPending =
-                      leg.mode === "road" &&
-                      !roadFailureReason &&
-                      !isResolvedRoadTransportLeg(leg);
-                    const isRoadLegResolved =
-                      leg.mode === "road" &&
-                      isResolvedRoadTransportLeg(leg);
 
                     return (
                       <div
@@ -1609,21 +1511,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                                 {t("transport.co2Factor", { value: modeInfo?.co2Factor || 0 })}
                               </span>
                             </div>
-                            {roadFailureReason ?
-                            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                                <span>{t("transport.routeUnconfirmed")}</span>
-                              </div> :
-                            isRoadLegPending ?
-                            <div className="flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                                <span>{t("transport.routeResolving")}</span>
-                              </div> :
-                            isRoadLegResolved ?
-                            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                                {t("transport.routeResolved")}
-                              </div> :
-                            null}
                           </div>
                         </div>
 

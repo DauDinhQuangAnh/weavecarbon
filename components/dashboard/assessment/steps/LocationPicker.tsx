@@ -26,6 +26,7 @@ interface LocationPickerProps {
   onChange: (address: AddressInput, meta?: LocationPickerChangeMeta) => void;
   label: string;
   defaultCenter?: [number, number];
+  showCurrentLocationButton?: boolean;
 }
 
 interface GeocodingResult {
@@ -82,7 +83,8 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
   onChange,
   label,
-  defaultCenter = [106.6297, 10.8231]
+  defaultCenter = [106.6297, 10.8231],
+  showCurrentLocationButton = true
 }) => {
   const t = useTranslations("assessment.locationPicker");
   const tAddress = useTranslations("addressSelection");
@@ -481,15 +483,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               ) : null}
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={getCurrentLocation}
-              title={t("currentLocation")}
-            >
-              <Navigation className="w-4 h-4" />
-            </Button>
+            {showCurrentLocationButton ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={getCurrentLocation}
+                title={t("currentLocation")}
+              >
+                <Navigation className="w-4 h-4" />
+              </Button>
+            ) : null}
           </div>
 
           {showResults && searchResults.length > 0 ? (
