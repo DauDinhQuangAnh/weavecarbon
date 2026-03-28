@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
   MapPin,
+  Loader2,
   Plane,
   Ship,
   Truck,
@@ -32,6 +33,7 @@ import {
 import {
   DESTINATION_HUBS_BY_MARKET,
   VIETNAM_TRANSFER_HUBS,
+  getRouteHubById,
   type RouteHub,
   type RouteHubKind
 } from "./routeHubs";
@@ -40,10 +42,13 @@ import {
   resolveDomesticSuggestedRoute,
   type SuggestedRoute
 } from "./domesticRouteSuggestion";
+import {
+  buildExportFallbackRoute,
+  resolveExportSuggestedRoute
+} from "./exportRouteOptimizer";
 import dynamic from "next/dynamic";
 import {
   fetchRoadRoute,
-  type RoadRouteFailureReason,
   type RoadRoutePointSource,
   type RoutePoint
 } from "@/lib/roadRouting";
@@ -74,19 +79,6 @@ type ResolvedRoadLegEndpoints = {
   originSource?: RoadRoutePointSource;
 };
 
-type RoadLegHydrationFailure = {
-  legId: string;
-  legIndex: number;
-  reason: RoadRouteFailureReason;
-};
-
-type RoadLegHydrationOutcome = {
-  failures: RoadLegHydrationFailure[];
-  legs: TransportLeg[];
-  snappedDestination?: RoutePoint;
-  snappedOrigin?: RoutePoint;
-};
-
 const TransportIcon: React.FC<{ mode: string; className?: string }> = ({
   mode,
   className = "w-4 h-4"
@@ -104,6 +96,8 @@ const TransportIcon: React.FC<{ mode: string; className?: string }> = ({
       return <Truck className={className} />;
   }
 };
+
+const ORIGIN_DEFAULT_CENTER: [number, number] = [106.6297, 10.8231];
 
 const getDestinationDefaultCenter = (market: string): [number, number] => {
   switch (market) {
@@ -243,29 +237,36 @@ const findNearestHub = (
   };
 };
 
-const resolveSuggestedLongHaulMode = (
-  destinationMarket: string,
-  totalDistanceKm: number
-): TransportLeg["mode"] => {
-  if (destinationMarket === "usa" || destinationMarket === "eu") {
-    if (destinationMarket === "eu" && totalDistanceKm <= 12000) {
-      return "rail";
-    }
-    return "sea";
-  }
-  if (destinationMarket === "korea" || destinationMarket === "japan") {
-    return "air";
-  }
-  if (destinationMarket === "china") {
-    return "rail";
-  }
-  return totalDistanceKm <= 4500 ? "air" : "sea";
-};
-
 const isAutoFeederLeg = (legId: string) => legId.startsWith("auto-feeder-");
 const SUGGESTED_TRANSPORT_LEG_ID_PREFIX = "suggested-leg-";
 const isSuggestedTransportLeg = (legId: string) =>
   legId.startsWith(SUGGESTED_TRANSPORT_LEG_ID_PREFIX);
+const isAutoSuggestedTransportLeg = (leg: TransportLeg) =>
+  leg.autoSuggested === true || isSuggestedTransportLeg(leg.id);
+
+const cloneTransportLegNodeRef = (
+  nodeRef: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined
+) => (nodeRef ? { ...nodeRef } : undefined);
+
+const pickRouteRelevantAddress = (address: AddressInput): AddressInput => ({
+  streetNumber: "",
+  street: "",
+  ward: "",
+  district: "",
+  city: address.city,
+  stateRegion: address.stateRegion,
+  country: "",
+  postalCode: "",
+  lat: address.lat,
+  lng: address.lng
+});
+
+const areTransportLegNodeRefsEqual = (
+  left: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined,
+  right: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined
+) =>
+  (left?.type || null) === (right?.type || null) &&
+  (left?.hubId || null) === (right?.hubId || null);
 
 const mapHubKindToRoadPointSource = (
   kind: RouteHubKind
@@ -372,41 +373,64 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     destination: "manual",
     origin: "manual"
   });
-
-  const updateOriginAddress = (
-    address: AddressInput,
-    meta?: {
-      source: RoadRoutePointSource;
-    }
-  ) => {
-    addressSourceRef.current.origin = meta?.source || addressSourceRef.current.origin;
-    onChange({ originAddress: address });
+  const addressValueRef = React.useRef<{
+    destination: AddressInput;
+    origin: AddressInput;
+  }>({
+    destination: data.destinationAddress,
+    origin: data.originAddress
+  });
+  addressValueRef.current = {
+    destination: data.destinationAddress,
+    origin: data.originAddress
   };
 
-  const updateDestinationAddress = (
-    address: AddressInput,
-    meta?: {
-      source: RoadRoutePointSource;
-    }
-  ) => {
-    addressSourceRef.current.destination = meta?.source || addressSourceRef.current.destination;
-    onChange({ destinationAddress: address });
-  };
+  const updateOriginAddress = React.useCallback(
+    (
+      address: AddressInput,
+      meta?: {
+        source: RoadRoutePointSource;
+      }
+    ) => {
+      addressSourceRef.current.origin = meta?.source || addressSourceRef.current.origin;
+      addressValueRef.current.origin = address;
+      onChange({ originAddress: address });
+    },
+    [onChange]
+  );
+
+  const updateDestinationAddress = React.useCallback(
+    (
+      address: AddressInput,
+      meta?: {
+        source: RoadRoutePointSource;
+      }
+    ) => {
+      addressSourceRef.current.destination = meta?.source || addressSourceRef.current.destination;
+      addressValueRef.current.destination = address;
+      onChange({ destinationAddress: address });
+    },
+    [onChange]
+  );
 
   const maybeBuildSnappedAddressUpdates = React.useCallback(
     (nextPoints: { destination?: RoutePoint; origin?: RoutePoint }) => {
       const updates: Partial<ProductAssessmentData> = {};
+      const currentOriginAddress = addressValueRef.current.origin;
+      const currentDestinationAddress = addressValueRef.current.destination;
 
       if (
         nextPoints.origin &&
         shouldPersistSnappedAddressForSource(addressSourceRef.current.origin) &&
-        (!isFiniteNumber(data.originAddress.lat) ||
-          !isFiniteNumber(data.originAddress.lng) ||
-          Math.abs(data.originAddress.lat - nextPoints.origin.lat) >= ROAD_SNAP_UPDATE_EPSILON ||
-          Math.abs(data.originAddress.lng - nextPoints.origin.lng) >= ROAD_SNAP_UPDATE_EPSILON)
+        (!isFiniteNumber(currentOriginAddress.lat) ||
+          !isFiniteNumber(currentOriginAddress.lng) ||
+          Math.abs(currentOriginAddress.lat - nextPoints.origin.lat) >=
+            ROAD_SNAP_UPDATE_EPSILON ||
+          Math.abs(currentOriginAddress.lng - nextPoints.origin.lng) >=
+            ROAD_SNAP_UPDATE_EPSILON)
       ) {
         updates.originAddress = {
-          ...data.originAddress,
+          ...currentOriginAddress,
           lat: nextPoints.origin.lat,
           lng: nextPoints.origin.lng
         };
@@ -415,15 +439,15 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       if (
         nextPoints.destination &&
         shouldPersistSnappedAddressForSource(addressSourceRef.current.destination) &&
-        (!isFiniteNumber(data.destinationAddress.lat) ||
-          !isFiniteNumber(data.destinationAddress.lng) ||
-          Math.abs(data.destinationAddress.lat - nextPoints.destination.lat) >=
+        (!isFiniteNumber(currentDestinationAddress.lat) ||
+          !isFiniteNumber(currentDestinationAddress.lng) ||
+          Math.abs(currentDestinationAddress.lat - nextPoints.destination.lat) >=
             ROAD_SNAP_UPDATE_EPSILON ||
-          Math.abs(data.destinationAddress.lng - nextPoints.destination.lng) >=
+          Math.abs(currentDestinationAddress.lng - nextPoints.destination.lng) >=
             ROAD_SNAP_UPDATE_EPSILON)
       ) {
         updates.destinationAddress = {
-          ...data.destinationAddress,
+          ...currentDestinationAddress,
           lat: nextPoints.destination.lat,
           lng: nextPoints.destination.lng
         };
@@ -431,7 +455,70 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
       return Object.keys(updates).length > 0 ? updates : null;
     },
-    [data.destinationAddress, data.originAddress]
+    []
+  );
+
+  const originRouteCity = data.originAddress.city;
+  const originRouteStateRegion = data.originAddress.stateRegion;
+  const originRouteLat = data.originAddress.lat;
+  const originRouteLng = data.originAddress.lng;
+  const destinationRouteCity = data.destinationAddress.city;
+  const destinationRouteStateRegion = data.destinationAddress.stateRegion;
+  const destinationRouteLat = data.destinationAddress.lat;
+  const destinationRouteLng = data.destinationAddress.lng;
+
+  const routeRelevantOriginAddress = React.useMemo(
+    () =>
+      pickRouteRelevantAddress({
+        streetNumber: "",
+        street: "",
+        ward: "",
+        district: "",
+        city: originRouteCity,
+        stateRegion: originRouteStateRegion,
+        country: "",
+        postalCode: "",
+        lat: originRouteLat,
+        lng: originRouteLng
+      }),
+    [originRouteCity, originRouteStateRegion, originRouteLat, originRouteLng]
+  );
+  const routeRelevantDestinationAddress = React.useMemo(
+    () =>
+      pickRouteRelevantAddress({
+        streetNumber: "",
+        street: "",
+        ward: "",
+        district: "",
+        city: destinationRouteCity,
+        stateRegion: destinationRouteStateRegion,
+        country: "",
+        postalCode: "",
+        lat: destinationRouteLat,
+        lng: destinationRouteLng
+      }),
+    [
+      destinationRouteCity,
+      destinationRouteStateRegion,
+      destinationRouteLat,
+      destinationRouteLng
+    ]
+  );
+  const routeSuggestionContext = React.useMemo(
+    () => ({
+      destinationMarket: data.destinationMarket,
+      destination: routeRelevantDestinationAddress,
+      origin: routeRelevantOriginAddress
+    }),
+    [
+      data.destinationMarket,
+      routeRelevantDestinationAddress,
+      routeRelevantOriginAddress
+    ]
+  );
+  const destinationDefaultCenter = React.useMemo(
+    () => getDestinationDefaultCenter(data.destinationMarket),
+    [data.destinationMarket]
   );
 
   const resolveDestinationHubsByMode = React.useCallback(
@@ -496,6 +583,65 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     ]
   );
 
+  const resolveExplicitRoadLegEndpoint = React.useCallback(
+    (
+      nodeRef: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined
+    ): {
+      point: RoutePoint;
+      role: RoadLegEndpointRole;
+      source?: RoadRoutePointSource;
+    } | null => {
+      if (!nodeRef) return null;
+
+      if (nodeRef.type === "origin_address") {
+        return isFiniteNumber(data.originAddress.lat) && isFiniteNumber(data.originAddress.lng) ?
+            {
+              point: {
+                lat: data.originAddress.lat,
+                lng: data.originAddress.lng
+              },
+              role: "origin_address"
+            } :
+            null;
+      }
+
+      if (nodeRef.type === "destination_address") {
+        return isFiniteNumber(data.destinationAddress.lat) &&
+            isFiniteNumber(data.destinationAddress.lng) ?
+            {
+              point: {
+                lat: data.destinationAddress.lat,
+                lng: data.destinationAddress.lng
+              },
+              role: "destination_address"
+            } :
+            null;
+      }
+
+      if (nodeRef.type === "hub" && nodeRef.hubId) {
+        const hub = getRouteHubById(nodeRef.hubId);
+        if (!hub) return null;
+
+        return {
+          point: {
+            lat: hub.lat,
+            lng: hub.lng
+          },
+          role: "hub",
+          source: mapHubKindToRoadPointSource(hub.kind)
+        };
+      }
+
+      return null;
+    },
+    [
+      data.destinationAddress.lat,
+      data.destinationAddress.lng,
+      data.originAddress.lat,
+      data.originAddress.lng
+    ]
+  );
+
   const resolveRoadLegEndpoints = React.useCallback(
     (legs: TransportLeg[], roadLegIndex: number): ResolvedRoadLegEndpoints | null => {
       const leg = legs[roadLegIndex];
@@ -523,71 +669,101 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         isNonRoadMode(candidate.mode)
       );
 
+      const explicitOrigin = resolveExplicitRoadLegEndpoint(leg.fromNode);
+      const explicitDestination = resolveExplicitRoadLegEndpoint(leg.toNode);
+
+      const withExplicitEndpoints = (fallback: ResolvedRoadLegEndpoints | null) => {
+        if (!explicitOrigin && !explicitDestination) {
+          return fallback;
+        }
+
+        if (!fallback && (!explicitOrigin || !explicitDestination)) {
+          return null;
+        }
+
+        return {
+          origin: explicitOrigin?.point || fallback!.origin,
+          originRole: explicitOrigin?.role || fallback!.originRole,
+          originSource: explicitOrigin?.source || fallback!.originSource,
+          destination: explicitDestination?.point || fallback!.destination,
+          destinationRole: explicitDestination?.role || fallback!.destinationRole,
+          destinationSource: explicitDestination?.source || fallback!.destinationSource
+        } satisfies ResolvedRoadLegEndpoints;
+      };
+
       if (!previousLongHaulLeg && !nextLongHaulLeg) {
-        return originPoint && destinationPoint ?
-          {
-            origin: originPoint,
-            originRole: "origin_address",
-            destination: destinationPoint,
-            destinationRole: "destination_address"
-          } :
-          null;
+        return withExplicitEndpoints(
+          originPoint && destinationPoint ?
+            {
+              origin: originPoint,
+              originRole: "origin_address",
+              destination: destinationPoint,
+              destinationRole: "destination_address"
+            } :
+            null
+        );
       }
 
       if (!previousLongHaulLeg && nextLongHaulLeg) {
         const nextOriginHub = getNearestOriginHub(nextLongHaulLeg.mode);
-        if (!originPoint || !nextOriginHub) return null;
-
-        return {
-          origin: originPoint,
-          originRole: "origin_address",
-          destination: {
-            lat: nextOriginHub.lat,
-            lng: nextOriginHub.lng
-          },
-          destinationRole: "hub",
-          destinationSource: mapHubKindToRoadPointSource(nextOriginHub.kind)
-        };
+        return withExplicitEndpoints(
+          originPoint && nextOriginHub ?
+            {
+              origin: originPoint,
+              originRole: "origin_address",
+              destination: {
+                lat: nextOriginHub.lat,
+                lng: nextOriginHub.lng
+              },
+              destinationRole: "hub",
+              destinationSource: mapHubKindToRoadPointSource(nextOriginHub.kind)
+            } :
+            null
+        );
       }
 
       if (previousLongHaulLeg && !nextLongHaulLeg) {
         const previousDestinationHub = getNearestDestinationHub(previousLongHaulLeg.mode);
-        if (!previousDestinationHub || !destinationPoint) return null;
-
-        return {
-          origin: {
-            lat: previousDestinationHub.lat,
-            lng: previousDestinationHub.lng
-          },
-          originRole: "hub",
-          originSource: mapHubKindToRoadPointSource(previousDestinationHub.kind),
-          destination: destinationPoint,
-          destinationRole: "destination_address"
-        };
+        return withExplicitEndpoints(
+          previousDestinationHub && destinationPoint ?
+            {
+              origin: {
+                lat: previousDestinationHub.lat,
+                lng: previousDestinationHub.lng
+              },
+              originRole: "hub",
+              originSource: mapHubKindToRoadPointSource(previousDestinationHub.kind),
+              destination: destinationPoint,
+              destinationRole: "destination_address"
+            } :
+            null
+        );
       }
 
       if (previousLongHaulLeg && nextLongHaulLeg) {
         const previousDestinationHub = getNearestDestinationHub(previousLongHaulLeg.mode);
-        const nextDestinationHub = getNearestDestinationHub(nextLongHaulLeg.mode);
-        if (!previousDestinationHub || !nextDestinationHub) return null;
-
-        return {
-          origin: {
-            lat: previousDestinationHub.lat,
-            lng: previousDestinationHub.lng
-          },
-          originRole: "hub",
-          originSource: mapHubKindToRoadPointSource(previousDestinationHub.kind),
-          destination: {
-            lat: nextDestinationHub.lat,
-            lng: nextDestinationHub.lng
-          },
-          destinationRole: "hub",
-          destinationSource: mapHubKindToRoadPointSource(nextDestinationHub.kind)
-        };
+        const nextOriginHub = getNearestOriginHub(nextLongHaulLeg.mode);
+        return withExplicitEndpoints(
+          previousDestinationHub && nextOriginHub ?
+            {
+              origin: {
+                lat: previousDestinationHub.lat,
+                lng: previousDestinationHub.lng
+              },
+              originRole: "hub",
+              originSource: mapHubKindToRoadPointSource(previousDestinationHub.kind),
+              destination: {
+                lat: nextOriginHub.lat,
+                lng: nextOriginHub.lng
+              },
+              destinationRole: "hub",
+              destinationSource: mapHubKindToRoadPointSource(nextOriginHub.kind)
+            } :
+            null
+        );
       }
 
-      return null;
+      return withExplicitEndpoints(null);
     },
     [
       data.destinationAddress.lat,
@@ -595,82 +771,9 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       data.originAddress.lat,
       data.originAddress.lng,
       getNearestDestinationHub,
-      getNearestOriginHub
+      getNearestOriginHub,
+      resolveExplicitRoadLegEndpoint
     ]
-  );
-
-  const enrichRoadLegDistances = React.useCallback(
-    async (legs: TransportLeg[]) => {
-      const failures: RoadLegHydrationFailure[] = [];
-      let snappedOrigin: RoutePoint | undefined;
-      let snappedDestination: RoutePoint | undefined;
-
-      const nextLegs = await Promise.all(
-        legs.map(async (leg, index) => {
-          if (leg.mode !== "road") return leg;
-
-          const endpoints = resolveRoadLegEndpoints(legs, index);
-          if (!endpoints) {
-            failures.push({
-              legId: leg.id,
-              legIndex: index,
-              reason: "invalid_coordinates"
-            });
-            return {
-              ...leg,
-              estimatedDistance: undefined,
-              routeResolved: false
-            };
-          }
-
-          const routeResolution = await fetchRoadRoute(endpoints.origin, endpoints.destination, {
-            destinationSource:
-              endpoints.destinationRole === "destination_address" ?
-                addressSourceRef.current.destination :
-                endpoints.destinationSource || "manual",
-            originSource:
-              endpoints.originRole === "origin_address" ?
-                addressSourceRef.current.origin :
-                endpoints.originSource || "manual"
-          });
-
-          if (!routeResolution.ok) {
-            failures.push({
-              legId: leg.id,
-              legIndex: index,
-              reason: routeResolution.failureReason
-            });
-            return {
-              ...leg,
-              estimatedDistance: undefined,
-              routeResolved: false
-            };
-          }
-
-          if (endpoints.originRole === "origin_address") {
-            snappedOrigin = routeResolution.route.resolvedOrigin;
-          }
-
-          if (endpoints.destinationRole === "destination_address") {
-            snappedDestination = routeResolution.route.resolvedDestination;
-          }
-
-          return {
-            ...leg,
-            estimatedDistance: roundDistanceKm(routeResolution.route.distanceKm),
-            routeResolved: true
-          };
-        })
-      );
-
-      return {
-        failures,
-        legs: nextLegs,
-        snappedDestination,
-        snappedOrigin
-      } satisfies RoadLegHydrationOutcome;
-    },
-    [resolveRoadLegEndpoints]
   );
 
   const normalizeLegSequence = React.useCallback(
@@ -694,13 +797,19 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
               id: `auto-feeder-${timestamp}-${autoCounter}`,
               mode: "road",
               estimatedDistance: undefined,
-              routeResolved: false
+              routeResolved: false,
+              autoSuggested: false,
+              fromNode: undefined,
+              toNode: undefined
             });
           } else {
             normalized[normalized.length - 1] = {
               ...previousLeg,
               estimatedDistance: undefined,
-              routeResolved: false
+              routeResolved: false,
+              autoSuggested: false,
+              fromNode: undefined,
+              toNode: undefined
             };
           }
         }
@@ -717,13 +826,19 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
             id: `auto-feeder-${timestamp}-${autoCounter}`,
             mode: "road",
             estimatedDistance: undefined,
-            routeResolved: false
+            routeResolved: false,
+            autoSuggested: false,
+            fromNode: undefined,
+            toNode: undefined
           });
         } else {
           normalized[normalized.length - 1] = {
             ...lastLeg,
             estimatedDistance: undefined,
-            routeResolved: false
+            routeResolved: false,
+            autoSuggested: false,
+            fromNode: undefined,
+            toNode: undefined
           };
         }
       }
@@ -739,24 +854,34 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       leg.id === id ?
         (() => {
           const nextMode = updates.mode ?? leg.mode;
+          const modeChanged = typeof updates.mode !== "undefined" && updates.mode !== leg.mode;
 
           return {
             ...leg,
             id:
-              isSuggestedTransportLeg(leg.id) ?
+              isAutoSuggestedTransportLeg(leg) ?
                 `leg-${timestamp}-${Math.random().toString(16).slice(2, 8)}` :
                 leg.id,
             ...updates,
+            autoSuggested: false,
             estimatedDistance:
               nextMode === "road" && typeof updates.mode !== "undefined" ?
                 undefined :
                 updates.estimatedDistance ?? leg.estimatedDistance,
+            fromNode:
+              modeChanged ?
+                undefined :
+                cloneTransportLegNodeRef(updates.fromNode ?? leg.fromNode),
             routeResolved:
               nextMode === "road" ?
                 typeof updates.mode !== "undefined" ?
                   false :
                   updates.routeResolved ?? leg.routeResolved :
-                undefined
+                undefined,
+            toNode:
+              modeChanged ?
+                undefined :
+                cloneTransportLegNodeRef(updates.toNode ?? leg.toNode)
           };
         })() :
         leg
@@ -776,153 +901,27 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   );
 
   const suggestedRoute = React.useMemo<SuggestedRoute>(() => {
-    const marketInfo = DESTINATION_MARKETS.find(
-      (market) => market.value === data.destinationMarket
-    );
-
-    const originLat = data.originAddress.lat;
-    const originLng = data.originAddress.lng;
-    const destinationLat = data.destinationAddress.lat;
-    const destinationLng = data.destinationAddress.lng;
-
-    const coordinateDistance =
-      isFiniteNumber(originLat) &&
-      isFiniteNumber(originLng) &&
-      isFiniteNumber(destinationLat) &&
-      isFiniteNumber(destinationLng)
-        ? calculateGreatCircleDistanceKm(
-            originLat,
-            originLng,
-            destinationLat,
-            destinationLng
-          )
-        : null;
-
-    const fallbackDistance =
-      marketInfo?.distance && marketInfo.distance > 0 ? marketInfo.distance : 5000;
-    const rawEstimatedKm = Math.round(
-      coordinateDistance && coordinateDistance > 0 ? coordinateDistance : fallbackDistance
-    );
-    const totalEstimatedKm = isDomesticRoute ?
-      Math.max(1, rawEstimatedKm) :
-      Math.max(100, rawEstimatedKm);
-
-    const buildHubBridgeRoute = (
-      longHaulMode: TransportLeg["mode"],
-      originHubs: RouteHub[],
-      destinationHubs: RouteHub[]
-    ) => {
-      const nearestOriginHub =
-        isFiniteNumber(originLat) && isFiniteNumber(originLng)
-          ? findNearestHub(originLat, originLng, originHubs)
-          : null;
-      const nearestDestinationHub =
-        isFiniteNumber(destinationLat) && isFiniteNumber(destinationLng)
-          ? findNearestHub(destinationLat, destinationLng, destinationHubs)
-          : destinationHubs.length > 0
-            ? { hub: destinationHubs[0], distanceKm: 0 }
-            : null;
-
-      let longHaulDistance = Math.max(50, totalEstimatedKm);
-      if (nearestOriginHub && nearestDestinationHub) {
-        longHaulDistance = calculateGreatCircleDistanceKm(
-          nearestOriginHub.hub.lat,
-          nearestOriginHub.hub.lng,
-          nearestDestinationHub.hub.lat,
-          nearestDestinationHub.hub.lng
-        );
-      } else if (
-        nearestOriginHub &&
-        isFiniteNumber(destinationLat) &&
-        isFiniteNumber(destinationLng)
-      ) {
-        longHaulDistance = calculateGreatCircleDistanceKm(
-          nearestOriginHub.hub.lat,
-          nearestOriginHub.hub.lng,
-          destinationLat,
-          destinationLng
-        );
-      } else if (
-        nearestDestinationHub &&
-        isFiniteNumber(originLat) &&
-        isFiniteNumber(originLng)
-      ) {
-        longHaulDistance = calculateGreatCircleDistanceKm(
-          originLat,
-          originLng,
-          nearestDestinationHub.hub.lat,
-          nearestDestinationHub.hub.lng
-        );
-      }
-
-      const secondLegKm = Math.max(50, Math.round(longHaulDistance));
-
-      return {
-        longHaulMode,
-        legs: [
-          {
-            mode: "road" as const,
-            estimatedDistance: undefined,
-            routeResolved: false
-          },
-          {
-            mode: longHaulMode,
-            estimatedDistance: secondLegKm
-          },
-          {
-            mode: "road" as const,
-            estimatedDistance: undefined,
-            routeResolved: false
-          }
-        ]
-      };
-    };
-
     if (isDomesticRoute) {
       return buildDomesticFallbackRoute({
-        destination: data.destinationAddress,
-        origin: data.originAddress
+        destination: routeSuggestionContext.destination,
+        origin: routeSuggestionContext.origin
       });
     }
 
-    const longHaulMode = resolveSuggestedLongHaulMode(
-      data.destinationMarket,
-      totalEstimatedKm
-    );
-    const requiredHubKind = getHubKindByMode(longHaulMode);
-
-    const originHubCandidates = VIETNAM_TRANSFER_HUBS.filter(
-      (hub) => hub.kind === requiredHubKind
-    );
-    const destinationHubCandidates = (
-      DESTINATION_HUBS_BY_MARKET[data.destinationMarket] ||
-      DESTINATION_HUBS_BY_MARKET.other ||
-      []
-    ).filter((hub) => hub.kind === requiredHubKind);
-
-    if (!originHubCandidates.length || !destinationHubCandidates.length) {
-      return {
-        longHaulMode: "road" as const,
-        legs: [
-          {
-            mode: "road" as const,
-            estimatedDistance: undefined,
-            routeResolved: false
-          }
-        ]
-      };
-    }
-    return buildHubBridgeRoute(longHaulMode, originHubCandidates, destinationHubCandidates);
-  }, [
-    isDomesticRoute,
-    data.destinationMarket,
-    data.destinationAddress,
-    data.originAddress
-  ]);
+    return buildExportFallbackRoute({
+      destinationMarket: routeSuggestionContext.destinationMarket,
+      destination: routeSuggestionContext.destination,
+      origin: routeSuggestionContext.origin
+    });
+  }, [isDomesticRoute, routeSuggestionContext]);
 
   const [displaySuggestedRoute, setDisplaySuggestedRoute] = React.useState<SuggestedRoute>(
     suggestedRoute
   );
+  const [isSuggestingRoute, setIsSuggestingRoute] = React.useState(false);
+  const [resolvingRoadLegIds, setResolvingRoadLegIds] = React.useState<string[]>([]);
+  const routeSuggestionRequestSeqRef = React.useRef(0);
+  const roadDistanceRequestSeqRef = React.useRef(0);
 
   const autoSuggestedTransportLegs = React.useMemo(
     () =>
@@ -930,10 +929,18 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       id: `${SUGGESTED_TRANSPORT_LEG_ID_PREFIX}${index + 1}`,
       mode: leg.mode,
       estimatedDistance: leg.estimatedDistance,
-      routeResolved: leg.routeResolved
+      routeResolved: leg.routeResolved,
+      fromNode: cloneTransportLegNodeRef(leg.fromNode),
+      toNode: cloneTransportLegNodeRef(leg.toNode),
+      autoSuggested: true
     })),
     [displaySuggestedRoute]
   );
+  const resolvingRoadLegIdSet = React.useMemo(
+    () => new Set(resolvingRoadLegIds),
+    [resolvingRoadLegIds]
+  );
+  const isResolvingRoadDistances = resolvingRoadLegIds.length > 0;
 
   const currentRouteSignature = React.useMemo(
     () =>
@@ -964,18 +971,48 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
   React.useEffect(() => {
     let isCancelled = false;
+    const requestSeq = routeSuggestionRequestSeqRef.current + 1;
+    routeSuggestionRequestSeqRef.current = requestSeq;
 
     setDisplaySuggestedRoute(suggestedRoute);
+    setIsSuggestingRoute(true);
 
     const hydrateSuggestedRoute = async () => {
-      if (isDomesticRoute) {
-        const resolvedRoute = await resolveDomesticSuggestedRoute({
-          destination: data.destinationAddress,
-          origin: data.originAddress
-        }, {
-          destinationSource: addressSourceRef.current.destination,
-          originSource: addressSourceRef.current.origin
-        });
+      try {
+        if (isDomesticRoute) {
+          const resolvedRoute = await resolveDomesticSuggestedRoute({
+            destination: routeSuggestionContext.destination,
+            origin: routeSuggestionContext.origin
+          }, {
+            destinationSource: addressSourceRef.current.destination,
+            originSource: addressSourceRef.current.origin
+          });
+
+          if (isCancelled) return;
+
+          const snappedUpdates = maybeBuildSnappedAddressUpdates({
+            destination: resolvedRoute.snappedDestination,
+            origin: resolvedRoute.snappedOrigin
+          });
+
+          setDisplaySuggestedRoute(resolvedRoute.route);
+          if (snappedUpdates) {
+            onChange(snappedUpdates);
+          }
+          return;
+        }
+
+        const resolvedRoute = await resolveExportSuggestedRoute(
+          {
+            destinationMarket: routeSuggestionContext.destinationMarket,
+            destination: routeSuggestionContext.destination,
+            origin: routeSuggestionContext.origin
+          },
+          {
+            destinationSource: addressSourceRef.current.destination,
+            originSource: addressSourceRef.current.origin
+          }
+        );
 
         if (isCancelled) return;
 
@@ -988,34 +1025,10 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         if (snappedUpdates) {
           onChange(snappedUpdates);
         }
-        return;
-      }
-
-      const hydrationOutcome = await enrichRoadLegDistances(
-        suggestedRoute.legs.map((leg, index) => ({
-          id: `suggested-preview-${index + 1}`,
-          mode: leg.mode,
-          estimatedDistance: leg.estimatedDistance
-        }))
-      );
-
-      if (isCancelled) return;
-
-      const snappedUpdates = maybeBuildSnappedAddressUpdates({
-        destination: hydrationOutcome.snappedDestination,
-        origin: hydrationOutcome.snappedOrigin
-      });
-
-      setDisplaySuggestedRoute({
-        ...suggestedRoute,
-        legs: hydrationOutcome.legs.map((leg) => ({
-          mode: leg.mode,
-          estimatedDistance: leg.estimatedDistance,
-          routeResolved: leg.routeResolved
-        }))
-      });
-      if (snappedUpdates) {
-        onChange(snappedUpdates);
+      } finally {
+        if (!isCancelled && routeSuggestionRequestSeqRef.current === requestSeq) {
+          setIsSuggestingRoute(false);
+        }
       }
     };
 
@@ -1025,12 +1038,10 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       isCancelled = true;
     };
   }, [
-    data.destinationAddress,
-    data.originAddress,
-    enrichRoadLegDistances,
     isDomesticRoute,
     maybeBuildSnappedAddressUpdates,
     onChange,
+    routeSuggestionContext,
     suggestedRoute
   ]);
 
@@ -1044,98 +1055,112 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     }, []);
 
     if (roadLegIndexes.length === 0) {
+      setResolvingRoadLegIds((current) => (current.length > 0 ? [] : current));
       return;
     }
 
+    const requestSeq = roadDistanceRequestSeqRef.current + 1;
+    roadDistanceRequestSeqRef.current = requestSeq;
+    const nextResolvingIds = roadLegIndexes
+      .map((index) => data.transportLegs[index]?.id)
+      .filter((legId): legId is string => Boolean(legId));
+    setResolvingRoadLegIds(nextResolvingIds);
+
     const syncRoadLegs = async () => {
-      const nextLegs = [...data.transportLegs];
-      let hasUpdates = false;
-      let snappedOrigin: RoutePoint | undefined;
-      let snappedDestination: RoutePoint | undefined;
+      try {
+        const nextLegs = [...data.transportLegs];
+        let hasUpdates = false;
+        let snappedOrigin: RoutePoint | undefined;
+        let snappedDestination: RoutePoint | undefined;
 
-      for (const legIndex of roadLegIndexes) {
-        const endpoints = resolveRoadLegEndpoints(nextLegs, legIndex);
-        const currentLeg = nextLegs[legIndex];
-        if (!endpoints) {
+        for (const legIndex of roadLegIndexes) {
+          const endpoints = resolveRoadLegEndpoints(nextLegs, legIndex);
+          const currentLeg = nextLegs[legIndex];
+          if (!endpoints) {
+            if (
+              currentLeg &&
+              (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
+            ) {
+              nextLegs[legIndex] = {
+                ...currentLeg,
+                estimatedDistance: undefined,
+                routeResolved: false
+              };
+              hasUpdates = true;
+            }
+            continue;
+          }
+
+          const routeResolution = await fetchRoadRoute(endpoints.origin, endpoints.destination, {
+            destinationSource:
+              endpoints.destinationRole === "destination_address" ?
+                addressSourceRef.current.destination :
+                endpoints.destinationSource || "manual",
+            originSource:
+              endpoints.originRole === "origin_address" ?
+                addressSourceRef.current.origin :
+                endpoints.originSource || "manual"
+          });
+          if (!routeResolution.ok) {
+            if (
+              currentLeg &&
+              (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
+            ) {
+              nextLegs[legIndex] = {
+                ...currentLeg,
+                estimatedDistance: undefined,
+                routeResolved: false
+              };
+              hasUpdates = true;
+            }
+            continue;
+          }
+
+          if (endpoints.originRole === "origin_address") {
+            snappedOrigin = routeResolution.route.resolvedOrigin;
+          }
+          if (endpoints.destinationRole === "destination_address") {
+            snappedDestination = routeResolution.route.resolvedDestination;
+          }
+
+          const nextDistance = roundDistanceKm(routeResolution.route.distanceKm);
+          const currentDistance = currentLeg?.estimatedDistance;
           if (
             currentLeg &&
-            (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
+            currentLeg.routeResolved === true &&
+            hasPositiveDistance(currentDistance) &&
+            Math.abs(currentDistance - nextDistance) < ROAD_DISTANCE_UPDATE_EPSILON_KM
           ) {
-            nextLegs[legIndex] = {
-              ...currentLeg,
-              estimatedDistance: undefined,
-              routeResolved: false
-            };
-            hasUpdates = true;
+            continue;
           }
-          continue;
+
+          nextLegs[legIndex] = {
+            ...nextLegs[legIndex],
+            estimatedDistance: nextDistance,
+            routeResolved: true
+          };
+          hasUpdates = true;
         }
 
-        const routeResolution = await fetchRoadRoute(endpoints.origin, endpoints.destination, {
-          destinationSource:
-            endpoints.destinationRole === "destination_address" ?
-              addressSourceRef.current.destination :
-              endpoints.destinationSource || "manual",
-          originSource:
-            endpoints.originRole === "origin_address" ?
-              addressSourceRef.current.origin :
-              endpoints.originSource || "manual"
+        if (isCancelled) return;
+
+        const snappedUpdates = maybeBuildSnappedAddressUpdates({
+          destination: snappedDestination,
+          origin: snappedOrigin
         });
-        if (!routeResolution.ok) {
-          if (
-            currentLeg &&
-            (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
-          ) {
-            nextLegs[legIndex] = {
-              ...currentLeg,
-              estimatedDistance: undefined,
-              routeResolved: false
-            };
-            hasUpdates = true;
-          }
-          continue;
-        }
+        const shouldApplyAddressUpdates = Boolean(snappedUpdates);
 
-        if (endpoints.originRole === "origin_address") {
-          snappedOrigin = routeResolution.route.resolvedOrigin;
-        }
-        if (endpoints.destinationRole === "destination_address") {
-          snappedDestination = routeResolution.route.resolvedDestination;
-        }
+        if (!hasUpdates && !shouldApplyAddressUpdates) return;
 
-        const nextDistance = roundDistanceKm(routeResolution.route.distanceKm);
-        const currentDistance = currentLeg?.estimatedDistance;
-        if (
-          currentLeg &&
-          currentLeg.routeResolved === true &&
-          hasPositiveDistance(currentDistance) &&
-          Math.abs(currentDistance - nextDistance) < ROAD_DISTANCE_UPDATE_EPSILON_KM
-        ) {
-          continue;
+        onChange({
+          ...(snappedUpdates || {}),
+          ...(hasUpdates ? { transportLegs: nextLegs } : {})
+        });
+      } finally {
+        if (!isCancelled && roadDistanceRequestSeqRef.current === requestSeq) {
+          setResolvingRoadLegIds([]);
         }
-
-        nextLegs[legIndex] = {
-          ...nextLegs[legIndex],
-          estimatedDistance: nextDistance,
-          routeResolved: true
-        };
-        hasUpdates = true;
       }
-
-      if (isCancelled) return;
-
-      const snappedUpdates = maybeBuildSnappedAddressUpdates({
-        destination: snappedDestination,
-        origin: snappedOrigin
-      });
-      const shouldApplyAddressUpdates = Boolean(snappedUpdates);
-
-      if (!hasUpdates && !shouldApplyAddressUpdates) return;
-
-      onChange({
-        ...(snappedUpdates || {}),
-        ...(hasUpdates ? { transportLegs: nextLegs } : {})
-      });
     };
 
     void syncRoadLegs();
@@ -1153,7 +1178,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     const hasNoTransportLegs = data.transportLegs.length === 0;
     const currentLegsAreAutoSuggested =
       data.transportLegs.length > 0 &&
-      data.transportLegs.every((leg) => isSuggestedTransportLeg(leg.id));
+      data.transportLegs.every((leg) => isAutoSuggestedTransportLeg(leg));
 
     lastAutoRouteSignatureRef.current = currentRouteSignature;
 
@@ -1172,6 +1197,8 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         return (
           leg.mode === suggestedLeg.mode &&
           leg.routeResolved === suggestedLeg.routeResolved &&
+          areTransportLegNodeRefsEqual(leg.fromNode, suggestedLeg.fromNode) &&
+          areTransportLegNodeRefsEqual(leg.toNode, suggestedLeg.toNode) &&
           Math.abs(currentDistance - suggestedDistance) < ROAD_DISTANCE_UPDATE_EPSILON_KM
         );
       });
@@ -1378,7 +1405,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 label={t("address.origin")}
                 address={data.originAddress}
                 onChange={updateOriginAddress}
-                defaultCenter={[106.6297, 10.8231]}
+                defaultCenter={ORIGIN_DEFAULT_CENTER}
                 showCurrentLocationButton
               />
               {hasOriginOutsideTrialDomestic ?
@@ -1399,7 +1426,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 label={t("address.destination")}
                 address={data.destinationAddress}
                 onChange={updateDestinationAddress}
-                defaultCenter={getDestinationDefaultCenter(data.destinationMarket)}
+                defaultCenter={destinationDefaultCenter}
                 showCurrentLocationButton={false}
               />
               {hasDestinationOutsideTrialDomestic ?
@@ -1418,7 +1445,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
           <Card>
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <CardTitle className="text-lg">{t("transport.title")}</CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -1426,13 +1453,33 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                   </p>
                 </div>
 
-                {totalDistance > 0 ? (
-                  <Badge variant="outline" className="text-sm">
-                    {t("transport.totalDistance", {
-                      value: totalDistance.toLocaleString(displayLocale)
-                    })}
-                  </Badge>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {isSuggestingRoute ? (
+                    <Badge
+                      variant="outline"
+                      className="gap-1.5 border-slate-300 bg-slate-50 text-slate-700"
+                    >
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {t("transport.recommendingRoute")}
+                    </Badge>
+                  ) : null}
+                  {isResolvingRoadDistances ? (
+                    <Badge
+                      variant="outline"
+                      className="gap-1.5 border-slate-300 bg-slate-50 text-slate-700"
+                    >
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {t("transport.routeResolving")}
+                    </Badge>
+                  ) : null}
+                  {totalDistance > 0 ? (
+                    <Badge variant="outline" className="text-sm">
+                      {t("transport.totalDistance", {
+                        value: totalDistance.toLocaleString(displayLocale)
+                      })}
+                    </Badge>
+                  ) : null}
+                </div>
               </div>
             </CardHeader>
 
@@ -1441,6 +1488,8 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 <div className="space-y-3">
                   {data.transportLegs.map((leg, index) => {
                     const modeInfo = TRANSPORT_MODES.find((mode) => mode.value === leg.mode);
+                    const isRoadLegResolving =
+                      leg.mode === "road" && resolvingRoadLegIdSet.has(leg.id);
 
                     return (
                       <div
@@ -1511,6 +1560,13 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                                 {t("transport.co2Factor", { value: modeInfo?.co2Factor || 0 })}
                               </span>
                             </div>
+
+                            {isRoadLegResolving ? (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span>{t("transport.routeResolving")}</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
 

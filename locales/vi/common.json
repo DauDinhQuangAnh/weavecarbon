@@ -485,11 +485,13 @@
       "invalidProductId": "Mã sản phẩm không hợp lệ. Vui lòng tải lại và thử lại.",
       "failedLoadProducts": "Không thể tải danh sách sản phẩm",
       "failedOpenProductDetail": "Không thể mở chi tiết sản phẩm",
+      "editBlockedByCancelledShipment": "Không thể chỉnh sửa sản phẩm vì chuyến vận chuyển liên kết đã bị hủy.",
       "qrRequiresPublished": "Cần xuất bản sản phẩm trước khi tạo QR Code.",
       "deleteProductFailed": "Không thể xóa sản phẩm."
     },
     "actions": {
       "editProduct": "Chỉnh sửa sản phẩm",
+      "editProductDisabledCancelledShipment": "Không thể chỉnh sửa vì chuyến vận chuyển liên kết đã bị hủy",
       "deleteProduct": "Xóa sản phẩm",
       "deleteConfirm": "Bạn có chắc muốn xóa \"{name}\" không?"
     },
@@ -2118,6 +2120,7 @@
         "distancePlaceholderRoad": "Km theo tuyến thật",
         "distanceUnit": "km",
         "co2Factor": "({value} kg CO₂e/tấn.km)",
+        "recommendingRoute": "Đang gợi ý tuyến vận chuyển phù hợp...",
         "routeResolving": "Đang xác định tuyến đường bộ thực tế giữa 2 điểm...",
         "routeResolved": "Khoảng cách đường bộ được lấy tự động từ tuyến thực tế, không dùng đường chim bay.",
         "routeUnconfirmed": "Chưa xác định được tuyến đường bộ thực tế cho chặng này. Hãy chọn lại 2 điểm gần đường để hệ thống định tuyến chính xác.",

@@ -522,7 +522,10 @@ initialData?: ProductAssessmentData | null)
       ...item
     })),
     transportLegs: (initialData.transportLegs ?? []).map((item) => ({
-      ...item
+      ...item,
+      autoSuggested: item.autoSuggested === true,
+      fromNode: item.fromNode ? { ...item.fromNode } : undefined,
+      toNode: item.toNode ? { ...item.toNode } : undefined
     })),
     carbonResults: initialData.carbonResults ?
     {

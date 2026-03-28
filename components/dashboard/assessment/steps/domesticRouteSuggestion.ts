@@ -13,6 +13,9 @@ export type SuggestedRoute = {
     mode: TransportLeg["mode"];
     estimatedDistance?: number;
     routeResolved?: boolean;
+    fromNode?: TransportLeg["fromNode"];
+    toNode?: TransportLeg["toNode"];
+    autoSuggested?: boolean;
   }>;
 };
 
@@ -311,7 +314,10 @@ const buildCandidate = (
       hasPositiveDistance(leg.estimatedDistance) ?
         clampDistanceKm(leg.estimatedDistance) :
         undefined,
-    routeResolved: leg.mode === "road" ? leg.routeResolved === true : undefined
+    routeResolved: leg.mode === "road" ? leg.routeResolved === true : undefined,
+    fromNode: leg.fromNode ? { ...leg.fromNode } : undefined,
+    toNode: leg.toNode ? { ...leg.toNode } : undefined,
+    autoSuggested: leg.autoSuggested
   }));
   const metrics = buildRouteMetrics(normalizedLegs, longHaulMode);
 

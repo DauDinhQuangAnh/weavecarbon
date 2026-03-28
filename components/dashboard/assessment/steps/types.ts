@@ -23,6 +23,11 @@ export interface EnergySourceInput {
   percentage: number;
 }
 
+export interface TransportLegNodeRef {
+  type: "origin_address" | "destination_address" | "hub";
+  hubId?: string;
+}
+
 export interface TransportLeg {
   id: string;
   mode: "road" | "sea" | "air" | "rail";
@@ -30,6 +35,9 @@ export interface TransportLeg {
   emissionFactor?: number;
   co2Kg?: number;
   routeResolved?: boolean;
+  fromNode?: TransportLegNodeRef;
+  toNode?: TransportLegNodeRef;
+  autoSuggested?: boolean;
 }
 
 export interface AddressInput {

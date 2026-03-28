@@ -485,11 +485,13 @@
       "invalidProductId": "Product ID is invalid. Please refresh and try again.",
       "failedLoadProducts": "Failed to load products",
       "failedOpenProductDetail": "Failed to open product detail",
+      "editBlockedByCancelledShipment": "This product cannot be edited because its linked shipment was cancelled.",
       "qrRequiresPublished": "Publish the product first before generating a QR Code.",
       "deleteProductFailed": "Unable to delete product."
     },
     "actions": {
       "editProduct": "Edit product",
+      "editProductDisabledCancelledShipment": "Editing is disabled because the linked shipment was cancelled",
       "deleteProduct": "Delete product",
       "deleteConfirm": "Are you sure you want to delete \"{name}\"?"
     },
@@ -2187,6 +2189,7 @@
         "distancePlaceholderRoad": "Exact route km",
         "distanceUnit": "km",
         "co2Factor": "({value} kg CO₂e/ton.km)",
+        "recommendingRoute": "Suggesting the most suitable transport route...",
         "routeResolving": "Resolving the exact road route between the two points...",
         "routeResolved": "Road distance is filled automatically from the exact route, not a straight-line estimate.",
         "routeUnconfirmed": "The exact road route for this leg could not be resolved yet. Move the selected points closer to a road and try again.",

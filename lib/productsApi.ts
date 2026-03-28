@@ -321,6 +321,32 @@ fallback?: number)
   return 0;
 };
 
+const normalizeTransportLegNodeType = (value: unknown) => {
+  const normalized = asString(value).trim().toLowerCase();
+  if (
+    normalized === "origin_address" ||
+    normalized === "destination_address" ||
+    normalized === "hub"
+  ) {
+    return normalized;
+  }
+  return null;
+};
+
+const normalizeTransportLegNodeRef = (value: unknown) => {
+  if (!isObject(value)) return undefined;
+
+  const type = normalizeTransportLegNodeType(value.type ?? value.node_type ?? value.kind);
+  if (!type) return undefined;
+
+  const hubId = asNonEmptyString(value.hubId ?? value.hub_id ?? value.id);
+
+  return {
+    type,
+    hubId: type === "hub" ? hubId || undefined : undefined
+  } satisfies NonNullable<TransportLeg["fromNode"]>;
+};
+
 const DESTINATION_MARKET_ALIASES: Record<string, string> = {
   eu: "eu",
   europeanunion: "eu",
@@ -883,6 +909,27 @@ map((item, index) => {
   item.route_resolved ??
   item.is_route_resolved ??
   item.isRouteResolved;
+  const normalizedFromNode = normalizeTransportLegNodeRef(
+    item.fromNode ??
+    item.from_node ??
+    item.originNode ??
+    item.origin_node ??
+    item.startNode ??
+    item.start_node
+  );
+  const normalizedToNode = normalizeTransportLegNodeRef(
+    item.toNode ??
+    item.to_node ??
+    item.destinationNode ??
+    item.destination_node ??
+    item.endNode ??
+    item.end_node
+  );
+  const normalizedAutoSuggested =
+    item.autoSuggested ??
+    item.auto_suggested ??
+    item.is_auto_suggested ??
+    item.isAutoSuggested;
 
   return {
     id: asString(item.id ?? item.leg_id ?? item.legId, `leg-${index + 1}`),
@@ -902,7 +949,10 @@ map((item, index) => {
     routeResolved:
     mode === "road" ?
     asBoolean(normalizedRouteResolved, false) :
-    undefined
+    undefined,
+    fromNode: normalizedFromNode,
+    toNode: normalizedToNode,
+    autoSuggested: asBoolean(normalizedAutoSuggested, false)
   } as TransportLeg;
 });
 

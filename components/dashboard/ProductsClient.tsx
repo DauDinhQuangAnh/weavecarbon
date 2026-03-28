@@ -62,7 +62,8 @@ import {
 import { normalizeDomesticMarketCode } from "@/lib/targetMarkets";
 import {
   fetchLogisticsShipmentById,
-  toTransportLegs } from
+  toTransportLegs,
+  type LogisticsShipmentStatus } from
 "@/lib/logisticsApi";
 import { api } from "@/lib/apiClient";
 import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
@@ -215,6 +216,9 @@ const ProductsClient: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const loadRequestSeqRef = useRef(0);
+  const [shipmentStatusById, setShipmentStatusById] = useState<
+    Record<string, LogisticsShipmentStatus>
+  >({});
 
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
@@ -243,6 +247,98 @@ const ProductsClient: React.FC = () => {
   const triggerRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
   }, []);
+
+  const mergeShipmentStatuses = useCallback(
+    (
+      entries: Array<{
+        shipmentId: string;
+        status: LogisticsShipmentStatus;
+      }>
+    ) => {
+      if (entries.length === 0) {
+        return;
+      }
+
+      setShipmentStatusById((current) => {
+        let hasChanges = false;
+        const next = { ...current };
+
+        entries.forEach(({ shipmentId, status }) => {
+          if (next[shipmentId] !== status) {
+            next[shipmentId] = status;
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? next : current;
+      });
+    },
+    []
+  );
+
+  const fetchShipmentStatuses = useCallback(async (shipmentIds: string[]) => {
+    const uniqueShipmentIds = Array.from(
+      new Set(
+        shipmentIds
+          .map((shipmentId) => shipmentId.trim())
+          .filter((shipmentId) => shipmentId.length > 0)
+      )
+    );
+
+    if (uniqueShipmentIds.length === 0) {
+      return [];
+    }
+
+    const results = await Promise.allSettled(
+      uniqueShipmentIds.map(async (shipmentId) => {
+        const shipment = await fetchLogisticsShipmentById(shipmentId);
+        return {
+          shipmentId,
+          status: shipment.status
+        };
+      })
+    );
+
+    return results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : []
+    );
+  }, []);
+
+  const resolveShipmentStatus = useCallback(
+    async (shipmentId: string | null | undefined) => {
+      const normalizedShipmentId =
+        typeof shipmentId === "string" ? shipmentId.trim() : "";
+      if (!normalizedShipmentId) {
+        return null;
+      }
+
+      const cachedStatus = shipmentStatusById[normalizedShipmentId];
+      if (cachedStatus) {
+        return cachedStatus;
+      }
+
+      const fetchedEntries = await fetchShipmentStatuses([normalizedShipmentId]);
+      if (fetchedEntries.length === 0) {
+        return null;
+      }
+
+      mergeShipmentStatuses(fetchedEntries);
+      return fetchedEntries[0]?.status || null;
+    },
+    [fetchShipmentStatuses, mergeShipmentStatuses, shipmentStatusById]
+  );
+
+  const isShipmentCancelled = useCallback(
+    (shipmentId: string | null | undefined) => {
+      const normalizedShipmentId =
+        typeof shipmentId === "string" ? shipmentId.trim() : "";
+      return (
+        normalizedShipmentId.length > 0 &&
+        shipmentStatusById[normalizedShipmentId] === "cancelled"
+      );
+    },
+    [shipmentStatusById]
+  );
 
   const cacheSummaryPrefetch = useCallback((product: ProductRecord) => {
     if (typeof window === "undefined") return;
@@ -356,7 +452,20 @@ const ProductsClient: React.FC = () => {
       setEditingProductId(product.id);
       setAssessmentInitialStep(1);
       try {
+        const productShipmentStatus = await resolveShipmentStatus(product.shipmentId);
+        if (productShipmentStatus === "cancelled") {
+          toast.error(t("errors.editBlockedByCancelledShipment"));
+          return;
+        }
+
         const fullProduct = await fetchProductById(product.id);
+        const fullProductShipmentStatus = await resolveShipmentStatus(
+          fullProduct.shipmentId
+        );
+        if (fullProductShipmentStatus === "cancelled") {
+          toast.error(t("errors.editBlockedByCancelledShipment"));
+          return;
+        }
 
         let editableProduct = fullProduct;
         const shouldHydrateTransportFromShipment =
@@ -486,7 +595,13 @@ const ProductsClient: React.FC = () => {
         setEditingProductId((current) => current === product.id ? null : current);
       }
     },
-    [canMutate, mapProductToAssessmentData, notifyNoPermission, t]
+    [
+      canMutate,
+      mapProductToAssessmentData,
+      notifyNoPermission,
+      resolveShipmentStatus,
+      t
+    ]
   );
 
   const handleAssessmentSessionDraftChange = useCallback(
@@ -718,6 +833,39 @@ const ProductsClient: React.FC = () => {
   useEffect(() => {
     void loadProducts();
   }, [loadProducts, refreshKey]);
+
+  useEffect(() => {
+    const shipmentIds = Array.from(
+      new Set(
+        products
+          .map((product) =>
+            typeof product.shipmentId === "string" ? product.shipmentId.trim() : ""
+          )
+          .filter((shipmentId) => shipmentId.length > 0)
+      )
+    );
+
+    if (shipmentIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const hydrateShipmentStatuses = async () => {
+      const entries = await fetchShipmentStatuses(shipmentIds);
+      if (cancelled || entries.length === 0) {
+        return;
+      }
+
+      mergeShipmentStatuses(entries);
+    };
+
+    void hydrateShipmentStatuses();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchShipmentStatuses, mergeShipmentStatuses, products]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -998,13 +1146,31 @@ const ProductsClient: React.FC = () => {
               </CardContent>
             </Card> :
 
-          products.map((product) =>
-          <Card
-            key={product.id}
-            className={`relative h-full min-h-[140px] cursor-pointer border border-slate-300 shadow transition-all hover:border-slate-400 hover:shadow-lg ${STATUS_CONFIG[product.status].cardClassName}`}
-            onClick={() => {
-              void handleViewProductSafe(product);
-            }}>
+          products.map((product) => {
+            const editBlockedByCancelledShipment = isShipmentCancelled(
+              product.shipmentId
+            );
+            const editButtonLabel =
+            editBlockedByCancelledShipment ?
+            t("actions.editProductDisabledCancelledShipment") :
+            t("actions.editProduct");
+            const isEditButtonDisabled =
+            editBlockedByCancelledShipment ||
+            editingProductId === product.id ||
+            deletingProductId === product.id;
+
+            return <Card
+              key={product.id}
+              className={`relative h-full min-h-[140px] cursor-pointer border border-slate-300 shadow transition-all hover:border-slate-400 hover:shadow-lg ${STATUS_CONFIG[product.status].cardClassName}`}
+              onClick={(event) => {
+                if (
+                  (event.target instanceof HTMLElement) &&
+                  event.target.closest("[data-product-card-actions='true']")
+                ) {
+                  return;
+                }
+                void handleViewProductSafe(product);
+              }}>
 
                 <CardContent className="h-full p-4">
                   <div className="absolute right-3 top-3">
@@ -1049,18 +1215,20 @@ const ProductsClient: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-1.5">
+                      <div
+                        data-product-card-actions="true"
+                        className="flex shrink-0 items-center gap-1.5">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-8 w-8 border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                          disabled={editingProductId === product.id || deletingProductId === product.id}
+                          className={`h-8 w-8 bg-white ${editBlockedByCancelledShipment ? "cursor-not-allowed border-slate-200 text-slate-300 opacity-50 hover:bg-white" : "border-slate-300 text-slate-700 hover:bg-slate-100"}`}
+                          disabled={isEditButtonDisabled}
                           onClick={(e) => {
                             e.stopPropagation();
                             void openEditAssessment(product);
                           }}
-                          title={t("actions.editProduct")}
-                          aria-label={t("actions.editProduct")}>
+                          title={editButtonLabel}
+                          aria-label={editButtonLabel}>
                           {editingProductId === product.id ?
                           <Loader2 className="h-4 w-4 animate-spin" /> :
                           <Pencil className="h-4 w-4" />
@@ -1086,8 +1254,8 @@ const ProductsClient: React.FC = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-          )
+              </Card>;
+          })
           }
         </div>
 

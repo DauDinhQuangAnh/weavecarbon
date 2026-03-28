@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Search, X, Navigation } from "lucide-react";
+import { Loader2, MapPin, Navigation, Search, X } from "lucide-react";
 import {
   buildMapboxForwardGeocodingUrl,
   buildMapboxReverseGeocodingUrl,
@@ -20,6 +20,12 @@ import { AddressInput } from "./types";
 export interface LocationPickerChangeMeta {
   source: RoadRoutePointSource;
 }
+
+type ReverseGeocodeHandler = (
+  lng: number,
+  lat: number,
+  source?: RoadRoutePointSource
+) => Promise<void>;
 
 interface LocationPickerProps {
   address: AddressInput;
@@ -79,6 +85,31 @@ const FORWARD_GEOCODING_TYPE_PRIORITY: Record<string, number> = {
   country: 7
 };
 
+const MARKER_SYNC_EPSILON = 0.00001;
+const TARGET_MAP_ZOOM = 14;
+
+const EMPTY_ADDRESS_PARTS: Omit<
+  AddressInput,
+  "lat" | "lng"
+> = {
+  streetNumber: "",
+  street: "",
+  ward: "",
+  district: "",
+  city: "",
+  stateRegion: "",
+  country: "",
+  postalCode: ""
+};
+
+const isFiniteCoordinate = (value: number | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const hasCoordinatePair = (
+  lat: number | undefined,
+  lng: number | undefined
+) => isFiniteCoordinate(lat) && isFiniteCoordinate(lng);
+
 const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
   onChange,
@@ -94,17 +125,24 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const reverseGeocodeAbortRef = useRef<AbortController | null>(null);
+  const reverseGeocodeRequestSeqRef = useRef(0);
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const searchRequestSeqRef = useRef(0);
+  const skipNextSearchRef = useRef(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
-  const initialAddressRef = useRef({ lat: address.lat, lng: address.lng });
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   const addressRef = useRef(address);
   addressRef.current = address;
+
+  const reverseGeocodeRef = useRef<ReverseGeocodeHandler>(async () => {});
 
   const applyLocationPart = useCallback(
     (result: Partial<AddressInput>, partId: string | undefined, partText: string | undefined) => {
@@ -180,6 +218,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     [applyLocationPart]
   );
 
+  const buildGeocodedAddress = useCallback(
+    (lat: number, lng: number, addressParts: Partial<AddressInput>) => ({
+      ...addressRef.current,
+      ...EMPTY_ADDRESS_PARTS,
+      ...addressParts,
+      lat,
+      lng
+    }),
+    []
+  );
+
   const pickBestReverseGeocodingFeature = useCallback((features: GeocodingResult[]) => {
     return features.reduce<GeocodingResult | null>((bestFeature, feature) => {
       if (!bestFeature) {
@@ -230,82 +279,130 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   const reverseGeocode = useCallback(
     async (lng: number, lat: number, source: RoadRoutePointSource = "manual") => {
+      const requestSeq = reverseGeocodeRequestSeqRef.current + 1;
+      reverseGeocodeRequestSeqRef.current = requestSeq;
+      reverseGeocodeAbortRef.current?.abort();
+      const controller = new AbortController();
+      reverseGeocodeAbortRef.current = controller;
+
       try {
         const reverseGeocodingUrl = buildMapboxReverseGeocodingUrl(lng, lat, {
           language: mapLanguage,
           types: [...REVERSE_GEOCODING_TYPES]
         });
         if (!reverseGeocodingUrl) {
-          onChangeRef.current({
+          if (
+            controller.signal.aborted ||
+            requestSeq !== reverseGeocodeRequestSeqRef.current
+          ) {
+            return;
+          }
+          const nextAddress = {
             ...addressRef.current,
             lat,
             lng
-          }, { source });
+          };
+          addressRef.current = nextAddress;
+          onChangeRef.current(nextAddress, { source });
           return;
         }
 
-        const response = await fetch(reverseGeocodingUrl);
+        const response = await fetch(reverseGeocodingUrl, {
+          signal: controller.signal
+        });
         const data = await response.json();
+        if (
+          controller.signal.aborted ||
+          requestSeq !== reverseGeocodeRequestSeqRef.current
+        ) {
+          return;
+        }
 
         if (data.features && data.features.length > 0) {
           const feature = pickBestReverseGeocodingFeature(data.features) || data.features[0];
           const addressParts = parseGeocodingResult(feature);
+          const nextAddress = buildGeocodedAddress(lat, lng, addressParts);
 
-          onChangeRef.current({
-            ...addressRef.current,
-            ...addressParts,
-            lat,
-            lng
-          }, { source });
+          addressRef.current = nextAddress;
+          onChangeRef.current(nextAddress, { source });
           return;
         }
 
-        onChangeRef.current({
+        const nextAddress = {
           ...addressRef.current,
           lat,
           lng
-        }, { source });
+        };
+        addressRef.current = nextAddress;
+        onChangeRef.current(nextAddress, { source });
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         console.error("Reverse geocoding error:", error);
-        onChangeRef.current({
+        if (requestSeq !== reverseGeocodeRequestSeqRef.current) {
+          return;
+        }
+        const nextAddress = {
           ...addressRef.current,
           lat,
           lng
-        }, { source });
+        };
+        addressRef.current = nextAddress;
+        onChangeRef.current(nextAddress, { source });
+      } finally {
+        if (reverseGeocodeAbortRef.current === controller) {
+          reverseGeocodeAbortRef.current = null;
+        }
       }
     },
-    [mapLanguage, parseGeocodingResult, pickBestReverseGeocodingFeature]
+    [buildGeocodedAddress, mapLanguage, parseGeocodingResult, pickBestReverseGeocodingFeature]
   );
+  reverseGeocodeRef.current = reverseGeocode;
 
-  const addMarker = useCallback(
-    (lng: number, lat: number) => {
-      if (!mapRef.current) return;
+  const syncMarker = useCallback(
+    (lng: number, lat: number, options?: { flyTo?: boolean }) => {
+      const map = mapRef.current;
+      if (!map) return;
 
-      if (markerRef.current) {
-        markerRef.current.remove();
+      if (!markerRef.current) {
+        const marker = new mapboxgl.Marker({
+          color: "#10b981",
+          draggable: true
+        })
+          .setLngLat([lng, lat])
+          .addTo(map);
+
+        marker.on("dragend", () => {
+          const currentMarker = markerRef.current;
+          if (!currentMarker) return;
+          const lngLat = currentMarker.getLngLat();
+          void reverseGeocodeRef.current(lngLat.lng, lngLat.lat, "manual");
+        });
+
+        markerRef.current = marker;
+      } else {
+        markerRef.current.setLngLat([lng, lat]);
       }
 
-      const marker = new mapboxgl.Marker({
-        color: "#10b981",
-        draggable: true
-      })
-        .setLngLat([lng, lat])
-        .addTo(mapRef.current);
+      if (options?.flyTo !== false) {
+        const currentCenter = map.getCenter();
+        const centerChanged =
+          Math.abs(currentCenter.lng - lng) >= MARKER_SYNC_EPSILON ||
+          Math.abs(currentCenter.lat - lat) >= MARKER_SYNC_EPSILON ||
+          Math.abs(map.getZoom() - TARGET_MAP_ZOOM) >= 0.1;
 
-      marker.on("dragend", async () => {
-        const lngLat = marker.getLngLat();
-        await reverseGeocode(lngLat.lng, lngLat.lat, "manual");
-      });
-
-      markerRef.current = marker;
-
-      mapRef.current.flyTo({
-        center: [lng, lat],
-        zoom: 14,
-        duration: 1000
-      });
+        if (centerChanged) {
+          map.flyTo({
+            center: [lng, lat],
+            zoom: TARGET_MAP_ZOOM,
+            duration: 800,
+            essential: true
+          });
+        }
+      }
     },
-    [reverseGeocode]
+    []
   );
 
   useEffect(() => {
@@ -314,16 +411,19 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     try {
       configureMapboxRuntime(mapboxgl);
 
-      const initialLat = initialAddressRef.current.lat;
-      const initialLng = initialAddressRef.current.lng;
+      const initialLat = address.lat;
+      const initialLng = address.lng;
+      const hasInitialCoordinates = hasCoordinatePair(initialLat, initialLng);
       const initialCenter: [number, number] =
-        initialLng && initialLat ? [initialLng, initialLat] : defaultCenter;
+        hasInitialCoordinates ?
+          [initialLng as number, initialLat as number] :
+          defaultCenter;
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: "mapbox://styles/mapbox/streets-v12",
         center: initialCenter,
-        zoom: initialLat && initialLng ? 14 : 10,
+        zoom: hasInitialCoordinates ? TARGET_MAP_ZOOM : 10,
         attributionControl: false
       });
 
@@ -331,58 +431,99 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       mapRef.current = map;
 
       map.on("load", () => {
-        if (initialLat && initialLng) {
-          const marker = new mapboxgl.Marker({
-            color: "#10b981",
-            draggable: true
-          })
-            .setLngLat([initialLng, initialLat])
-            .addTo(map);
-
-          marker.on("dragend", async () => {
-            const lngLat = marker.getLngLat();
-            await reverseGeocode(lngLat.lng, lngLat.lat, "manual");
-          });
-
-          markerRef.current = marker;
+        if (hasInitialCoordinates) {
+          syncMarker(initialLng as number, initialLat as number, { flyTo: false });
         }
       });
 
       map.on("click", async (event) => {
         const { lng, lat } = event.lngLat;
-        addMarker(lng, lat);
-        await reverseGeocode(lng, lat, "map_click");
+        syncMarker(lng, lat);
+        setShowResults(false);
+        setSearchResults([]);
+        await reverseGeocodeRef.current(lng, lat, "map_click");
       });
 
       return () => {
+        reverseGeocodeAbortRef.current?.abort();
+        searchAbortRef.current?.abort();
+        markerRef.current?.remove();
+        markerRef.current = null;
         map.remove();
         mapRef.current = null;
       };
     } catch (error) {
       console.error("Error initializing map:", error);
     }
-  }, [addMarker, defaultCenter, reverseGeocode]);
+  }, [address.lat, address.lng, defaultCenter, syncMarker]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (hasCoordinatePair(address.lat, address.lng)) {
+      const nextLat = address.lat as number;
+      const nextLng = address.lng as number;
+      const currentMarkerPosition = markerRef.current?.getLngLat();
+      const needsMarkerSync =
+        !currentMarkerPosition ||
+        Math.abs(currentMarkerPosition.lat - nextLat) >= MARKER_SYNC_EPSILON ||
+          Math.abs(currentMarkerPosition.lng - nextLng) >= MARKER_SYNC_EPSILON;
+
+      if (needsMarkerSync) {
+        syncMarker(nextLng, nextLat, { flyTo: false });
+      }
+
+      return;
+    }
+
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+  }, [address.lat, address.lng, syncMarker]);
 
   const searchLocation = useCallback(
     async (query: string) => {
-      if (!query.trim()) {
+      const normalizedQuery = query.trim();
+      if (!normalizedQuery) {
+        searchAbortRef.current?.abort();
         setSearchResults([]);
         return;
       }
 
+      const requestSeq = searchRequestSeqRef.current + 1;
+      searchRequestSeqRef.current = requestSeq;
+      searchAbortRef.current?.abort();
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
       try {
-        const forwardGeocodingUrl = buildMapboxForwardGeocodingUrl(query, {
+        const forwardGeocodingUrl = buildMapboxForwardGeocodingUrl(normalizedQuery, {
           limit: 5,
           language: mapLanguage,
           types: ["address", "poi", "neighborhood", "locality", "place", "district", "region"]
         });
         if (!forwardGeocodingUrl) {
+          if (
+            !controller.signal.aborted &&
+            requestSeq === searchRequestSeqRef.current
+          ) {
+            setSearchResults([]);
+          }
           setSearchResults([]);
           return;
         }
 
-        const response = await fetch(forwardGeocodingUrl);
+        const response = await fetch(forwardGeocodingUrl, {
+          signal: controller.signal
+        });
         const data = await response.json();
+        if (
+          controller.signal.aborted ||
+          requestSeq !== searchRequestSeqRef.current
+        ) {
+          return;
+        }
         setSearchResults(
           Array.isArray(data.features) ?
             sortForwardGeocodingResults(data.features) :
@@ -390,8 +531,18 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         );
         setShowResults(true);
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         console.error("Search error:", error);
+        if (requestSeq !== searchRequestSeqRef.current) {
+          return;
+        }
         setSearchResults([]);
+      } finally {
+        if (searchAbortRef.current === controller) {
+          searchAbortRef.current = null;
+        }
       }
     },
     [mapLanguage, sortForwardGeocodingResults]
@@ -399,26 +550,35 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   const selectLocation = (result: GeocodingResult) => {
     const [lng, lat] = result.center;
-    addMarker(lng, lat);
+    syncMarker(lng, lat);
 
     const addressParts = parseGeocodingResult(result);
-    onChange({
-      ...address,
-      ...addressParts,
-      lat,
-      lng
-    }, { source: "search" });
+    const nextAddress = buildGeocodedAddress(lat, lng, addressParts);
+    addressRef.current = nextAddress;
+    onChange(nextAddress, { source: "search" });
 
+    skipNextSearchRef.current = true;
     setSearchQuery(result.place_name);
     setShowResults(false);
     setSearchResults([]);
   };
 
   useEffect(() => {
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      return;
+    }
+
+    const normalizedQuery = searchQuery.trim();
+    if (normalizedQuery.length < 3) {
+      searchAbortRef.current?.abort();
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
     const timer = setTimeout(() => {
-      if (searchQuery.length >= 3) {
-        searchLocation(searchQuery);
-      }
+      void searchLocation(normalizedQuery);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -430,16 +590,27 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       return;
     }
 
+    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { longitude, latitude } = position.coords;
-        addMarker(longitude, latitude);
-        setShowResults(false);
-        setSearchResults([]);
-        await reverseGeocode(longitude, latitude, "current_location");
+        try {
+          const { longitude, latitude } = position.coords;
+          syncMarker(longitude, latitude);
+          setShowResults(false);
+          setSearchResults([]);
+          await reverseGeocode(longitude, latitude, "current_location");
+        } finally {
+          setIsLocating(false);
+        }
       },
       () => {
+        setIsLocating(false);
         window.alert(t("cannotGetLocation"));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
       }
     );
   };
@@ -472,6 +643,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               {searchQuery ? (
                 <button
                   onClick={() => {
+                    searchAbortRef.current?.abort();
                     setSearchQuery("");
                     setSearchResults([]);
                     setShowResults(false);
@@ -489,12 +661,25 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
                 variant="outline"
                 size="icon"
                 onClick={getCurrentLocation}
-                title={t("currentLocation")}
+                title={isLocating ? t("locating") : t("currentLocation")}
+                aria-label={isLocating ? t("locating") : t("currentLocation")}
+                disabled={isLocating}
               >
-                <Navigation className="w-4 h-4" />
+                {isLocating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Navigation className="w-4 h-4" />
+                )}
               </Button>
             ) : null}
           </div>
+
+          {isLocating ? (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>{t("locating")}</span>
+            </div>
+          ) : null}
 
           {showResults && searchResults.length > 0 ? (
             <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
@@ -607,4 +792,4 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   );
 };
 
-export default LocationPicker;
+export default React.memo(LocationPicker);
