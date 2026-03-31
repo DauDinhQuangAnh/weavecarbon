@@ -347,6 +347,58 @@ const normalizeTransportLegNodeRef = (value: unknown) => {
   } satisfies NonNullable<TransportLeg["fromNode"]>;
 };
 
+const isTransportLegGeometryCoordinate = (value: unknown): value is [number, number] =>
+  Array.isArray(value) &&
+  value.length === 2 &&
+  typeof value[0] === "number" &&
+  Number.isFinite(value[0]) &&
+  typeof value[1] === "number" &&
+  Number.isFinite(value[1]);
+
+const normalizeTransportLegGeometry = (value: unknown) => {
+  const coordinates = asArray(value).filter(isTransportLegGeometryCoordinate);
+  return coordinates.length >= 2 ? coordinates : undefined;
+};
+
+const normalizeTransportLegDistanceSource = (value: unknown): TransportLeg["distanceSource"] => {
+  const normalized = asString(value).trim().toLowerCase();
+  if (
+    normalized === "road_route" ||
+    normalized === "air_gc" ||
+    normalized === "sea_graph" ||
+    normalized === "rail_graph" ||
+    normalized === "manual"
+  ) {
+    return normalized;
+  }
+  return undefined;
+};
+
+const normalizeTransportLegDistanceStatus = (value: unknown): TransportLeg["distanceStatus"] => {
+  const normalized = asString(value).trim().toLowerCase();
+  if (
+    normalized === "resolved" ||
+    normalized === "pending" ||
+    normalized === "estimated" ||
+    normalized === "manual"
+  ) {
+    return normalized;
+  }
+  return undefined;
+};
+
+const normalizeTransportLegSegmentKind = (value: unknown): TransportLeg["segmentKind"] => {
+  const normalized = asString(value).trim().toLowerCase();
+  if (
+    normalized === "feeder" ||
+    normalized === "line_haul" ||
+    normalized === "transfer"
+  ) {
+    return normalized;
+  }
+  return undefined;
+};
+
 const DESTINATION_MARKET_ALIASES: Record<string, string> = {
   eu: "eu",
   europeanunion: "eu",
@@ -930,6 +982,30 @@ map((item, index) => {
     item.auto_suggested ??
     item.is_auto_suggested ??
     item.isAutoSuggested;
+  const normalizedGeometry = normalizeTransportLegGeometry(
+    item.geometry ??
+    item.routeGeometry ??
+    item.route_geometry ??
+    item.coordinates
+  );
+  const normalizedDistanceSource = normalizeTransportLegDistanceSource(
+    item.distanceSource ??
+    item.distance_source ??
+    item.routeDistanceSource ??
+    item.route_distance_source
+  );
+  const normalizedDistanceStatus = normalizeTransportLegDistanceStatus(
+    item.distanceStatus ??
+    item.distance_status ??
+    item.routeDistanceStatus ??
+    item.route_distance_status
+  );
+  const normalizedSegmentKind = normalizeTransportLegSegmentKind(
+    item.segmentKind ??
+    item.segment_kind ??
+    item.legKind ??
+    item.leg_kind
+  );
 
   return {
     id: asString(item.id ?? item.leg_id ?? item.legId, `leg-${index + 1}`),
@@ -952,7 +1028,11 @@ map((item, index) => {
     undefined,
     fromNode: normalizedFromNode,
     toNode: normalizedToNode,
-    autoSuggested: asBoolean(normalizedAutoSuggested, false)
+    autoSuggested: asBoolean(normalizedAutoSuggested, false),
+    geometry: normalizedGeometry,
+    distanceSource: normalizedDistanceSource,
+    distanceStatus: normalizedDistanceStatus,
+    segmentKind: normalizedSegmentKind
   } as TransportLeg;
 });
 

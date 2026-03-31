@@ -14,6 +14,7 @@ import {
   Plane,
   RefreshCw,
   Ship,
+  Train,
   Truck
 } from "lucide-react";
 import type { TransportLeg, TransportLocation } from "@/types/transport";
@@ -22,6 +23,7 @@ import {
   isRoadTransportMode,
   type RoadRoutePointSource
 } from "@/lib/roadRouting";
+import { buildTransportLegGeometry } from "@/lib/transportRouteGeometry";
 import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeometry";
 
 interface TransportMapProps {
@@ -199,6 +201,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
         return Ship;
       case "air":
         return Plane;
+      case "rail":
+        return Train;
       default:
         return Truck;
     }
@@ -210,6 +214,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
         return "#3b82f6";
       case "air":
         return "#8b5cf6";
+      case "rail":
+        return "#14b8a6";
       case "truck_heavy":
         return "#f59e0b";
       default:
@@ -223,6 +229,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
         return "S";
       case "air":
         return "A";
+      case "rail":
+        return "R";
       default:
         return "T";
     }
@@ -234,6 +242,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
         return tMap("routeType.sea");
       case "air":
         return tMap("routeType.air");
+      case "rail":
+        return tMap.has("routeType.rail") ? tMap("routeType.rail") : "Rail";
       default:
         return tMap("routeType.road");
     }
@@ -319,13 +329,14 @@ const TransportMap: React.FC<TransportMapProps> = ({
   }, []);
 
   const getDisplayGeometry = useCallback((leg: TransportLeg): LineCoordinate[] => {
-    if (!isRoadTransportMode(leg.mode)) {
-      return buildStraightLineCoordinates(leg);
-    }
-
     const resolvedGeometry = resolvedRoadGeometryById[leg.id];
     if (resolvedGeometry && resolvedGeometry.length >= 2) {
       return resolvedGeometry;
+    }
+
+    const transportGeometry = buildTransportLegGeometry(leg);
+    if (transportGeometry.length >= 2) {
+      return transportGeometry;
     }
 
     return buildStraightLineCoordinates(leg);
@@ -552,6 +563,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
       try {
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
+        const routeBounds = new mapboxgl.LngLatBounds();
+        let hasRouteBounds = false;
 
         displayLegs.forEach((_, idx) => {
           const lineId = `route-line-${idx}`;
@@ -570,6 +583,11 @@ const TransportMap: React.FC<TransportMapProps> = ({
           if (!lineCoordinates || lineCoordinates.length < 2) {
             return;
           }
+
+          lineCoordinates.forEach((coordinate) => {
+            routeBounds.extend(coordinate);
+          });
+          hasRouteBounds = true;
 
           map.addSource(sourceId, {
             type: "geojson",
@@ -680,9 +698,11 @@ const TransportMap: React.FC<TransportMapProps> = ({
           markersRef.current.push(marker);
         });
 
-        if (allPoints.length > 0) {
-          const bounds = new mapboxgl.LngLatBounds();
-          allPoints.forEach((point) => bounds.extend([point.lng, point.lat]));
+        if (hasRouteBounds || allPoints.length > 0) {
+          const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
+          if (!hasRouteBounds) {
+            allPoints.forEach((point) => bounds.extend([point.lng, point.lat]));
+          }
           map.fitBounds(bounds, {
             padding: { top: 80, bottom: 80, left: 80, right: 80 },
             maxZoom: 10,

@@ -38,6 +38,10 @@ export interface TransportLeg {
   fromNode?: TransportLegNodeRef;
   toNode?: TransportLegNodeRef;
   autoSuggested?: boolean;
+  geometry?: Array<[number, number]>;
+  distanceSource?: "road_route" | "air_gc" | "sea_graph" | "rail_graph" | "manual";
+  distanceStatus?: "resolved" | "pending" | "estimated" | "manual";
+  segmentKind?: "feeder" | "line_haul" | "transfer";
 }
 
 export interface AddressInput {

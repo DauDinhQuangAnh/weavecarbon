@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Badge } from "@/components/ui/badge";
+import { buildSupplyChainRouteGeometry } from "@/lib/transportRouteGeometry";
 import type { SupplyChainNode, SupplyChainRoute } from "./SupplyChainMap";
 import { configureMapboxRuntime, hasMapboxPublicToken } from "@/lib/mapbox";
 
@@ -27,6 +28,8 @@ const getRouteColor = (mode: string, status: string) => {
       return "#3b82f6";
     case "air":
       return "#8b5cf6";
+    case "rail":
+      return "#14b8a6";
     case "truck":
       return "#f59e0b";
     default:
@@ -57,16 +60,8 @@ const getMarkerColor = (status?: string) => {
   return "#3b82f6";
 };
 
-const getRenderableRouteCoordinates = (route: SupplyChainRoute) => {
-  if (route.geometry && route.geometry.length >= 2) {
-    return route.geometry;
-  }
-
-  return [
-    [route.from.lng, route.from.lat],
-    [route.to.lng, route.to.lat]
-  ] as Array<[number, number]>;
-};
+const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
+  buildSupplyChainRouteGeometry(route);
 
 const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
   nodes,
@@ -161,6 +156,8 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
 
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
+      const routeBounds = new mapboxgl.LngLatBounds();
+      let hasRouteBounds = false;
 
       routes.forEach((_, idx) => {
         const lineId = `route-line-${idx}`;
@@ -176,6 +173,11 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
         if (!routeCoordinates || routeCoordinates.length < 2) {
           return;
         }
+
+        routeCoordinates.forEach((coordinate) => {
+          routeBounds.extend(coordinate);
+        });
+        hasRouteBounds = true;
 
         map.addSource(sourceId, {
           type: "geojson",
@@ -266,9 +268,11 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
         markersRef.current.push(marker);
       });
 
-      if (nodes.length > 1) {
-        const bounds = new mapboxgl.LngLatBounds();
-        nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
+      if (hasRouteBounds || nodes.length > 1) {
+        const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
+        if (!hasRouteBounds) {
+          nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
+        }
         map.fitBounds(bounds, {
           padding: { top: 50, bottom: 50, left: 50, right: 50 },
           maxZoom: 10
@@ -344,6 +348,20 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
           <div className="flex items-center gap-2">
             <div className="w-4 h-1 bg-blue-500 rounded" />
             <span>{t("legend.seaRoute")}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-4 h-1 bg-purple-500 rounded"
+              style={{ borderStyle: "dashed" }} />
+
+            <span>{t("legend.airRoute")}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-4 h-1 bg-teal-500 rounded"
+              style={{ borderStyle: "dashed" }} />
+
+            <span>{t.has("legend.railRoute") ? t("legend.railRoute") : "Rail route"}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-1 bg-amber-500 rounded" />

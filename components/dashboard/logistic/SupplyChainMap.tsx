@@ -19,7 +19,7 @@ export interface SupplyChainRoute {
   id: string;
   from: {lat: number;lng: number;name: string;};
   to: {lat: number;lng: number;name: string;};
-  mode: "ship" | "air" | "truck";
+  mode: "ship" | "air" | "rail" | "truck";
   status: "completed" | "in_transit" | "pending";
   co2Kg?: number;
   distanceKm?: number;

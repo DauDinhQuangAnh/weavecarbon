@@ -46,6 +46,7 @@ import {
   buildExportFallbackRoute,
   resolveExportSuggestedRoute
 } from "./exportRouteOptimizer";
+import { resolveIntermodalPlan } from "./intermodalPlanner";
 import dynamic from "next/dynamic";
 import {
   fetchRoadRoute,
@@ -239,7 +240,6 @@ const findNearestHub = (
   };
 };
 
-const isAutoFeederLeg = (legId: string) => legId.startsWith("auto-feeder-");
 const SUGGESTED_TRANSPORT_LEG_ID_PREFIX = "suggested-leg-";
 const isSuggestedTransportLeg = (legId: string) =>
   legId.startsWith(SUGGESTED_TRANSPORT_LEG_ID_PREFIX);
@@ -319,6 +319,75 @@ const areTransportLegNodeRefsEqual = (
 ) =>
   (left?.type || null) === (right?.type || null) &&
   (left?.hubId || null) === (right?.hubId || null);
+
+const materializeSuggestedRouteLegs = (
+  route: SuggestedRoute,
+  autoSuggested: boolean
+): TransportLeg[] => {
+  const timestamp = Date.now();
+
+  return route.legs.map((leg, index) => ({
+    id:
+      autoSuggested ?
+        `${SUGGESTED_TRANSPORT_LEG_ID_PREFIX}${index + 1}` :
+        `leg-${timestamp}-${index + 1}`,
+    mode: leg.mode,
+    estimatedDistance: leg.estimatedDistance,
+    emissionFactor: leg.emissionFactor,
+    co2Kg: leg.co2Kg,
+    routeResolved: leg.routeResolved,
+    fromNode: cloneTransportLegNodeRef(leg.fromNode),
+    toNode: cloneTransportLegNodeRef(leg.toNode),
+    autoSuggested,
+    geometry: leg.geometry ? [...leg.geometry] : undefined,
+    distanceSource: leg.distanceSource,
+    distanceStatus: leg.distanceStatus,
+    segmentKind: leg.segmentKind
+  }));
+};
+
+const areTransportLegsSemanticallyEqual = (left: TransportLeg, right: TransportLeg) =>
+  left.mode === right.mode &&
+  left.segmentKind === right.segmentKind &&
+  areTransportLegNodeRefsEqual(left.fromNode, right.fromNode) &&
+  areTransportLegNodeRefsEqual(left.toNode, right.toNode);
+
+const applyManualDistanceOverrides = (
+  currentLegs: TransportLeg[],
+  nextLegs: TransportLeg[]
+) =>
+  nextLegs.map((nextLeg) => {
+    const manualLeg = currentLegs.find(
+      (candidate) =>
+        candidate.distanceSource === "manual" &&
+        hasPositiveDistance(candidate.estimatedDistance) &&
+        areTransportLegsSemanticallyEqual(candidate, nextLeg)
+    );
+
+    if (!manualLeg || !hasPositiveDistance(manualLeg.estimatedDistance)) {
+      return nextLeg;
+    }
+
+    return {
+      ...nextLeg,
+      estimatedDistance: manualLeg.estimatedDistance,
+      distanceSource: "manual" as const,
+      distanceStatus: "manual" as const
+    };
+  });
+
+const routeMatchesRequiredLongHaulMode = (
+  route: SuggestedRoute,
+  requiredLongHaulMode: TransportLeg["mode"]
+) => {
+  const nonRoadModes = route.legs.filter((leg) => leg.mode !== "road").map((leg) => leg.mode);
+
+  if (requiredLongHaulMode === "road") {
+    return nonRoadModes.length === 0;
+  }
+
+  return nonRoadModes.includes(requiredLongHaulMode);
+};
 
 const mapHubKindToRoadPointSource = (
   kind: RouteHubKind
@@ -851,127 +920,117 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     ]
   );
 
-  const normalizeLegSequence = React.useCallback(
-    (inputLegs: TransportLeg[]) => {
-      const baseLegs = inputLegs.filter((leg) => !isAutoFeederLeg(leg.id));
-      const timestamp = Date.now();
-      let autoCounter = 0;
-      const normalized: TransportLeg[] = [];
-      let hasLongHaulLeg = false;
-      let latestLongHaulMode: TransportLeg["mode"] | null = null;
+  const manualRoutePlanRequestSeqRef = React.useRef(0);
 
-      for (const leg of baseLegs) {
-        if (isNonRoadMode(leg.mode)) {
-          hasLongHaulLeg = true;
-          latestLongHaulMode = leg.mode;
-          const previousLeg = normalized[normalized.length - 1];
+  const replanTransportLegsForMode = React.useCallback(
+    async (nextMode: TransportLeg["mode"]) => {
+      const requestSeq = manualRoutePlanRequestSeqRef.current + 1;
+      manualRoutePlanRequestSeqRef.current = requestSeq;
+      const currentLegs = transportLegsRef.current;
+      setIsSuggestingRoute(true);
 
-          if (!previousLeg || previousLeg.mode !== "road") {
-            autoCounter += 1;
-            normalized.push({
-              id: `auto-feeder-${timestamp}-${autoCounter}`,
-              mode: "road",
-              estimatedDistance: undefined,
-              routeResolved: false,
-              autoSuggested: false,
-              fromNode: undefined,
-              toNode: undefined
-            });
-          } else {
-            normalized[normalized.length - 1] = {
-              ...previousLeg,
-              estimatedDistance: undefined,
-              routeResolved: false,
-              autoSuggested: false,
-              fromNode: undefined,
-              toNode: undefined
-            };
+      try {
+        const resolvedRoute = await resolveIntermodalPlan(
+          {
+            destinationMarket: data.destinationMarket,
+            destination: addressValueRef.current.destination,
+            origin: addressValueRef.current.origin
+          },
+          {
+            destinationSource: addressSourceRef.current.destination,
+            originSource: addressSourceRef.current.origin
+          },
+          {
+            autoSuggested: false,
+            requiredLongHaulMode: nextMode
           }
+        );
+
+        if (manualRoutePlanRequestSeqRef.current !== requestSeq) {
+          return;
         }
 
-        normalized.push(leg);
-      }
+        if (!routeMatchesRequiredLongHaulMode(resolvedRoute.route, nextMode)) {
+          return;
+        }
 
-      if (hasLongHaulLeg && latestLongHaulMode) {
-        const lastLeg = normalized[normalized.length - 1];
+        const snappedUpdates = maybeBuildSnappedAddressUpdates({
+          destination: resolvedRoute.snappedDestination,
+          origin: resolvedRoute.snappedOrigin
+        });
+        const materializedLegs = applyManualDistanceOverrides(
+          currentLegs,
+          materializeSuggestedRouteLegs(resolvedRoute.route, false)
+        );
 
-        if (!lastLeg || lastLeg.mode !== "road") {
-          autoCounter += 1;
-          normalized.push({
-            id: `auto-feeder-${timestamp}-${autoCounter}`,
-            mode: "road",
-            estimatedDistance: undefined,
-            routeResolved: false,
-            autoSuggested: false,
-            fromNode: undefined,
-            toNode: undefined
-          });
-        } else {
-          normalized[normalized.length - 1] = {
-            ...lastLeg,
-            estimatedDistance: undefined,
-            routeResolved: false,
-            autoSuggested: false,
-            fromNode: undefined,
-            toNode: undefined
-          };
+        setDisplaySuggestedRoute(resolvedRoute.route);
+        onChange({
+          ...(snappedUpdates || {}),
+          transportLegs: materializedLegs
+        });
+      } finally {
+        if (manualRoutePlanRequestSeqRef.current === requestSeq) {
+          setIsSuggestingRoute(false);
         }
       }
-
-      return normalized;
     },
-    []
+    [data.destinationMarket, maybeBuildSnappedAddressUpdates, onChange]
   );
 
-  const updateTransportLeg = (id: string, updates: Partial<TransportLeg>) => {
-    const timestamp = Date.now();
-    const nextLegs = data.transportLegs.map((leg) =>
-      leg.id === id ?
-        (() => {
-          const nextMode = updates.mode ?? leg.mode;
-          const modeChanged = typeof updates.mode !== "undefined" && updates.mode !== leg.mode;
+  const updateTransportLeg = React.useCallback(
+    (id: string, updates: Partial<TransportLeg>) => {
+      const currentLeg = data.transportLegs.find((leg) => leg.id === id);
+      if (!currentLeg) {
+        return;
+      }
 
-          return {
-            ...leg,
-            id:
-              isAutoSuggestedTransportLeg(leg) ?
-                `leg-${timestamp}-${Math.random().toString(16).slice(2, 8)}` :
-                leg.id,
-            ...updates,
-            autoSuggested: false,
-            estimatedDistance:
-              nextMode === "road" && typeof updates.mode !== "undefined" ?
-                undefined :
-                updates.estimatedDistance ?? leg.estimatedDistance,
-            fromNode:
-              modeChanged ?
-                undefined :
-                cloneTransportLegNodeRef(updates.fromNode ?? leg.fromNode),
-            routeResolved:
-              nextMode === "road" ?
-                typeof updates.mode !== "undefined" ?
-                  false :
-                  updates.routeResolved ?? leg.routeResolved :
-                undefined,
-            toNode:
-              modeChanged ?
-                undefined :
-                cloneTransportLegNodeRef(updates.toNode ?? leg.toNode)
-          };
-        })() :
-        leg
-    );
+      if (typeof updates.mode !== "undefined" && updates.mode !== currentLeg.mode) {
+        void replanTransportLegsForMode(updates.mode);
+        return;
+      }
 
-    if (typeof updates.mode !== "undefined") {
-      onChange({ transportLegs: normalizeLegSequence(nextLegs) });
-      return;
-    }
+      const nextLegs = data.transportLegs.map((leg) => {
+        if (leg.id !== id) {
+          return leg;
+        }
 
-    onChange({ transportLegs: nextLegs });
-  };
+        const nextEstimatedDistance =
+          typeof updates.estimatedDistance === "undefined" ?
+            leg.estimatedDistance :
+            updates.estimatedDistance;
+        const isManualDistanceEdit = typeof updates.estimatedDistance !== "undefined";
+
+        return {
+          ...leg,
+          ...updates,
+          autoSuggested: false,
+          estimatedDistance: nextEstimatedDistance,
+          distanceSource:
+            leg.mode === "road" ?
+              leg.distanceSource :
+            isManualDistanceEdit ?
+              "manual" :
+              updates.distanceSource ?? leg.distanceSource,
+          distanceStatus:
+            leg.mode === "road" ?
+              updates.distanceStatus ?? leg.distanceStatus :
+            isManualDistanceEdit ?
+              "manual" :
+              updates.distanceStatus ?? leg.distanceStatus,
+          routeResolved:
+            leg.mode === "road" ?
+              updates.routeResolved ?? leg.routeResolved :
+              undefined
+        };
+      });
+
+      onChange({ transportLegs: nextLegs });
+    },
+    [data.transportLegs, onChange, replanTransportLegsForMode]
+  );
 
   const totalDistance = data.transportLegs.reduce(
-    (sum, leg) => sum + (leg.estimatedDistance || 0),
+    (sum, leg) => sum + (hasPositiveDistance(leg.estimatedDistance) ? leg.estimatedDistance : 0),
     0
   );
 
@@ -999,16 +1058,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   const roadDistanceRequestSeqRef = React.useRef(0);
 
   const autoSuggestedTransportLegs = React.useMemo(
-    () =>
-    displaySuggestedRoute.legs.map((leg, index) => ({
-      id: `${SUGGESTED_TRANSPORT_LEG_ID_PREFIX}${index + 1}`,
-      mode: leg.mode,
-      estimatedDistance: leg.estimatedDistance,
-      routeResolved: leg.routeResolved,
-      fromNode: cloneTransportLegNodeRef(leg.fromNode),
-      toNode: cloneTransportLegNodeRef(leg.toNode),
-      autoSuggested: true
-    })),
+    () => materializeSuggestedRouteLegs(displaySuggestedRoute, true),
     [displaySuggestedRoute]
   );
   const resolvingRoadLegIdSet = React.useMemo(
@@ -1016,11 +1066,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     [resolvingRoadLegIds]
   );
   const isResolvingRoadDistances = resolvingRoadLegIds.length > 0;
-
-  const currentRouteSignature = React.useMemo(
-    () => buildRouteSuggestionSignature(debouncedRouteSuggestionContext),
-    [debouncedRouteSuggestionContext]
-  );
   const roadResolutionSignature = React.useMemo(
     () =>
       buildRoadResolutionSignature(
@@ -1036,7 +1081,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       data.transportLegs
     ]
   );
-  const lastAutoRouteSignatureRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     let isCancelled = false;
@@ -1149,12 +1193,13 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
           if (!endpoints) {
             if (
               currentLeg &&
-              (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
+              currentLeg.distanceStatus !== "pending"
             ) {
               nextLegs[legIndex] = {
                 ...currentLeg,
-                estimatedDistance: undefined,
-                routeResolved: false
+                routeResolved: false,
+                distanceSource: "road_route",
+                distanceStatus: "pending"
               };
               hasUpdates = true;
             }
@@ -1174,12 +1219,13 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
           if (!routeResolution.ok) {
             if (
               currentLeg &&
-              (hasPositiveDistance(currentLeg.estimatedDistance) || currentLeg.routeResolved !== false)
+              currentLeg.distanceStatus !== "estimated"
             ) {
               nextLegs[legIndex] = {
                 ...currentLeg,
-                estimatedDistance: undefined,
-                routeResolved: false
+                routeResolved: false,
+                distanceSource: "road_route",
+                distanceStatus: hasPositiveDistance(currentLeg.estimatedDistance) ? "estimated" : "pending"
               };
               hasUpdates = true;
             }
@@ -1207,7 +1253,10 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
           nextLegs[legIndex] = {
             ...nextLegs[legIndex],
             estimatedDistance: nextDistance,
-            routeResolved: true
+            routeResolved: true,
+            geometry: routeResolution.route.geometry,
+            distanceSource: "road_route",
+            distanceStatus: "resolved"
           };
           hasUpdates = true;
         }
@@ -1245,18 +1294,12 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   }, [maybeBuildSnappedAddressUpdates, onChange, resolveRoadLegEndpoints, roadResolutionSignature]);
 
   React.useEffect(() => {
-    const previousRouteSignature = lastAutoRouteSignatureRef.current;
-    const routeSignatureChanged =
-      previousRouteSignature !== null &&
-      previousRouteSignature !== currentRouteSignature;
     const hasNoTransportLegs = data.transportLegs.length === 0;
     const currentLegsAreAutoSuggested =
       data.transportLegs.length > 0 &&
       data.transportLegs.every((leg) => isAutoSuggestedTransportLeg(leg));
 
-    lastAutoRouteSignatureRef.current = currentRouteSignature;
-
-    if (!hasNoTransportLegs && !routeSignatureChanged && !currentLegsAreAutoSuggested) {
+    if (!hasNoTransportLegs && !currentLegsAreAutoSuggested) {
       return;
     }
 
@@ -1271,6 +1314,9 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         return (
           leg.mode === suggestedLeg.mode &&
           leg.routeResolved === suggestedLeg.routeResolved &&
+          (leg.distanceSource || null) === (suggestedLeg.distanceSource || null) &&
+          (leg.distanceStatus || null) === (suggestedLeg.distanceStatus || null) &&
+          (leg.segmentKind || null) === (suggestedLeg.segmentKind || null) &&
           areTransportLegNodeRefsEqual(leg.fromNode, suggestedLeg.fromNode) &&
           areTransportLegNodeRefsEqual(leg.toNode, suggestedLeg.toNode) &&
           Math.abs(currentDistance - suggestedDistance) < ROAD_DISTANCE_UPDATE_EPSILON_KM
@@ -1286,7 +1332,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     });
   }, [
     autoSuggestedTransportLegs,
-    currentRouteSignature,
     data.transportLegs,
     onChange
   ]);
@@ -1616,8 +1661,10 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                                 value={leg.estimatedDistance ?? ""}
                                 onChange={(event) => {
                                   if (leg.mode === "road") return;
+                                  const rawValue = event.target.value.trim();
                                   updateTransportLeg(leg.id, {
-                                    estimatedDistance: Number(event.target.value)
+                                    estimatedDistance:
+                                      rawValue === "" ? undefined : Number(rawValue)
                                   });
                                 }}
                                 placeholder={

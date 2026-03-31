@@ -195,6 +195,7 @@ mode: ProductRecord["transportLegs"][number]["mode"])
 : TransportLeg["routeType"] => {
   if (mode === "sea") return "sea";
   if (mode === "air") return "air";
+  if (mode === "rail") return "rail";
   return "road";
 };
 
@@ -769,6 +770,8 @@ const ShippingOverviewMap: React.FC = () => {
       "ship" as const :
       leg.mode === "air" ?
       "air" as const :
+      leg.mode === "rail" ?
+      "rail" as const :
       "truck" as const,
       status:
       shipment.status === "delivered" ?
@@ -777,7 +780,8 @@ const ShippingOverviewMap: React.FC = () => {
       "pending" as const :
       "in_transit" as const,
       co2Kg: leg.co2Kg,
-      distanceKm: leg.distanceKm
+      distanceKm: leg.distanceKm,
+      geometry: leg.geometry
     }))
     ),
     [paginatedShipments]

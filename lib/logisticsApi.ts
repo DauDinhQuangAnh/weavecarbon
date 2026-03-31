@@ -1,4 +1,5 @@
 import { api, isApiError } from "@/lib/apiClient";
+import { buildTransportRouteGeometry } from "@/lib/transportRouteGeometry";
 import type { TransportLeg } from "@/types/transport";
 import {
   DESTINATION_HUBS_BY_MARKET,
@@ -649,6 +650,7 @@ mode: LogisticsTransportMode)
 : TransportLeg["routeType"] => {
   if (mode === "sea") return "sea";
   if (mode === "air") return "air";
+  if (mode === "rail") return "rail";
   return "road";
 };
 
@@ -1062,7 +1064,21 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
       distanceKm: inferredDistanceKm,
       emissionFactor,
       co2Kg,
-      routeType: "road"
+      routeType: "road",
+      geometry: buildTransportRouteGeometry({
+        mode: "truck_heavy",
+        routeType: "road",
+        origin: {
+          lat: originCoordinates.lat,
+          lng: originCoordinates.lng
+        },
+        destination: {
+          lat: destinationCoordinates.lat,
+          lng: destinationCoordinates.lng
+        },
+        originType: "address",
+        destinationType: "warehouse"
+      })
     }];
 
   }
@@ -1163,41 +1179,59 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
     );
     const co2Kg = resolveLegCo2Kg(leg, distanceKm, emissionFactor);
 
+    const originLocation = {
+      name: originName,
+      lat: fallbackOriginPoint.lat,
+      lng: fallbackOriginPoint.lng,
+      type:
+      boundaryHubBefore ?
+      hubKindToTransportLocationType(boundaryHubBefore.kind) :
+      mode === "ship" ?
+      "port" :
+      mode === "air" ?
+      "airport" :
+      "address"
+    } satisfies TransportLeg["origin"];
+
+    const destinationLocation = {
+      name: destinationName,
+      lat: fallbackDestinationPoint.lat,
+      lng: fallbackDestinationPoint.lng,
+      type:
+      boundaryHubAfter ?
+      hubKindToTransportLocationType(boundaryHubAfter.kind) :
+      mode === "ship" ?
+      "port" :
+      mode === "air" ?
+      "airport" :
+      "warehouse"
+    } satisfies TransportLeg["destination"];
+
     return {
       id: leg.id || `${shipment.id}-leg-${index + 1}`,
       legNumber: Math.max(1, leg.leg_order || index + 1),
       type: shipmentType,
       mode,
-      origin: {
-        name: originName,
-        lat: fallbackOriginPoint.lat,
-        lng: fallbackOriginPoint.lng,
-        type:
-        boundaryHubBefore ?
-        hubKindToTransportLocationType(boundaryHubBefore.kind) :
-        mode === "ship" ?
-        "port" :
-        mode === "air" ?
-        "airport" :
-        "address"
-      },
-      destination: {
-        name: destinationName,
-        lat: fallbackDestinationPoint.lat,
-        lng: fallbackDestinationPoint.lng,
-        type:
-        boundaryHubAfter ?
-        hubKindToTransportLocationType(boundaryHubAfter.kind) :
-        mode === "ship" ?
-        "port" :
-        mode === "air" ?
-        "airport" :
-        "warehouse"
-      },
+      origin: originLocation,
+      destination: destinationLocation,
       distanceKm,
       emissionFactor,
       co2Kg,
-      routeType
+      routeType,
+      geometry: buildTransportRouteGeometry({
+        mode,
+        routeType,
+        origin: {
+          lat: originLocation.lat,
+          lng: originLocation.lng
+        },
+        destination: {
+          lat: destinationLocation.lat,
+          lng: destinationLocation.lng
+        },
+        originType: originLocation.type,
+        destinationType: destinationLocation.type
+      })
     };
   });
 };
