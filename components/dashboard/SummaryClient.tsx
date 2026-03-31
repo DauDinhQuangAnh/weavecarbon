@@ -51,6 +51,7 @@ import CarbonBreakdownChart from "@/components/dashboard/product-details/CarbonB
 import MaterialImpactTable from "@/components/dashboard/product-details/MaterialImpactTable";
 import CarbonFootprintCard from "@/components/dashboard/product-details/CarbonFootprintCard";
 import ComplianceStatus from "@/components/dashboard/product-details/ComplianceStatus";
+import ProductSuggestionsCard from "@/components/dashboard/product-details/ProductSuggestionsCard";
 
 interface SummaryClientProps {
   productId: string;
@@ -1747,6 +1748,8 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
               quantity={typeof product.quantity === "number" ? product.quantity : 1} />
             <MaterialImpactTable materials={materialImpact} />
           </>
+
+          {product && <ProductSuggestionsCard productId={product.id} />}
 
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

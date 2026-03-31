@@ -405,6 +405,16 @@
       "trialLockedTitle": "This feature is not available on Trial",
       "trialLockedDescription": "Upgrade to Standard or Export to unlock AI export recommendations.",
       "upgradeCta": "Upgrade plan",
+      "generateCta": "Generate recommendations",
+      "retryCta": "Try again",
+      "regenerateCta": "Regenerate",
+      "idleDescription": "Click the button to generate company-level AI recommendations for this dashboard. Suggestions are not loaded automatically on page open.",
+      "loadingTitle": "Generating recommendations...",
+      "loadingDescription": "We are analyzing the current company data and prioritizing the highest-impact actions first.",
+      "errorTitle": "Unable to generate recommendations right now",
+      "errorGeneric": "Unable to load AI recommendations.",
+      "empty": "No suitable recommendations are available for this dashboard yet.",
+      "noCompany": "This account is not linked to a company yet, so recommendations cannot be generated.",
       "rec1": {
         "title": "Switch to organic cotton",
         "subtitle": "Reduce carbon footprint by 15% on our t-shirt product line."
@@ -951,6 +961,34 @@
       "note": "Note:",
       "awaitingDataBadge": "Awaiting data",
       "proxyBadge": "Proxy"
+    },
+    "aiSuggestions": {
+      "title": "Improvement Suggestions",
+      "subtitle": "Generate AI suggestions only when you need them.",
+      "buttonGenerate": "Generate suggestions",
+      "buttonRegenerate": "Regenerate",
+      "buttonLoading": "Generating...",
+      "idleDescription": "Click the button to request product-specific reduction suggestions from AI. Suggestions are not loaded automatically on page open.",
+      "loadingState": "Generating product suggestions...",
+      "loadingHint": "We are analyzing the current product profile and estimating the most practical actions first.",
+      "errorTitle": "Unable to generate suggestions right now",
+      "empty": "No improvement suggestions are available for this product yet.",
+      "reductionLabel": "-{value}%",
+      "difficulty": {
+        "easy": "Easy",
+        "medium": "Medium",
+        "hard": "Hard"
+      },
+      "types": {
+        "material": "Material",
+        "transport": "Transport",
+        "manufacturing": "Manufacturing",
+        "packaging": "Packaging",
+        "end_of_life": "End of life"
+      },
+      "errors": {
+        "generic": "Unable to load AI suggestions."
+      }
     }
   },
   "export": {

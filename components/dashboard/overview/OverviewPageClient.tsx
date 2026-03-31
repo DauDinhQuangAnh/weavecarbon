@@ -1,12 +1,16 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
+import {
+  generateCompanyRecommendations,
+  readRagRuntimeConfig,
+} from "@/lib/ragApi";
 import {
   Card,
   CardContent,
@@ -34,6 +38,9 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Sparkles,
   Target,
   Gauge,
   Lightbulb,
@@ -326,12 +333,16 @@ const OverviewPage: React.FC = () => {
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>(
     []
   );
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [emissionBreakdown, setEmissionBreakdown] = useState<
     EmissionBreakdownPoint[]>(
     []);
   const { setPageTitle } = useDashboardTitle();
   const isTrialPlan = String(currentPlan || "").trim().toLowerCase().includes("trial");
+  const recommendationsRequestSeqRef = useRef(0);
 
   const handleOpenPricingModal = () => {
     if (typeof window === "undefined") return;
@@ -347,6 +358,14 @@ const OverviewPage: React.FC = () => {
       setShowProductModal(true);
     }
   }, [pendingProductData]);
+
+  useEffect(() => {
+    recommendationsRequestSeqRef.current += 1;
+    setRecommendations([]);
+    setRecommendationsLoading(false);
+    setRecommendationsLoaded(false);
+    setRecommendationsError(null);
+  }, [user?.company_id]);
 
   const handleCloseModal = () => {
     setShowProductModal(false);
@@ -414,6 +433,57 @@ const OverviewPage: React.FC = () => {
       }
     } finally {
       setSaveTargetLoading(false);
+    }
+  };
+
+  const handleGenerateRecommendations = async () => {
+    const companyId = user?.company_id?.trim() || "";
+    if (!companyId || recommendationsLoading || isTrialPlan) return;
+
+    const requestId = recommendationsRequestSeqRef.current + 1;
+    recommendationsRequestSeqRef.current = requestId;
+    const runtimeConfig = readRagRuntimeConfig();
+
+    setRecommendationsLoading(true);
+    setRecommendationsError(null);
+
+    try {
+      const response = await generateCompanyRecommendations(
+        runtimeConfig.baseUrl,
+        companyId,
+        {
+          company_id: companyId,
+          language: locale === "vi" ? "vi" : "en",
+        },
+        runtimeConfig.timeoutMs
+      );
+
+      if (recommendationsRequestSeqRef.current !== requestId) return;
+
+      setRecommendations(
+        response.recommendations.map((item) => ({
+          id: item.id,
+          title: item.title || "Recommendation",
+          description: item.description || "",
+          impact: item.impact || "medium",
+          reduction: item.reduction || "0%",
+        }))
+      );
+      setRecommendationsLoaded(true);
+    } catch (error) {
+      if (recommendationsRequestSeqRef.current !== requestId) return;
+
+      setRecommendations([]);
+      setRecommendationsLoaded(true);
+      setRecommendationsError(
+        error instanceof Error && error.message.trim().length > 0 ?
+          error.message :
+          t("recommendations.errorGeneric")
+      );
+    } finally {
+      if (recommendationsRequestSeqRef.current === requestId) {
+        setRecommendationsLoading(false);
+      }
     }
   };
 
@@ -528,16 +598,6 @@ const OverviewPage: React.FC = () => {
 
         setMarketReadiness(
           complianceReadiness.length > 0 ? complianceReadiness : overviewReadiness
-        );
-
-        setRecommendations(
-          (overview.recommendations || []).map((item) => ({
-            id: item.id,
-            title: item.title || "Recommendation",
-            description: item.description || "",
-            impact: item.impact_level || "medium",
-            reduction: `${Math.round(item.reduction_percentage || 0)}%`
-          }))
         );
 
         setTrendData(
@@ -778,34 +838,119 @@ const OverviewPage: React.FC = () => {
                   {t("recommendations.upgradeCta")}
                 </Button>
               </div>
-            ) : insightsLoading ? (
-              <div className="h-28 rounded-md border border-slate-300 bg-slate-200/70 animate-pulse" />
-            ) : recommendations.length === 0 ? (
+            ) : !(user?.company_id?.trim()) ? (
               <p className="text-sm text-slate-700">
-                No recommendations available.
+                {t("recommendations.noCompany")}
               </p>
-            ) : (
-              recommendations.map((rec) => (
-                <div
-                  key={rec.id}
-                  className="rounded-lg border border-slate-300 bg-slate-50 p-3 transition-colors hover:bg-slate-100">
-
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-sm text-slate-900">
-                      {rec.title}
-                    </h4>
-                    <Badge
-                      className={getImpactColor(rec.impact)}
-                      variant="secondary">
-
-                      -{rec.reduction}
-                    </Badge>
+            ) : !recommendationsLoaded && !recommendationsLoading ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-slate-700">
+                    {t("recommendations.idleDescription")}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => void handleGenerateRecommendations()}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {t("recommendations.generateCta")}
+                  </Button>
+                </div>
+              </div>
+            ) : recommendationsLoading ? (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-slate-300 bg-slate-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t("recommendations.loadingTitle")}
                   </div>
-                  <p className="text-xs text-slate-700">
-                    {rec.description}
+                  <p className="mt-2 text-sm text-slate-600">
+                    {t("recommendations.loadingDescription")}
                   </p>
                 </div>
-              ))
+                <div className="h-20 rounded-md border border-slate-300 bg-slate-200/70 animate-pulse" />
+                <div className="h-20 rounded-md border border-slate-300 bg-slate-200/70 animate-pulse" />
+              </div>
+            ) : recommendationsError ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-rose-900">
+                        {t("recommendations.errorTitle")}
+                      </p>
+                      <p className="mt-1 text-sm text-rose-800">
+                        {recommendationsError}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-rose-300 text-rose-800 hover:bg-rose-100"
+                      onClick={() => void handleGenerateRecommendations()}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      {t("recommendations.retryCta")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : recommendations.length === 0 ? (
+              <div className="rounded-lg border border-slate-300 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-slate-700">
+                    {t("recommendations.empty")}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleGenerateRecommendations()}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {t("recommendations.regenerateCta")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleGenerateRecommendations()}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {t("recommendations.regenerateCta")}
+                  </Button>
+                </div>
+                {recommendations.map((rec) => (
+                  <div
+                    key={rec.id}
+                    className="rounded-lg border border-slate-300 bg-slate-50 p-3 transition-colors hover:bg-slate-100">
+
+                    <div className="flex items-start justify-between mb-2 gap-3">
+                      <h4 className="font-medium text-sm text-slate-900">
+                        {rec.title}
+                      </h4>
+                      <Badge
+                        className={getImpactColor(rec.impact)}
+                        variant="secondary">
+
+                        -{rec.reduction}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      {rec.description}
+                    </p>
+                  </div>
+                ))}
+              </>
             )}
           </CardContent>
         </Card>

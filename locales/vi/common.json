@@ -405,6 +405,16 @@
       "trialLockedTitle": "Tính năng này chưa có trong gói Trial",
       "trialLockedDescription": "Nâng cấp lên Standard hoặc Export để nhận khuyến nghị AI cho xuất khẩu.",
       "upgradeCta": "Nâng cấp gói",
+      "generateCta": "Tạo khuyến nghị",
+      "retryCta": "Thử lại",
+      "regenerateCta": "Tạo lại",
+      "idleDescription": "Bấm nút để AI tạo khuyến nghị cấp doanh nghiệp cho dashboard này. Hệ thống sẽ không tự tải khi vừa mở trang.",
+      "loadingTitle": "Đang tạo khuyến nghị...",
+      "loadingDescription": "Hệ thống đang phân tích dữ liệu công ty hiện tại để ưu tiên các hành động tác động cao trước.",
+      "errorTitle": "Chưa thể tạo khuyến nghị lúc này",
+      "errorGeneric": "Không thể tải khuyến nghị AI.",
+      "empty": "Chưa có khuyến nghị phù hợp cho dashboard này.",
+      "noCompany": "Tài khoản hiện chưa liên kết doanh nghiệp nên chưa thể tạo khuyến nghị.",
       "rec1": {
         "title": "Chuyển sang cotton hữu cơ",
         "subtitle": "Giảm 15% carbon footprint cho dòng sản phẩm áo thun."
@@ -951,6 +961,34 @@
       "note": "Ghi chú:",
       "awaitingDataBadge": "Đang chờ dữ liệu",
       "proxyBadge": "Proxy"
+    },
+    "aiSuggestions": {
+      "title": "Đề xuất cải thiện",
+      "subtitle": "Chỉ tạo đề xuất AI khi bạn cần.",
+      "buttonGenerate": "Tạo đề xuất",
+      "buttonRegenerate": "Tạo lại",
+      "buttonLoading": "Đang tạo...",
+      "idleDescription": "Bấm nút để yêu cầu AI tạo đề xuất giảm phát thải riêng cho sản phẩm này. Hệ thống sẽ không tự tải đề xuất khi vừa mở trang.",
+      "loadingState": "Đang tạo đề xuất cho sản phẩm...",
+      "loadingHint": "Hệ thống đang phân tích hồ sơ sản phẩm hiện tại và ưu tiên các hành động khả thi trước.",
+      "errorTitle": "Chưa thể tạo đề xuất lúc này",
+      "empty": "Chưa có đề xuất cải thiện nào cho sản phẩm này.",
+      "reductionLabel": "-{value}%",
+      "difficulty": {
+        "easy": "Dễ",
+        "medium": "Trung bình",
+        "hard": "Khó"
+      },
+      "types": {
+        "material": "Vật liệu",
+        "transport": "Vận chuyển",
+        "manufacturing": "Sản xuất",
+        "packaging": "Đóng gói",
+        "end_of_life": "Cuối vòng đời"
+      },
+      "errors": {
+        "generic": "Không thể tải đề xuất AI."
+      }
     }
   },
   "export": {

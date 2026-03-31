@@ -176,6 +176,45 @@ export interface RagQueryResponse {
   full_prompt: string | null;
 }
 
+export interface RagProductSuggestionRequest {
+  product_id?: string;
+  language?: string;
+}
+
+export interface RagCompanyRecommendationRequest {
+  company_id?: string;
+  language?: string;
+}
+
+export interface RagCompanyRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  impact: "high" | "medium" | "low";
+  reduction: string;
+  difficulty: string;
+  category: string;
+}
+
+export interface RagCompanyRecommendationResponse {
+  company_id: string;
+  recommendations: RagCompanyRecommendation[];
+}
+
+export interface RagProductSuggestion {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  potentialReduction: number;
+  difficulty: "easy" | "medium" | "hard";
+}
+
+export interface RagProductSuggestionResponse {
+  product_id: string;
+  suggestions: RagProductSuggestion[];
+}
+
 export class RagApiError extends Error {
   status: number;
   detail: string | null;
@@ -371,6 +410,62 @@ const normalizeCollectionDetail = (payload: unknown, fallbackName = ""): RagColl
   };
 };
 
+const normalizeSuggestionDifficulty = (
+  value: unknown
+): RagProductSuggestion["difficulty"] => {
+  const normalized = asString(value, "").toLowerCase();
+  if (normalized === "easy" || normalized === "hard") {
+    return normalized;
+  }
+  return "medium";
+};
+
+const normalizeRecommendationImpact = (
+  value: unknown
+): RagCompanyRecommendation["impact"] => {
+  const normalized = asString(value, "").toLowerCase();
+  if (normalized === "high" || normalized === "low") {
+    return normalized;
+  }
+  return "medium";
+};
+
+const normalizeCompanyRecommendation = (
+  payload: unknown,
+  index: number
+): RagCompanyRecommendation => {
+  const candidate = asRecord(payload);
+
+  return {
+    id: asString(candidate.id, `recommendation-${index + 1}`),
+    title: asString(candidate.title, `Recommendation ${index + 1}`),
+    description: asString(candidate.description, ""),
+    impact: normalizeRecommendationImpact(candidate.impact),
+    reduction: asString(candidate.reduction, "0%"),
+    difficulty: asString(candidate.difficulty, ""),
+    category: asString(candidate.category, "")
+  };
+};
+
+const normalizeProductSuggestion = (
+  payload: unknown,
+  index: number
+): RagProductSuggestion => {
+  const candidate = asRecord(payload);
+
+  return {
+    id: asString(candidate.id, `suggestion-${index + 1}`),
+    type: asString(candidate.type, "manufacturing"),
+    title: asString(candidate.title, `Suggestion ${index + 1}`),
+    description: asString(candidate.description, ""),
+    potentialReduction: Math.max(
+      0,
+      Math.round(asNumber(candidate.potentialReduction, 0))
+    ),
+    difficulty: normalizeSuggestionDifficulty(candidate.difficulty)
+  };
+};
+
 export const getCollectionDescription = (collection: RagCollectionDetail | null) =>
   asNullableString(collection?.metadata?.description) || "";
 
@@ -534,5 +629,67 @@ export const queryRagCollection = async (
     retrieved_data: asString(candidate.retrieved_data, ""),
     metadatas: candidate.metadatas ?? null,
     full_prompt: asNullableString(candidate.full_prompt)
+  };
+};
+
+export const generateProductSuggestions = async (
+  baseUrl: string,
+  productId: string,
+  payload: RagProductSuggestionRequest = {},
+  timeoutMs?: number
+): Promise<RagProductSuggestionResponse> => {
+  const response = await ragRequest<unknown>(
+    baseUrl,
+    `/recommendations/product/${encodeURIComponent(productId)}`,
+    {
+      method: "POST",
+      timeoutMs,
+      body: {
+        product_id: payload.product_id || productId,
+        language: asString(payload.language, "vi") || "vi"
+      }
+    }
+  );
+  const candidate = asRecord(response);
+  const suggestions = Array.isArray(candidate.suggestions)
+    ? candidate.suggestions.map((entry, index) =>
+        normalizeProductSuggestion(entry, index)
+      )
+    : [];
+
+  return {
+    product_id: asString(candidate.product_id, productId),
+    suggestions
+  };
+};
+
+export const generateCompanyRecommendations = async (
+  baseUrl: string,
+  companyId: string,
+  payload: RagCompanyRecommendationRequest = {},
+  timeoutMs?: number
+): Promise<RagCompanyRecommendationResponse> => {
+  const response = await ragRequest<unknown>(
+    baseUrl,
+    `/recommendations/company/${encodeURIComponent(companyId)}`,
+    {
+      method: "POST",
+      timeoutMs,
+      body: {
+        company_id: payload.company_id || companyId,
+        language: asString(payload.language, "vi") || "vi"
+      }
+    }
+  );
+  const candidate = asRecord(response);
+  const recommendations = Array.isArray(candidate.recommendations)
+    ? candidate.recommendations.map((entry, index) =>
+        normalizeCompanyRecommendation(entry, index)
+      )
+    : [];
+
+  return {
+    company_id: asString(candidate.company_id, companyId),
+    recommendations
   };
 };
