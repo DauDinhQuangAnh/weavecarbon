@@ -142,7 +142,23 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
       confidenceScore: 1.0
     };
 
-    onChange({ materials: [...data.materials, newMaterial] });
+    const shouldSplitEvenly =
+      data.materials.length === 1 && (data.materials[0]?.percentage || 0) === 100;
+
+    onChange({
+      materials: shouldSplitEvenly
+        ? [
+            {
+              ...data.materials[0],
+              percentage: 50
+            },
+            {
+              ...newMaterial,
+              percentage: 50
+            }
+          ]
+        : [...data.materials, newMaterial]
+    });
   };
 
   const removeMaterial = (id: string) => {

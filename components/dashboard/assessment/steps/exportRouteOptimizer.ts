@@ -5,7 +5,6 @@ import {
 } from "@/lib/roadRouting";
 import {
   EXPORT_CORRIDORS,
-  GLOBAL_TRANSSHIPMENT_HUBS,
   VIETNAM_TRANSFER_HUBS,
   getDestinationRouteHubsByMarket,
   getRouteHubById,
@@ -95,6 +94,8 @@ const MODE_SPEED_KM_PER_HOUR: Record<TransportLeg["mode"], number> = {
 
 const DEFAULT_EXPORT_DISTANCE_KM = 5000;
 const MAX_PATH_DISTANCE_MULTIPLIER = 4;
+const MAX_ACCESS_HUBS_PER_KIND = 2;
+const ACCESS_HUB_KINDS = ["airport", "port", "rail_terminal"] as const;
 
 const isFiniteNumber = (value: number | undefined): value is number =>
   typeof value === "number" && Number.isFinite(value);
@@ -182,6 +183,67 @@ const getLongHaulFallbackMode = (
 const getHubKindByMode = (mode: TransportLeg["mode"]) =>
   mode === "air" ? "airport" : mode === "rail" ? "rail_terminal" : "port";
 
+const buildUniqueHubList = (...groups: RouteHub[][]) => {
+  const seen = new Set<string>();
+  const result: RouteHub[] = [];
+
+  for (const group of groups) {
+    for (const hub of group) {
+      if (seen.has(hub.id)) continue;
+      seen.add(hub.id);
+      result.push(hub);
+    }
+  }
+
+  return result;
+};
+
+const sortHubsByDistance = (point: RoutePoint | null, hubs: RouteHub[]) =>
+  [...hubs].sort((left, right) => {
+    if (!point) {
+      return left.id.localeCompare(right.id);
+    }
+
+    const leftDistance = calculateGreatCircleDistanceKm(
+      point.lat,
+      point.lng,
+      left.lat,
+      left.lng
+    );
+    const rightDistance = calculateGreatCircleDistanceKm(
+      point.lat,
+      point.lng,
+      right.lat,
+      right.lng
+    );
+
+    if (leftDistance !== rightDistance) {
+      return leftDistance - rightDistance;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+
+const pickAccessHubsByKind = (
+  point: RoutePoint | null,
+  hubs: RouteHub[],
+  limitPerKind = MAX_ACCESS_HUBS_PER_KIND
+) => {
+  const hubsByKind = new Map<RouteHub["kind"], RouteHub[]>();
+
+  for (const hub of hubs) {
+    const current = hubsByKind.get(hub.kind) || [];
+    current.push(hub);
+    hubsByKind.set(hub.kind, current);
+  }
+
+  return buildUniqueHubList(
+    ...ACCESS_HUB_KINDS.map((kind) =>
+      sortHubsByDistance(point, hubsByKind.get(kind) || []).slice(0, limitPerKind)
+    )
+  );
+};
+
 const findNearestHub = (point: RoutePoint | null, hubs: RouteHub[]) => {
   if (!point || hubs.length === 0) {
     return hubs[0] || null;
@@ -249,11 +311,38 @@ const buildNodeMap = (context: ExportRouteContext) => {
   const originPoint = toRoutePoint(context.origin);
   const destinationPoint = toRoutePoint(context.destination);
   const destinationHubs = getDestinationRouteHubsByMarket(destinationMarket);
-  const allHubs = [
-    ...VIETNAM_TRANSFER_HUBS,
-    ...GLOBAL_TRANSSHIPMENT_HUBS,
-    ...destinationHubs
-  ];
+  const corridors = EXPORT_CORRIDORS
+    .flatMap(expandCorridorDirections)
+    .filter((corridor) => corridorMatchesMarket(corridor, destinationMarket));
+  const corridorHubIds = new Set<string>();
+
+  for (const corridor of corridors) {
+    corridorHubIds.add(corridor.fromHubId);
+    corridorHubIds.add(corridor.toHubId);
+  }
+
+  const corridorHubs = Array.from(corridorHubIds)
+    .map((hubId) => getRouteHubById(hubId))
+    .filter((hub): hub is RouteHub => Boolean(hub));
+  const originCorridorHubs = VIETNAM_TRANSFER_HUBS.filter((hub) =>
+    corridorHubIds.has(hub.id)
+  );
+  const destinationCorridorHubs = destinationHubs.filter((hub) =>
+    corridorHubIds.has(hub.id)
+  );
+  const originAccessHubs = pickAccessHubsByKind(
+    originPoint,
+    originCorridorHubs.length > 0 ? originCorridorHubs : VIETNAM_TRANSFER_HUBS
+  );
+  const destinationAccessHubs = pickAccessHubsByKind(
+    destinationPoint,
+    destinationCorridorHubs.length > 0 ? destinationCorridorHubs : destinationHubs
+  );
+  const allHubs = buildUniqueHubList(
+    originAccessHubs,
+    destinationAccessHubs,
+    corridorHubs
+  );
   const nodes = new Map<ExportGraphNode["id"], ExportGraphNode>();
 
   if (originPoint) {
@@ -288,9 +377,11 @@ const buildNodeMap = (context: ExportRouteContext) => {
   }
 
   return {
-    destinationHubs,
+    corridors,
+    destinationAccessHubs,
     destinationMarket,
     nodes,
+    originAccessHubs,
     originPoint,
     destinationPoint
   };
@@ -362,9 +453,11 @@ const buildGraphEdges = async (
   options: FetchRoadRouteOptions = {}
 ) => {
   const {
-    destinationHubs,
+    corridors,
+    destinationAccessHubs,
     destinationMarket,
     nodes,
+    originAccessHubs,
     originPoint,
     destinationPoint
   } = buildNodeMap(context);
@@ -384,7 +477,7 @@ const buildGraphEdges = async (
   }
 
   if (originNode && originPoint) {
-    for (const hub of VIETNAM_TRANSFER_HUBS) {
+    for (const hub of originAccessHubs) {
       const hubNode = nodes.get(getHubNodeId(hub.id));
       if (!hubNode || hubNode.kind !== "hub") continue;
 
@@ -403,7 +496,7 @@ const buildGraphEdges = async (
   }
 
   if (destinationNode && destinationPoint) {
-    for (const hub of destinationHubs) {
+    for (const hub of destinationAccessHubs) {
       const hubNode = nodes.get(getHubNodeId(hub.id));
       if (!hubNode || hubNode.kind !== "hub") continue;
 
@@ -470,9 +563,7 @@ const buildGraphEdges = async (
   const roadEdges = await Promise.all(roadEdgePromises);
   edges.push(...roadEdges.filter((edge): edge is ExportGraphEdge => Boolean(edge)));
 
-  for (const corridor of EXPORT_CORRIDORS.flatMap(expandCorridorDirections)) {
-    if (!corridorMatchesMarket(corridor, destinationMarket)) continue;
-
+  for (const corridor of corridors) {
     const fromNode = nodes.get(getHubNodeId(corridor.fromHubId));
     const toNode = nodes.get(getHubNodeId(corridor.toHubId));
     if (!fromNode || !toNode || fromNode.kind !== "hub" || toNode.kind !== "hub") continue;

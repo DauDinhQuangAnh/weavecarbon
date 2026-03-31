@@ -175,6 +175,8 @@ const roundDistanceKm = (value: number) =>
 
 const ROAD_DISTANCE_UPDATE_EPSILON_KM = 0.5;
 const ROAD_SNAP_UPDATE_EPSILON = 0.00001;
+const ROAD_DISTANCE_SYNC_DEBOUNCE_MS = 250;
+const ROUTE_SUGGESTION_DEBOUNCE_MS = 350;
 
 const normalizeMarketToken = (value: string | null | undefined) =>
   (value || "").
@@ -248,18 +250,68 @@ const cloneTransportLegNodeRef = (
   nodeRef: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined
 ) => (nodeRef ? { ...nodeRef } : undefined);
 
-const pickRouteRelevantAddress = (address: AddressInput): AddressInput => ({
-  streetNumber: "",
-  street: "",
-  ward: "",
-  district: "",
-  city: address.city,
-  stateRegion: address.stateRegion,
-  country: "",
-  postalCode: "",
-  lat: address.lat,
-  lng: address.lng
-});
+const pickRouteRelevantAddress = (address: AddressInput): AddressInput => {
+  const hasCoordinates = isFiniteNumber(address.lat) && isFiniteNumber(address.lng);
+
+  return {
+    streetNumber: "",
+    street: "",
+    ward: "",
+    district: "",
+    city: hasCoordinates ? "" : address.city,
+    stateRegion: hasCoordinates ? "" : address.stateRegion,
+    country: "",
+    postalCode: "",
+    lat: address.lat,
+    lng: address.lng
+  };
+};
+
+const formatRouteCoordinateToken = (value: number | undefined) =>
+  isFiniteNumber(value) ? value.toFixed(5) : "";
+
+const buildRouteSuggestionSignature = (context: {
+  destinationMarket: string;
+  destination: AddressInput;
+  origin: AddressInput;
+}) =>
+  [
+    context.destinationMarket || "",
+    context.origin.city || "",
+    context.origin.stateRegion || "",
+    formatRouteCoordinateToken(context.origin.lat),
+    formatRouteCoordinateToken(context.origin.lng),
+    context.destination.city || "",
+    context.destination.stateRegion || "",
+    formatRouteCoordinateToken(context.destination.lat),
+    formatRouteCoordinateToken(context.destination.lng)
+  ].join("|");
+
+const serializeTransportLegNodeRef = (
+  nodeRef: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined
+) => (nodeRef ? `${nodeRef.type}:${nodeRef.hubId || ""}` : "none");
+
+const buildRoadResolutionSignature = (
+  destinationMarket: string,
+  legs: TransportLeg[],
+  originAddress: AddressInput,
+  destinationAddress: AddressInput
+) =>
+  [
+    destinationMarket || "",
+    formatRouteCoordinateToken(originAddress.lat),
+    formatRouteCoordinateToken(originAddress.lng),
+    formatRouteCoordinateToken(destinationAddress.lat),
+    formatRouteCoordinateToken(destinationAddress.lng),
+    ...legs.map((leg) =>
+      [
+        leg.id,
+        leg.mode,
+        serializeTransportLegNodeRef(leg.fromNode),
+        serializeTransportLegNodeRef(leg.toNode)
+      ].join(":")
+    )
+  ].join("|");
 
 const areTransportLegNodeRefsEqual = (
   left: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined,
@@ -380,10 +432,12 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     destination: data.destinationAddress,
     origin: data.originAddress
   });
+  const transportLegsRef = React.useRef(data.transportLegs);
   addressValueRef.current = {
     destination: data.destinationAddress,
     origin: data.originAddress
   };
+  transportLegsRef.current = data.transportLegs;
 
   const updateOriginAddress = React.useCallback(
     (
@@ -504,7 +558,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       destinationRouteLng
     ]
   );
-  const routeSuggestionContext = React.useMemo(
+  const routeSuggestionInput = React.useMemo(
     () => ({
       destinationMarket: data.destinationMarket,
       destination: routeRelevantDestinationAddress,
@@ -516,6 +570,27 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       routeRelevantOriginAddress
     ]
   );
+  const routeSuggestionInputSignature = React.useMemo(
+    () => buildRouteSuggestionSignature(routeSuggestionInput),
+    [routeSuggestionInput]
+  );
+  const [debouncedRouteSuggestionContext, setDebouncedRouteSuggestionContext] =
+    React.useState(routeSuggestionInput);
+
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedRouteSuggestionContext((current) =>
+        buildRouteSuggestionSignature(current) === routeSuggestionInputSignature ?
+          current :
+          routeSuggestionInput
+      );
+    }, ROUTE_SUGGESTION_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [routeSuggestionInput, routeSuggestionInputSignature]);
+
   const destinationDefaultCenter = React.useMemo(
     () => getDestinationDefaultCenter(data.destinationMarket),
     [data.destinationMarket]
@@ -903,17 +978,17 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   const suggestedRoute = React.useMemo<SuggestedRoute>(() => {
     if (isDomesticRoute) {
       return buildDomesticFallbackRoute({
-        destination: routeSuggestionContext.destination,
-        origin: routeSuggestionContext.origin
+        destination: debouncedRouteSuggestionContext.destination,
+        origin: debouncedRouteSuggestionContext.origin
       });
     }
 
     return buildExportFallbackRoute({
-      destinationMarket: routeSuggestionContext.destinationMarket,
-      destination: routeSuggestionContext.destination,
-      origin: routeSuggestionContext.origin
+      destinationMarket: debouncedRouteSuggestionContext.destinationMarket,
+      destination: debouncedRouteSuggestionContext.destination,
+      origin: debouncedRouteSuggestionContext.origin
     });
-  }, [isDomesticRoute, routeSuggestionContext]);
+  }, [debouncedRouteSuggestionContext, isDomesticRoute]);
 
   const [displaySuggestedRoute, setDisplaySuggestedRoute] = React.useState<SuggestedRoute>(
     suggestedRoute
@@ -943,28 +1018,22 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   const isResolvingRoadDistances = resolvingRoadLegIds.length > 0;
 
   const currentRouteSignature = React.useMemo(
+    () => buildRouteSuggestionSignature(debouncedRouteSuggestionContext),
+    [debouncedRouteSuggestionContext]
+  );
+  const roadResolutionSignature = React.useMemo(
     () =>
+      buildRoadResolutionSignature(
+        data.destinationMarket,
+        data.transportLegs,
+        data.originAddress,
+        data.destinationAddress
+      ),
     [
+      data.destinationAddress,
       data.destinationMarket,
-      data.originAddress.city ?? "",
-      data.originAddress.stateRegion ?? "",
-      data.originAddress.lat ?? "",
-      data.originAddress.lng ?? "",
-      data.destinationAddress.city ?? "",
-      data.destinationAddress.stateRegion ?? "",
-      data.destinationAddress.lat ?? "",
-      data.destinationAddress.lng ?? ""
-    ].join("|"),
-    [
-      data.destinationMarket,
-      data.originAddress.city,
-      data.originAddress.stateRegion,
-      data.originAddress.lat,
-      data.originAddress.lng,
-      data.destinationAddress.city,
-      data.destinationAddress.stateRegion,
-      data.destinationAddress.lat,
-      data.destinationAddress.lng
+      data.originAddress,
+      data.transportLegs
     ]
   );
   const lastAutoRouteSignatureRef = React.useRef<string | null>(null);
@@ -981,8 +1050,8 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       try {
         if (isDomesticRoute) {
           const resolvedRoute = await resolveDomesticSuggestedRoute({
-            destination: routeSuggestionContext.destination,
-            origin: routeSuggestionContext.origin
+            destination: debouncedRouteSuggestionContext.destination,
+            origin: debouncedRouteSuggestionContext.origin
           }, {
             destinationSource: addressSourceRef.current.destination,
             originSource: addressSourceRef.current.origin
@@ -1004,9 +1073,9 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
         const resolvedRoute = await resolveExportSuggestedRoute(
           {
-            destinationMarket: routeSuggestionContext.destinationMarket,
-            destination: routeSuggestionContext.destination,
-            origin: routeSuggestionContext.origin
+            destinationMarket: debouncedRouteSuggestionContext.destinationMarket,
+            destination: debouncedRouteSuggestionContext.destination,
+            origin: debouncedRouteSuggestionContext.origin
           },
           {
             destinationSource: addressSourceRef.current.destination,
@@ -1038,16 +1107,17 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       isCancelled = true;
     };
   }, [
+    debouncedRouteSuggestionContext,
     isDomesticRoute,
     maybeBuildSnappedAddressUpdates,
     onChange,
-    routeSuggestionContext,
     suggestedRoute
   ]);
 
   React.useEffect(() => {
     let isCancelled = false;
-    const roadLegIndexes = data.transportLegs.reduce<number[]>((indexes, leg, index) => {
+    const transportLegs = transportLegsRef.current;
+    const roadLegIndexes = transportLegs.reduce<number[]>((indexes, leg, index) => {
       if (leg.mode === "road") {
         indexes.push(index);
       }
@@ -1062,13 +1132,13 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     const requestSeq = roadDistanceRequestSeqRef.current + 1;
     roadDistanceRequestSeqRef.current = requestSeq;
     const nextResolvingIds = roadLegIndexes
-      .map((index) => data.transportLegs[index]?.id)
+      .map((index) => transportLegs[index]?.id)
       .filter((legId): legId is string => Boolean(legId));
     setResolvingRoadLegIds(nextResolvingIds);
 
     const syncRoadLegs = async () => {
       try {
-        const nextLegs = [...data.transportLegs];
+        const nextLegs = [...transportLegs];
         let hasUpdates = false;
         let snappedOrigin: RoutePoint | undefined;
         let snappedDestination: RoutePoint | undefined;
@@ -1163,12 +1233,16 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       }
     };
 
-    void syncRoadLegs();
+    const timeoutId = window.setTimeout(() => {
+      if (isCancelled) return;
+      void syncRoadLegs();
+    }, ROAD_DISTANCE_SYNC_DEBOUNCE_MS);
 
     return () => {
       isCancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, [data.transportLegs, maybeBuildSnappedAddressUpdates, onChange, resolveRoadLegEndpoints]);
+  }, [maybeBuildSnappedAddressUpdates, onChange, resolveRoadLegEndpoints, roadResolutionSignature]);
 
   React.useEffect(() => {
     const previousRouteSignature = lastAutoRouteSignatureRef.current;
