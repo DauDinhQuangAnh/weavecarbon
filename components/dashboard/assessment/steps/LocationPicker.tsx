@@ -144,6 +144,27 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   const reverseGeocodeRef = useRef<ReverseGeocodeHandler>(async () => {});
 
+  const resetMapToDefaultCenter = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const [defaultLng, defaultLat] = defaultCenter;
+    const currentCenter = map.getCenter();
+    const centerChanged =
+      Math.abs(currentCenter.lng - defaultLng) >= MARKER_SYNC_EPSILON ||
+      Math.abs(currentCenter.lat - defaultLat) >= MARKER_SYNC_EPSILON ||
+      Math.abs(map.getZoom() - 10) >= 0.1;
+
+    if (centerChanged) {
+      map.flyTo({
+        center: defaultCenter,
+        zoom: 10,
+        duration: 500,
+        essential: true
+      });
+    }
+  }, [defaultCenter]);
+
   const applyLocationPart = useCallback(
     (result: Partial<AddressInput>, partId: string | undefined, partText: string | undefined) => {
       const normalizedPartId = String(partId || "").trim().toLowerCase();
@@ -480,7 +501,31 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       markerRef.current.remove();
       markerRef.current = null;
     }
-  }, [address.lat, address.lng, syncMarker]);
+    resetMapToDefaultCenter();
+  }, [address.lat, address.lng, resetMapToDefaultCenter, syncMarker]);
+
+  const applyManualAddressChange = useCallback(
+    (nextAddress: AddressInput) => {
+      const clearedAddress: AddressInput = {
+        ...nextAddress,
+        lat: undefined,
+        lng: undefined
+      };
+
+      addressRef.current = clearedAddress;
+
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+
+      setShowResults(false);
+      setSearchResults([]);
+      onChangeRef.current(clearedAddress, { source: "manual" });
+      resetMapToDefaultCenter();
+    },
+    [resetMapToDefaultCenter]
+  );
 
   const searchLocation = useCallback(
     async (query: string) => {
@@ -714,7 +759,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               onChange={(event) => {
                 const nextValue = event.target.value.trim();
                 if (!nextValue) {
-                  onChange({
+                  applyManualAddressChange({
                     ...address,
                     ward: "",
                     district: ""
@@ -727,7 +772,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
                   .map((part) => part.trim())
                   .filter(Boolean);
 
-                onChange({
+                applyManualAddressChange({
                   ...address,
                   ward: ward || "",
                   district: districtParts.join(", ")
@@ -744,7 +789,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               value={address.stateRegion || address.city || ""}
               placeholder={tAddress("stateProvincePlaceholder")}
               onChange={(event) =>
-                onChange({
+                applyManualAddressChange({
                   ...address,
                   stateRegion: event.target.value
                 })
@@ -760,7 +805,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               value={address.country || ""}
               placeholder={tAddress("countryPlaceholder")}
               onChange={(event) =>
-                onChange({
+                applyManualAddressChange({
                   ...address,
                   country: event.target.value
                 })
