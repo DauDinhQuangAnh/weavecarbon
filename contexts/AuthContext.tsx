@@ -893,9 +893,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       const frontendOrigin = window.location.origin;
       if (intent === "signup") {
         window.location.assign(
-          `${API_BASE_URL}/auth/google?intent=signup&frontend_origin=${encodeURIComponent(
-            frontendOrigin
-          )}`
+          `${API_BASE_URL}/auth/google?intent=signup&role=${encodeURIComponent(
+            role
+          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}`
         );
       } else {
         window.location.assign(

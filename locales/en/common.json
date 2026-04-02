@@ -1939,7 +1939,6 @@
     "signOut": "Sign out",
     "pointsAbbrev": "pts",
     "cameraWorkflowPending": "Camera workflow will be enabled after API integration.",
-    "locationWorkflowPending": "Location workflow will be enabled after API integration.",
     "imageCapturedSuccess": "Image captured successfully.",
     "quickActions": {
       "scanQrTitle": "Scan QR",
@@ -1971,6 +1970,31 @@
       "alt": "Captured image",
       "retake": "Retake",
       "continue": "Continue"
+    },
+    "collectionPoints": {
+      "title": "Collection points near you",
+      "description": "We use your current location to show the nearest drop-off points.",
+      "locating": "Locating your device...",
+      "loading": "Loading nearby collection points...",
+      "emptyTitle": "No collection points found",
+      "emptyDescription": "There are no active collection points near this location yet.",
+      "errorTitle": "Unable to load collection points",
+      "currentLocation": "Your current location",
+      "distanceAway": "away",
+      "openInMaps": "Open in Maps",
+      "retry": "Try again",
+      "acceptedForCharity": "Charity",
+      "acceptedForRecycle": "Recycle",
+      "phoneUnavailable": "Phone not available",
+      "hoursUnavailable": "Operating hours not available",
+      "browserNotSupported": "Your browser does not support geolocation.",
+      "cannotGetLocation": "Unable to get your current location.",
+      "permissionDenied": "Location permission is blocked. Please allow access in your browser settings.",
+      "permissionManagedByBrowser": "Location access is managed by your browser. Once you allow it, later visits reuse that permission automatically.",
+      "positionUnavailable": "The device could not determine your location. Please try again.",
+      "locationTimeout": "Location lookup took too long. Please try again.",
+      "unknownError": "Something went wrong while loading collection points.",
+      "backToDashboard": "Back to dashboard"
     }
   },
   "authCallback": {

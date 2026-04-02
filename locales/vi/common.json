@@ -2598,7 +2598,6 @@
     "signOut": "Đăng xuất",
     "pointsAbbrev": "điểm",
     "cameraWorkflowPending": "Luồng camera sẽ được bật sau khi tích hợp API.",
-    "locationWorkflowPending": "Luồng vị trí sẽ được bật sau khi tích hợp API.",
     "imageCapturedSuccess": "Chụp ảnh thành công.",
     "quickActions": {
       "scanQrTitle": "Quét QR",
@@ -2630,6 +2629,31 @@
       "alt": "Ảnh đã chụp",
       "retake": "Chụp lại",
       "continue": "Tiếp tục"
+    },
+    "collectionPoints": {
+      "title": "Điểm thu gom gần bạn",
+      "description": "Chúng tôi dùng vị trí hiện tại để hiển thị các điểm thu gom gần nhất.",
+      "locating": "Đang lấy vị trí thiết bị...",
+      "loading": "Đang tải danh sách điểm thu gom gần bạn...",
+      "emptyTitle": "Chưa tìm thấy điểm thu gom",
+      "emptyDescription": "Hiện chưa có điểm thu gom đang hoạt động gần vị trí này.",
+      "errorTitle": "Không thể tải điểm thu gom",
+      "currentLocation": "Vị trí hiện tại của bạn",
+      "distanceAway": "cách bạn",
+      "openInMaps": "Mở bản đồ",
+      "retry": "Thử lại",
+      "acceptedForCharity": "Từ thiện",
+      "acceptedForRecycle": "Tái chế",
+      "phoneUnavailable": "Chưa có số điện thoại",
+      "hoursUnavailable": "Chưa có giờ hoạt động",
+      "browserNotSupported": "Trình duyệt của bạn không hỗ trợ định vị.",
+      "cannotGetLocation": "Không thể lấy vị trí hiện tại.",
+      "permissionDenied": "Quyền truy cập vị trí đang bị chặn. Vui lòng cho phép trong cài đặt trình duyệt.",
+      "permissionManagedByBrowser": "Quyền truy cập vị trí do trình duyệt quản lý. Khi bạn đã cho phép một lần, các lần vào sau sẽ dùng lại quyền đó.",
+      "positionUnavailable": "Thiết bị chưa xác định được vị trí. Vui lòng thử lại.",
+      "locationTimeout": "Hết thời gian lấy vị trí. Vui lòng thử lại.",
+      "unknownError": "Có lỗi xảy ra khi tải điểm thu gom.",
+      "backToDashboard": "Quay lại trang B2C"
     }
   },
   "addressSelection": {

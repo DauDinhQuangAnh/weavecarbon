@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -26,10 +26,8 @@ const B2CClient: React.FC = () => {
   );
 
   const [showCameraPermission, setShowCameraPermission] = useState(false);
-  const [showLocationPermission, setShowLocationPermission] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
-  const [hasLocationPermission, setHasLocationPermission] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -51,11 +49,7 @@ const B2CClient: React.FC = () => {
   };
 
   const handleLocationClick = () => {
-    if (hasLocationPermission) {
-      toast.info(t("locationWorkflowPending"));
-    } else {
-      setShowLocationPermission(true);
-    }
+    router.push("/b2c/collection-points");
   };
 
   const handleCameraPermissionAllow = () => {
@@ -63,80 +57,58 @@ const B2CClient: React.FC = () => {
     setHasCameraPermission(true);
   };
 
-  const handleLocationPermissionAllow = () => {
-    setShowLocationPermission(false);
-    setHasLocationPermission(true);
-  };
-
   if (loading || !profileLoaded || !activitiesLoaded) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>);
-
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-dvh bg-background">
-      
       <B2CHeader
         profile={profile}
         onSignOut={handleSignOut}
         onNavigateBack={() => router.back()}
-        onNavigateHome={() => router.push("/")} />
-      
+        onNavigateHome={() => router.push("/")}
+      />
 
-      
       <main className="container mx-auto space-y-6 px-4 py-6 pb-safe">
-        
         <B2CWelcome profile={profile} />
 
-        
         <B2CQuickActions
           onCameraClick={handleCameraClick}
-          onLocationClick={handleLocationClick} />
-        
+          onLocationClick={handleLocationClick}
+        />
 
-        
         <B2CStatsGrid profile={profile} />
 
-        
         <B2CDonateCard onStartDonate={handleCameraClick} />
 
-        
         <B2CRecentActivity activities={activities} />
 
-        
         {capturedImage &&
-        <B2CImagePreview
-          imageData={capturedImage}
-          onRetake={() => setCapturedImage(null)}
-          onContinue={() => {
-            setCapturedImage(null);
-            toast.success(t("imageCapturedSuccess"));
-          }} />
-
+          <B2CImagePreview
+            imageData={capturedImage}
+            onRetake={() => setCapturedImage(null)}
+            onContinue={() => {
+              setCapturedImage(null);
+              toast.success(t("imageCapturedSuccess"));
+            }}
+          />
         }
       </main>
 
-      
       <PermissionDialog
         open={showCameraPermission}
         onOpenChange={setShowCameraPermission}
         type="camera"
         onAllow={handleCameraPermissionAllow}
-        onDeny={() => setShowCameraPermission(false)} />
-      
-
-      <PermissionDialog
-        open={showLocationPermission}
-        onOpenChange={setShowLocationPermission}
-        type="location"
-        onAllow={handleLocationPermissionAllow}
-        onDeny={() => setShowLocationPermission(false)} />
-      
-    </div>);
-
+        onDeny={() => setShowCameraPermission(false)}
+      />
+    </div>
+  );
 };
 
 export default B2CClient;
