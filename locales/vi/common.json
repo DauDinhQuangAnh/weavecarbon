@@ -2651,6 +2651,7 @@
       "cannotGetLocation": "Không thể lấy vị trí hiện tại.",
       "permissionDenied": "Quyền truy cập vị trí đang bị chặn. Vui lòng cho phép trong cài đặt trình duyệt.",
       "permissionManagedByBrowser": "Quyền truy cập vị trí do trình duyệt quản lý. Khi bạn đã cho phép một lần, các lần vào sau sẽ dùng lại quyền đó.",
+      "previewDataNotice": "Danh sách điểm thu gom realtime đang được cập nhật. Tạm thời hiển thị các điểm gần bạn bằng dữ liệu mẫu.",
       "positionUnavailable": "Thiết bị chưa xác định được vị trí. Vui lòng thử lại.",
       "locationTimeout": "Hết thời gian lấy vị trí. Vui lòng thử lại.",
       "unknownError": "Có lỗi xảy ra khi tải điểm thu gom.",

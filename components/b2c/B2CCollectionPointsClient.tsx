@@ -21,34 +21,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import B2CHeader from "@/components/b2c/B2CHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { api } from "@/lib/apiClient";
-
-interface B2CCollectionPointLocation {
-  latitude: number;
-  longitude: number;
-}
-
-interface B2CCollectionPoint {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  district?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  phone?: string | null;
-  operating_hours?: string | null;
-  accepts_charity?: boolean | null;
-  accepts_recycle?: boolean | null;
-  distance_km?: number | null;
-}
-
-interface NearbyCollectionPointsPayload {
-  current_location?: B2CCollectionPointLocation | null;
-  items?: B2CCollectionPoint[];
-}
+import { api, isApiError } from "@/lib/apiClient";
+import {
+  type B2CCollectionPoint,
+  type B2CCollectionPointLocation,
+  getFallbackNearbyCollectionPoints,
+  type NearbyCollectionPointsPayload
+} from "@/lib/b2cCollectionPoints";
 
 type CollectionPointsStatus = "idle" | "locating" | "loading" | "ready" | "error";
+
+const isCollectionPointsRouteUnavailable = (error: unknown) => {
+  if (isApiError(error) && error.status === 404) {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return message.includes("route") && message.includes("not found");
+};
 
 const formatDistance = (distanceKm?: number | null) => {
   if (typeof distanceKm !== "number" || !Number.isFinite(distanceKm)) {
@@ -89,6 +83,7 @@ const B2CCollectionPointsClient: React.FC = () => {
   const [items, setItems] = useState<B2CCollectionPoint[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<B2CCollectionPointLocation | null>(null);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
 
   const getText = useCallback(
     (key: string, fallback: string) => (t.has(key) ? t(key) : fallback),
@@ -123,6 +118,7 @@ const B2CCollectionPointsClient: React.FC = () => {
   const loadNearbyCollectionPoints = useCallback(async (latitude: number, longitude: number) => {
     setStatus("loading");
     setErrorMessage(null);
+    setUsingFallbackData(false);
 
     try {
       const query = new URLSearchParams({
@@ -138,7 +134,20 @@ const B2CCollectionPointsClient: React.FC = () => {
       setItems(payload.items || []);
       setStatus("ready");
     } catch (error) {
+      if (isCollectionPointsRouteUnavailable(error)) {
+        const fallbackPayload = getFallbackNearbyCollectionPoints(
+          { latitude, longitude },
+          6
+        );
+        setCurrentLocation(fallbackPayload.current_location || { latitude, longitude });
+        setItems(fallbackPayload.items || []);
+        setUsingFallbackData(true);
+        setStatus("ready");
+        return;
+      }
+
       setItems([]);
+      setUsingFallbackData(false);
       setStatus("error");
       setErrorMessage(
         error instanceof Error ?
@@ -195,8 +204,15 @@ const B2CCollectionPointsClient: React.FC = () => {
   }, [getText, loadNearbyCollectionPoints, toLocationErrorMessage]);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+
+    if (!user) {
       router.push("/auth?type=b2c");
+      return;
+    }
+
+    if (user.user_type === "b2b" || user.user_type === "admin") {
+      router.replace("/overview");
     }
   }, [loading, router, user]);
 
@@ -321,6 +337,19 @@ const B2CCollectionPointsClient: React.FC = () => {
                   {currentLocation.latitude.toFixed(5)}, {currentLocation.longitude.toFixed(5)}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        }
+
+        {usingFallbackData &&
+          <Card className="border-amber-200 bg-amber-50/80">
+            <CardContent className="p-5">
+              <p className="text-sm text-amber-900">
+                {getText(
+                  "collectionPoints.previewDataNotice",
+                  "Live collection points are being updated. Showing nearby sample locations for now."
+                )}
+              </p>
             </CardContent>
           </Card>
         }

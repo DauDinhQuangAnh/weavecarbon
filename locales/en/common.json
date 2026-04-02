@@ -1992,6 +1992,7 @@
       "cannotGetLocation": "Unable to get your current location.",
       "permissionDenied": "Location permission is blocked. Please allow access in your browser settings.",
       "permissionManagedByBrowser": "Location access is managed by your browser. Once you allow it, later visits reuse that permission automatically.",
+      "previewDataNotice": "Live collection points are being updated. Showing nearby sample locations for now.",
       "positionUnavailable": "The device could not determine your location. Please try again.",
       "locationTimeout": "Location lookup took too long. Please try again.",
       "unknownError": "Something went wrong while loading collection points.",
