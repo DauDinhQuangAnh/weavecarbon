@@ -14,5 +14,8 @@ fi
 cd "${ROOT_DIR}"
 
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" config >/dev/null
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build --force-recreate
+# Avoid force-recreating the database container on every deploy because the
+# stack uses fixed container names (for example `weavecarbon-db`), which can
+# trigger Docker rename conflicts during rolling replacement.
+docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build --remove-orphans
 docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps
