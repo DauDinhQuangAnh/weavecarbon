@@ -472,8 +472,10 @@ const buildRoadLegFromResolution = (
       emissionFactor,
       co2Kg: roundMetric(estimatedDistance * emissionFactor),
       etaHours: roundMetric(resolution.route.durationMinutes / 60),
-      snappedOrigin: resolution.route.resolvedOrigin,
-      snappedDestination: resolution.route.resolvedDestination
+      snappedOrigin:
+        fromNode.type === "origin_address" ? resolution.route.resolvedOrigin : undefined,
+      snappedDestination:
+        toNode.type === "destination_address" ? resolution.route.resolvedDestination : undefined
     };
   }
 

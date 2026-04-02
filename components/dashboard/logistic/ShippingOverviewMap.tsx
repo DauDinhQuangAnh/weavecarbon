@@ -72,6 +72,20 @@ interface Shipment {
 
 type ShipmentIdentity = Pick<Shipment, "shipmentId" | "id"> | Pick<TrackShipment, "shipmentId" | "id">;
 
+const getShipmentIdentityKey = (
+  shipment: ShipmentIdentity | null | undefined
+) => {
+  if (!shipment) return "";
+
+  const shipmentId = String(shipment.shipmentId || "").trim();
+  if (shipmentId) {
+    return `shipment:${shipmentId}`;
+  }
+
+  const displayId = String(shipment.id || "").trim();
+  return displayId ? `display:${displayId}` : "";
+};
+
 const isSameShipment = (
   left: ShipmentIdentity | null | undefined,
   right: ShipmentIdentity | null | undefined
@@ -93,6 +107,38 @@ const findMatchingShipment = (
   shipments: Shipment[],
   target: ShipmentIdentity | null | undefined
 ) => shipments.find((shipment) => isSameShipment(shipment, target)) || null;
+
+const scoreShipmentCompleteness = (shipment: Shipment) =>
+  (shipment.legsHydrated ? 4 : 0) +
+  (shipment.productId ? 2 : 0) +
+  (shipment.legs.length > 0 ? 1 : 0) +
+  (shipment.totalCO2 > 0 ? 1 : 0);
+
+const pickPreferredShipment = (current: Shipment, candidate: Shipment) =>
+  scoreShipmentCompleteness(candidate) > scoreShipmentCompleteness(current) ?
+    candidate :
+    current;
+
+const dedupeShipments = (shipments: Shipment[]) => {
+  const dedupedByIdentity = new Map<string, Shipment>();
+  const fallbackShipments: Shipment[] = [];
+
+  shipments.forEach((shipment) => {
+    const identityKey = getShipmentIdentityKey(shipment);
+    if (!identityKey) {
+      fallbackShipments.push(shipment);
+      return;
+    }
+
+    const current = dedupedByIdentity.get(identityKey);
+    dedupedByIdentity.set(
+      identityKey,
+      current ? pickPreferredShipment(current, shipment) : shipment
+    );
+  });
+
+  return [...dedupedByIdentity.values(), ...fallbackShipments];
+};
 
 const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   const normalizedReference = referenceNumber.replace(/[^a-zA-Z0-9]/g, "");
@@ -313,7 +359,7 @@ const toDetailShipment = (shipment: Shipment): TrackShipment => ({
   legs: shipment.legs,
   totalCO2: shipment.totalCO2,
   carrier: shipment.carrier,
-  containerNo: buildContainerNo(shipment.id, shipment.id)
+  containerNo: buildContainerNo(shipment.id, shipment.shipmentId || shipment.id)
 });
 
 const mergeSummaryIntoDetailShipment = (
@@ -434,7 +480,7 @@ const ShippingOverviewMap: React.FC = () => {
         didUpdate = true;
         return shipment;
       });
-      return didUpdate ? next : current;
+      return didUpdate ? dedupeShipments(next) : current;
     });
     setDetailShipment((current) =>
       current && isSameShipment(current, shipment) ? toDetailShipment(shipment) : current
@@ -561,9 +607,9 @@ const ShippingOverviewMap: React.FC = () => {
 
     try {
       const shipmentSummaries = await fetchAllLogisticsShipments();
-      const userShipments = shipmentSummaries.map((shipment) =>
+      const userShipments = dedupeShipments(shipmentSummaries.map((shipment) =>
       mapShipmentToOverview(shipment, shipmentFallbacks)
-      );
+      ));
       setAllShipments(userShipments);
       setDetailShipment((current) => {
         if (!current) return null;
@@ -700,12 +746,13 @@ const ShippingOverviewMap: React.FC = () => {
     const addedLocations = new Set<string>();
 
     paginatedShipments.forEach((shipment) => {
+      const shipmentNodeKey = getShipmentIdentityKey(shipment) || shipment.id;
       shipment.legs.forEach((leg, legIndex) => {
         const originKey = `${leg.origin.lat.toFixed(2)}-${leg.origin.lng.toFixed(2)}`;
         if (!addedLocations.has(originKey)) {
           addedLocations.add(originKey);
             nodes.push({
-            id: `${shipment.id}-${leg.id}-origin`,
+            id: `${shipmentNodeKey}-${leg.id}-origin`,
             name: leg.origin.name,
             lat: leg.origin.lat,
             lng: leg.origin.lng,
@@ -731,7 +778,7 @@ const ShippingOverviewMap: React.FC = () => {
           if (!addedLocations.has(destKey)) {
             addedLocations.add(destKey);
             nodes.push({
-              id: `${shipment.id}-${leg.id}-dest`,
+              id: `${shipmentNodeKey}-${leg.id}-dest`,
               name: leg.destination.name,
               lat: leg.destination.lat,
               lng: leg.destination.lng,
@@ -754,7 +801,7 @@ const ShippingOverviewMap: React.FC = () => {
     (): SupplyChainRoute[] =>
     paginatedShipments.flatMap((shipment) =>
     shipment.legs.map((leg) => ({
-      id: `${shipment.id}-${leg.id}`,
+      id: `${getShipmentIdentityKey(shipment) || shipment.id}-${leg.id}`,
       from: {
         lat: leg.origin.lat,
         lng: leg.origin.lng,
@@ -968,7 +1015,7 @@ const ShippingOverviewMap: React.FC = () => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {paginatedShipments.map((shipment) =>
           <Card
-            key={shipment.id}
+            key={getShipmentIdentityKey(shipment) || shipment.id}
             className={shipmentCardClass(shipment.status)}
             onClick={() => {
               void openDetails(shipment);

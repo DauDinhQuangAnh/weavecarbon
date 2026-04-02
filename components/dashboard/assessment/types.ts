@@ -41,6 +41,7 @@ export interface TransportLeg {
 }
 
 export interface AddressInput {
+  aptSuite?: string;
   streetNumber: string;
   street: string;
   ward: string;

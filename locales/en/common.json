@@ -246,6 +246,7 @@
     },
     "messages": {
       "invalidLoginByType": "No {accountType} account found with this email and password",
+      "accountTypeMismatch": "This account is registered as {actualAccountType} and cannot sign in as {expectedAccountType}.",
       "consumer": "consumer",
       "business": "business",
       "alreadyRegisteredPleaseLogin": "This email is already registered. Please sign in instead.",
@@ -2015,6 +2016,8 @@
     "streetAddressPlaceholder": "123 Main Street",
     "aptSuiteLabel": "Apt, Suite, etc (optional)",
     "aptSuitePlaceholder": "Apt 4B, Suite 100, Floor 2...",
+    "districtWardLabel": "District / Ward / Area",
+    "districtWardPlaceholder": "Ward, district, or local area",
     "cityLabel": "City *",
     "cityPlaceholder": "Ho Chi Minh City",
     "stateProvinceLabel": "State / Province",

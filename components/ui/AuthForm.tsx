@@ -31,6 +31,31 @@ type CompanyCheckPayload = {
   };
 };
 
+type AccountType = "b2b" | "b2c" | "admin";
+
+const normalizeAccountType = (value?: string | null): AccountType | null => {
+  if (value === "b2b" || value === "b2c" || value === "admin") {
+    return value;
+  }
+  return null;
+};
+
+const parseAccountTypeMismatch = (message?: string | null) => {
+  if (!message?.startsWith("ACCOUNT_TYPE_MISMATCH:")) {
+    return null;
+  }
+
+  const [, actualRaw, expectedRaw] = message.split(":");
+  const actual = normalizeAccountType(actualRaw);
+  const expected = normalizeAccountType(expectedRaw);
+
+  if (!actual || !expected) {
+    return null;
+  }
+
+  return { actual, expected };
+};
+
 const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
   const nested = payload?.data;
   const source = nested || payload || {};
@@ -103,6 +128,25 @@ const AuthForm: React.FC = () => {
         isVi ?
           "Nút demo B2C hiện mới là placeholder, chưa có sự kiện xử lý." :
           "B2C demo is shown as a placeholder for now and has no action yet.";
+
+  const getAccountTypeLabel = useCallback(
+    (type?: AccountType | null) => {
+      if (type === "b2b" || type === "b2c") {
+        return tUserType(type);
+      }
+      return "Admin";
+    },
+    [tUserType]
+  );
+
+  const getAccountTypeMismatchMessage = useCallback(
+    (actual?: AccountType | null, expected?: AccountType | null) =>
+      t("messages.accountTypeMismatch", {
+        actualAccountType: getAccountTypeLabel(actual),
+        expectedAccountType: getAccountTypeLabel(expected || userType)
+      }),
+    [getAccountTypeLabel, t, userType]
+  );
 
   const getDashboardPath = useCallback(
     (type: "b2b" | "b2c" | "admin" | undefined) => {
@@ -229,6 +273,11 @@ const AuthForm: React.FC = () => {
     if (handledAuthErrorRef.current === errorFingerprint) return;
     handledAuthErrorRef.current = errorFingerprint;
 
+    const mismatch =
+      errorCode === "ACCOUNT_TYPE_MISMATCH" ?
+        parseAccountTypeMismatch(`ACCOUNT_TYPE_MISMATCH:${errorDescription}:${userType}`) :
+        null;
+
     const oauthErrors: Record<string, string> = {
       GOOGLE_ACCOUNT_NOT_FOUND: t("oauthErrors.accountNotFound"),
       GOOGLE_EMAIL_ALREADY_REGISTERED: t("oauthErrors.emailAlreadyRegistered"),
@@ -238,6 +287,12 @@ const AuthForm: React.FC = () => {
       GOOGLE_AUTH_FAILED: t("oauthErrors.googleAuthFailed"),
       MISSING_CODE: t("oauthErrors.missingCode"),
       EMAIL_NOT_VERIFIED: t("oauthErrors.emailNotVerified"),
+      ACCOUNT_TYPE_MISMATCH:
+        mismatch ?
+          getAccountTypeMismatchMessage(mismatch.actual, mismatch.expected) :
+          t("messages.invalidLoginByType", {
+            accountType: userType === "b2c" ? t("messages.consumer") : t("messages.business")
+          }),
       missing_tokens: t("oauthErrors.missingCode")
     };
 
@@ -263,7 +318,16 @@ const AuthForm: React.FC = () => {
     params.delete("error_description");
     const nextQuery = params.toString();
     router.replace(nextQuery ? `/auth?${nextQuery}` : "/auth");
-  }, [searchParams, toast, router, t, redirectToCheckEmail, email]);
+  }, [
+    searchParams,
+    toast,
+    router,
+    t,
+    redirectToCheckEmail,
+    email,
+    getAccountTypeMismatchMessage,
+    userType
+  ]);
 
   const validateForm = (isSignUp: boolean) => {
     const emailSchema = z.string().email(t("validation.invalidEmail"));
@@ -326,15 +390,18 @@ const AuthForm: React.FC = () => {
     }
 
     if (error) {
+      const mismatch = parseAccountTypeMismatch(error.message);
       setIsLoading(false);
       toast({
         title: t("error"),
         description:
-        error.message === "Invalid login credentials" ?
-        t("messages.invalidLoginByType", {
-          accountType: userType === "b2c" ? t("messages.consumer") : t("messages.business")
-        }) :
-        error.message,
+        mismatch ?
+          getAccountTypeMismatchMessage(mismatch.actual, mismatch.expected) :
+          error.message === "Invalid login credentials" ?
+            t("messages.invalidLoginByType", {
+              accountType: userType === "b2c" ? t("messages.consumer") : t("messages.business")
+            }) :
+            error.message,
         variant: "destructive"
       });
     } else {

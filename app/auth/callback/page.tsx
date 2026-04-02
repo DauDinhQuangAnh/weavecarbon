@@ -7,7 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, authTokenStore, isApiError, isUnauthorizedApiError } from "@/lib/apiClient";
 import {
   clearGoogleOAuthInflightState,
-  getGoogleRememberPreference
+  getGoogleRememberPreference,
+  getGoogleRequestedRole
 } from "@/lib/auth/googleOAuth";
 
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
@@ -23,14 +24,28 @@ type CompanyCheckPayload = {
   };
 };
 
+type AccountPayload = {
+  roles?: Array<"b2b" | "b2c" | "admin">;
+};
+
+const normalizeRole = (
+  role?: string | null
+): "b2b" | "b2c" | "admin" | undefined => {
+  if (role === "b2b" || role === "b2c" || role === "admin") {
+    return role;
+  }
+  return undefined;
+};
+
 const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
   const nested = payload?.data;
   const source = nested || payload || {};
+  const userType = normalizeRole(source.user_type);
   const isB2b =
-    typeof source.is_b2b === "boolean" ? source.is_b2b : source.user_type === "b2b";
+    typeof source.is_b2b === "boolean" ? source.is_b2b : userType === "b2b";
   const hasCompany =
     typeof source.has_company === "boolean" ? source.has_company : false;
-  return { isB2b, hasCompany };
+  return { isB2b, hasCompany, userType };
 };
 
 const clearStoredAuthUser = () => {
@@ -63,6 +78,22 @@ const buildCheckEmailUrl = (params: {
   return serialized ? `/auth/check-email?${serialized}` : "/auth/check-email";
 };
 
+const buildAuthErrorUrl = (params: {
+  type?: "b2b" | "b2c" | "admin" | null;
+  error: string;
+  errorDescription?: string | null;
+}) => {
+  const query = new URLSearchParams();
+  if (params.type) {
+    query.set("type", params.type);
+  }
+  query.set("error", params.error);
+  if (params.errorDescription?.trim()) {
+    query.set("error_description", params.errorDescription.trim());
+  }
+  return `/auth?${query.toString()}`;
+};
+
 const mapGoogleErrorMessage = (
 errorCode: string,
 t: ReturnType<typeof useTranslations>,
@@ -91,6 +122,24 @@ fallback?: string) =>
 const isTruthyFlag = (value: string | null) =>
 ["1", "true"].includes((value || "").toLowerCase());
 
+const resolveAuthenticatedUserType = async () => {
+  try {
+    const account = await api.get<AccountPayload>("/account");
+    const accountRole = normalizeRole(account?.roles?.[0]);
+    if (accountRole) {
+      return accountRole;
+    }
+  } catch (error) {
+    if (isUnauthorizedApiError(error)) {
+      throw error;
+    }
+  }
+
+  const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
+  const { isB2b, userType } = normalizeCompanyCheck(payload);
+  return userType || (isB2b ? "b2b" : "b2c");
+};
+
 export default function AuthCallbackPage() {
   const t = useTranslations("authCallback");
   const router = useRouter();
@@ -104,7 +153,12 @@ export default function AuthCallbackPage() {
 
     let cancelled = false;
 
-    const resolvePostLoginPath = async () => {
+    const resolvePostLoginPath = async (
+      accountType?: "b2b" | "b2c" | "admin"
+    ) => {
+      if (accountType === "b2c") return "/b2c";
+      if (accountType === "admin") return "/overview";
+
       try {
         const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
         const { isB2b, hasCompany } = normalizeCompanyCheck(payload);
@@ -218,6 +272,7 @@ export default function AuthCallbackPage() {
         }
 
         const rememberMe = getGoogleRememberPreference();
+        const requestedRole = getGoogleRequestedRole();
 
         authTokenStore.setTokens({
           access_token: accessToken,
@@ -227,8 +282,26 @@ export default function AuthCallbackPage() {
         clearGoogleOAuthInflightState();
         clearCallbackHash();
 
+        const actualRole = await resolveAuthenticatedUserType();
+        if (
+          requestedRole &&
+          actualRole &&
+          requestedRole !== actualRole
+        ) {
+          authTokenStore.clear();
+          clearStoredAuthUser();
+          router.replace(
+            buildAuthErrorUrl({
+              type: requestedRole,
+              error: "ACCOUNT_TYPE_MISMATCH",
+              errorDescription: actualRole
+            })
+          );
+          return;
+        }
+
         await refreshUser();
-        const destination = await resolvePostLoginPath();
+        const destination = await resolvePostLoginPath(actualRole);
         router.replace(destination);
       } catch {
         clearGoogleOAuthInflightState();

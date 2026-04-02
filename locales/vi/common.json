@@ -233,6 +233,7 @@
       "missingCode": "Callback Google không hợp lệ. Vui lòng đăng nhập lại."
     },
     "messages": {
+      "accountTypeMismatch": "Tài khoản này đã được đăng ký là {actualAccountType} nên không thể đăng nhập dưới {expectedAccountType}.",
       "invalidLoginByType": "Không tìm thấy tài khoản {accountType} với email và mật khẩu này",
       "consumer": "cá nhân",
       "business": "doanh nghiệp",
@@ -2661,6 +2662,8 @@
     "streetAddressPlaceholder": "123 Đường Chính",
     "aptSuiteLabel": "Căn hộ, tầng, số phòng (tùy chọn)",
     "aptSuitePlaceholder": "Căn hộ 4B, Phòng 100, Tầng 2...",
+    "districtWardLabel": "Phường / Quận / Khu vực",
+    "districtWardPlaceholder": "Phường/xã, quận/huyện hoặc khu vực",
     "cityLabel": "Thành phố *",
     "cityPlaceholder": "TP. Hồ Chí Minh",
     "stateProvinceLabel": "Bang / Tỉnh",

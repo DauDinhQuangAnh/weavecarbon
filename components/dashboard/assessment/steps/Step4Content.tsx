@@ -3,6 +3,7 @@
 import React from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,8 +17,11 @@ import {
   AlertCircle,
   MapPin,
   Loader2,
+  Plus,
   Plane,
   Ship,
+  Sparkles,
+  Trash2,
   Truck,
   Train,
   ArrowRight
@@ -46,7 +50,6 @@ import {
   buildExportFallbackRoute,
   resolveExportSuggestedRoute
 } from "./exportRouteOptimizer";
-import { resolveIntermodalPlan } from "./intermodalPlanner";
 import dynamic from "next/dynamic";
 import {
   fetchRoadRoute,
@@ -174,6 +177,9 @@ const hasPositiveDistance = (value: number | undefined): value is number =>
 const roundDistanceKm = (value: number) =>
   Math.round((Math.max(0, value) + Number.EPSILON) * 10) / 10;
 
+const roundCo2Kg = (value: number) =>
+  Math.round((Math.max(0, value) + Number.EPSILON) * 1000) / 1000;
+
 const ROAD_DISTANCE_UPDATE_EPSILON_KM = 0.5;
 const ROAD_SNAP_UPDATE_EPSILON = 0.00001;
 const ROAD_DISTANCE_SYNC_DEBOUNCE_MS = 250;
@@ -254,6 +260,7 @@ const pickRouteRelevantAddress = (address: AddressInput): AddressInput => {
   const hasCoordinates = isFiniteNumber(address.lat) && isFiniteNumber(address.lng);
 
   return {
+    aptSuite: "",
     streetNumber: "",
     street: "",
     ward: "",
@@ -290,6 +297,59 @@ const buildRouteSuggestionSignature = (context: {
 const serializeTransportLegNodeRef = (
   nodeRef: TransportLeg["fromNode"] | TransportLeg["toNode"] | undefined
 ) => (nodeRef ? `${nodeRef.type}:${nodeRef.hubId || ""}` : "none");
+
+const hasOwnProperty = <Key extends PropertyKey>(
+  value: object,
+  key: Key
+): value is Record<Key, unknown> => Object.prototype.hasOwnProperty.call(value, key);
+
+const getModeCo2Factor = (mode: TransportLeg["mode"]) =>
+  TRANSPORT_MODES.find((item) => item.value === mode)?.co2Factor;
+
+const buildLegMetrics = (
+  mode: TransportLeg["mode"],
+  estimatedDistance: number | undefined
+) => {
+  const emissionFactor = getModeCo2Factor(mode);
+  return {
+    emissionFactor,
+    co2Kg:
+      emissionFactor && hasPositiveDistance(estimatedDistance) ?
+        roundCo2Kg(estimatedDistance * emissionFactor) :
+        undefined
+  };
+};
+
+const withDerivedLegMetrics = (leg: TransportLeg): TransportLeg => ({
+  ...leg,
+  ...buildLegMetrics(leg.mode, leg.estimatedDistance)
+});
+
+const calculateTransportTotalDistance = (legs: TransportLeg[]) =>
+  roundDistanceKm(
+    legs.reduce(
+      (sum, leg) => sum + (hasPositiveDistance(leg.estimatedDistance) ? leg.estimatedDistance : 0),
+      0
+    )
+  );
+
+const createManualTransportLeg = (): TransportLeg => {
+  const baseLeg: TransportLeg = {
+    id: `manual-leg-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    mode: "road",
+    estimatedDistance: undefined,
+    routeResolved: false,
+    autoSuggested: false,
+    distanceSource: "manual",
+    distanceStatus: "manual",
+    geometry: undefined,
+    fromNode: undefined,
+    toNode: undefined,
+    segmentKind: undefined
+  };
+
+  return withDerivedLegMetrics(baseLeg);
+};
 
 const buildRoadResolutionSignature = (
   destinationMarket: string,
@@ -343,50 +403,7 @@ const materializeSuggestedRouteLegs = (
     distanceSource: leg.distanceSource,
     distanceStatus: leg.distanceStatus,
     segmentKind: leg.segmentKind
-  }));
-};
-
-const areTransportLegsSemanticallyEqual = (left: TransportLeg, right: TransportLeg) =>
-  left.mode === right.mode &&
-  left.segmentKind === right.segmentKind &&
-  areTransportLegNodeRefsEqual(left.fromNode, right.fromNode) &&
-  areTransportLegNodeRefsEqual(left.toNode, right.toNode);
-
-const applyManualDistanceOverrides = (
-  currentLegs: TransportLeg[],
-  nextLegs: TransportLeg[]
-) =>
-  nextLegs.map((nextLeg) => {
-    const manualLeg = currentLegs.find(
-      (candidate) =>
-        candidate.distanceSource === "manual" &&
-        hasPositiveDistance(candidate.estimatedDistance) &&
-        areTransportLegsSemanticallyEqual(candidate, nextLeg)
-    );
-
-    if (!manualLeg || !hasPositiveDistance(manualLeg.estimatedDistance)) {
-      return nextLeg;
-    }
-
-    return {
-      ...nextLeg,
-      estimatedDistance: manualLeg.estimatedDistance,
-      distanceSource: "manual" as const,
-      distanceStatus: "manual" as const
-    };
-  });
-
-const routeMatchesRequiredLongHaulMode = (
-  route: SuggestedRoute,
-  requiredLongHaulMode: TransportLeg["mode"]
-) => {
-  const nonRoadModes = route.legs.filter((leg) => leg.mode !== "road").map((leg) => leg.mode);
-
-  if (requiredLongHaulMode === "road") {
-    return nonRoadModes.length === 0;
-  }
-
-  return nonRoadModes.includes(requiredLongHaulMode);
+  })).map(withDerivedLegMetrics);
 };
 
 const mapHubKindToRoadPointSource = (
@@ -502,11 +519,28 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     origin: data.originAddress
   });
   const transportLegsRef = React.useRef(data.transportLegs);
+  const [routeEditingMode, setRouteEditingMode] = React.useState<"auto" | "manual">(() =>
+    data.transportLegs.some((leg) => !isAutoSuggestedTransportLeg(leg)) ? "manual" : "auto"
+  );
+  const routeEditingModeRef = React.useRef(routeEditingMode);
   addressValueRef.current = {
     destination: data.destinationAddress,
     origin: data.originAddress
   };
   transportLegsRef.current = data.transportLegs;
+  routeEditingModeRef.current = routeEditingMode;
+
+  const buildTransportLegUpdates = React.useCallback((legs: TransportLeg[]) => ({
+    transportLegs: legs,
+    estimatedTotalDistance: calculateTransportTotalDistance(legs)
+  }), []);
+
+  React.useEffect(() => {
+    const hasManualLegs = data.transportLegs.some((leg) => !isAutoSuggestedTransportLeg(leg));
+    if (hasManualLegs && routeEditingModeRef.current !== "manual") {
+      setRouteEditingMode("manual");
+    }
+  }, [data.transportLegs]);
 
   const updateOriginAddress = React.useCallback(
     (
@@ -920,63 +954,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     ]
   );
 
-  const manualRoutePlanRequestSeqRef = React.useRef(0);
-
-  const replanTransportLegsForMode = React.useCallback(
-    async (nextMode: TransportLeg["mode"]) => {
-      const requestSeq = manualRoutePlanRequestSeqRef.current + 1;
-      manualRoutePlanRequestSeqRef.current = requestSeq;
-      const currentLegs = transportLegsRef.current;
-      setIsSuggestingRoute(true);
-
-      try {
-        const resolvedRoute = await resolveIntermodalPlan(
-          {
-            destinationMarket: data.destinationMarket,
-            destination: addressValueRef.current.destination,
-            origin: addressValueRef.current.origin
-          },
-          {
-            destinationSource: addressSourceRef.current.destination,
-            originSource: addressSourceRef.current.origin
-          },
-          {
-            autoSuggested: false,
-            requiredLongHaulMode: nextMode
-          }
-        );
-
-        if (manualRoutePlanRequestSeqRef.current !== requestSeq) {
-          return;
-        }
-
-        if (!routeMatchesRequiredLongHaulMode(resolvedRoute.route, nextMode)) {
-          return;
-        }
-
-        const snappedUpdates = maybeBuildSnappedAddressUpdates({
-          destination: resolvedRoute.snappedDestination,
-          origin: resolvedRoute.snappedOrigin
-        });
-        const materializedLegs = applyManualDistanceOverrides(
-          currentLegs,
-          materializeSuggestedRouteLegs(resolvedRoute.route, false)
-        );
-
-        setDisplaySuggestedRoute(resolvedRoute.route);
-        onChange({
-          ...(snappedUpdates || {}),
-          transportLegs: materializedLegs
-        });
-      } finally {
-        if (manualRoutePlanRequestSeqRef.current === requestSeq) {
-          setIsSuggestingRoute(false);
-        }
-      }
-    },
-    [data.destinationMarket, maybeBuildSnappedAddressUpdates, onChange]
-  );
-
   const updateTransportLeg = React.useCallback(
     (id: string, updates: Partial<TransportLeg>) => {
       const currentLeg = data.transportLegs.find((leg) => leg.id === id);
@@ -984,54 +961,76 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         return;
       }
 
-      if (typeof updates.mode !== "undefined" && updates.mode !== currentLeg.mode) {
-        void replanTransportLegsForMode(updates.mode);
-        return;
-      }
+      setRouteEditingMode("manual");
+
+      const hasModeUpdate = hasOwnProperty(updates, "mode");
+      const hasEstimatedDistanceUpdate = hasOwnProperty(updates, "estimatedDistance");
 
       const nextLegs = data.transportLegs.map((leg) => {
         if (leg.id !== id) {
           return leg;
         }
 
+        const nextMode =
+          hasModeUpdate && updates.mode ?
+            updates.mode :
+            leg.mode;
+        const modeChanged = hasModeUpdate && nextMode !== leg.mode;
         const nextEstimatedDistance =
-          typeof updates.estimatedDistance === "undefined" ?
-            leg.estimatedDistance :
-            updates.estimatedDistance;
-        const isManualDistanceEdit = typeof updates.estimatedDistance !== "undefined";
+          hasEstimatedDistanceUpdate ?
+            updates.estimatedDistance :
+            leg.estimatedDistance;
+        const isManualDistanceEdit = hasEstimatedDistanceUpdate;
+        const nextDistanceSource =
+          hasOwnProperty(updates, "distanceSource") ?
+            updates.distanceSource :
+          isManualDistanceEdit || (modeChanged && nextMode !== "road") ?
+            "manual" :
+          modeChanged && nextMode === "road" ?
+            undefined :
+            leg.distanceSource;
+        const nextDistanceStatus =
+          hasOwnProperty(updates, "distanceStatus") ?
+            updates.distanceStatus :
+          isManualDistanceEdit || (modeChanged && nextMode !== "road") ?
+            "manual" :
+          modeChanged && nextMode === "road" ?
+            "pending" :
+            leg.distanceStatus;
 
-        return {
+        const nextLeg: TransportLeg = {
           ...leg,
           ...updates,
+          mode: nextMode,
           autoSuggested: false,
           estimatedDistance: nextEstimatedDistance,
-          distanceSource:
-            leg.mode === "road" ?
-              leg.distanceSource :
-            isManualDistanceEdit ?
-              "manual" :
-              updates.distanceSource ?? leg.distanceSource,
-          distanceStatus:
-            leg.mode === "road" ?
-              updates.distanceStatus ?? leg.distanceStatus :
-            isManualDistanceEdit ?
-              "manual" :
-              updates.distanceStatus ?? leg.distanceStatus,
+          distanceSource: nextDistanceSource,
+          distanceStatus: nextDistanceStatus,
           routeResolved:
-            leg.mode === "road" ?
-              updates.routeResolved ?? leg.routeResolved :
+            nextMode === "road" ?
+              isManualDistanceEdit ?
+                false :
+              modeChanged ?
+                false :
+                updates.routeResolved ?? leg.routeResolved :
               undefined
         };
+
+        if (modeChanged || isManualDistanceEdit) {
+          nextLeg.geometry = undefined;
+        }
+
+        return withDerivedLegMetrics(nextLeg);
       });
 
-      onChange({ transportLegs: nextLegs });
+      onChange(buildTransportLegUpdates(nextLegs));
     },
-    [data.transportLegs, onChange, replanTransportLegsForMode]
+    [buildTransportLegUpdates, data.transportLegs, onChange]
   );
 
-  const totalDistance = data.transportLegs.reduce(
-    (sum, leg) => sum + (hasPositiveDistance(leg.estimatedDistance) ? leg.estimatedDistance : 0),
-    0
+  const totalDistance = React.useMemo(
+    () => calculateTransportTotalDistance(data.transportLegs),
+    [data.transportLegs]
   );
 
   const suggestedRoute = React.useMemo<SuggestedRoute>(() => {
@@ -1162,7 +1161,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     let isCancelled = false;
     const transportLegs = transportLegsRef.current;
     const roadLegIndexes = transportLegs.reduce<number[]>((indexes, leg, index) => {
-      if (leg.mode === "road") {
+      if (leg.mode === "road" && leg.distanceSource !== "manual") {
         indexes.push(index);
       }
       return indexes;
@@ -1201,6 +1200,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 distanceSource: "road_route",
                 distanceStatus: "pending"
               };
+              nextLegs[legIndex] = withDerivedLegMetrics(nextLegs[legIndex]);
               hasUpdates = true;
             }
             continue;
@@ -1227,6 +1227,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 distanceSource: "road_route",
                 distanceStatus: hasPositiveDistance(currentLeg.estimatedDistance) ? "estimated" : "pending"
               };
+              nextLegs[legIndex] = withDerivedLegMetrics(nextLegs[legIndex]);
               hasUpdates = true;
             }
             continue;
@@ -1258,6 +1259,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
             distanceSource: "road_route",
             distanceStatus: "resolved"
           };
+          nextLegs[legIndex] = withDerivedLegMetrics(nextLegs[legIndex]);
           hasUpdates = true;
         }
 
@@ -1273,7 +1275,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
         onChange({
           ...(snappedUpdates || {}),
-          ...(hasUpdates ? { transportLegs: nextLegs } : {})
+          ...(hasUpdates ? buildTransportLegUpdates(nextLegs) : {})
         });
       } finally {
         if (!isCancelled && roadDistanceRequestSeqRef.current === requestSeq) {
@@ -1291,13 +1293,23 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       isCancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [maybeBuildSnappedAddressUpdates, onChange, resolveRoadLegEndpoints, roadResolutionSignature]);
+  }, [
+    buildTransportLegUpdates,
+    maybeBuildSnappedAddressUpdates,
+    onChange,
+    resolveRoadLegEndpoints,
+    roadResolutionSignature
+  ]);
 
   React.useEffect(() => {
     const hasNoTransportLegs = data.transportLegs.length === 0;
     const currentLegsAreAutoSuggested =
       data.transportLegs.length > 0 &&
       data.transportLegs.every((leg) => isAutoSuggestedTransportLeg(leg));
+
+    if (routeEditingModeRef.current === "manual") {
+      return;
+    }
 
     if (!hasNoTransportLegs && !currentLegsAreAutoSuggested) {
       return;
@@ -1328,13 +1340,25 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     }
 
     onChange({
-      transportLegs: autoSuggestedTransportLegs
+      ...buildTransportLegUpdates(autoSuggestedTransportLegs)
     });
   }, [
     autoSuggestedTransportLegs,
+    buildTransportLegUpdates,
     data.transportLegs,
     onChange
   ]);
+
+  React.useEffect(() => {
+    if (data.transportLegs.length === 0) return;
+
+    const syncedTotalDistance = calculateTransportTotalDistance(data.transportLegs);
+    if (Math.abs((data.estimatedTotalDistance || 0) - syncedTotalDistance) < 0.05) {
+      return;
+    }
+
+    onChange({ estimatedTotalDistance: syncedTotalDistance });
+  }, [data.estimatedTotalDistance, data.transportLegs, onChange]);
 
   const handleMarketChange = React.useCallback((market: string) => {
     const marketInfo = DESTINATION_MARKETS.find((item) => item.value === market);
@@ -1361,11 +1385,13 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     }
 
     addressSourceRef.current.destination = "manual";
+    setRouteEditingMode("auto");
 
     onChange({
       destinationMarket: market,
       destinationAddress: {
         ...data.destinationAddress,
+        aptSuite: "",
         streetNumber: "",
         street: "",
         ward: "",
@@ -1377,9 +1403,29 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         lat: undefined,
         lng: undefined
       },
+      transportLegs: [],
       estimatedTotalDistance: marketInfo?.distance || 500
     });
   }, [data.destinationAddress, onChange]);
+
+  const applySuggestedTransportLegs = React.useCallback(() => {
+    setRouteEditingMode("auto");
+    onChange(buildTransportLegUpdates(autoSuggestedTransportLegs));
+  }, [autoSuggestedTransportLegs, buildTransportLegUpdates, onChange]);
+
+  const addTransportLeg = React.useCallback(() => {
+    setRouteEditingMode("manual");
+    const nextLegs = [...data.transportLegs, createManualTransportLeg()];
+    onChange(buildTransportLegUpdates(nextLegs));
+  }, [buildTransportLegUpdates, data.transportLegs, onChange]);
+
+  const clearTransportLegs = React.useCallback(() => {
+    setRouteEditingMode("manual");
+    onChange({
+      transportLegs: [],
+      estimatedTotalDistance: 0
+    });
+  }, [onChange]);
 
   React.useEffect(() => {
     if (!starterDomesticMarket) return;
@@ -1603,6 +1649,41 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
             </CardHeader>
 
             <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTransportLeg}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("transport.addLeg")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={applySuggestedTransportLegs}
+                  disabled={autoSuggestedTransportLegs.length === 0}
+                  className="gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {t("suggestedRoute.apply")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearTransportLegs}
+                  disabled={data.transportLegs.length === 0}
+                  className="gap-2 text-muted-foreground"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t("transport.clearAllLegs")}
+                </Button>
+              </div>
+
               {data.transportLegs.length > 0 ? (
                 <div className="space-y-3">
                   {data.transportLegs.map((leg, index) => {
@@ -1660,7 +1741,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                                 min="0"
                                 value={leg.estimatedDistance ?? ""}
                                 onChange={(event) => {
-                                  if (leg.mode === "road") return;
                                   const rawValue = event.target.value.trim();
                                   updateTransportLeg(leg.id, {
                                     estimatedDistance:
@@ -1672,7 +1752,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                                     t("transport.distancePlaceholderRoad") :
                                     t("transport.distancePlaceholder")
                                 }
-                                readOnly={leg.mode === "road"}
                                 className="min-w-[5rem] flex-1 md:w-32 md:flex-none"
                               />
 

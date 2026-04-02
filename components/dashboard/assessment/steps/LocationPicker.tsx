@@ -92,6 +92,7 @@ const EMPTY_ADDRESS_PARTS: Omit<
   AddressInput,
   "lat" | "lng"
 > = {
+  aptSuite: "",
   streetNumber: "",
   street: "",
   ward: "",
@@ -505,24 +506,36 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   }, [address.lat, address.lng, resetMapToDefaultCenter, syncMarker]);
 
   const applyManualAddressChange = useCallback(
-    (nextAddress: AddressInput) => {
-      const clearedAddress: AddressInput = {
-        ...nextAddress,
-        lat: undefined,
-        lng: undefined
-      };
+    (
+      nextAddress: AddressInput,
+      options?: {
+        preserveCoordinates?: boolean;
+      }
+    ) => {
+      const preserveCoordinates = options?.preserveCoordinates === true;
+      const updatedAddress: AddressInput =
+        preserveCoordinates ?
+          nextAddress :
+          {
+            ...nextAddress,
+            lat: undefined,
+            lng: undefined
+          };
 
-      addressRef.current = clearedAddress;
+      addressRef.current = updatedAddress;
 
-      if (markerRef.current) {
+      if (!preserveCoordinates && markerRef.current) {
         markerRef.current.remove();
         markerRef.current = null;
       }
 
       setShowResults(false);
       setSearchResults([]);
-      onChangeRef.current(clearedAddress, { source: "manual" });
-      resetMapToDefaultCenter();
+      onChangeRef.current(updatedAddress, { source: "manual" });
+
+      if (!preserveCoordinates) {
+        resetMapToDefaultCenter();
+      }
     },
     [resetMapToDefaultCenter]
   );
@@ -660,8 +673,37 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     );
   };
 
-  const aptSuiteValue = [address.ward, address.district]
+  const streetAddressInputValue = [address.streetNumber, address.street]
     .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
+  const districtWardFallback = (() => {
+    const normalizedDistrict = (address.district || "").trim();
+    if (normalizedDistrict) return normalizedDistrict;
+
+    const normalizedCity = (address.city || "").trim();
+    const normalizedStateRegion = (address.stateRegion || "").trim();
+    if (
+      normalizedCity &&
+      normalizedCity.toLowerCase() !== normalizedStateRegion.toLowerCase()
+    ) {
+      return normalizedCity;
+    }
+
+    return "";
+  })();
+  const districtWardInputValue = [address.ward, districtWardFallback]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
+  const selectedLocationSummary = [
+    streetAddressInputValue,
+    address.ward,
+    districtWardFallback,
+    address.city || address.stateRegion,
+    address.country
+  ]
+    .map((part) => (part || "").trim())
     .filter(Boolean)
     .join(", ");
 
@@ -749,21 +791,44 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         />
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
+          <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs text-muted-foreground">
-              {tAddress("aptSuiteLabel")}
+              {tAddress("streetAddressLabel")}
             </Label>
             <Input
-              value={aptSuiteValue}
-              placeholder={tAddress("aptSuitePlaceholder")}
+              value={streetAddressInputValue}
+              placeholder={tAddress("streetAddressPlaceholder")}
+              onChange={(event) =>
+                applyManualAddressChange(
+                  {
+                    ...address,
+                    streetNumber: "",
+                    street: event.target.value
+                  },
+                  { preserveCoordinates: true }
+                )
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">
+              {tAddress("districtWardLabel")}
+            </Label>
+            <Input
+              value={districtWardInputValue}
+              placeholder={tAddress("districtWardPlaceholder")}
               onChange={(event) => {
                 const nextValue = event.target.value.trim();
                 if (!nextValue) {
-                  applyManualAddressChange({
-                    ...address,
-                    ward: "",
-                    district: ""
-                  });
+                  applyManualAddressChange(
+                    {
+                      ...address,
+                      ward: "",
+                      district: ""
+                    },
+                    { preserveCoordinates: true }
+                  );
                   return;
                 }
 
@@ -772,11 +837,14 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
                   .map((part) => part.trim())
                   .filter(Boolean);
 
-                applyManualAddressChange({
-                  ...address,
-                  ward: ward || "",
-                  district: districtParts.join(", ")
-                });
+                applyManualAddressChange(
+                  {
+                    ...address,
+                    ward: ward || "",
+                    district: districtParts.join(", ")
+                  },
+                  { preserveCoordinates: true }
+                );
               }}
             />
           </div>
@@ -814,17 +882,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           </div>
         </div>
 
-        {address.lat && address.lng ? (
+        {hasCoordinatePair(address.lat, address.lng) ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded">
             <MapPin className="w-3 h-3" />
             <span>
-              {address.lat.toFixed(6)}, {address.lng.toFixed(6)}
+              {(address.lat as number).toFixed(6)}, {(address.lng as number).toFixed(6)}
             </span>
-            {address.city || address.stateRegion ? (
+            {selectedLocationSummary ? (
               <>
                 <span className="mx-1">|</span>
-                <span>
-                  {address.city || address.stateRegion}, {address.country}
+                <span className="line-clamp-1">
+                  {selectedLocationSummary}
                 </span>
               </>
             ) : null}

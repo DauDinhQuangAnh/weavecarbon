@@ -225,6 +225,7 @@ export const isValidBatchId = (batchId: string) =>
 batchId.trim().length > 0;
 
 const emptyAddress: AddressInput = {
+  aptSuite: "",
   streetNumber: "",
   street: "",
   ward: "",
@@ -581,6 +582,17 @@ const normalizeAddress = (value: unknown): AddressInput => {
   const lngValue = value.lng ?? value.longitude;
 
   const next: AddressInput = {
+    aptSuite: asString(
+      value.aptSuite ??
+        value.apt_suite ??
+        value.addressLine2 ??
+        value.address_line_2 ??
+        value.unitDetails ??
+        value.unit_details ??
+        value.apartment ??
+        value.suite ??
+        value.unit
+    ),
     streetNumber: asString(value.streetNumber ?? value.street_number),
     street: asString(value.street ?? value.address),
     ward: asString(value.ward ?? value.commune),
@@ -1622,12 +1634,21 @@ const normalizeMutationPayload = (payload: unknown): ProductMutationResult => {
   };
 };
 
+const stripTransportLegGeometry = (
+  leg: ProductAssessmentData["transportLegs"][number]
+) => {
+  const sanitizedLeg = { ...leg };
+  delete sanitizedLeg.geometry;
+  return sanitizedLeg;
+};
+
 const buildProductRequestBody = (
 product: ProductAssessmentData,
 saveMode?: ProductSaveMode) =>
 {
   const payload: Record<string, unknown> = {
-    ...product
+    ...product,
+    transportLegs: (product.transportLegs || []).map(stripTransportLegGeometry)
   };
 
   if (saveMode) {

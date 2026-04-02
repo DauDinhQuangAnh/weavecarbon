@@ -30,8 +30,15 @@ const B2CClient: React.FC = () => {
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+
+    if (!user) {
       router.push("/auth?type=b2c");
+      return;
+    }
+
+    if (user.user_type === "b2b" || user.user_type === "admin") {
+      router.replace("/overview");
     }
   }, [user, loading, router]);
 

@@ -92,6 +92,7 @@ const STEP_CONFIG = [
 
 
 const emptyAddress = {
+  aptSuite: "",
   streetNumber: "",
   street: "",
   ward: "",

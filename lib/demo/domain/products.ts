@@ -135,6 +135,7 @@ const isAddressUseful = (address: AddressInput | null | undefined) => {
   if (typeof address.lat === "number" && Number.isFinite(address.lat)) return true;
   if (typeof address.lng === "number" && Number.isFinite(address.lng)) return true;
   return [
+    address.aptSuite,
     address.streetNumber,
     address.street,
     address.ward,
@@ -147,6 +148,7 @@ const isAddressUseful = (address: AddressInput | null | undefined) => {
 };
 
 const cloneAddress = (address: AddressInput): AddressInput => ({
+  aptSuite: address.aptSuite || "",
   streetNumber: address.streetNumber || "",
   street: address.street || "",
   ward: address.ward || "",
@@ -176,6 +178,7 @@ const resolveAddressCity = (address: AddressInput) =>
 
 const toAddressLabel = (address: AddressInput, fallback: string) => {
   const parts = [
+    address.aptSuite,
     address.streetNumber,
     address.street,
     address.ward,

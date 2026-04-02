@@ -165,6 +165,15 @@ interface DemoPayload {
   tokens?: AuthTokens;
 }
 
+interface CompanyCheckPayload {
+  is_b2b?: boolean;
+  user_type?: "b2b" | "b2c" | "admin";
+  data?: {
+    is_b2b?: boolean;
+    user_type?: "b2b" | "b2c" | "admin";
+  };
+}
+
 const getCurrentFrontendOrigin = () =>
   typeof window !== "undefined" ? window.location.origin : undefined;
 
@@ -275,6 +284,16 @@ role?: string | null)
     return role;
   }
   return undefined;
+};
+
+const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
+  const nested = payload?.data;
+  const source = nested || payload || {};
+  const userType = normalizeRole(source.user_type);
+  const isB2b =
+    typeof source.is_b2b === "boolean" ? source.is_b2b : userType === "b2b";
+
+  return { isB2b, userType };
 };
 
 const buildUserFromSignIn = (payload: SignInPayload): User => {
@@ -427,6 +446,33 @@ const getAccountSafely = async (): Promise<AccountPayload | null> => {
   } catch (error) {
     if (isNotFoundError(error) || isUnauthorizedError(error)) {
       return null;
+    }
+    throw error;
+  }
+};
+
+const resolveAuthenticatedUserType = async (
+fallbackRole?: User["user_type"])
+: Promise<User["user_type"] | undefined> => {
+  const account = await getAccountSafely();
+  const accountRole = normalizeRole(account?.roles?.[0]);
+  if (accountRole) {
+    return accountRole;
+  }
+
+  try {
+    const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
+    const { isB2b, userType } = normalizeCompanyCheck(payload);
+    if (userType) {
+      return userType;
+    }
+    if (typeof isB2b === "boolean") {
+      return isB2b ? "b2b" : "b2c";
+    }
+    return fallbackRole;
+  } catch (error) {
+    if (isNotFoundError(error) || isUnauthorizedError(error)) {
+      return fallbackRole;
     }
     throw error;
   }
@@ -831,24 +877,27 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         }
       );
 
+      authTokenStore.setTokens(payload.tokens, { persist: rememberMe });
+      clearSubscriptionLockStateCache();
+
       const signedInUser = buildUserFromSignIn(payload);
+      const resolvedUserType =
+        signedInUser.user_type || (await resolveAuthenticatedUserType(userType));
       const nextUser = {
         ...signedInUser,
-        user_type: signedInUser.user_type || userType
+        user_type: resolvedUserType || userType
       };
 
-      if (userType && nextUser.user_type && nextUser.user_type !== userType) {
+      if (userType && resolvedUserType && resolvedUserType !== userType) {
         authTokenStore.clear();
         clearSubscriptionLockStateCache();
+        persistUser(null);
+        setUser(null);
         return {
-          error: new Error(
-            `This account is ${nextUser.user_type.toUpperCase()}, not ${userType.toUpperCase()}.`
-          )
+          error: new Error(`ACCOUNT_TYPE_MISMATCH:${resolvedUserType}:${userType}`)
         };
       }
 
-      authTokenStore.setTokens(payload.tokens, { persist: rememberMe });
-      clearSubscriptionLockStateCache();
       if (typeof window !== "undefined") {
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
       }
@@ -888,8 +937,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         return { error: new Error("Google authentication is already in progress.") };
       }
 
-      markGoogleOAuthInflight(options?.rememberMe !== false);
       const role = userType ?? "b2b";
+      markGoogleOAuthInflight(
+        options?.rememberMe !== false,
+        intent === "signin" ? role : undefined
+      );
       const frontendOrigin = window.location.origin;
       if (intent === "signup") {
         window.location.assign(

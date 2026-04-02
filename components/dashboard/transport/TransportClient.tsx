@@ -154,6 +154,7 @@ address.country]
 some((value) => value.trim().length > 0);
 
 const toAddressInput = (address: AddressData) => {
+  const normalizedAptSuite = address.aptSuite.trim();
   const aptSuiteParts = address.aptSuite.
   split(",").
   map((part) => part.trim()).
@@ -161,6 +162,7 @@ const toAddressInput = (address: AddressData) => {
   const [ward, ...districtParts] = aptSuiteParts;
 
   return {
+    aptSuite: normalizedAptSuite,
     streetNumber: "",
     street: address.streetAddress.trim(),
     ward: ward || "",
@@ -256,10 +258,12 @@ const toProductAddress = (address?: ProductRecord["originAddress"]): AddressData
   map((value) => (value || "").trim()).
   filter(Boolean).
   join(" ");
-  const aptSuite = [address?.ward, address?.district].
-  map((value) => (value || "").trim()).
-  filter(Boolean).
-  join(", ");
+  const aptSuite =
+    (address?.aptSuite || "").trim() ||
+    [address?.ward, address?.district].
+      map((value) => (value || "").trim()).
+      filter(Boolean).
+      join(", ");
 
   return {
     streetAddress,

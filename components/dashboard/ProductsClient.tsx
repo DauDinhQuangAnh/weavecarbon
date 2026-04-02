@@ -116,6 +116,7 @@ const hasAddressDraftValue = (
   address: ProductAssessmentData["originAddress"] | ProductAssessmentData["destinationAddress"]
 ) =>
   Boolean(
+    address.aptSuite ||
     address.streetNumber ||
     address.street ||
     address.ward ||
@@ -505,6 +506,7 @@ const ProductsClient: React.FC = () => {
             const hasAddressValue = (
             address: ProductRecord["originAddress"] | ProductRecord["destinationAddress"]) =>
             Boolean(
+              address.aptSuite ||
               address.streetNumber ||
               address.street ||
               address.ward ||
