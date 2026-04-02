@@ -17,17 +17,24 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import B2CHeader from "@/components/b2c/B2CHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { api, isApiError } from "@/lib/apiClient";
+import { isApiError } from "@/lib/apiClient";
 import {
+  fetchB2CCollectionPoints,
+  fetchB2CNearbyCollectionPoints,
   type B2CCollectionPoint,
-  type B2CCollectionPointLocation,
-  getFallbackNearbyCollectionPoints,
-  type NearbyCollectionPointsPayload
-} from "@/lib/b2cCollectionPoints";
+  type B2CCollectionPointLocation
+} from "@/lib/b2cApi";
+import { getFallbackNearbyCollectionPoints } from "@/lib/b2cCollectionPoints";
 
 type CollectionPointsStatus = "idle" | "locating" | "loading" | "ready" | "error";
 
@@ -61,14 +68,15 @@ const buildGoogleMapsUrl = (
   currentLocation: B2CCollectionPointLocation | null
 ) => {
   const destination =
-    typeof point.latitude === "number" && typeof point.longitude === "number" ?
-      `${point.latitude},${point.longitude}` :
-      encodeURIComponent([point.address, point.district, point.city].filter(Boolean).join(", "));
+    typeof point.latitude === "number" && typeof point.longitude === "number"
+      ? `${point.latitude},${point.longitude}`
+      : encodeURIComponent(
+          [point.address, point.district, point.city].filter(Boolean).join(", ")
+        );
 
-  const origin =
-    currentLocation ?
-      `&origin=${currentLocation.latitude},${currentLocation.longitude}` :
-      "";
+  const origin = currentLocation
+    ? `&origin=${currentLocation.latitude},${currentLocation.longitude}`
+    : "";
 
   return `https://www.google.com/maps/dir/?api=1&destination=${destination}${origin}`;
 };
@@ -82,83 +90,78 @@ const B2CCollectionPointsClient: React.FC = () => {
   const [status, setStatus] = useState<CollectionPointsStatus>("idle");
   const [items, setItems] = useState<B2CCollectionPoint[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<B2CCollectionPointLocation | null>(null);
+  const [currentLocation, setCurrentLocation] =
+    useState<B2CCollectionPointLocation | null>(null);
   const [usingFallbackData, setUsingFallbackData] = useState(false);
+  const [usingListMode, setUsingListMode] = useState(false);
 
   const getText = useCallback(
     (key: string, fallback: string) => (t.has(key) ? t(key) : fallback),
     [t]
   );
 
-  const toLocationErrorMessage = useCallback((error?: GeolocationPositionError) => {
-    switch (error?.code) {
-      case 1:
-        return getText(
-          "collectionPoints.permissionDenied",
-          "Location permission is blocked. Please allow access in your browser settings."
-        );
-      case 2:
-        return getText(
-          "collectionPoints.positionUnavailable",
-          "The device could not determine your location. Please try again."
-        );
-      case 3:
-        return getText(
-          "collectionPoints.locationTimeout",
-          "Location lookup took too long. Please try again."
-        );
-      default:
-        return getText(
-          "collectionPoints.cannotGetLocation",
-          "Unable to get your current location."
-        );
-    }
-  }, [getText]);
-
-  const loadNearbyCollectionPoints = useCallback(async (latitude: number, longitude: number) => {
+  const loadCollectionPointList = useCallback(async () => {
     setStatus("loading");
     setErrorMessage(null);
     setUsingFallbackData(false);
+    setUsingListMode(true);
 
     try {
-      const query = new URLSearchParams({
-        lat: String(latitude),
-        lng: String(longitude),
-        limit: "6"
-      });
-      const payload = await api.get<NearbyCollectionPointsPayload>(
-        `/b2c/collection-points/nearby?${query.toString()}`
-      );
-
-      setCurrentLocation(payload.current_location || { latitude, longitude });
+      const payload = await fetchB2CCollectionPoints({ limit: 12 });
+      setCurrentLocation(null);
       setItems(payload.items || []);
       setStatus("ready");
     } catch (error) {
-      if (isCollectionPointsRouteUnavailable(error)) {
-        const fallbackPayload = getFallbackNearbyCollectionPoints(
-          { latitude, longitude },
-          6
-        );
-        setCurrentLocation(fallbackPayload.current_location || { latitude, longitude });
-        setItems(fallbackPayload.items || []);
-        setUsingFallbackData(true);
-        setStatus("ready");
-        return;
-      }
-
       setItems([]);
-      setUsingFallbackData(false);
       setStatus("error");
       setErrorMessage(
-        error instanceof Error ?
-          error.message :
-          getText(
-            "collectionPoints.unknownError",
-            "Something went wrong while loading collection points."
-          )
+        error instanceof Error
+          ? error.message
+          : getText(
+              "collectionPoints.unknownError",
+              "Something went wrong while loading collection points."
+            )
       );
     }
   }, [getText]);
+
+  const loadNearbyCollectionPoints = useCallback(
+    async (latitude: number, longitude: number) => {
+      setStatus("loading");
+      setErrorMessage(null);
+      setUsingFallbackData(false);
+      setUsingListMode(false);
+
+      try {
+        const payload = await fetchB2CNearbyCollectionPoints({
+          latitude,
+          longitude,
+          limit: 6
+        });
+
+        setCurrentLocation(payload.current_location || { latitude, longitude });
+        setItems(payload.items || []);
+        setStatus("ready");
+      } catch (error) {
+        if (isCollectionPointsRouteUnavailable(error)) {
+          const fallbackPayload = getFallbackNearbyCollectionPoints(
+            { latitude, longitude },
+            6
+          );
+          setCurrentLocation(
+            fallbackPayload.current_location || { latitude, longitude }
+          );
+          setItems(fallbackPayload.items || []);
+          setUsingFallbackData(true);
+          setStatus("ready");
+          return;
+        }
+
+        await loadCollectionPointList();
+      }
+    },
+    [loadCollectionPointList]
+  );
 
   const requestCurrentLocation = useCallback(() => {
     if (typeof window === "undefined") {
@@ -166,13 +169,7 @@ const B2CCollectionPointsClient: React.FC = () => {
     }
 
     if (!navigator.geolocation) {
-      setStatus("error");
-      setErrorMessage(
-        getText(
-          "collectionPoints.browserNotSupported",
-          "Your browser does not support geolocation."
-        )
-      );
+      void loadCollectionPointList();
       return;
     }
 
@@ -188,12 +185,13 @@ const B2CCollectionPointsClient: React.FC = () => {
           longitude: position.coords.longitude
         };
 
-        void loadNearbyCollectionPoints(nextLocation.latitude, nextLocation.longitude);
+        void loadNearbyCollectionPoints(
+          nextLocation.latitude,
+          nextLocation.longitude
+        );
       },
-      (error) => {
-        setItems([]);
-        setStatus("error");
-        setErrorMessage(toLocationErrorMessage(error));
+      () => {
+        void loadCollectionPointList();
       },
       {
         enableHighAccuracy: true,
@@ -201,7 +199,7 @@ const B2CCollectionPointsClient: React.FC = () => {
         maximumAge: 300000
       }
     );
-  }, [getText, loadNearbyCollectionPoints, toLocationErrorMessage]);
+  }, [loadCollectionPointList, loadNearbyCollectionPoints]);
 
   useEffect(() => {
     if (loading) return;
@@ -236,7 +234,7 @@ const B2CCollectionPointsClient: React.FC = () => {
   if (loading || !profileLoaded) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
       </div>
     );
   }
@@ -246,8 +244,6 @@ const B2CCollectionPointsClient: React.FC = () => {
       <B2CHeader
         profile={profile}
         onSignOut={handleSignOut}
-        onNavigateBack={() => router.push("/b2c")}
-        onNavigateHome={() => router.push("/")}
       />
 
       <main className="container mx-auto space-y-6 px-4 py-6 pb-safe">
@@ -259,12 +255,19 @@ const B2CCollectionPointsClient: React.FC = () => {
                   <MapPin className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
-                  <CardTitle>{getText("collectionPoints.title", "Collection points near you")}</CardTitle>
+                  <CardTitle>
+                    {getText("collectionPoints.title", "Collection points near you")}
+                  </CardTitle>
                   <CardDescription>
-                    {getText(
-                      "collectionPoints.description",
-                      "We use your current location to show the nearest drop-off points."
-                    )}
+                    {usingListMode
+                      ? getText(
+                          "collectionPoints.listModeDescription",
+                          "Showing active collection points because your device location is unavailable."
+                        )
+                      : getText(
+                          "collectionPoints.description",
+                          "We use your current location to show the nearest drop-off points."
+                        )}
                   </CardDescription>
                 </div>
               </div>
@@ -276,37 +279,49 @@ const B2CCollectionPointsClient: React.FC = () => {
               </p>
             </div>
 
-            <Button type="button" variant="outline" onClick={requestCurrentLocation} disabled={isBusy}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={requestCurrentLocation}
+              disabled={isBusy}
+            >
               <RefreshCw className={isBusy ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
               {getText("collectionPoints.retry", "Try again")}
             </Button>
           </CardHeader>
         </Card>
 
-        {isBusy &&
+        {isBusy && (
           <Card>
             <CardContent className="flex min-h-56 flex-col items-center justify-center gap-3 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="max-w-xs text-sm text-muted-foreground">
-                {status === "locating" ?
-                  getText("collectionPoints.locating", "Locating your device...") :
-                  getText("collectionPoints.loading", "Loading nearby collection points...")}
+                {status === "locating"
+                  ? getText("collectionPoints.locating", "Locating your device...")
+                  : getText(
+                      "collectionPoints.loading",
+                      "Loading nearby collection points..."
+                    )}
               </p>
             </CardContent>
           </Card>
-        }
+        )}
 
-        {status === "error" &&
+        {status === "error" && (
           <Card className="border-destructive/20 bg-destructive/5">
             <CardHeader>
               <CardTitle className="text-destructive">
-                {getText("collectionPoints.errorTitle", "Unable to load collection points")}
+                {getText(
+                  "collectionPoints.errorTitle",
+                  "Unable to load collection points"
+                )}
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                {errorMessage || getText(
-                  "collectionPoints.unknownError",
-                  "Something went wrong while loading collection points."
-                )}
+                {errorMessage ||
+                  getText(
+                    "collectionPoints.unknownError",
+                    "Something went wrong while loading collection points."
+                  )}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
@@ -321,9 +336,9 @@ const B2CCollectionPointsClient: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
-        }
+        )}
 
-        {status === "ready" && currentLocation &&
+        {status === "ready" && currentLocation && (
           <Card className="border-primary/15 bg-primary/[0.05]">
             <CardContent className="flex items-start gap-3 p-5">
               <div className="rounded-full bg-primary/10 p-2 text-primary">
@@ -334,14 +349,26 @@ const B2CCollectionPointsClient: React.FC = () => {
                   {getText("collectionPoints.currentLocation", "Your current location")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {currentLocation.latitude.toFixed(5)}, {currentLocation.longitude.toFixed(5)}
+                  {currentLocation.latitude.toFixed(5)},{" "}
+                  {currentLocation.longitude.toFixed(5)}
                 </p>
               </div>
             </CardContent>
           </Card>
-        }
+        )}
 
-        {usingFallbackData &&
+        {status === "ready" && usingListMode && (
+          <Card className="border-border/70 bg-muted/30">
+            <CardContent className="p-5 text-sm text-muted-foreground">
+              {getText(
+                "collectionPoints.listModeNotice",
+                "Location is unavailable right now, so the list below is sorted alphabetically instead of by distance."
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {usingFallbackData && (
           <Card className="border-amber-200 bg-amber-50/80">
             <CardContent className="p-5">
               <p className="text-sm text-amber-900">
@@ -352,12 +379,14 @@ const B2CCollectionPointsClient: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-        }
+        )}
 
-        {isEmpty &&
+        {isEmpty && (
           <Card>
             <CardHeader>
-              <CardTitle>{getText("collectionPoints.emptyTitle", "No collection points found")}</CardTitle>
+              <CardTitle>
+                {getText("collectionPoints.emptyTitle", "No collection points found")}
+              </CardTitle>
               <CardDescription>
                 {getText(
                   "collectionPoints.emptyDescription",
@@ -372,9 +401,9 @@ const B2CCollectionPointsClient: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
-        }
+        )}
 
-        {status === "ready" && items.length > 0 &&
+        {status === "ready" && items.length > 0 && (
           <div className="grid gap-4">
             {items.map((point) => {
               const distance = formatDistance(point.distance_km);
@@ -387,14 +416,17 @@ const B2CCollectionPointsClient: React.FC = () => {
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-semibold">{point.name}</h2>
-                          {distance &&
+                          {distance && (
                             <Badge variant="secondary">
-                              {distance} {getText("collectionPoints.distanceAway", "away")}
+                              {distance}{" "}
+                              {getText("collectionPoints.distanceAway", "away")}
                             </Badge>
-                          }
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {[point.address, point.district, point.city].filter(Boolean).join(", ")}
+                          {[point.address, point.district, point.city]
+                            .filter(Boolean)
+                            .join(", ")}
                         </p>
                       </div>
 
@@ -407,18 +439,18 @@ const B2CCollectionPointsClient: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {point.accepts_charity &&
+                      {point.accepts_charity && (
                         <Badge variant="outline">
                           <HeartHandshake className="h-3 w-3" />
                           {getText("collectionPoints.acceptedForCharity", "Charity")}
                         </Badge>
-                      }
-                      {point.accepts_recycle &&
+                      )}
+                      {point.accepts_recycle && (
                         <Badge variant="outline">
                           <Recycle className="h-3 w-3" />
                           {getText("collectionPoints.acceptedForRecycle", "Recycle")}
                         </Badge>
-                      }
+                      )}
                     </div>
 
                     <div className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
@@ -426,7 +458,10 @@ const B2CCollectionPointsClient: React.FC = () => {
                         <Phone className="mt-0.5 h-4 w-4 shrink-0" />
                         <span>
                           {point.phone?.trim() ||
-                            getText("collectionPoints.phoneUnavailable", "Phone not available")}
+                            getText(
+                              "collectionPoints.phoneUnavailable",
+                              "Phone not available"
+                            )}
                         </span>
                       </div>
                       <div className="flex items-start gap-2">
@@ -445,7 +480,7 @@ const B2CCollectionPointsClient: React.FC = () => {
               );
             })}
           </div>
-        }
+        )}
       </main>
     </div>
   );

@@ -61,6 +61,7 @@ import {
   toTransportLegs,
   type LogisticsShipmentDetail } from
 "@/lib/logisticsApi";
+import { fetchPublicPassportPayload } from "@/lib/b2cApi";
 
 
 interface StoredProduct extends ProductAssessmentData {
@@ -784,11 +785,24 @@ const PassportClient: React.FC = () => {
 
       let apiProduct: ProductRecord | null = null;
       let apiShipment: LogisticsShipmentDetail | null = null;
+      if (normalizedProductId) {
+        try {
+          const publicPayload = await fetchPublicPassportPayload(normalizedProductId);
+          apiProduct = (publicPayload.product as ProductRecord | null) || null;
+          apiShipment = (publicPayload.shipment as LogisticsShipmentDetail | null) || null;
+        } catch {
+          apiProduct = null;
+          apiShipment = normalizedShipmentId ?
+            await resolveShipmentDetailByIdentifier(normalizedShipmentId) :
+            null;
+        }
+      }
+
       if (normalizedShipmentId) {
         apiShipment = await resolveShipmentDetailByIdentifier(normalizedShipmentId);
       }
 
-      if (isValidProductId(normalizedProductId)) {
+      if (!apiProduct && isValidProductId(normalizedProductId)) {
         try {
           apiProduct = await fetchProductById(normalizedProductId);
         } catch {
@@ -807,7 +821,7 @@ const PassportClient: React.FC = () => {
             apiProduct = null;
           }
         }
-      } else {
+      } else if (!apiProduct) {
         try {
           const result = await fetchProducts({
             search: normalizedProductId,

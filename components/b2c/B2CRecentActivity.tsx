@@ -20,6 +20,11 @@ const B2CRecentActivity: React.FC<B2CRecentActivityProps> = ({ activities }) => 
         <CardTitle className="text-lg">{t("recentActivity.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {activities.length === 0 &&
+          <div className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">
+            {t("recentActivity.empty")}
+          </div>
+        }
         {activities.map((activity) =>
         <div
           key={activity.id}

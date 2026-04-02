@@ -1,0 +1,170 @@
+B2C Implementation Spec (Camera AI Excluded, Photo Step Enabled)
+
+1. Scope
+- Camera AI is out of scope.
+- QR decode is out of scope.
+- Auto-classification is out of scope.
+- The first donation step is now Photo.
+- Users must choose one of:
+  - Import image
+  - Capture photo
+- The selected photo is required and is saved together with the donation.
+
+2. Routes
+- FE:
+  - /b2c
+  - /b2c/donate
+  - /b2c/collection-points
+  - /b2c/history
+  - /b2c/history/:id
+  - /passport?id=<productId>
+- BE:
+  - GET /api/b2c/dashboard
+  - GET /api/b2c/collection-points
+  - GET /api/b2c/collection-points/nearby
+  - GET /api/b2c/material-rewards
+  - POST /api/b2c/donations
+  - GET /api/b2c/donations
+  - GET /api/b2c/donations/:id
+  - GET /api/b2c/donations/:id/image
+  - GET /api/b2c/reward-transactions
+  - GET /api/passport/:productId
+
+3. Dashboard
+- Dashboard no longer uses Camera AI or Scan QR as the primary action.
+- Main quick actions:
+  - Start Donation
+  - Collection Points
+  - History
+- Dashboard data is loaded from real API instead of localStorage.
+- Recent activity is loaded from reward_transactions and donations.
+
+4. Donation Wizard
+- Step 0: Photo
+- Step 1: Category
+- Step 2: Items
+- Step 3: Delivery
+- Step 4: Confirm
+- Success screen after submit
+
+5. Photo Step
+- Uses native file picker.
+- Import image:
+  - input[type=file][accept=image/*]
+- Capture photo:
+  - input[type=file][accept=image/*][capture=environment]
+- Exactly one image is required before continuing.
+- Preview uses object URL on FE.
+- No AI analysis is performed.
+
+6. Category Step
+- Supported categories:
+  - charity
+  - recycle
+- Reward rule:
+  - base_points = sum(points_per_kg * weight_kg)
+  - bonus_points = 50% of base_points when category = charity
+  - total_points = base_points + bonus_points
+
+7. Items Step
+- Each item includes:
+  - item_name
+  - item_type optional
+  - condition optional
+  - material_id
+  - weight_kg
+- Materials come from material_rewards where is_active = true.
+
+8. Delivery Step
+- Supported delivery methods:
+  - drop_off
+  - shipping
+- pickup is excluded from this version.
+
+9. Drop-off Rules
+- User selects a collection point.
+- FE requests current location.
+- FE sends gps_checkin with latitude, longitude, checked_at.
+- BE validates distance to collection point.
+- Donation is confirmed only when user is within 200 meters.
+- Successful drop-off is created with:
+  - status = received
+  - confirmation_method = gps
+
+10. Shipping Rules
+- Tracking number is optional.
+- If tracking number exists:
+  - status = in_transit
+- Otherwise:
+  - status = pending
+
+11. Multipart Donation Submit
+- Endpoint:
+  - POST /api/b2c/donations
+- Content-Type:
+  - multipart/form-data
+- Fields:
+  - source_image
+  - payload
+- payload is JSON string with:
+  - category
+  - delivery_method
+  - items[]
+  - collection_point_id optional
+  - shipping_tracking_number optional
+  - gps_checkin optional
+
+12. Donation Image Storage
+- Storage path:
+  - uploads/b2c/donations/<userId>/
+- Image metadata stored on donations:
+  - source_image_storage_key
+  - source_image_original_name
+  - source_image_mime_type
+  - source_image_size_bytes
+- One image per donation in v1.
+
+13. Reward and History
+- Donation creation updates:
+  - donations
+  - donation_items
+  - user_rewards
+  - reward_transactions
+- FE history page shows:
+  - donation list with image and status
+  - reward transaction list
+- FE detail page shows:
+  - donation image
+  - item list
+  - points
+  - weight
+  - CO2 saved
+  - collection point when present
+
+14. Collection Points
+- Nearby page first tries geolocation + nearby API.
+- If geolocation is unavailable, FE falls back to collection-points list API.
+- Sample fallback remains only for route-missing preview situations on the collection points page.
+- Donation flow does not use sample collection point IDs for submit.
+
+15. Green Passport
+- Public passport route tries:
+  - GET /api/passport/:productId
+- If public passport data is missing, FE falls back to existing product/logistics/local hybrid flow.
+- Passport remains independent from donation image flow.
+
+16. Auth and Role Guard
+- B2C pages only allow B2C users.
+- B2B and admin users are redirected away from B2C routes.
+
+17. Verification
+- FE:
+  - eslint passes on updated B2C files
+  - typecheck passes
+- BE:
+  - syntax check passes
+
+18. Open Operational Follow-up
+- Run BE migration for donation image columns:
+  - migrations/003_b2c_donation_images.sql
+- Seed collection_points and material_rewards in dev/staging if database is empty.
