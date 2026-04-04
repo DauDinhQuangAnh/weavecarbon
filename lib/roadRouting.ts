@@ -72,6 +72,10 @@ type MapboxDirectionsResponse = {
 };
 
 type SnapRadius = number | "unlimited";
+type RouteAttemptCandidate = {
+  destination: RoutePoint;
+  origin: RoutePoint;
+};
 
 const DEFAULT_SNAP_PROFILE_METERS =
   [150, 400, 1000, 2500, "unlimited"] as const satisfies readonly SnapRadius[];
@@ -93,6 +97,18 @@ const RAIL_HUB_SNAP_PROFILE_METERS =
   [300, 800, 2000, "unlimited"] as const satisfies readonly SnapRadius[];
 
 const roadRouteCache = new Map<string, Promise<RoadRouteResolution>>();
+const EARTH_RADIUS_KM = 6371.0088;
+const FALLBACK_POINT_DISTANCE_THRESHOLD_KM = 0.2;
+const FALLBACK_OFFSET_BEARINGS_DEGREES =
+  [180, 90, 0, 270, 135, 225, 45, 315] as const;
+const AIRPORT_HUB_FALLBACK_DISTANCES_KM =
+  [0.5, 1, 2, 4] as const;
+const PORT_HUB_FALLBACK_DISTANCES_KM =
+  [0.4, 0.8, 1.5, 3] as const;
+const RAIL_HUB_FALLBACK_DISTANCES_KM =
+  [0.3, 0.7, 1.2, 2.5] as const;
+const WAREHOUSE_FALLBACK_DISTANCES_KM =
+  [0.2, 0.6, 1.2] as const;
 
 const normalizeCoordinate = (value: number) => value.toFixed(6);
 
@@ -131,6 +147,9 @@ const roundDistanceKm = (value: number) =>
 const roundDurationMinutes = (value: number) =>
   Math.round((Math.max(0, value) + Number.EPSILON) * 10) / 10;
 
+const toRadians = (value: number) => value * Math.PI / 180;
+const toDegrees = (value: number) => value * 180 / Math.PI;
+
 const toRoutePoint = (value: unknown): RoutePoint | null => {
   if (!isRouteCoordinate(value)) {
     return null;
@@ -140,6 +159,60 @@ const toRoutePoint = (value: unknown): RoutePoint | null => {
     lat: value[1],
     lng: value[0]
   };
+};
+
+const toRouteCoordinate = (point: RoutePoint): RouteCoordinate => [point.lng, point.lat];
+
+const haversineDistanceKm = (left: RoutePoint, right: RoutePoint) => {
+  const deltaLat = toRadians(right.lat - left.lat);
+  const deltaLng = toRadians(right.lng - left.lng);
+  const leftLat = toRadians(left.lat);
+  const rightLat = toRadians(right.lat);
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(leftLat) * Math.cos(rightLat) * Math.sin(deltaLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(a)));
+};
+
+const offsetRoutePoint = (
+  point: RoutePoint,
+  distanceKm: number,
+  bearingDegrees: number
+): RoutePoint => {
+  const angularDistance = distanceKm / EARTH_RADIUS_KM;
+  const bearing = toRadians(bearingDegrees);
+  const latitude = toRadians(point.lat);
+  const longitude = toRadians(point.lng);
+
+  const nextLatitude = Math.asin(
+    Math.sin(latitude) * Math.cos(angularDistance) +
+      Math.cos(latitude) * Math.sin(angularDistance) * Math.cos(bearing)
+  );
+  const nextLongitude =
+    longitude +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(latitude),
+      Math.cos(angularDistance) - Math.sin(latitude) * Math.sin(nextLatitude)
+    );
+
+  return {
+    lat: toDegrees(nextLatitude),
+    lng: ((toDegrees(nextLongitude) + 540) % 360) - 180
+  };
+};
+
+const dedupeRouteCoordinates = (coordinates: RouteCoordinate[]) => {
+  const deduped: RouteCoordinate[] = [];
+
+  coordinates.forEach((coordinate) => {
+    const previous = deduped[deduped.length - 1];
+    if (previous && previous[0] === coordinate[0] && previous[1] === coordinate[1]) {
+      return;
+    }
+    deduped.push(coordinate);
+  });
+
+  return deduped;
 };
 
 const resolveSnapProfile = (
@@ -164,6 +237,23 @@ const resolveSnapProfile = (
       return WAREHOUSE_SNAP_PROFILE_METERS;
     default:
       return DEFAULT_SNAP_PROFILE_METERS;
+  }
+};
+
+const resolveFallbackDistancesKm = (
+  source: RoadRoutePointSource | undefined
+): readonly number[] => {
+  switch (source) {
+    case "hub_airport":
+      return AIRPORT_HUB_FALLBACK_DISTANCES_KM;
+    case "hub_port":
+      return PORT_HUB_FALLBACK_DISTANCES_KM;
+    case "hub_rail_terminal":
+      return RAIL_HUB_FALLBACK_DISTANCES_KM;
+    case "warehouse":
+      return WAREHOUSE_FALLBACK_DISTANCES_KM;
+    default:
+      return [];
   }
 };
 
@@ -200,6 +290,115 @@ const mapDirectionsFailureReason = (
 
 const shouldRetry = (reason: RoadRouteFailureReason) =>
   reason === "invalid_geometry" || reason === "no_route" || reason === "no_segment";
+
+const buildFallbackRoutePointCandidates = (
+  point: RoutePoint,
+  source: RoadRoutePointSource | undefined
+) => {
+  const result = [point];
+  const seen = new Set<string>([
+    `${normalizeCoordinate(point.lng)}:${normalizeCoordinate(point.lat)}`
+  ]);
+
+  resolveFallbackDistancesKm(source).forEach((distanceKm) => {
+    FALLBACK_OFFSET_BEARINGS_DEGREES.forEach((bearingDegrees) => {
+      const candidate = offsetRoutePoint(point, distanceKm, bearingDegrees);
+      const candidateKey = `${normalizeCoordinate(candidate.lng)}:${normalizeCoordinate(candidate.lat)}`;
+
+      if (seen.has(candidateKey)) {
+        return;
+      }
+
+      seen.add(candidateKey);
+      result.push(candidate);
+    });
+  });
+
+  return result;
+};
+
+const buildFallbackRouteCandidates = (
+  origin: RoutePoint,
+  destination: RoutePoint,
+  options: FetchRoadRouteOptions
+) => {
+  const originCandidates = buildFallbackRoutePointCandidates(origin, options.originSource);
+  const destinationCandidates = buildFallbackRoutePointCandidates(
+    destination,
+    options.destinationSource
+  );
+  const result: RouteAttemptCandidate[] = [{ origin, destination }];
+  const seen = new Set<string>([
+    [
+      normalizeCoordinate(origin.lng),
+      normalizeCoordinate(origin.lat),
+      normalizeCoordinate(destination.lng),
+      normalizeCoordinate(destination.lat)
+    ].join(":")
+  ]);
+
+  const pushCandidate = (candidateOrigin: RoutePoint, candidateDestination: RoutePoint) => {
+    const candidateKey = [
+      normalizeCoordinate(candidateOrigin.lng),
+      normalizeCoordinate(candidateOrigin.lat),
+      normalizeCoordinate(candidateDestination.lng),
+      normalizeCoordinate(candidateDestination.lat)
+    ].join(":");
+
+    if (seen.has(candidateKey)) {
+      return;
+    }
+
+    seen.add(candidateKey);
+    result.push({
+      origin: candidateOrigin,
+      destination: candidateDestination
+    });
+  };
+
+  originCandidates.slice(1).forEach((candidateOrigin) => {
+    pushCandidate(candidateOrigin, destination);
+  });
+
+  destinationCandidates.slice(1).forEach((candidateDestination) => {
+    pushCandidate(origin, candidateDestination);
+  });
+
+  originCandidates.slice(1, 4).forEach((candidateOrigin) => {
+    destinationCandidates.slice(1, 4).forEach((candidateDestination) => {
+      pushCandidate(candidateOrigin, candidateDestination);
+    });
+  });
+
+  return result;
+};
+
+const addRequestedPointConnectors = (
+  requestedOrigin: RoutePoint,
+  requestedDestination: RoutePoint,
+  route: RoadRouteResult
+): RoadRouteResult => {
+  const nextGeometry = [...route.geometry];
+
+  if (
+    haversineDistanceKm(requestedOrigin, route.resolvedOrigin) >
+    FALLBACK_POINT_DISTANCE_THRESHOLD_KM
+  ) {
+    nextGeometry.unshift(toRouteCoordinate(requestedOrigin));
+  }
+
+  if (
+    haversineDistanceKm(requestedDestination, route.resolvedDestination) >
+    FALLBACK_POINT_DISTANCE_THRESHOLD_KM
+  ) {
+    nextGeometry.push(toRouteCoordinate(requestedDestination));
+  }
+
+  return {
+    ...route,
+    geometry: dedupeRouteCoordinates(nextGeometry)
+  };
+};
 
 const executeRouteAttempt = async (
   origin: RoutePoint,
@@ -339,23 +538,34 @@ export const fetchRoadRoute = async (
 
   const request = (async () => {
     const attemptedRadiuses: Array<[SnapRadius, SnapRadius]> = [];
+    const routeCandidates = buildFallbackRouteCandidates(origin, destination, options);
     let lastFailureReason: RoadRouteFailureReason = "no_route";
 
-    for (const radiuses of radiusAttempts) {
-      attemptedRadiuses.push(radiuses);
-      const attemptResult = await executeRouteAttempt(origin, destination, radiuses);
+    for (const candidate of routeCandidates) {
+      for (const radiuses of radiusAttempts) {
+        attemptedRadiuses.push(radiuses);
+        const attemptResult = await executeRouteAttempt(
+          candidate.origin,
+          candidate.destination,
+          radiuses
+        );
 
-      if (attemptResult.ok) {
-        return {
-          attemptedRadiuses,
-          ok: true,
-          route: attemptResult.route
-        } satisfies RoadRouteResolution;
-      }
+        if (attemptResult.ok) {
+          return {
+            attemptedRadiuses,
+            ok: true,
+            route: addRequestedPointConnectors(origin, destination, attemptResult.route)
+          } satisfies RoadRouteResolution;
+        }
 
-      lastFailureReason = attemptResult.failureReason;
-      if (!shouldRetry(attemptResult.failureReason)) {
-        break;
+        lastFailureReason = attemptResult.failureReason;
+        if (!shouldRetry(attemptResult.failureReason)) {
+          return {
+            attemptedRadiuses,
+            failureReason: lastFailureReason,
+            ok: false
+          } satisfies RoadRouteResolution;
+        }
       }
     }
 

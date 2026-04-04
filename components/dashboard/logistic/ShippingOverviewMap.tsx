@@ -40,6 +40,7 @@ import {
   type LogisticsShipmentSummary,
   type LogisticsShipmentDetail } from
 "@/lib/logisticsApi";
+import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeometry";
 import { PRODUCT_USAGE_UPDATED_EVENT } from "@/lib/productUsageEvents";
 import { fetchProductById, type ProductRecord } from "@/lib/productsApi";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
@@ -834,6 +835,33 @@ const ShippingOverviewMap: React.FC = () => {
     [paginatedShipments]
   );
 
+  const { geometryById: resolvedOverviewRoadGeometryById } = useResolvedRoadRouteGeometry(
+    allRoutes,
+    {
+      getDestination: (route) => ({
+        lat: route.to.lat,
+        lng: route.to.lng
+      }),
+      getExistingGeometry: (route) =>
+        route.mode !== "truck" || (route.geometry?.length || 0) > 2 ? route.geometry : null,
+      getId: (route) => route.id,
+      getOrigin: (route) => ({
+        lat: route.from.lat,
+        lng: route.from.lng
+      }),
+      isRoadRoute: (route) => route.mode === "truck"
+    }
+  );
+
+  const renderableRoutes = useMemo(
+    () =>
+      allRoutes.map((route) => ({
+        ...route,
+        geometry: resolvedOverviewRoadGeometryById[route.id] || route.geometry
+      })),
+    [allRoutes, resolvedOverviewRoadGeometryById]
+  );
+
   const filterButtonClass = (
   filter: "all" | "in_transit" | "pending" | "delivered" | "cancelled") =>
   {
@@ -1169,7 +1197,7 @@ const ShippingOverviewMap: React.FC = () => {
             >
               <SupplyChainMap
                 nodes={allNodes}
-                routes={allRoutes}
+                routes={renderableRoutes}
                 center={[20, 80]}
                 zoom={2}
                 height={mapHeight}
