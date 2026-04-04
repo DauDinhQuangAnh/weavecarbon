@@ -5,6 +5,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env.vps"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.vps.yml"
+PROJECT_NAME="weavecarbon"
+
+compose() {
+  docker compose \
+    --project-name "${PROJECT_NAME}" \
+    --env-file "${ENV_FILE}" \
+    -f "${COMPOSE_FILE}" \
+    "$@"
+}
 
 usage() {
   cat <<'EOF'
@@ -55,20 +64,15 @@ fi
 
 cd "${ROOT_DIR}"
 
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" config >/dev/null
+compose config >/dev/null
 
-DB_VOLUME_NAME="$(docker inspect weavecarbon-db --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgresql/data"}}{{.Name}}{{end}}{{end}}' 2>/dev/null || true)"
+DB_VOLUME_NAME="${PROJECT_NAME}_postgres_data"
 
-if [[ -z "${DB_VOLUME_NAME}" ]]; then
-  PROJECT_NAME="$(basename "${ROOT_DIR}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
-  DB_VOLUME_NAME="${PROJECT_NAME}_postgres_data"
-fi
-
-if [[ "${SKIP_BACKUP}" -ne 1 ]] && docker ps --format '{{.Names}}' | grep -qx 'weavecarbon-db'; then
+if [[ "${SKIP_BACKUP}" -ne 1 ]] && [[ -n "$(compose ps -q db 2>/dev/null || true)" ]]; then
   "${ROOT_DIR}/deploy/backup-db-vps.sh"
 fi
 
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" down
+compose down
 
 if docker volume inspect "${DB_VOLUME_NAME}" >/dev/null 2>&1; then
   docker volume rm "${DB_VOLUME_NAME}"
@@ -76,8 +80,8 @@ else
   echo "Postgres volume ${DB_VOLUME_NAME} does not exist yet. Continuing."
 fi
 
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --build
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps
+compose up -d --build
+compose ps
 
 echo
 echo "Database reset completed."
