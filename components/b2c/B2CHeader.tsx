@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,14 +24,17 @@ const B2CHeader: React.FC<B2CHeaderProps> = ({
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/b2c"
+              className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:gap-3"
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-forest shadow-sm">
                 <Leaf className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-display text-lg font-bold tracking-tight text-foreground">
                 WEAVE<span className="text-primary">CARBON</span>
               </span>
-            </div>
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

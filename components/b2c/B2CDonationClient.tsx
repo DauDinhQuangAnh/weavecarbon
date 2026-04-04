@@ -3,7 +3,7 @@
 import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   AlertCircle,
   Camera,
@@ -13,6 +13,7 @@ import {
   MapPin,
   Package2,
   Plus,
+  RefreshCw,
   Trash2,
   Truck
 } from "lucide-react";
@@ -52,9 +53,14 @@ import {
   type DonationDraftImage,
   type MaterialReward
 } from "@/lib/b2cApi";
+import {
+  DEFAULT_B2C_MATERIAL_REWARDS,
+  DEFAULT_OTHER_MATERIAL_ID
+} from "@/lib/b2cMaterialRewardsDefaults";
 
 type DonationCategory = "charity" | "recycle";
 type DeliveryMethod = "drop_off" | "shipping";
+const OTHER_MATERIAL_ID = DEFAULT_OTHER_MATERIAL_ID;
 
 interface DonationItemFormState {
   id: string;
@@ -62,6 +68,7 @@ interface DonationItemFormState {
   item_type: string;
   condition: string;
   material_id: string;
+  custom_material_name: string;
   weight_kg: string;
 }
 
@@ -73,13 +80,31 @@ const createEmptyDonationItem = (materialId = ""): DonationItemFormState => ({
   item_type: "",
   condition: "good",
   material_id: materialId,
+  custom_material_name: "",
   weight_kg: ""
 });
+
+const buildFallbackMaterialRewards = (locale: string): MaterialReward[] =>
+  DEFAULT_B2C_MATERIAL_REWARDS.map((material) => ({
+      id: material.id,
+      material_name:
+        locale.startsWith("vi") ? material.materialNameVi : material.materialNameEn,
+      material_category: material.materialCategory,
+      points_per_kg: material.pointsPerKg,
+      co2_saved_per_kg: material.co2SavedPerKg,
+      description:
+        locale.startsWith("vi") ? material.descriptionVi : material.descriptionEn,
+      is_active: true
+    }))
+    .sort((left, right) =>
+      left.material_name.localeCompare(right.material_name, locale)
+    );
 
 const B2CDonationClient: React.FC = () => {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const t = useTranslations("b2c");
+  const locale = useLocale();
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
 
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -103,7 +128,9 @@ const B2CDonationClient: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [materialRewards, setMaterialRewards] = useState<MaterialReward[]>([]);
   const [materialsLoaded, setMaterialsLoaded] = useState(false);
+  const [materialsRefreshing, setMaterialsRefreshing] = useState(false);
   const [materialsError, setMaterialsError] = useState<string | null>(null);
+  const [usingMaterialFallback, setUsingMaterialFallback] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successDonation, setSuccessDonation] = useState<DonationDetail | null>(null);
@@ -130,6 +157,11 @@ const B2CDonationClient: React.FC = () => {
     () => new Map(materialRewards.map((reward) => [reward.id, reward])),
     [materialRewards]
   );
+  const fallbackMaterialRewards = useMemo(
+    () => buildFallbackMaterialRewards(locale),
+    [locale]
+  );
+  const hasMaterialOptions = materialRewards.length > 0;
 
   const metrics = items.reduce(
     (accumulator, item) => {
@@ -170,33 +202,66 @@ const B2CDonationClient: React.FC = () => {
     }
   }, [loading, router, user]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadMaterialRewards = useCallback(
+    async (showBlockingSpinner = false) => {
+      if (showBlockingSpinner) {
+        setMaterialsLoaded(false);
+      } else {
+        setMaterialsRefreshing(true);
+      }
 
-    const loadMaterialRewards = async () => {
-      setMaterialsLoaded(false);
       setMaterialsError(null);
 
       try {
         const payload = await fetchB2CMaterialRewards();
-        if (cancelled) {
-          return;
-        }
+        const nextRewards = (payload.items || []).filter((reward) => reward.is_active);
+        const fallbackMaterialId = nextRewards[0]?.id || "";
 
-        setMaterialRewards(payload.items || []);
-        setItems((currentItems) =>
-          currentItems.map((item) =>
-            item.material_id || !(payload.items || []).length
-              ? item
-              : { ...item, material_id: payload.items[0].id }
-          )
-        );
+        if (nextRewards.length > 0) {
+          setUsingMaterialFallback(false);
+          setMaterialRewards(nextRewards);
+          setItems((currentItems) =>
+            currentItems.map((item) => {
+              const stillValid = nextRewards.some(
+                (reward) => reward.id === item.material_id
+              );
+
+              return stillValid
+                ? item
+                : { ...item, material_id: fallbackMaterialId, custom_material_name: "" };
+            })
+          );
+        } else {
+          const fallbackMaterialId = fallbackMaterialRewards[0]?.id || "";
+          setUsingMaterialFallback(true);
+          setMaterialRewards(fallbackMaterialRewards);
+          setItems((currentItems) =>
+            currentItems.map((item) => {
+              const stillValid = fallbackMaterialRewards.some(
+                (reward) => reward.id === item.material_id
+              );
+
+              return stillValid
+                ? item
+                : { ...item, material_id: fallbackMaterialId, custom_material_name: "" };
+            })
+          );
+        }
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
+        const fallbackMaterialId = fallbackMaterialRewards[0]?.id || "";
+        setUsingMaterialFallback(true);
+        setMaterialRewards(fallbackMaterialRewards);
+        setItems((currentItems) =>
+          currentItems.map((item) => {
+            const stillValid = fallbackMaterialRewards.some(
+              (reward) => reward.id === item.material_id
+            );
 
-        setMaterialRewards([]);
+            return stillValid
+              ? item
+              : { ...item, material_id: fallbackMaterialId, custom_material_name: "" };
+          })
+        );
         setMaterialsError(
           error instanceof Error
             ? error.message
@@ -205,18 +270,16 @@ const B2CDonationClient: React.FC = () => {
               : "Unable to load material rewards."
         );
       } finally {
-        if (!cancelled) {
-          setMaterialsLoaded(true);
-        }
+        setMaterialsLoaded(true);
+        setMaterialsRefreshing(false);
       }
-    };
+    },
+    [fallbackMaterialRewards, t]
+  );
 
-    void loadMaterialRewards();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
+  useEffect(() => {
+    void loadMaterialRewards(true);
+  }, [loadMaterialRewards]);
 
   useEffect(() => {
     return () => {
@@ -366,6 +429,8 @@ const B2CDonationClient: React.FC = () => {
     return (
       item.item_name.trim().length > 0 &&
       item.material_id.trim().length > 0 &&
+      (item.material_id !== OTHER_MATERIAL_ID ||
+        item.custom_material_name.trim().length > 0) &&
       Number.isFinite(weight) &&
       weight > 0
     );
@@ -403,7 +468,15 @@ const B2CDonationClient: React.FC = () => {
   ) => {
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.id === itemId ? { ...item, [field]: value } : item
+        item.id === itemId
+          ? {
+              ...item,
+              [field]: value,
+              ...(field === "material_id" && value !== OTHER_MATERIAL_ID
+                ? { custom_material_name: "" }
+                : {})
+            }
+          : item
       )
     );
   };
@@ -433,13 +506,24 @@ const B2CDonationClient: React.FC = () => {
     const payload: CreateB2CDonationPayload = {
       category,
       delivery_method: deliveryMethod,
-      items: items.map((item) => ({
-        item_name: item.item_name.trim(),
-        item_type: item.item_type.trim() || undefined,
-        condition: item.condition || undefined,
-        material_id: item.material_id,
-        weight_kg: Number(item.weight_kg)
-      })),
+      items: items.map((item) => {
+        const customMaterialName = item.custom_material_name.trim();
+        const normalizedItemType = item.item_type.trim();
+        const normalizedItemTypeWithCustomMaterial =
+          item.material_id === OTHER_MATERIAL_ID && customMaterialName
+            ? [normalizedItemType, `Other material: ${customMaterialName}`]
+                .filter(Boolean)
+                .join(" | ")
+            : normalizedItemType;
+
+        return {
+          item_name: item.item_name.trim(),
+          item_type: normalizedItemTypeWithCustomMaterial || undefined,
+          condition: item.condition || undefined,
+          material_id: item.material_id,
+          weight_kg: Number(item.weight_kg)
+        };
+      }),
       shipping_tracking_number:
         deliveryMethod === "shipping" && shippingTrackingNumber.trim()
           ? shippingTrackingNumber.trim()
@@ -642,11 +726,35 @@ const B2CDonationClient: React.FC = () => {
           ))}
         </div>
 
-        {materialsError && (
-          <Card className="border-destructive/20 bg-destructive/5">
-            <CardContent className="flex items-center gap-3 p-4 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span>{materialsError}</span>
+        {usingMaterialFallback && (
+          <Card className="border-amber-200 bg-amber-50/80">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-amber-900">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-4 w-4" />
+                <div className="space-y-1">
+                  <p>
+                    {t.has("donationWizard.materialFallbackNotice")
+                      ? t("donationWizard.materialFallbackNotice")
+                      : "Using the built-in material list because the backend has not returned material rewards yet."}
+                  </p>
+                  {materialsError && (
+                    <p className="text-xs text-amber-800/80">{materialsError}</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void loadMaterialRewards()}
+                disabled={materialsRefreshing}
+              >
+                {materialsRefreshing && <Loader2 className="h-4 w-4 animate-spin" />}
+                {!materialsRefreshing && <RefreshCw className="h-4 w-4" />}
+                {t.has("donationWizard.materialRetry")
+                  ? t("donationWizard.materialRetry")
+                  : "Reload materials"}
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -893,6 +1001,7 @@ const B2CDonationClient: React.FC = () => {
                       onValueChange={(value) =>
                         updateItem(item.id, "material_id", value)
                       }
+                      disabled={!hasMaterialOptions}
                     >
                       <SelectTrigger>
                         <SelectValue
@@ -911,6 +1020,38 @@ const B2CDonationClient: React.FC = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    {!hasMaterialOptions && (
+                      <p className="text-xs text-destructive">
+                        {t.has("donationWizard.materialUnavailableHelper")
+                          ? t("donationWizard.materialUnavailableHelper")
+                          : "Material options are unavailable right now. Please reload and try again."}
+                      </p>
+                    )}
+                    {item.material_id === OTHER_MATERIAL_ID && (
+                      <div className="space-y-2 pt-2">
+                        <Label htmlFor={`${item.id}-custom-material`}>
+                          {t.has("donationWizard.otherMaterialLabel")
+                            ? t("donationWizard.otherMaterialLabel")
+                            : "Other material name"}
+                        </Label>
+                        <Input
+                          id={`${item.id}-custom-material`}
+                          value={item.custom_material_name}
+                          onChange={(event) =>
+                            updateItem(
+                              item.id,
+                              "custom_material_name",
+                              event.target.value
+                            )
+                          }
+                          placeholder={
+                            t.has("donationWizard.otherMaterialPlaceholder")
+                              ? t("donationWizard.otherMaterialPlaceholder")
+                              : "Example: spandex blend"
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -971,7 +1112,12 @@ const B2CDonationClient: React.FC = () => {
               </Card>
             ))}
 
-            <Button type="button" variant="outline" onClick={addItem}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addItem}
+              disabled={!hasMaterialOptions}
+            >
               <Plus className="h-4 w-4" />
               {t.has("donationWizard.addItem")
                 ? t("donationWizard.addItem")
@@ -1243,6 +1389,15 @@ const B2CDonationClient: React.FC = () => {
               <div className="grid gap-3">
                 {items.map((item) => {
                   const reward = materialMap.get(item.material_id);
+                  const materialLabel =
+                    item.material_id === OTHER_MATERIAL_ID &&
+                    item.custom_material_name.trim().length > 0
+                      ? t.has("donationWizard.otherMaterialDisplay")
+                        ? t("donationWizard.otherMaterialDisplay", {
+                            name: item.custom_material_name.trim()
+                          })
+                        : `Other: ${item.custom_material_name.trim()}`
+                      : reward?.material_name || item.material_id;
                   return (
                     <div
                       key={item.id}
@@ -1252,7 +1407,7 @@ const B2CDonationClient: React.FC = () => {
                         <div>
                           <p className="font-medium">{item.item_name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {reward?.material_name || item.material_id}
+                            {materialLabel}
                           </p>
                         </div>
                         <Badge variant="outline">{item.weight_kg} kg</Badge>

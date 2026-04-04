@@ -10,11 +10,11 @@ import {
   HeartHandshake,
   Loader2,
   MapPin,
-  Navigation,
   Phone,
   Recycle,
   RefreshCw
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +37,8 @@ import {
 import { getFallbackNearbyCollectionPoints } from "@/lib/b2cCollectionPoints";
 
 type CollectionPointsStatus = "idle" | "locating" | "loading" | "ready" | "error";
+const LOCATION_TOAST_ID = "b2c-collection-points-location-status";
+const LOCATION_TOAST_POSITION = "top-left" as const;
 
 const isCollectionPointsRouteUnavailable = (error: unknown) => {
   if (isApiError(error) && error.status === 404) {
@@ -98,6 +100,40 @@ const B2CCollectionPointsClient: React.FC = () => {
   const getText = useCallback(
     (key: string, fallback: string) => (t.has(key) ? t(key) : fallback),
     [t]
+  );
+
+  const showLocationDetectedToast = useCallback(() => {
+    toast.success(
+      getText(
+        "collectionPoints.locationDetectedToast",
+        "Current location detected."
+      ),
+      {
+        id: LOCATION_TOAST_ID,
+        position: LOCATION_TOAST_POSITION,
+        description: getText(
+          "collectionPoints.locationDetectedToastDescription",
+          "Showing the nearest collection points for your area."
+        )
+      }
+    );
+  }, [getText]);
+
+  const showLocationUnavailableToast = useCallback(
+    (description: string) => {
+      toast.error(
+        getText(
+          "collectionPoints.locationUnavailableToast",
+          "Unable to get your current location."
+        ),
+        {
+          id: LOCATION_TOAST_ID,
+          position: LOCATION_TOAST_POSITION,
+          description
+        }
+      );
+    },
+    [getText]
   );
 
   const loadCollectionPointList = useCallback(async () => {
@@ -169,6 +205,12 @@ const B2CCollectionPointsClient: React.FC = () => {
     }
 
     if (!navigator.geolocation) {
+      showLocationUnavailableToast(
+        getText(
+          "collectionPoints.browserNotSupported",
+          "Your browser does not support geolocation."
+        )
+      );
       void loadCollectionPointList();
       return;
     }
@@ -185,12 +227,35 @@ const B2CCollectionPointsClient: React.FC = () => {
           longitude: position.coords.longitude
         };
 
+        showLocationDetectedToast();
         void loadNearbyCollectionPoints(
           nextLocation.latitude,
           nextLocation.longitude
         );
       },
-      () => {
+      (geoError) => {
+        const fallbackMessage =
+          geoError.code === geoError.PERMISSION_DENIED
+            ? getText(
+                "collectionPoints.permissionDenied",
+                "Location permission is blocked. Please allow access in your browser settings."
+              )
+            : geoError.code === geoError.POSITION_UNAVAILABLE
+              ? getText(
+                  "collectionPoints.positionUnavailable",
+                  "The device could not determine your location. Please try again."
+                )
+              : geoError.code === geoError.TIMEOUT
+                ? getText(
+                    "collectionPoints.locationTimeout",
+                    "Location lookup took too long. Please try again."
+                  )
+                : getText(
+                    "collectionPoints.cannotGetLocation",
+                    "Unable to get your current location."
+                  );
+
+        showLocationUnavailableToast(fallbackMessage);
         void loadCollectionPointList();
       },
       {
@@ -199,7 +264,13 @@ const B2CCollectionPointsClient: React.FC = () => {
         maximumAge: 300000
       }
     );
-  }, [loadCollectionPointList, loadNearbyCollectionPoints]);
+  }, [
+    getText,
+    loadCollectionPointList,
+    loadNearbyCollectionPoints,
+    showLocationDetectedToast,
+    showLocationUnavailableToast
+  ]);
 
   useEffect(() => {
     if (loading) return;
@@ -334,36 +405,6 @@ const B2CCollectionPointsClient: React.FC = () => {
                   {getText("collectionPoints.backToDashboard", "Back to dashboard")}
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {status === "ready" && currentLocation && (
-          <Card className="border-primary/15 bg-primary/[0.05]">
-            <CardContent className="flex items-start gap-3 p-5">
-              <div className="rounded-full bg-primary/10 p-2 text-primary">
-                <Navigation className="h-4 w-4" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">
-                  {getText("collectionPoints.currentLocation", "Your current location")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {currentLocation.latitude.toFixed(5)},{" "}
-                  {currentLocation.longitude.toFixed(5)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {status === "ready" && usingListMode && (
-          <Card className="border-border/70 bg-muted/30">
-            <CardContent className="p-5 text-sm text-muted-foreground">
-              {getText(
-                "collectionPoints.listModeNotice",
-                "Location is unavailable right now, so the list below is sorted alphabetically instead of by distance."
-              )}
             </CardContent>
           </Card>
         )}
