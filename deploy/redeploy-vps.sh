@@ -36,7 +36,7 @@ get_env_value() {
 
 cleanup_legacy_containers() {
   mapfile -t legacy_container_ids < <(
-    docker ps -aq --format '{{.ID}} {{.Names}}' | awk '
+    docker ps -a --format '{{.ID}}\t{{.Names}}' | awk -F '\t' '
       $2 == "weavecarbon-db" ||
       $2 == "weavecarbon-be" ||
       $2 == "weavecarbon-rag" ||
