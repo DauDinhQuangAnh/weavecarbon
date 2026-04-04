@@ -14,6 +14,7 @@ import {
   Package2,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
   Truck
 } from "lucide-react";
@@ -61,6 +62,10 @@ import {
 type DonationCategory = "charity" | "recycle";
 type DeliveryMethod = "drop_off" | "shipping";
 const OTHER_MATERIAL_ID = DEFAULT_OTHER_MATERIAL_ID;
+const RECOMMENDED_COLLECTION_POINT_MAX_DISTANCE_KM = 20;
+const DROP_OFF_CONFIRM_DISTANCE_KM = 0.2;
+const COLLECTION_POINT_SEARCH_MIN_CHARS = 2;
+const COLLECTION_POINT_SEARCH_LIMIT = 12;
 
 interface DonationItemFormState {
   id: string;
@@ -100,6 +105,51 @@ const buildFallbackMaterialRewards = (locale: string): MaterialReward[] =>
       left.material_name.localeCompare(right.material_name, locale)
     );
 
+const isFiniteNumber = (value: number | null | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const calculateDistanceKm = (
+  origin: B2CCollectionPointLocation,
+  destination: B2CCollectionPointLocation
+) => {
+  const dLat = toRadians(destination.latitude - origin.latitude);
+  const dLng = toRadians(destination.longitude - origin.longitude);
+  const lat1 = toRadians(origin.latitude);
+  const lat2 = toRadians(destination.latitude);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLng / 2) *
+      Math.sin(dLng / 2) *
+      Math.cos(lat1) *
+      Math.cos(lat2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return 6371 * c;
+};
+
+const formatDistance = (distanceKm?: number | null) => {
+  if (!isFiniteNumber(distanceKm)) {
+    return null;
+  }
+
+  if (distanceKm < 1) {
+    return `${Math.max(1, Math.round(distanceKm * 1000))} m`;
+  }
+
+  return distanceKm < 10 ? `${distanceKm.toFixed(1)} km` : `${Math.round(distanceKm)} km`;
+};
+
+const doesCollectionPointSupportCategory = (
+  point: B2CCollectionPoint,
+  category: DonationCategory
+) =>
+  category === "charity"
+    ? point.accepts_charity !== false
+    : point.accepts_recycle !== false;
+
 const B2CDonationClient: React.FC = () => {
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
@@ -118,14 +168,27 @@ const B2CDonationClient: React.FC = () => {
   ]);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("drop_off");
   const [shippingTrackingNumber, setShippingTrackingNumber] = useState("");
-  const [collectionPoints, setCollectionPoints] = useState<B2CCollectionPoint[]>([]);
+  const [recommendedCollectionPoints, setRecommendedCollectionPoints] = useState<
+    B2CCollectionPoint[]
+  >([]);
+  const [searchedCollectionPoints, setSearchedCollectionPoints] = useState<
+    B2CCollectionPoint[]
+  >([]);
+  const [collectionPointSearch, setCollectionPointSearch] = useState("");
   const [selectedCollectionPointId, setSelectedCollectionPointId] = useState("");
+  const [selectedCollectionPointSnapshot, setSelectedCollectionPointSnapshot] =
+    useState<B2CCollectionPoint | null>(null);
   const [currentLocation, setCurrentLocation] =
     useState<B2CCollectionPointLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [collectionPointSearchStatus, setCollectionPointSearchStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [collectionPointSearchError, setCollectionPointSearchError] =
+    useState<string | null>(null);
   const [materialRewards, setMaterialRewards] = useState<MaterialReward[]>([]);
   const [materialsLoaded, setMaterialsLoaded] = useState(false);
   const [materialsRefreshing, setMaterialsRefreshing] = useState(false);
@@ -162,6 +225,57 @@ const B2CDonationClient: React.FC = () => {
     [locale]
   );
   const hasMaterialOptions = materialRewards.length > 0;
+  const selectedCollectionPoint = useMemo(
+    () =>
+      [
+        ...recommendedCollectionPoints,
+        ...searchedCollectionPoints
+      ].find((point) => point.id === selectedCollectionPointId) ||
+      (selectedCollectionPointSnapshot?.id === selectedCollectionPointId
+        ? selectedCollectionPointSnapshot
+        : null),
+    [
+      recommendedCollectionPoints,
+      searchedCollectionPoints,
+      selectedCollectionPointId,
+      selectedCollectionPointSnapshot
+    ]
+  );
+  const searchedCollectionPointResults = useMemo(
+    () =>
+      searchedCollectionPoints.filter(
+        (point) =>
+          !recommendedCollectionPoints.some(
+            (recommendedPoint) => recommendedPoint.id === point.id
+          )
+      ),
+    [recommendedCollectionPoints, searchedCollectionPoints]
+  );
+  const selectedCollectionPointDistanceKm = useMemo(() => {
+    if (
+      !currentLocation ||
+      !selectedCollectionPoint ||
+      !isFiniteNumber(selectedCollectionPoint.latitude) ||
+      !isFiniteNumber(selectedCollectionPoint.longitude)
+    ) {
+      return null;
+    }
+
+    return calculateDistanceKm(currentLocation, {
+      latitude: selectedCollectionPoint.latitude,
+      longitude: selectedCollectionPoint.longitude
+    });
+  }, [currentLocation, selectedCollectionPoint]);
+  const selectedCollectionPointDistanceLabel = useMemo(
+    () => formatDistance(selectedCollectionPointDistanceKm),
+    [selectedCollectionPointDistanceKm]
+  );
+  const willConfirmDropOffWithGps =
+    deliveryMethod === "drop_off" &&
+    Boolean(currentLocation) &&
+    isFiniteNumber(selectedCollectionPointDistanceKm) &&
+    selectedCollectionPointDistanceKm <= DROP_OFF_CONFIRM_DISTANCE_KM;
+  const normalizedCollectionPointSearch = collectionPointSearch.trim();
 
   const metrics = items.reduce(
     (accumulator, item) => {
@@ -294,6 +408,12 @@ const B2CDonationClient: React.FC = () => {
     router.push("/");
   };
 
+  const selectCollectionPoint = useCallback((point: B2CCollectionPoint) => {
+    setSelectedCollectionPointId(point.id);
+    setSelectedCollectionPointSnapshot(point);
+    setSubmitError(null);
+  }, []);
+
   const handleDraftImageChange = (
     fileList: FileList | null,
     source: DonationDraftImage["source"]
@@ -334,21 +454,63 @@ const B2CDonationClient: React.FC = () => {
     setSubmitError(null);
   };
 
+  const loadRecommendedCollectionPoints = useCallback(
+    async (location: B2CCollectionPointLocation) => {
+      try {
+        const payload = await fetchB2CNearbyCollectionPoints({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          category,
+          limit: COLLECTION_POINT_SEARCH_LIMIT
+        });
+        const nextLocation = payload.current_location || location;
+        const nextRecommendedPoints = (payload.items || []).filter(
+          (point) =>
+            isFiniteNumber(point.distance_km) &&
+            point.distance_km <= RECOMMENDED_COLLECTION_POINT_MAX_DISTANCE_KM
+        );
+
+        setCurrentLocation(nextLocation);
+        setRecommendedCollectionPoints(nextRecommendedPoints);
+        setLocationError(null);
+        setLocationStatus("ready");
+
+        if (selectedCollectionPointId) {
+          const refreshedSelectedPoint = nextRecommendedPoints.find(
+            (point) => point.id === selectedCollectionPointId
+          );
+
+          if (refreshedSelectedPoint) {
+            setSelectedCollectionPointSnapshot(refreshedSelectedPoint);
+          }
+        } else if (nextRecommendedPoints.length > 0) {
+          selectCollectionPoint(nextRecommendedPoints[0]);
+        }
+      } catch (error) {
+        setRecommendedCollectionPoints([]);
+        setLocationStatus("error");
+        setLocationError(
+          error instanceof Error
+            ? error.message
+            : t.has("donationWizard.locationLookupError")
+              ? t("donationWizard.locationLookupError")
+              : "Unable to load nearby collection points."
+        );
+      }
+    },
+    [category, selectCollectionPoint, selectedCollectionPointId, t]
+  );
+
   const requestCurrentLocation = useCallback(async () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
+      setCurrentLocation(null);
+      setRecommendedCollectionPoints([]);
       setLocationStatus("error");
       setLocationError(
         t.has("donationWizard.locationUnavailable")
           ? t("donationWizard.locationUnavailable")
           : "Your browser does not support location access."
       );
-
-      try {
-        const payload = await fetchB2CCollectionPoints({ limit: 12 });
-        setCollectionPoints(payload.items || []);
-      } catch {
-        setCollectionPoints([]);
-      }
       return;
     }
 
@@ -362,51 +524,17 @@ const B2CDonationClient: React.FC = () => {
           longitude: position.coords.longitude
         };
 
-        try {
-          const payload = await fetchB2CNearbyCollectionPoints({
-            latitude: nextLocation.latitude,
-            longitude: nextLocation.longitude,
-            limit: 6
-          });
-
-          setCurrentLocation(payload.current_location || nextLocation);
-          setCollectionPoints(payload.items || []);
-          setLocationStatus("ready");
-          if (!selectedCollectionPointId && (payload.items || []).length > 0) {
-            setSelectedCollectionPointId(payload.items?.[0]?.id || "");
-          }
-        } catch (error) {
-          setLocationStatus("error");
-          setLocationError(
-            error instanceof Error
-              ? error.message
-              : t.has("donationWizard.locationLookupError")
-                ? t("donationWizard.locationLookupError")
-                : "Unable to load nearby collection points."
-          );
-
-          try {
-            const payload = await fetchB2CCollectionPoints({ limit: 12 });
-            setCollectionPoints(payload.items || []);
-          } catch {
-            setCollectionPoints([]);
-          }
-        }
+        await loadRecommendedCollectionPoints(nextLocation);
       },
       async () => {
+        setCurrentLocation(null);
+        setRecommendedCollectionPoints([]);
         setLocationStatus("error");
         setLocationError(
           t.has("donationWizard.locationPermissionDenied")
             ? t("donationWizard.locationPermissionDenied")
-            : "Location permission is required for drop-off confirmation."
+            : "Allow location to see nearby drop-off recommendations. You can still search for another collection point manually."
         );
-
-        try {
-          const payload = await fetchB2CCollectionPoints({ limit: 12 });
-          setCollectionPoints(payload.items || []);
-        } catch {
-          setCollectionPoints([]);
-        }
       },
       {
         enableHighAccuracy: true,
@@ -414,7 +542,7 @@ const B2CDonationClient: React.FC = () => {
         maximumAge: 300000
       }
     );
-  }, [selectedCollectionPointId, t]);
+  }, [loadRecommendedCollectionPoints, t]);
 
   useEffect(() => {
     if (step !== 3 || deliveryMethod !== "drop_off" || locationStatus !== "idle") {
@@ -423,6 +551,82 @@ const B2CDonationClient: React.FC = () => {
 
     void requestCurrentLocation();
   }, [deliveryMethod, locationStatus, requestCurrentLocation, step]);
+
+  useEffect(() => {
+    if (deliveryMethod !== "drop_off") {
+      setCollectionPointSearchStatus("idle");
+      setCollectionPointSearchError(null);
+      setSearchedCollectionPoints([]);
+      return;
+    }
+
+    if (!normalizedCollectionPointSearch) {
+      setCollectionPointSearchStatus("idle");
+      setCollectionPointSearchError(null);
+      setSearchedCollectionPoints([]);
+      return;
+    }
+
+    if (normalizedCollectionPointSearch.length < COLLECTION_POINT_SEARCH_MIN_CHARS) {
+      setCollectionPointSearchStatus("idle");
+      setCollectionPointSearchError(null);
+      setSearchedCollectionPoints([]);
+      return;
+    }
+
+    let isCancelled = false;
+    setCollectionPointSearchStatus("loading");
+    setCollectionPointSearchError(null);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const payload = await fetchB2CCollectionPoints({
+          search: normalizedCollectionPointSearch,
+          category,
+          limit: COLLECTION_POINT_SEARCH_LIMIT
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        setSearchedCollectionPoints(payload.items || []);
+        setCollectionPointSearchStatus("ready");
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setSearchedCollectionPoints([]);
+        setCollectionPointSearchStatus("error");
+        setCollectionPointSearchError(
+          error instanceof Error
+            ? error.message
+            : t.has("donationWizard.collectionPointSearchError")
+              ? t("donationWizard.collectionPointSearchError")
+              : "Unable to search collection points right now."
+        );
+      }
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [category, deliveryMethod, normalizedCollectionPointSearch, t]);
+
+  useEffect(() => {
+    if (!selectedCollectionPointSnapshot) {
+      return;
+    }
+
+    if (doesCollectionPointSupportCategory(selectedCollectionPointSnapshot, category)) {
+      return;
+    }
+
+    setSelectedCollectionPointId("");
+    setSelectedCollectionPointSnapshot(null);
+  }, [category, selectedCollectionPointSnapshot]);
 
   const isItemValid = (item: DonationItemFormState) => {
     const weight = Number(item.weight_kg);
@@ -446,7 +650,7 @@ const B2CDonationClient: React.FC = () => {
           : step === 3
             ? deliveryMethod === "shipping"
               ? true
-              : Boolean(selectedCollectionPointId && currentLocation)
+              : Boolean(selectedCollectionPointId)
             : true;
 
   const handleNext = () => {
@@ -498,6 +702,43 @@ const B2CDonationClient: React.FC = () => {
     });
   };
 
+  const renderCollectionPointOption = (point: B2CCollectionPoint) => {
+    const isSelected = selectedCollectionPointId === point.id;
+    const distanceLabel = formatDistance(point.distance_km);
+
+    return (
+      <button
+        key={point.id}
+        type="button"
+        onClick={() => selectCollectionPoint(point)}
+        className={`rounded-2xl border p-4 text-left transition-colors ${
+          isSelected
+            ? "border-primary bg-primary/[0.05]"
+            : "border-border/70 hover:border-primary/40"
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-medium">{point.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {[point.address, point.district, point.city].filter(Boolean).join(", ")}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {distanceLabel && <Badge variant="secondary">{distanceLabel}</Badge>}
+            {isSelected && (
+              <Badge variant="outline">
+                {t.has("donationWizard.selectedCollectionPoint")
+                  ? t("donationWizard.selectedCollectionPoint")
+                  : "Selected"}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   const handleSubmit = async () => {
     if (!draftImage) {
       return;
@@ -531,7 +772,7 @@ const B2CDonationClient: React.FC = () => {
       collection_point_id:
         deliveryMethod === "drop_off" ? selectedCollectionPointId || undefined : undefined,
       gps_checkin:
-        deliveryMethod === "drop_off" && currentLocation
+        deliveryMethod === "drop_off" && willConfirmDropOffWithGps && currentLocation
           ? {
               latitude: currentLocation.latitude,
               longitude: currentLocation.longitude,
@@ -1232,41 +1473,134 @@ const B2CDonationClient: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="grid gap-3">
-                    {collectionPoints.map((point) => {
-                      const isSelected = selectedCollectionPointId === point.id;
-                      return (
-                        <button
-                          key={point.id}
-                          type="button"
-                          onClick={() => setSelectedCollectionPointId(point.id)}
-                          className={`rounded-2xl border p-4 text-left transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/[0.05]"
-                              : "border-border/70 hover:border-primary/40"
-                          }`}
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                              <p className="font-medium">{point.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {[point.address, point.district, point.city]
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </p>
-                            </div>
-                            {typeof point.distance_km === "number" && (
-                              <Badge variant="secondary">
-                                {point.distance_km < 1
-                                  ? `${Math.round(point.distance_km * 1000)} m`
-                                  : `${point.distance_km.toFixed(1)} km`}
-                              </Badge>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        {t.has("donationWizard.recommendedCollectionPointsTitle")
+                          ? t("donationWizard.recommendedCollectionPointsTitle")
+                          : "Nearby recommendations"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {t.has("donationWizard.recommendedCollectionPointsDescription")
+                          ? t("donationWizard.recommendedCollectionPointsDescription")
+                          : "We only recommend collection points within 20 km of your current location."}
+                      </p>
+                    </div>
+
+                    {locationStatus === "ready" &&
+                      recommendedCollectionPoints.length === 0 && (
+                        <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
+                          {t.has("donationWizard.noNearbyCollectionPoints")
+                            ? t("donationWizard.noNearbyCollectionPoints")
+                            : "No nearby collection point was found within 20 km. Use search below to choose another drop-off location."}
+                        </div>
+                      )}
+
+                    {recommendedCollectionPoints.length > 0 && (
+                      <div className="grid gap-3">
+                        {recommendedCollectionPoints.map(renderCollectionPointOption)}
+                      </div>
+                    )}
                   </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="collection-point-search">
+                        {t.has("donationWizard.searchCollectionPointsLabel")
+                          ? t("donationWizard.searchCollectionPointsLabel")
+                          : "Search other collection points"}
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t.has("donationWizard.searchCollectionPointsDescription")
+                          ? t("donationWizard.searchCollectionPointsDescription")
+                          : "Use search if you plan to drop off at a farther location for a specific reason."}
+                      </p>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="collection-point-search"
+                        value={collectionPointSearch}
+                        onChange={(event) => setCollectionPointSearch(event.target.value)}
+                        placeholder={
+                          t.has("donationWizard.searchCollectionPointsPlaceholder")
+                            ? t("donationWizard.searchCollectionPointsPlaceholder")
+                            : "Search by point name, address, district, or city"
+                        }
+                        className="pl-10"
+                      />
+                    </div>
+
+                    {normalizedCollectionPointSearch.length > 0 &&
+                      normalizedCollectionPointSearch.length <
+                        COLLECTION_POINT_SEARCH_MIN_CHARS && (
+                        <p className="text-xs text-muted-foreground">
+                          {t.has("donationWizard.collectionPointSearchHint")
+                            ? t("donationWizard.collectionPointSearchHint")
+                            : "Type at least 2 characters to search all active collection points."}
+                        </p>
+                      )}
+
+                    {collectionPointSearchStatus === "loading" && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>
+                          {t.has("donationWizard.searchingCollectionPoints")
+                            ? t("donationWizard.searchingCollectionPoints")
+                            : "Searching collection points..."}
+                        </span>
+                      </div>
+                    )}
+
+                    {collectionPointSearchError && (
+                      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+                        {collectionPointSearchError}
+                      </div>
+                    )}
+
+                    {collectionPointSearchStatus === "ready" &&
+                      searchedCollectionPointResults.length === 0 && (
+                        <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
+                          {t.has("donationWizard.collectionPointSearchEmpty")
+                            ? t("donationWizard.collectionPointSearchEmpty")
+                            : "No collection points matched your search yet."}
+                        </div>
+                      )}
+
+                    {searchedCollectionPointResults.length > 0 && (
+                      <div className="grid gap-3">
+                        {searchedCollectionPointResults.map(renderCollectionPointOption)}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedCollectionPoint && (
+                    <div
+                      className={`rounded-xl border p-4 text-sm ${
+                        willConfirmDropOffWithGps
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          : "border-primary/15 bg-primary/[0.05] text-foreground"
+                      }`}
+                    >
+                      <p className="font-medium">{selectedCollectionPoint.name}</p>
+                      <p className="mt-1 text-sm">
+                        {willConfirmDropOffWithGps
+                          ? t.has("donationWizard.dropOffConfirmNowHelper")
+                            ? t("donationWizard.dropOffConfirmNowHelper")
+                            : "You are close enough to confirm this drop-off now. Submitting will attach a GPS check-in."
+                          : selectedCollectionPointDistanceLabel
+                            ? t.has("donationWizard.dropOffConfirmLaterWithDistance")
+                              ? t("donationWizard.dropOffConfirmLaterWithDistance", {
+                                  distance: selectedCollectionPointDistanceLabel
+                                })
+                              : `You are currently ${selectedCollectionPointDistanceLabel} away from this point. We will save it as a planned drop-off and you can confirm when you arrive.`
+                            : t.has("donationWizard.dropOffConfirmLaterNoLocation")
+                              ? t("donationWizard.dropOffConfirmLaterNoLocation")
+                              : "We will save this as a planned drop-off. You can confirm it later when you arrive at the selected collection point."}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -1379,12 +1713,29 @@ const B2CDonationClient: React.FC = () => {
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4" />
                     <span>
-                      {collectionPoints.find((point) => point.id === selectedCollectionPointId)
-                        ?.name || selectedCollectionPointId}
+                      {selectedCollectionPoint?.name || selectedCollectionPointId}
                     </span>
                   </div>
                 )}
               </div>
+
+              {deliveryMethod === "drop_off" && selectedCollectionPoint && (
+                <div
+                  className={`rounded-2xl border p-4 text-sm ${
+                    willConfirmDropOffWithGps
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      : "border-border/70 bg-muted/30 text-muted-foreground"
+                  }`}
+                >
+                  {willConfirmDropOffWithGps
+                    ? t.has("donationWizard.confirmStepDropOffConfirmed")
+                      ? t("donationWizard.confirmStepDropOffConfirmed")
+                      : "This submit will confirm the drop-off immediately with GPS."
+                    : t.has("donationWizard.confirmStepDropOffPending")
+                      ? t("donationWizard.confirmStepDropOffPending")
+                      : "This submit will save a planned drop-off. The donation stays pending until you reach the selected collection point."}
+                </div>
+              )}
 
               <div className="grid gap-3">
                 {items.map((item) => {

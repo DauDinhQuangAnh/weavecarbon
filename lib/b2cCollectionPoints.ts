@@ -104,7 +104,7 @@ const FALLBACK_COLLECTION_POINTS: B2CCollectionPoint[] = [
   }
 ];
 
-const FALLBACK_MAX_DISTANCE_KM = 25;
+const FALLBACK_MAX_DISTANCE_KM = 20;
 const EARTH_RADIUS_KM = 6371;
 
 const toRadians = (value: number) => (value * Math.PI) / 180;

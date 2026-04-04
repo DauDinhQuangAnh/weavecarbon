@@ -83,10 +83,12 @@ B2C Implementation Spec (Camera AI Excluded, Photo Step Enabled)
 
 9. Drop-off Rules
 - User selects a collection point.
-- FE requests current location.
-- FE sends gps_checkin with latitude, longitude, checked_at.
-- BE validates distance to collection point.
+- FE requests current location to recommend collection points within 20 km.
+- FE also supports searching all active collection points for planned farther drop-offs.
+- FE sends gps_checkin with latitude, longitude, checked_at only when user is already near the selected point.
+- BE validates distance to collection point when gps_checkin is present.
 - Donation is confirmed only when user is within 200 meters.
+- If gps_checkin is missing or user is still far away, drop-off stays pending until later confirmation.
 - Successful drop-off is created with:
   - status = received
   - confirmation_method = gps
