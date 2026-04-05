@@ -63,8 +63,12 @@ const buildCheckEmailUrl = (params: {
   email?: string | null;
   source?: "google" | "email";
   intent?: "signin" | "signup";
+  type?: "b2b" | "b2c" | "admin" | null;
 }) => {
   const query = new URLSearchParams();
+  if (params.type) {
+    query.set("type", params.type);
+  }
   if (params.email?.trim()) {
     query.set("email", params.email.trim());
   }
@@ -154,7 +158,8 @@ export default function AuthCallbackPage() {
     let cancelled = false;
 
     const resolvePostLoginPath = async (
-      accountType?: "b2b" | "b2c" | "admin"
+      accountType?: "b2b" | "b2c" | "admin",
+      requestedType?: "b2b" | "b2c" | "admin" | null
     ) => {
       if (accountType === "b2c") return "/b2c";
       if (accountType === "admin") return "/overview";
@@ -169,18 +174,28 @@ export default function AuthCallbackPage() {
         if (isApiError(error) && error.code === "EMAIL_NOT_VERIFIED") {
           authTokenStore.clear();
           clearStoredAuthUser();
-          return buildCheckEmailUrl({ source: "google", intent: "signin" });
+          return buildCheckEmailUrl({
+            source: "google",
+            intent: "signin",
+            type: requestedType
+          });
         }
         if (isUnauthorizedApiError(error)) {
           authTokenStore.clear();
           clearStoredAuthUser();
-          return "/auth?error=UNAUTHORIZED";
+          return buildAuthErrorUrl({
+            type: requestedType,
+            error: "UNAUTHORIZED"
+          });
         }
         return "/overview";
       }
     };
 
     const handleCallback = async () => {
+      let callbackRequestedRole: "b2b" | "b2c" | "admin" | null =
+        getGoogleRequestedRole();
+
       try {
         const url = new URL(window.location.href);
         const query = url.searchParams;
@@ -193,6 +208,13 @@ export default function AuthCallbackPage() {
         const authIntent =
         authIntentRaw === "signup" ? "signup" as const : "signin" as const;
         const callbackEmail = hash.get("email") || query.get("email");
+        callbackRequestedRole =
+          normalizeRole(
+            hash.get("type") ||
+            query.get("type") ||
+            hash.get("role") ||
+            query.get("role")
+          ) || callbackRequestedRole;
 
         if (errorCode) {
           if (errorCode === "EMAIL_NOT_VERIFIED") {
@@ -204,7 +226,8 @@ export default function AuthCallbackPage() {
               buildCheckEmailUrl({
                 email: callbackEmail || errorDescription,
                 source: "google",
-                intent: authIntent
+                intent: authIntent,
+                type: callbackRequestedRole
               })
             );
             return;
@@ -220,12 +243,13 @@ export default function AuthCallbackPage() {
           if (!cancelled) {
             setErrorMessage(mappedMessage);
           }
-          const nextParams = new URLSearchParams();
-          nextParams.set("error", errorCode);
-          if (errorDescription) {
-            nextParams.set("error_description", errorDescription);
-          }
-          router.replace(`/auth?${nextParams.toString()}`);
+          router.replace(
+            buildAuthErrorUrl({
+              type: callbackRequestedRole,
+              error: errorCode,
+              errorDescription
+            })
+          );
           return;
         }
 
@@ -254,7 +278,8 @@ export default function AuthCallbackPage() {
             buildCheckEmailUrl({
               email: callbackEmail || errorDescription,
               source: "google",
-              intent: authIntent
+              intent: authIntent,
+              type: callbackRequestedRole
             })
           );
           return;
@@ -267,7 +292,12 @@ export default function AuthCallbackPage() {
           if (!cancelled) {
             setErrorMessage(message);
           }
-          router.replace("/auth?error=MISSING_CODE");
+          router.replace(
+            buildAuthErrorUrl({
+              type: callbackRequestedRole,
+              error: "MISSING_CODE"
+            })
+          );
           return;
         }
 
@@ -301,7 +331,10 @@ export default function AuthCallbackPage() {
         }
 
         await refreshUser();
-        const destination = await resolvePostLoginPath(actualRole);
+        const destination = await resolvePostLoginPath(
+          actualRole,
+          callbackRequestedRole || requestedRole
+        );
         router.replace(destination);
       } catch {
         clearGoogleOAuthInflightState();
@@ -311,7 +344,12 @@ export default function AuthCallbackPage() {
         }
         authTokenStore.clear();
         clearStoredAuthUser();
-        router.replace("/auth?error=GOOGLE_AUTH_FAILED");
+        router.replace(
+          buildAuthErrorUrl({
+            type: callbackRequestedRole,
+            error: "GOOGLE_AUTH_FAILED"
+          })
+        );
       }
     };
 

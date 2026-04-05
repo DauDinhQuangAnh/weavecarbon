@@ -12,6 +12,7 @@ export default function CheckEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const userType = searchParams.get("type") === "b2c" ? "b2c" : "b2b";
   const source = searchParams.get("source") === "google" ? "google" : "email";
   const email = (searchParams.get("email") || "").trim();
 
@@ -44,7 +45,7 @@ export default function CheckEmailPage() {
         <div className="grid gap-2">
           <Button
             type="button"
-            onClick={() => router.push("/auth")}
+            onClick={() => router.push(`/auth?type=${userType}`)}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {t("checkEmailPage.continueSignin")}

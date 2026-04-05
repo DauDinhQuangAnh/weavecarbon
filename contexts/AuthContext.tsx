@@ -940,7 +940,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       const role = userType ?? "b2b";
       markGoogleOAuthInflight(
         options?.rememberMe !== false,
-        intent === "signin" ? role : undefined
+        role
       );
       const frontendOrigin = window.location.origin;
       if (intent === "signup") {

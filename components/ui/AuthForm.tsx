@@ -77,7 +77,7 @@ const AuthForm: React.FC = () => {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const userType = searchParams.get("type") as "b2b" | "b2c" || "b2b";
+  const userType = searchParams.get("type") === "b2c" ? "b2c" : "b2b";
   const isVi = locale === "vi";
   const forceLogin = searchParams.get("forceLogin") === "1";
   const forceSignOutDoneRef = useRef(false);
@@ -173,6 +173,7 @@ const AuthForm: React.FC = () => {
   const redirectToCheckEmail = useCallback(
     (params: {email?: string;source?: "email" | "google";intent?: "signin" | "signup";}) => {
       const nextParams = new URLSearchParams();
+      nextParams.set("type", userType);
       if (params.email?.trim()) {
         nextParams.set("email", params.email.trim());
       }
@@ -185,7 +186,7 @@ const AuthForm: React.FC = () => {
       const query = nextParams.toString();
       router.push(query ? `/auth/check-email?${query}` : "/auth/check-email");
     },
-    [router]
+    [router, userType]
   );
 
   useEffect(() => {
