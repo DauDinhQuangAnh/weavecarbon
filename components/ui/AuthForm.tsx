@@ -16,6 +16,7 @@ import EmailAuthTabs from "@/components/auth/EmailAuthTabs";
 import { useToast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/button";
 import { clearGoogleOAuthInflightState } from "@/lib/auth/googleOAuth";
+import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 
 const REMEMBER_EMAIL_KEY = "weavecarbon_auth_email";
 const REMEMBER_ME_KEY = "weavecarbon_auth_remember_me";
@@ -374,6 +375,11 @@ const AuthForm: React.FC = () => {
     e.preventDefault();
     if (!validateForm(false)) return;
 
+    trackEvent("auth_login_submit", {
+      auth_method: "email",
+      intent: "signin",
+      entry_account_type: userType
+    });
     setIsLoading(true);
 
     const { error, needsConfirmation } = await signIn(email, password, userType, {
@@ -381,6 +387,12 @@ const AuthForm: React.FC = () => {
     });
 
     if (needsConfirmation) {
+      trackEvent("auth_login_error", {
+        auth_method: "email",
+        intent: "signin",
+        entry_account_type: userType,
+        error_code: "email_not_verified"
+      });
       setIsLoading(false);
       redirectToCheckEmail({
         email,
@@ -391,6 +403,12 @@ const AuthForm: React.FC = () => {
     }
 
     if (error) {
+      trackEvent("auth_login_error", {
+        auth_method: "email",
+        intent: "signin",
+        entry_account_type: userType,
+        error_code: toAnalyticsErrorCode(error)
+      });
       const mismatch = parseAccountTypeMismatch(error.message);
       setIsLoading(false);
       toast({
@@ -410,6 +428,11 @@ const AuthForm: React.FC = () => {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
       }
       const destination = await resolvePostLoginPath();
+      trackEvent("auth_login_success", {
+        auth_method: "email",
+        intent: "signin",
+        entry_account_type: userType
+      });
       setIsLoading(false);
       router.push(destination);
     }
@@ -419,10 +442,21 @@ const AuthForm: React.FC = () => {
     e.preventDefault();
     if (!validateForm(true)) return;
 
+    trackEvent("auth_signup_submit", {
+      auth_method: "email",
+      intent: "signup",
+      entry_account_type: userType
+    });
     setIsLoading(true);
     const result = await signUp(email, password, fullName, userType);
 
     if (result.error) {
+      trackEvent("auth_signup_error", {
+        auth_method: "email",
+        intent: "signup",
+        entry_account_type: userType,
+        error_code: toAnalyticsErrorCode(result.error)
+      });
       setIsLoading(false);
       let errorMessage = result.error.message;
       if (result.error.message.includes("already registered")) {
@@ -435,6 +469,11 @@ const AuthForm: React.FC = () => {
       });
     } else {
       setIsLoading(false);
+      trackEvent("auth_signup_success", {
+        auth_method: "email",
+        intent: "signup",
+        entry_account_type: userType
+      });
 
       if (result.needsConfirmation) {
         toast({
@@ -459,6 +498,11 @@ const AuthForm: React.FC = () => {
   };
 
   const handleGoogleLogin = async () => {
+    trackEvent("auth_google_start", {
+      auth_method: "google",
+      intent: activeTab === "signup" ? "signup" : "signin",
+      entry_account_type: userType
+    });
     setIsLoading(true);
     const intent = activeTab === "signup" ? "signup" : "signin";
     const { error } = await signInWithGoogle(userType, intent, { rememberMe });

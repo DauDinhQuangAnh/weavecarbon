@@ -32,6 +32,7 @@ import {
 import Header from "@/components/landing/Header";
 import Footer from "@/components/landing/Footer";
 import { useTranslations } from "next-intl";
+import { trackEvent } from "@/lib/analytics";
 
 
 const materialFactors: Record<string, number> = {
@@ -93,6 +94,10 @@ export default function CalculatorClient() {
   const calculateEmissions = () => {
     if (!weight || !material || !route) return;
 
+    trackEvent("calculator_run", {
+      material,
+      route
+    });
     const weightNum = parseFloat(weight);
     const materialEmission = weightNum * materialFactors[material];
     const manufacturingEmission = weightNum * manufacturingFactor;

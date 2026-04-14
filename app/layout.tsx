@@ -14,6 +14,7 @@ import {
   DEFAULT_TOAST_POSITION,
   DEFAULT_TOAST_SWIPE_DIRECTIONS
 } from "@/lib/toastConfig";
+import AnalyticsProvider from "@/components/system/AnalyticsProvider";
 import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 
 const beVietnamProBody = Be_Vietnam_Pro({
@@ -80,13 +81,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           <AuthProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>
               <LanguageProvider>
-                {children}
-                <SonnerToaster
-                  position={DEFAULT_TOAST_POSITION}
-                  richColors
-                  closeButton={false}
-                  duration={DEFAULT_TOAST_DURATION}
-                  swipeDirections={[...DEFAULT_TOAST_SWIPE_DIRECTIONS]} />
+                <AnalyticsProvider>
+                  {children}
+                  <SonnerToaster
+                    position={DEFAULT_TOAST_POSITION}
+                    richColors
+                    closeButton={false}
+                    duration={DEFAULT_TOAST_DURATION}
+                    swipeDirections={[...DEFAULT_TOAST_SWIPE_DIRECTIONS]} />
+                </AnalyticsProvider>
               </LanguageProvider>
             </NextIntlClientProvider>
           </AuthProvider>

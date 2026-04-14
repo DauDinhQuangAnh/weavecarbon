@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Waves from "../icons/Waves";
 import { useEffect, useRef, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
   ssr: false,
@@ -136,12 +137,20 @@ const Hero = () => {
               variant="hero"
               size="xl"
               className="h-12 w-full px-6 text-base sm:h-14 sm:w-auto sm:px-10 sm:text-lg"
-              onClick={() => setShowUserTypeDialog(true)}
+              onClick={() => {
+                trackEvent("landing_start_click", {});
+                setShowUserTypeDialog(true);
+              }}
             >
               {t("cta.start")}
               <ArrowRight className="w-5 h-5" />
             </Button>
-            <Link href="/calculator" className="w-full sm:w-auto">
+            <Link
+              href="/calculator"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                trackEvent("landing_calculator_click", {});
+              }}>
               <Button
                 variant="heroOutline"
                 size="xl"

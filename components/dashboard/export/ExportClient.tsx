@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { isApiError } from "@/lib/apiClient";
+import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 import {
   approveComplianceDocument,
   fetchComplianceMarkets,
@@ -476,6 +477,9 @@ const ExportPage: React.FC = () => {
   const needsWorkMarkets = markets.filter((market) => (marketReadinessByScore[market] || 0) < 80).length;
 
   const handleOpenMarketDetail = (market: MarketCode) => {
+    trackEvent("export_market_open", {
+      market
+    });
     setSelectedMarket(market);
     setIsDetailOpen(true);
   };
@@ -545,6 +549,9 @@ const ExportPage: React.FC = () => {
 
   const handleOpenUpgradeModal = () => {
     if (typeof window === "undefined") return;
+    trackEvent("pricing_modal_open", {
+      source_page: "export"
+    });
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
   };
 
@@ -580,6 +587,11 @@ const ExportPage: React.FC = () => {
         setPreviewDocument(document);
         setPreviewDocumentTitle(`${document.name} (${document.market})`);
         setPreviewDocumentOpen(true);
+        trackEvent("export_document_preview_open", {
+          market: document.market,
+          document_id: document.documentId,
+          document_group: document.group
+        });
       } catch (openError) {
         console.warn("Failed to open compliance document:", openError);
         toast.error(openError instanceof Error ? openError.message : t("documents.openFailed"));
@@ -630,6 +642,11 @@ const ExportPage: React.FC = () => {
             ? "\u0110\u00e3 duy\u1ec7t t\u00e0i li\u1ec7u th\u00e0nh c\u00f4ng."
             : "Document approved successfully."
         );
+        trackEvent("export_document_approve_success", {
+          market: targetDocument.market,
+          document_id: targetDocument.documentId,
+          document_group: targetDocument.group
+        });
         await loadComplianceData();
         setPreviewDocument((previous) =>
           previous?.id === targetDocument.id ? { ...previous, status: "approved" } : previous
@@ -687,7 +704,14 @@ const ExportPage: React.FC = () => {
           document.id === targetDocumentId && resolveComplianceDocumentGroup(document) === uploadModalGroup
       )?.name ||
       targetDocumentId;
+    const analyticsPayload = {
+      market: targetMarket,
+      document_id: targetDocumentId,
+      document_group: uploadModalGroup,
+      mode: uploadModalMode
+    } as const;
 
+    trackEvent("export_document_upload_submit", analyticsPayload);
     void (async () => {
       setUploadingDocument(true);
       try {
@@ -710,9 +734,14 @@ const ExportPage: React.FC = () => {
             ? t("documents.updateSuccess", { market: targetMarketName, document: targetDocumentName })
             : t("documents.uploadSuccess", { market: targetMarketName, document: targetDocumentName })
         );
+        trackEvent("export_document_upload_success", analyticsPayload);
         await loadComplianceData();
         closeUploadModal(true);
       } catch (uploadError) {
+        trackEvent("export_document_upload_error", {
+          ...analyticsPayload,
+          error_code: toAnalyticsErrorCode(uploadError)
+        });
         console.error("Failed to upload compliance document:", uploadError);
         toast.error(
           uploadError instanceof Error

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { api, isApiError } from "@/lib/apiClient";
+import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 import { motion } from "motion/react";
 import { ArrowRight, Mail } from "lucide-react";
 import { useState } from "react";
@@ -19,18 +20,29 @@ const CTA = () => {
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
       toast.error(t("invalidEmail"));
+      trackEvent("lead_form_error", {
+        error_code: "invalid_email"
+      });
       return;
     }
 
+    trackEvent("lead_form_submit", {});
     setIsSubmitting(true);
 
     try {
       await api.post("/contact/lead", {
         email: normalizedEmail
       });
+      trackEvent("lead_form_success", {});
       toast.success(t("success"));
       setEmail("");
     } catch (error) {
+      trackEvent("lead_form_error", {
+        error_code:
+          isApiError(error) && error.code === "VALIDATION_ERROR" ?
+            "validation_error" :
+            toAnalyticsErrorCode(error)
+      });
       if (isApiError(error) && error.code === "VALIDATION_ERROR") {
         toast.error(t("invalidEmail"));
       } else {

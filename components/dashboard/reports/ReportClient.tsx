@@ -84,6 +84,7 @@ import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { isStandardPlan, normalizeSubscriptionPlan } from "@/lib/subscriptionPlans";
 import { isDemoPath } from "@/lib/demo/routes";
 import { cn } from "@/lib/utils";
+import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 import MobileDataCard from "./mobile/MobileDataCard";
 
 type ReportType =
@@ -146,6 +147,7 @@ const SUPPORTED_MANUAL_REPORT_TYPES = new Set<ReportType>([
 const CREATE_REPORT_FORMAT_OPTIONS = ["xlsx", "csv"] as const;
 
 type CreateReportFormat = (typeof CREATE_REPORT_FORMAT_OPTIONS)[number];
+type AnalyticsReportDatasetType = "analytics" | "company" | "history" | "products" | "users";
 
 const normalizeFormatLabel = (value: unknown) => {
   const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
@@ -182,6 +184,23 @@ const getExportDatasetType = (type: ReportType): string | null => {
   if (type === "history") return "history";
   if (type === "company") return "company";
   return null;
+};
+
+const getAnalyticsDatasetType = (type: ReportType): AnalyticsReportDatasetType | undefined => {
+  if (type === "product" || type === "products") return "products";
+  if (type === "users") return "users";
+  if (type === "analytics") return "analytics";
+  if (type === "history") return "history";
+  if (type === "company") return "company";
+  return undefined;
+};
+
+const getAnalyticsExportFormat = (value: string): "csv" | "pdf" | "xlsx" => {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "csv" || normalized === "pdf") {
+    return normalized;
+  }
+  return "xlsx";
 };
 
 const normalizeReportStatus = (
@@ -762,28 +781,28 @@ const ReportsPage: React.FC = () => {
   const REPORT_TYPES = useMemo(
     () => [
       {
-        id: "products" as ReportDatasetType,
+        id: "products" as AnalyticsReportDatasetType,
         label: t("types.product.label"),
         icon: Package,
         description: t("types.product.description"),
         countKey: "products" as keyof typeof exportSourceCounts
       },
       {
-        id: "users" as ReportDatasetType,
+        id: "users" as AnalyticsReportDatasetType,
         label: t("types.users.label"),
         icon: Users,
         description: t("types.users.description"),
         countKey: "users" as keyof typeof exportSourceCounts
       },
       {
-        id: "analytics" as ReportDatasetType,
+        id: "analytics" as AnalyticsReportDatasetType,
         label: t("types.analytics.label"),
         icon: BarChart3,
         description: t("types.analytics.description"),
         countKey: "products" as keyof typeof exportSourceCounts
       },
       {
-        id: "history" as ReportDatasetType,
+        id: "history" as AnalyticsReportDatasetType,
         label: t("types.history.label"),
         icon: History,
         description: t("types.history.description"),
@@ -1254,10 +1273,11 @@ const ReportsPage: React.FC = () => {
 
   const runDatasetExport = useCallback(
     async (
-    dataset: ReportDatasetType,
+    dataset: AnalyticsReportDatasetType,
     format: ExportFileFormat,
     label: string) =>
     {
+      const analyticsFormat = getAnalyticsExportFormat(format);
       setExportingDataset(dataset);
       try {
         const options = {
@@ -1280,7 +1300,16 @@ const ReportsPage: React.FC = () => {
               format: format.toUpperCase()
             })
         );
+        trackEvent("report_quick_export_success", {
+          dataset_type: dataset,
+          format: analyticsFormat
+        });
       } catch (error) {
+        trackEvent("report_quick_export_error", {
+          dataset_type: dataset,
+          format: analyticsFormat,
+          error_code: toAnalyticsErrorCode(error)
+        });
         if (!isNoDataExportError(error)) {
           console.error("Failed to export dataset:", error);
         }
@@ -1296,11 +1325,20 @@ const ReportsPage: React.FC = () => {
     [isNoDataExportError, locale, standardPlanLabel, t]
   );
 
-  const handleQuickExport = (type: ReportDatasetType, label: string) => {
+  const handleQuickExport = (type: AnalyticsReportDatasetType, label: string) => {
     if (!ensureReportActionAllowed()) {
       return;
     }
+    trackEvent("report_quick_export_click", {
+      dataset_type: type,
+      format: "xlsx"
+    });
     if (getDatasetSourceCount(type) <= 0) {
+      trackEvent("report_quick_export_error", {
+        dataset_type: type,
+        format: "xlsx",
+        error_code: "no_data"
+      });
       toast.info(t("noDataToExport"));
       return;
     }
@@ -1333,6 +1371,7 @@ const ReportsPage: React.FC = () => {
     setCreateError(null);
     try {
       const exportDatasetType = getExportDatasetType(createForm.type);
+      const analyticsDatasetType = getAnalyticsDatasetType(createForm.type);
       const reportType = exportDatasetType ? "export_data" : createForm.type;
       const payload: Record<string, unknown> = {
         title,
@@ -1350,13 +1389,30 @@ const ReportsPage: React.FC = () => {
         return;
       }
 
+      trackEvent("report_create_submit", {
+        report_type: createForm.type,
+        dataset_type: analyticsDatasetType,
+        format: createForm.format
+      });
+
       await api.post(REPORTS_ENDPOINT, payload);
       await loadReports(false);
 
+      trackEvent("report_create_success", {
+        report_type: createForm.type,
+        dataset_type: analyticsDatasetType,
+        format: createForm.format
+      });
       toast.success(t("toasts.createReportSuccess"));
       setCreateDialogOpen(false);
       resetCreateForm();
     } catch (error) {
+      trackEvent("report_create_error", {
+        report_type: createForm.type,
+        dataset_type: getAnalyticsDatasetType(createForm.type),
+        format: createForm.format,
+        error_code: toAnalyticsErrorCode(error)
+      });
       if (!isNoDataExportError(error)) {
         console.error("Failed to create report:", error);
       }
@@ -1403,7 +1459,14 @@ const ReportsPage: React.FC = () => {
     if (!ensureReportActionAllowed()) {
       return;
     }
+    const analyticsFormat = getAnalyticsExportFormat(report.format);
     if (report.status !== "completed") {
+      trackEvent("report_download_error", {
+        report_type: report.type,
+        format: analyticsFormat,
+        report_status: report.status,
+        error_code: "report_not_ready"
+      });
       const statusLabel =
         report.status === "processing" ? t("status.processing") : t("status.failed");
       toast.info(t("errors.reportFileNotReady", { status: statusLabel }));
@@ -1419,10 +1482,21 @@ const ReportsPage: React.FC = () => {
       )
     );
     if (candidatePaths.length === 0) {
+      trackEvent("report_download_error", {
+        report_type: report.type,
+        format: analyticsFormat,
+        report_status: report.status,
+        error_code: "file_unavailable"
+      });
       toast.error(t("errors.reportFileUnavailable"));
       return;
     }
 
+    trackEvent("report_download_click", {
+      report_type: report.type,
+      format: analyticsFormat,
+      report_status: report.status
+    });
     setDownloadingReportId(report.id);
     try {
       const normalizedFormat = report.format.trim().toLowerCase();
@@ -1436,6 +1510,11 @@ const ReportsPage: React.FC = () => {
       for (const path of candidatePaths) {
         try {
           await downloadFileFromPath(path, fallbackName);
+          trackEvent("report_download_success", {
+            report_type: report.type,
+            format: analyticsFormat,
+            report_status: report.status
+          });
           return;
         } catch (error) {
           lastError = error;
@@ -1447,6 +1526,12 @@ const ReportsPage: React.FC = () => {
       }
       throw new Error(t("errors.downloadReportFailed"));
     } catch (error) {
+      trackEvent("report_download_error", {
+        report_type: report.type,
+        format: analyticsFormat,
+        report_status: report.status,
+        error_code: toAnalyticsErrorCode(error)
+      });
       if (isReportNotReadyError(error)) {
         toast.info((error as Error).message);
         await loadReports(false);

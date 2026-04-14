@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 import { api } from "@/lib/apiClient";
+import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 import { clearSubscriptionLockStateCache } from "@/lib/subscriptionLockState";
 import { resolveDomesticMarketCode } from "@/lib/targetMarkets";
 import OnboardingHeader from "./OnboardingHeader";
@@ -74,6 +75,11 @@ const OnboardingClient: React.FC = () => {
       return;
     }
 
+    const analyticsPayload = {
+      business_type: businessType,
+      domestic_market: domesticMarket || defaultDomesticMarket
+    } as const;
+    trackEvent("onboarding_submit", analyticsPayload);
     setIsSubmitting(true);
 
     try {
@@ -110,6 +116,7 @@ const OnboardingClient: React.FC = () => {
         title: t("success"),
         description: t("companySaved")
       });
+      trackEvent("onboarding_success", analyticsPayload);
 
       if (typeof window !== "undefined") {
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
@@ -133,6 +140,10 @@ const OnboardingClient: React.FC = () => {
     } catch (error) {
       const message =
       error instanceof Error ? error.message : "Something went wrong";
+      trackEvent("onboarding_error", {
+        ...analyticsPayload,
+        error_code: toAnalyticsErrorCode(error)
+      });
       console.error("Onboarding error:", error);
       toast({
         title: t("error"),

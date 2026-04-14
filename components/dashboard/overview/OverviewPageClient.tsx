@@ -7,6 +7,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
+import { trackEvent } from "@/lib/analytics";
 import {
   generateCompanyRecommendations,
   readRagRuntimeConfig,
@@ -346,7 +347,16 @@ const OverviewPage: React.FC = () => {
 
   const handleOpenPricingModal = () => {
     if (typeof window === "undefined") return;
+    trackEvent("pricing_modal_open", {
+      source_page: "overview"
+    });
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
+  };
+
+  const handleQuickActionClick = (action: "add_product" | "logistics" | "reports") => {
+    trackEvent("dashboard_quick_action_click", {
+      action
+    });
   };
 
   useEffect(() => {
@@ -964,6 +974,7 @@ const OverviewPage: React.FC = () => {
               showNoPermissionToast();
               return;
             }
+            handleQuickActionClick("add_product");
             navigate.push(appRoutes.toAppPath("/products"));
           }}>
 
@@ -993,7 +1004,10 @@ const OverviewPage: React.FC = () => {
 
         <Card
           className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
-          onClick={() => navigate.push(appRoutes.toAppPath("/logistics"))}>
+          onClick={() => {
+            handleQuickActionClick("logistics");
+            navigate.push(appRoutes.toAppPath("/logistics"));
+          }}>
 
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center gap-3">
@@ -1021,7 +1035,10 @@ const OverviewPage: React.FC = () => {
 
         <Card
           className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
-          onClick={() => navigate.push(appRoutes.toAppPath("/reports"))}>
+          onClick={() => {
+            handleQuickActionClick("reports");
+            navigate.push(appRoutes.toAppPath("/reports"));
+          }}>
 
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center gap-3">
