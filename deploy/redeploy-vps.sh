@@ -34,6 +34,80 @@ get_env_value() {
   printf '%s\n' "${line}"
 }
 
+fetch_url() {
+  local url="$1"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --max-time 20 "${url}"
+    return
+  fi
+
+  if command -v wget >/dev/null 2>&1; then
+    wget -qO- "${url}"
+    return
+  fi
+
+  echo "Neither curl nor wget is available on this host, so post-deploy URL verification cannot run."
+  return 127
+}
+
+report_frontend_analytics_config() {
+  local measurement_id
+  measurement_id="$(get_env_value "NEXT_PUBLIC_GA_MEASUREMENT_ID")"
+
+  if [[ -z "${measurement_id}" ]]; then
+    echo "Warning: NEXT_PUBLIC_GA_MEASUREMENT_ID is empty in ${ENV_FILE}."
+    echo "The production frontend will deploy without Google Analytics."
+    return
+  fi
+
+  echo "Frontend Google Analytics measurement ID: ${measurement_id}"
+}
+
+verify_frontend_analytics_deploy() {
+  local measurement_id app_public_url html attempts max_attempts
+  measurement_id="$(get_env_value "NEXT_PUBLIC_GA_MEASUREMENT_ID")"
+  app_public_url="$(get_env_value "APP_PUBLIC_URL")"
+
+  if [[ -z "${measurement_id}" ]]; then
+    echo "Skipping Google Analytics verification because NEXT_PUBLIC_GA_MEASUREMENT_ID is empty."
+    return
+  fi
+
+  if [[ -z "${app_public_url}" ]]; then
+    echo "Skipping Google Analytics verification because APP_PUBLIC_URL is empty."
+    return
+  fi
+
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    echo "Skipping Google Analytics verification because curl/wget is unavailable on the VPS."
+    return
+  fi
+
+  echo "Verifying Google Analytics on ${app_public_url}..."
+
+  attempts=0
+  max_attempts=12
+
+  while (( attempts < max_attempts )); do
+    attempts=$((attempts + 1))
+    html="$(fetch_url "${app_public_url}" 2>/dev/null || true)"
+
+    if [[ "${html}" == *"googletagmanager.com/gtag/js?id=${measurement_id}"* ]]; then
+      echo "Google Analytics script detected on the live site."
+      return 0
+    fi
+
+    sleep 5
+  done
+
+  echo "Google Analytics script was not detected on ${app_public_url} after deploy."
+  echo "Check ${ENV_FILE} for NEXT_PUBLIC_GA_MEASUREMENT_ID=${measurement_id} and confirm the frontend image rebuilt."
+  echo "Recent frontend logs:"
+  compose logs --tail=40 fe || true
+  return 1
+}
+
 cleanup_legacy_containers() {
   mapfile -t legacy_container_ids < <(
     docker ps -a --format '{{.ID}}\t{{.Names}}' | awk -F '\t' '
@@ -163,5 +237,7 @@ cd "${ROOT_DIR}"
 compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
+report_frontend_analytics_config
 compose up -d --build --remove-orphans
+verify_frontend_analytics_deploy
 compose ps

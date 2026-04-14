@@ -91,6 +91,19 @@ Then verify in Google Tag Assistant and GA4 Realtime:
 - export market open, preview, upload, approve fire
 - reports export/create/download flows fire
 
+You can also verify the live deployment from a shell:
+
+```bash
+curl -fsSL https://weavecarbon.com | grep -E "G-81EN7B9X8Z|gtag/js|googletagmanager.com"
+```
+
+And from the browser console:
+
+```js
+typeof window.gtag
+document.querySelector('script[src*="googletagmanager.com/gtag/js?id=G-81EN7B9X8Z"]')
+```
+
 ## Privacy Guardrails
 
 Do not send:
