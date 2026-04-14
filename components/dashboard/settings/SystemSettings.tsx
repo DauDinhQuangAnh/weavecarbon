@@ -52,6 +52,7 @@ import {
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Building2, Save, X, Zap, User, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 
 interface CompanyData {
   id: string;
@@ -470,6 +471,9 @@ const SystemSettings: React.FC = () => {
         email
       });
       await refreshUser();
+      trackEvent("wc_profile_updated", {
+        profile_scope: "personal"
+      });
       setPersonalEditMode(false);
       toast.success(t("personalUpdateSuccess"));
     } catch (error) {
@@ -538,6 +542,9 @@ const SystemSettings: React.FC = () => {
         new_password: "",
         confirm_password: ""
       });
+      trackEvent("wc_profile_updated", {
+        profile_scope: "password"
+      });
       toast.success(t("passwordChangeSuccess"));
     } catch (error) {
       console.error("Error changing password:", error);
@@ -567,6 +574,9 @@ const SystemSettings: React.FC = () => {
       router.push("/onboarding");
       return;
     }
+    trackEvent("wc_pricing_modal_opened", {
+      source_page: "settings"
+    });
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
   };
 
@@ -640,6 +650,9 @@ const SystemSettings: React.FC = () => {
         } :
       null
       );
+      trackEvent("wc_profile_updated", {
+        profile_scope: "company"
+      });
     } catch (error) {
       console.error("Error saving company:", error);
       toast.error(t("updateError"));

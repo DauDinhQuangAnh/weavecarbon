@@ -51,14 +51,14 @@ fetch_url() {
   return 127
 }
 
-report_frontend_analytics_config() {
+require_frontend_analytics_config() {
   local measurement_id
   measurement_id="$(get_env_value "NEXT_PUBLIC_GA_MEASUREMENT_ID")"
 
   if [[ -z "${measurement_id}" ]]; then
-    echo "Warning: NEXT_PUBLIC_GA_MEASUREMENT_ID is empty in ${ENV_FILE}."
-    echo "The production frontend will deploy without Google Analytics."
-    return
+    echo "Error: NEXT_PUBLIC_GA_MEASUREMENT_ID is empty in ${ENV_FILE}."
+    echo "Set NEXT_PUBLIC_GA_MEASUREMENT_ID=G-81EN7B9X8Z before running production deploy."
+    return 1
   fi
 
   echo "Frontend Google Analytics measurement ID: ${measurement_id}"
@@ -237,7 +237,7 @@ cd "${ROOT_DIR}"
 compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
-report_frontend_analytics_config
+require_frontend_analytics_config
 compose up -d --build --remove-orphans
 verify_frontend_analytics_deploy
 compose ps

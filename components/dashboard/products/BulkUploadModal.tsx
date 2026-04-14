@@ -45,6 +45,7 @@ import {
   validateProductsBulkImport,
   type BulkImportResult
 } from "@/lib/productsApi";
+import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import {
   filterExportComplianceDocuments,
@@ -1173,6 +1174,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     setError(null);
 
     try {
+      trackEvent("wc_bulk_import_started", {});
       const payloadRows = processedRows.map((row) =>
         mapBulkRowToApiPayload(
           row,
@@ -1193,11 +1195,15 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         toast.success(t("success.importSuccess", { imported: result.imported }));
       }
 
+      trackEvent("wc_bulk_import_completed", {});
       onCompleted?.();
     } catch (importError) {
       setCurrentStep(2);
       setError(formatApiErrorMessage(importError, t("errors.importFailed")));
       toast.error(formatApiErrorMessage(importError, t("errors.importFailed")));
+      trackEvent("wc_bulk_import_failed", {
+        error_code: toAnalyticsErrorCode(importError)
+      });
     } finally {
       setIsProcessing(false);
     }

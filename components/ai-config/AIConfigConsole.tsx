@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getGlobalAiRuntimeConfig, saveGlobalAiRuntimeConfig } from "@/lib/aiConfigApi";
+import { trackEvent } from "@/lib/analytics";
 import {
   checkRagHealth,
   createRagCollection,
@@ -379,6 +380,12 @@ const AIConfigConsole: React.FC = () => {
         columnsToAnswer: columns
       });
       applyRuntimeConfig(savedConfig);
+      trackEvent("wc_chat_settings_saved", {
+        feature_area: "chat",
+        page_group: "settings",
+        page_path: "/AI_CONFIG",
+        variant: "dashboard"
+      });
       toast.success("Global AI runtime saved.");
       await refreshWorkspace(savedConfig.baseUrl, savedConfig.collectionName);
     } catch (error) {

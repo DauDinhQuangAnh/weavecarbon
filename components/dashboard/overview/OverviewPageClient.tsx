@@ -347,14 +347,14 @@ const OverviewPage: React.FC = () => {
 
   const handleOpenPricingModal = () => {
     if (typeof window === "undefined") return;
-    trackEvent("pricing_modal_open", {
+    trackEvent("wc_pricing_modal_opened", {
       source_page: "overview"
     });
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
   };
 
   const handleQuickActionClick = (action: "add_product" | "logistics" | "reports") => {
-    trackEvent("dashboard_quick_action_click", {
+    trackEvent("wc_dashboard_quick_action_clicked", {
       action
     });
   };

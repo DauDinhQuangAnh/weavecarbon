@@ -1,7 +1,42 @@
 import type { CompanyRole } from "@/lib/permissions";
 
 type AnalyticsAccountType = "admin" | "anonymous" | "b2b" | "b2c";
+type AnalyticsAuthIntent = "signin" | "signup";
+type AnalyticsAuthMethod = "demo" | "email" | "google";
+type AnalyticsBillingCycle = "monthly" | "yearly";
+type AnalyticsBusinessType = "brand" | "factory" | "shop_online" | "unknown";
+type AnalyticsChatVariant = "dashboard" | "landing";
 type AnalyticsCompanyRole = CompanyRole | "none";
+type AnalyticsDashboardAction = "add_product" | "logistics" | "reports";
+type AnalyticsDocumentGroup = "export_compliance" | "material_certification";
+type AnalyticsEntryAccountType = "b2b" | "b2c";
+type AnalyticsExportFormat = "csv" | "pdf" | "xlsx";
+type AnalyticsFeatureArea =
+  | AnalyticsPageGroup
+  | "chat"
+  | "subscription"
+  | "system"
+  | "team";
+type AnalyticsMemberRole = "admin" | "member" | "viewer";
+type AnalyticsPlanFamily = "export" | "free" | "standard" | "trial";
+type AnalyticsProductEntryPoint =
+  | "assessment_modal"
+  | "batch_management"
+  | "bulk_upload"
+  | "products_page";
+type AnalyticsProfileScope = "company" | "password" | "personal";
+type AnalyticsReportStatus = "completed" | "failed" | "processing";
+
+export type AnalyticsDatasetType =
+  | "activity"
+  | "analytics"
+  | "audit"
+  | "company"
+  | "history"
+  | "product"
+  | "products"
+  | "users";
+
 export type AnalyticsPageGroup =
   | "auth"
   | "calculator"
@@ -15,178 +50,268 @@ export type AnalyticsPageGroup =
   | "reports"
   | "settings";
 
-export interface AnalyticsContext {
+export interface AnalyticsIdentity {
+  companyKey?: string | null;
+  userId?: string | null;
+}
+
+export interface AnalyticsUserProperties {
   accountType?: "admin" | "b2b" | "b2c" | null;
+  businessType?: string | null;
   companyRole?: CompanyRole | null;
+  domesticMarket?: string | null;
   isDemo?: boolean;
   locale?: string | null;
+  planFamily?: AnalyticsPlanFamily | null;
+  planSkuLimit?: number | null;
 }
 
 export interface AnalyticsCommonParams {
   account_type: AnalyticsAccountType;
+  business_type: AnalyticsBusinessType;
   company_role: AnalyticsCompanyRole;
+  domestic_market: string;
+  feature_area: AnalyticsFeatureArea;
   is_demo: boolean;
   locale: string;
   page_group: AnalyticsPageGroup;
   page_path: string;
+  plan_family: AnalyticsPlanFamily;
+  plan_sku_limit: number;
 }
 
-type AnalyticsAuthIntent = "signin" | "signup";
-type AnalyticsEntryAccountType = "b2b" | "b2c";
-type AnalyticsDashboardAction = "add_product" | "logistics" | "reports";
-type AnalyticsDocumentGroup = "export_compliance" | "material_certification";
-type AnalyticsExportFormat = "csv" | "pdf" | "xlsx";
-type AnalyticsReportStatus = "completed" | "failed" | "processing";
-type AnalyticsDatasetType = "analytics" | "company" | "history" | "products" | "users";
+type AnalyticsEventContextOverride = Partial<
+  Pick<AnalyticsCommonParams, "feature_area" | "page_group" | "page_path">
+>;
 
-export interface AnalyticsPayloadMap {
-  auth_google_start: {
-    auth_method: "google";
+type AnalyticsEventPayload<T extends object = object> = T &
+  AnalyticsEventContextOverride;
+
+export interface AnalyticsPayloadMapV2 {
+  begin_checkout: AnalyticsEventPayload<{
+    billing_cycle: AnalyticsBillingCycle;
+    currency: "VND";
+    payment_provider: string;
+    plan_family: Exclude<AnalyticsPlanFamily, "free" | "trial">;
+    plan_sku_limit?: number;
+    value: number;
+  }>;
+  generate_lead: AnalyticsEventPayload<{
+    form_name: "landing_cta";
+    lead_type: "email_capture";
+  }>;
+  login: AnalyticsEventPayload<{
+    entry_account_type?: AnalyticsEntryAccountType;
+    intent: "signin";
+    method: AnalyticsAuthMethod;
+  }>;
+  purchase: AnalyticsEventPayload<{
+    billing_cycle: AnalyticsBillingCycle;
+    currency: "VND";
+    payment_provider: string;
+    plan_family: Exclude<AnalyticsPlanFamily, "free" | "trial">;
+    plan_sku_limit?: number;
+    value: number;
+  }>;
+  sign_up: AnalyticsEventPayload<{
+    entry_account_type: AnalyticsEntryAccountType;
+    intent: "signup";
+    method: Exclude<AnalyticsAuthMethod, "demo">;
+  }>;
+  wc_auth_google_start: AnalyticsEventPayload<{
     entry_account_type: AnalyticsEntryAccountType;
     intent: AnalyticsAuthIntent;
-  };
-  auth_login_error: {
-    auth_method: "email";
+  }>;
+  wc_auth_login_error: AnalyticsEventPayload<{
     entry_account_type: AnalyticsEntryAccountType;
     error_code?: string;
-    intent: "signin";
-  };
-  auth_login_submit: {
-    auth_method: "email";
+    method: AnalyticsAuthMethod;
+  }>;
+  wc_auth_login_submit: AnalyticsEventPayload<{
     entry_account_type: AnalyticsEntryAccountType;
-    intent: "signin";
-  };
-  auth_login_success: {
-    auth_method: "email";
-    entry_account_type: AnalyticsEntryAccountType;
-    intent: "signin";
-  };
-  auth_signup_error: {
-    auth_method: "email";
+    method: AnalyticsAuthMethod;
+  }>;
+  wc_auth_sign_up_error: AnalyticsEventPayload<{
     entry_account_type: AnalyticsEntryAccountType;
     error_code?: string;
-    intent: "signup";
-  };
-  auth_signup_submit: {
-    auth_method: "email";
+    method: Exclude<AnalyticsAuthMethod, "demo">;
+  }>;
+  wc_auth_sign_up_submit: AnalyticsEventPayload<{
     entry_account_type: AnalyticsEntryAccountType;
-    intent: "signup";
-  };
-  auth_signup_success: {
-    auth_method: "email";
-    entry_account_type: AnalyticsEntryAccountType;
-    intent: "signup";
-  };
-  calculator_run: {
+    method: Exclude<AnalyticsAuthMethod, "demo">;
+  }>;
+  wc_batch_created: AnalyticsEventPayload;
+  wc_batch_published: AnalyticsEventPayload;
+  wc_bulk_import_completed: AnalyticsEventPayload;
+  wc_bulk_import_failed: AnalyticsEventPayload<{
+    error_code?: string;
+  }>;
+  wc_bulk_import_started: AnalyticsEventPayload;
+  wc_calculator_run: AnalyticsEventPayload<{
     material: string;
     route: string;
-  };
-  dashboard_quick_action_click: {
+  }>;
+  wc_chat_conversation_deleted: AnalyticsEventPayload<{
+    variant: AnalyticsChatVariant;
+  }>;
+  wc_chat_message_sent: AnalyticsEventPayload<{
+    has_conversation: boolean;
+    variant: AnalyticsChatVariant;
+  }>;
+  wc_chat_opened: AnalyticsEventPayload<{
+    variant: AnalyticsChatVariant;
+  }>;
+  wc_chat_response_received: AnalyticsEventPayload<{
+    variant: AnalyticsChatVariant;
+  }>;
+  wc_chat_settings_saved: AnalyticsEventPayload<{
+    variant: AnalyticsChatVariant;
+  }>;
+  wc_dashboard_quick_action_clicked: AnalyticsEventPayload<{
     action: AnalyticsDashboardAction;
-  };
-  export_document_approve_success: {
+  }>;
+  wc_document_approved: AnalyticsEventPayload<{
     document_group: AnalyticsDocumentGroup;
-    document_id: string;
-    market: string;
-  };
-  export_document_preview_open: {
+    market_code: string;
+  }>;
+  wc_document_preview_opened: AnalyticsEventPayload<{
     document_group: AnalyticsDocumentGroup;
-    document_id: string;
-    market: string;
-  };
-  export_document_upload_error: {
+    market_code: string;
+  }>;
+  wc_document_upload_failed: AnalyticsEventPayload<{
     document_group: AnalyticsDocumentGroup;
-    document_id: string;
     error_code?: string;
-    market: string;
+    market_code: string;
     mode: "create" | "edit";
-  };
-  export_document_upload_submit: {
+  }>;
+  wc_document_upload_submit: AnalyticsEventPayload<{
     document_group: AnalyticsDocumentGroup;
-    document_id: string;
-    market: string;
+    market_code: string;
     mode: "create" | "edit";
-  };
-  export_document_upload_success: {
+  }>;
+  wc_document_uploaded: AnalyticsEventPayload<{
     document_group: AnalyticsDocumentGroup;
-    document_id: string;
-    market: string;
+    market_code: string;
     mode: "create" | "edit";
-  };
-  export_market_open: {
-    market: string;
-  };
-  landing_calculator_click: Record<string, never>;
-  landing_start_click: Record<string, never>;
-  lead_form_error: {
+  }>;
+  wc_email_verification_completed: AnalyticsEventPayload<{
+    method: Exclude<AnalyticsAuthMethod, "demo">;
+  }>;
+  wc_export_market_opened: AnalyticsEventPayload<{
+    market_code: string;
+  }>;
+  wc_export_report_requested: AnalyticsEventPayload<{
+    format: AnalyticsExportFormat;
+    market_code: string;
+  }>;
+  wc_landing_calculator_clicked: AnalyticsEventPayload;
+  wc_landing_start_clicked: AnalyticsEventPayload;
+  wc_lead_form_error: AnalyticsEventPayload<{
     error_code?: string;
-  };
-  lead_form_submit: Record<string, never>;
-  lead_form_success: Record<string, never>;
-  onboarding_error: {
-    business_type: string;
+  }>;
+  wc_lead_form_submit: AnalyticsEventPayload;
+  wc_member_disabled: AnalyticsEventPayload<{
+    member_role: AnalyticsMemberRole;
+    status: "active" | "disabled" | "inactive";
+  }>;
+  wc_member_invite_resent: AnalyticsEventPayload<{
+    member_role: AnalyticsMemberRole;
+  }>;
+  wc_member_invited: AnalyticsEventPayload<{
+    member_role: AnalyticsMemberRole;
+  }>;
+  wc_member_removed: AnalyticsEventPayload<{
+    member_role: AnalyticsMemberRole;
+  }>;
+  wc_member_role_changed: AnalyticsEventPayload<{
+    next_role: AnalyticsMemberRole;
+    previous_role: AnalyticsMemberRole;
+  }>;
+  wc_onboarding_completed: AnalyticsEventPayload<{
+    business_type: AnalyticsBusinessType;
+    domestic_market: string;
+  }>;
+  wc_onboarding_error: AnalyticsEventPayload<{
+    business_type: AnalyticsBusinessType;
     domestic_market: string;
     error_code?: string;
-  };
-  onboarding_submit: {
-    business_type: string;
+  }>;
+  wc_onboarding_submit: AnalyticsEventPayload<{
+    business_type: AnalyticsBusinessType;
     domestic_market: string;
-  };
-  onboarding_success: {
-    business_type: string;
-    domestic_market: string;
-  };
-  pricing_modal_open: {
+  }>;
+  wc_payment_failed: AnalyticsEventPayload<{
+    billing_cycle?: AnalyticsBillingCycle;
+    error_code?: string;
+    payment_provider?: string;
+    plan_family?: Exclude<AnalyticsPlanFamily, "free" | "trial">;
+    plan_sku_limit?: number;
+  }>;
+  wc_plan_selected: AnalyticsEventPayload<{
+    billing_cycle: AnalyticsBillingCycle;
+    payment_provider: string;
+    plan_family: Exclude<AnalyticsPlanFamily, "free" | "trial">;
+    plan_sku_limit?: number;
+  }>;
+  wc_pricing_modal_opened: AnalyticsEventPayload<{
     source_page: string;
-  };
-  report_create_error: {
-    dataset_type?: AnalyticsDatasetType;
-    error_code?: string;
-    format: AnalyticsExportFormat;
-    report_type: string;
-  };
-  report_create_submit: {
-    dataset_type?: AnalyticsDatasetType;
-    format: AnalyticsExportFormat;
-    report_type: string;
-  };
-  report_create_success: {
-    dataset_type?: AnalyticsDatasetType;
-    format: AnalyticsExportFormat;
-    report_type: string;
-  };
-  report_download_click: {
-    format: AnalyticsExportFormat;
-    report_status: AnalyticsReportStatus;
-    report_type: string;
-  };
-  report_download_error: {
+  }>;
+  wc_product_created: AnalyticsEventPayload<{
+    entry_point: AnalyticsProductEntryPoint;
+  }>;
+  wc_product_deleted: AnalyticsEventPayload<{
+    entry_point: AnalyticsProductEntryPoint;
+  }>;
+  wc_product_published: AnalyticsEventPayload<{
+    entry_point: AnalyticsProductEntryPoint;
+  }>;
+  wc_product_updated: AnalyticsEventPayload<{
+    entry_point: AnalyticsProductEntryPoint;
+  }>;
+  wc_product_viewed: AnalyticsEventPayload<{
+    entry_point: AnalyticsProductEntryPoint;
+  }>;
+  wc_profile_updated: AnalyticsEventPayload<{
+    profile_scope: AnalyticsProfileScope;
+  }>;
+  wc_report_download_failed: AnalyticsEventPayload<{
     error_code?: string;
     format: AnalyticsExportFormat;
     report_status: AnalyticsReportStatus;
     report_type: string;
-  };
-  report_download_success: {
+  }>;
+  wc_report_downloaded: AnalyticsEventPayload<{
     format: AnalyticsExportFormat;
     report_status: AnalyticsReportStatus;
     report_type: string;
-  };
-  report_quick_export_click: {
-    dataset_type: AnalyticsDatasetType;
-    format: AnalyticsExportFormat;
-  };
-  report_quick_export_error: {
-    dataset_type: AnalyticsDatasetType;
+  }>;
+  wc_report_generation_failed: AnalyticsEventPayload<{
+    dataset_type?: AnalyticsDatasetType;
     error_code?: string;
     format: AnalyticsExportFormat;
-  };
-  report_quick_export_success: {
-    dataset_type: AnalyticsDatasetType;
+    report_type: string;
+  }>;
+  wc_report_generated: AnalyticsEventPayload<{
+    dataset_type?: AnalyticsDatasetType;
     format: AnalyticsExportFormat;
-  };
+    report_type: string;
+  }>;
+  wc_report_requested: AnalyticsEventPayload<{
+    dataset_type?: AnalyticsDatasetType;
+    format: AnalyticsExportFormat;
+    report_type: string;
+  }>;
+  wc_route_simulation_run: AnalyticsEventPayload<{
+    route_type?: string;
+  }>;
+  wc_shipment_created: AnalyticsEventPayload;
+  wc_shipment_status_changed: AnalyticsEventPayload<{
+    status: string;
+  }>;
+  wc_shipment_updated: AnalyticsEventPayload;
 }
 
-export type AnalyticsEventName = keyof AnalyticsPayloadMap;
+export type AnalyticsEventNameV2 = keyof AnalyticsPayloadMapV2;
 
 declare global {
   interface Window {
@@ -199,19 +324,60 @@ declare global {
   }
 }
 
-let analyticsContext: AnalyticsContext = {};
-
 const GA_MEASUREMENT_ID = (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "").trim();
+const IS_PRODUCTION_RUNTIME = process.env.NODE_ENV === "production";
 
 const DEFAULT_ACCOUNT_TYPE: AnalyticsAccountType = "anonymous";
+const DEFAULT_BUSINESS_TYPE: AnalyticsBusinessType = "unknown";
 const DEFAULT_COMPANY_ROLE: AnalyticsCompanyRole = "none";
+const DEFAULT_DOMESTIC_MARKET = "unknown";
 const DEFAULT_LOCALE = "unknown";
+const DEFAULT_PLAN_FAMILY: AnalyticsPlanFamily = "free";
+const DYNAMIC_PATH_PARENTS = new Set(["history", "passport", "summary"]);
+const DYNAMIC_SEGMENT_PATTERN =
+  /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{5,}|[a-z0-9_-]{20,})$/i;
 
-const trimTrailingSlash = (value: string) => {
-  if (value.length > 1 && value.endsWith("/")) {
-    return value.slice(0, -1);
-  }
-  return value;
+let analyticsIdentity: AnalyticsIdentity = {};
+let analyticsUserProperties: AnalyticsUserProperties = {};
+
+const compactAnalyticsParams = <T extends Record<string, unknown>>(params: T) =>
+  Object.fromEntries(
+    Object.entries(params).filter(([, value]) => {
+      if (typeof value === "undefined" || value === null) {
+        return false;
+      }
+      if (typeof value === "string") {
+        return value.trim().length > 0;
+      }
+      return true;
+    })
+  ) as Partial<T>;
+
+const normalizeAnalyticsToken = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "unknown";
+
+const sanitizePathname = (value: string) => {
+  const rawPathname = value.split("?")[0] || "/";
+  const segments = rawPathname
+    .split("/")
+    .filter(Boolean)
+    .map((segment, index, allSegments) => {
+      const previousSegment = allSegments[index - 1] || "";
+      if (
+        DYNAMIC_SEGMENT_PATTERN.test(segment) ||
+        DYNAMIC_PATH_PARENTS.has(previousSegment.toLowerCase())
+      ) {
+        return ":id";
+      }
+      return segment;
+    });
+
+  return segments.length > 0 ? `/${segments.join("/")}` : "/";
 };
 
 const normalizePagePath = (value: string | null | undefined) => {
@@ -224,22 +390,20 @@ const normalizePagePath = (value: string | null | undefined) => {
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     try {
       const url = new URL(trimmed);
-      return trimTrailingSlash(`${url.pathname || fallback}${url.search || ""}`) || fallback;
+      return sanitizePathname(url.pathname || fallback);
     } catch {
       return fallback;
     }
   }
 
-  if (trimmed.startsWith("/")) {
-    return trimTrailingSlash(trimmed) || fallback;
-  }
-
-  return trimTrailingSlash(`/${trimmed}`) || fallback;
+  const pathname = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return sanitizePathname(pathname);
 };
 
-export const resolveAnalyticsPageGroup = (path: string | null | undefined): AnalyticsPageGroup => {
-  const normalizedPath = normalizePagePath(path);
-  const pathname = normalizedPath.split("?")[0] || "/";
+export const resolveAnalyticsPageGroup = (
+  path: string | null | undefined
+): AnalyticsPageGroup => {
+  const pathname = normalizePagePath(path);
 
   if (pathname === "/") return "landing";
   if (pathname.startsWith("/auth")) return "auth";
@@ -249,18 +413,18 @@ export const resolveAnalyticsPageGroup = (path: string | null | undefined): Anal
 
   if (
     pathname === "/products" ||
-    pathname.startsWith("/demo/products") ||
     pathname.startsWith("/assessment") ||
-    pathname.startsWith("/summary") ||
-    pathname.startsWith("/passport")
+    pathname.startsWith("/demo/products") ||
+    pathname.startsWith("/passport") ||
+    pathname.startsWith("/summary")
   ) {
     return "products";
   }
 
   if (
     pathname === "/logistics" ||
-    pathname === "/transport" ||
     pathname === "/track-shipment" ||
+    pathname === "/transport" ||
     pathname.startsWith("/demo/logistics")
   ) {
     return "logistics";
@@ -272,70 +436,132 @@ export const resolveAnalyticsPageGroup = (path: string | null | undefined): Anal
   return "other";
 };
 
+const getFeatureArea = (
+  pageGroup: AnalyticsPageGroup,
+  featureAreaOverride?: AnalyticsFeatureArea
+): AnalyticsFeatureArea => featureAreaOverride || pageGroup;
+
 const getCurrentPagePath = () => {
   if (typeof window === "undefined") {
     return "/";
   }
 
-  return normalizePagePath(`${window.location.pathname}${window.location.search}`);
+  return normalizePagePath(window.location.pathname);
 };
 
 const isAnalyticsEnabled = () =>
-typeof window !== "undefined" &&
-GA_MEASUREMENT_ID.length > 0 &&
-typeof window.gtag === "function";
+  typeof window !== "undefined" &&
+  IS_PRODUCTION_RUNTIME &&
+  GA_MEASUREMENT_ID.length > 0 &&
+  typeof window.gtag === "function";
 
 const getCommonParams = (
-  pageGroupOverride?: AnalyticsPageGroup,
-  pagePathOverride?: string
+  overrides: AnalyticsEventContextOverride = {}
 ): AnalyticsCommonParams => {
-  const pagePath = normalizePagePath(pagePathOverride || getCurrentPagePath());
+  const pagePath = normalizePagePath(overrides.page_path || getCurrentPagePath());
+  const pageGroup = overrides.page_group || resolveAnalyticsPageGroup(pagePath);
+
   return {
     page_path: pagePath,
-    page_group: pageGroupOverride || resolveAnalyticsPageGroup(pagePath),
-    locale: analyticsContext.locale?.trim() || DEFAULT_LOCALE,
-    account_type: analyticsContext.accountType || DEFAULT_ACCOUNT_TYPE,
-    company_role: analyticsContext.companyRole || DEFAULT_COMPANY_ROLE,
-    is_demo: Boolean(analyticsContext.isDemo)
+    page_group: pageGroup,
+    feature_area: getFeatureArea(pageGroup, overrides.feature_area),
+    locale: analyticsUserProperties.locale?.trim() || DEFAULT_LOCALE,
+    account_type: analyticsUserProperties.accountType || DEFAULT_ACCOUNT_TYPE,
+    company_role: analyticsUserProperties.companyRole || DEFAULT_COMPANY_ROLE,
+    is_demo: Boolean(analyticsUserProperties.isDemo),
+    plan_family: analyticsUserProperties.planFamily || DEFAULT_PLAN_FAMILY,
+    plan_sku_limit:
+      typeof analyticsUserProperties.planSkuLimit === "number" &&
+      Number.isFinite(analyticsUserProperties.planSkuLimit) ?
+        Math.max(0, Math.round(analyticsUserProperties.planSkuLimit)) :
+        0,
+    business_type:
+      (analyticsUserProperties.businessType?.trim() as AnalyticsBusinessType | undefined) ||
+      DEFAULT_BUSINESS_TYPE,
+    domestic_market:
+      analyticsUserProperties.domesticMarket?.trim().toUpperCase() || DEFAULT_DOMESTIC_MARKET
   };
 };
 
-const sendAnalyticsEvent = <TEventName extends AnalyticsEventName>(
+const buildAnalyticsUserProperties = () =>
+  compactAnalyticsParams({
+    locale: analyticsUserProperties.locale?.trim() || DEFAULT_LOCALE,
+    account_type: analyticsUserProperties.accountType || DEFAULT_ACCOUNT_TYPE,
+    company_role: analyticsUserProperties.companyRole || DEFAULT_COMPANY_ROLE,
+    is_demo: Boolean(analyticsUserProperties.isDemo),
+    plan_family: analyticsUserProperties.planFamily || DEFAULT_PLAN_FAMILY,
+    plan_sku_limit:
+      typeof analyticsUserProperties.planSkuLimit === "number" &&
+      Number.isFinite(analyticsUserProperties.planSkuLimit) ?
+        Math.max(0, Math.round(analyticsUserProperties.planSkuLimit)) :
+        undefined,
+    business_type:
+      analyticsUserProperties.businessType?.trim() || DEFAULT_BUSINESS_TYPE,
+    domestic_market:
+      analyticsUserProperties.domesticMarket?.trim().toUpperCase() || DEFAULT_DOMESTIC_MARKET
+  });
+
+const syncAnalyticsConfig = () => {
+  if (!isAnalyticsEnabled()) {
+    return;
+  }
+
+  window.gtag?.("config", GA_MEASUREMENT_ID, compactAnalyticsParams({
+    send_page_view: false,
+    user_id: analyticsIdentity.userId?.trim() || undefined,
+    user_properties: buildAnalyticsUserProperties()
+  }));
+};
+
+export const setAnalyticsIdentity = (nextIdentity: AnalyticsIdentity) => {
+  analyticsIdentity = {
+    userId: nextIdentity.userId?.trim() || null,
+    companyKey: nextIdentity.companyKey?.trim() || null
+  };
+  syncAnalyticsConfig();
+};
+
+export const setAnalyticsUserProperties = (
+  nextProperties: AnalyticsUserProperties
+) => {
+  analyticsUserProperties = {
+    locale: nextProperties.locale?.trim() || null,
+    accountType: nextProperties.accountType || null,
+    companyRole: nextProperties.companyRole || null,
+    isDemo: Boolean(nextProperties.isDemo),
+    planFamily: nextProperties.planFamily || null,
+    planSkuLimit:
+      typeof nextProperties.planSkuLimit === "number" &&
+      Number.isFinite(nextProperties.planSkuLimit) ?
+        Math.max(0, Math.round(nextProperties.planSkuLimit)) :
+        null,
+    businessType: nextProperties.businessType?.trim() || null,
+    domesticMarket: nextProperties.domesticMarket?.trim().toUpperCase() || null
+  };
+  syncAnalyticsConfig();
+};
+
+export const setAnalyticsContext = setAnalyticsUserProperties;
+
+export const trackEvent = <TEventName extends AnalyticsEventNameV2>(
   eventName: TEventName,
-  params: AnalyticsPayloadMap[TEventName]
+  params: AnalyticsPayloadMapV2[TEventName]
 ) => {
   if (!isAnalyticsEnabled()) {
     return;
   }
 
-  const pageGroup =
-    typeof params === "object" && params !== null && "page_group" in params ?
-      (params.page_group as AnalyticsPageGroup) :
-      undefined;
-  const pagePath =
-    typeof params === "object" && params !== null && "page_path" in params ?
-      (params.page_path as string | undefined) :
-      undefined;
-  window.gtag?.("event", eventName, {
-    ...getCommonParams(pageGroup, pagePath),
-    ...params
+  const { page_group, page_path, feature_area, ...eventParams } = params || {};
+  const commonParams = getCommonParams({
+    page_group,
+    page_path,
+    feature_area
   });
-};
 
-export const setAnalyticsContext = (nextContext: AnalyticsContext) => {
-  analyticsContext = {
-    locale: nextContext.locale?.trim() || null,
-    accountType: nextContext.accountType || null,
-    companyRole: nextContext.companyRole || null,
-    isDemo: Boolean(nextContext.isDemo)
-  };
-};
-
-export const trackEvent = <TEventName extends AnalyticsEventName>(
-  eventName: TEventName,
-  params: AnalyticsPayloadMap[TEventName]
-) => {
-  sendAnalyticsEvent(eventName, params);
+  window.gtag?.("event", eventName, {
+    ...commonParams,
+    ...compactAnalyticsParams(eventParams)
+  });
 };
 
 export const trackPageView = (
@@ -348,26 +574,23 @@ export const trackPageView = (
 
   const normalizedPagePath = normalizePagePath(pagePath || getCurrentPagePath());
   const pageLocation =
-    typeof window !== "undefined" ? window.location.href : normalizedPagePath;
+    typeof window !== "undefined" ?
+      `${window.location.origin}${normalizedPagePath}` :
+      normalizedPagePath;
   const pageTitle =
     typeof document !== "undefined" ? document.title : "WeaveCarbon";
 
   window.gtag?.("event", "page_view", {
-    ...getCommonParams(pageGroup, normalizedPagePath),
+    ...getCommonParams({
+      page_group: pageGroup,
+      page_path: normalizedPagePath
+    }),
     page_group: pageGroup,
     page_location: pageLocation,
     page_path: normalizedPagePath,
     page_title: pageTitle
   });
 };
-
-const normalizeAnalyticsToken = (value: string) =>
-  value.
-    toLowerCase().
-    normalize("NFD").
-    replace(/[\u0300-\u036f]/g, "").
-    replace(/[^a-z0-9]+/g, "_").
-    replace(/^_+|_+$/g, "") || "unknown_error";
 
 export const toAnalyticsErrorCode = (error: unknown) => {
   if (error && typeof error === "object") {

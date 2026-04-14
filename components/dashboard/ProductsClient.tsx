@@ -67,6 +67,7 @@ import {
 "@/lib/logisticsApi";
 import { api } from "@/lib/apiClient";
 import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
+import { trackEvent } from "@/lib/analytics";
 
 const ITEMS_PER_PAGE = 18;
 const TRIAL_SKU_LIMIT = 5;
@@ -670,6 +671,9 @@ const ProductsClient: React.FC = () => {
           closeAssessmentModal();
         }
 
+        trackEvent("wc_product_deleted", {
+          entry_point: "products_page"
+        });
         setPendingDeleteProduct(null);
         dispatchProductUsageUpdatedEvent();
         toast.success(
@@ -920,6 +924,9 @@ const ProductsClient: React.FC = () => {
 
   const handleViewProductSafe = async (product: ProductRecord) => {
     if (isValidProductId(product.id)) {
+      trackEvent("wc_product_viewed", {
+        entry_point: "products_page"
+      });
       cacheSummaryPrefetch(product);
       handleViewProduct(product.id);
       return;
@@ -966,6 +973,9 @@ const ProductsClient: React.FC = () => {
       } else {
         cacheSummaryPrefetch(product);
       }
+      trackEvent("wc_product_viewed", {
+        entry_point: "products_page"
+      });
       handleViewProduct(resolvedId);
     } catch {
       const fallbackSlug = (product.productCode || product.productName || "").trim();
@@ -1350,6 +1360,20 @@ const ProductsClient: React.FC = () => {
             }
             onClose={closeAssessmentModal}
             onCompleted={(result) => {
+              if (result.isUpdate) {
+                trackEvent("wc_product_updated", {
+                  entry_point: "assessment_modal"
+                });
+              } else {
+                trackEvent("wc_product_created", {
+                  entry_point: "assessment_modal"
+                });
+              }
+              if (result.status === "published") {
+                trackEvent("wc_product_published", {
+                  entry_point: "assessment_modal"
+                });
+              }
               if (!result.isUpdate) {
                 setAssessmentSessionDraft(null);
               }

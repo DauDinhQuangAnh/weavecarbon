@@ -138,7 +138,7 @@ const Hero = () => {
               size="xl"
               className="h-12 w-full px-6 text-base sm:h-14 sm:w-auto sm:px-10 sm:text-lg"
               onClick={() => {
-                trackEvent("landing_start_click", {});
+                trackEvent("wc_landing_start_clicked", {});
                 setShowUserTypeDialog(true);
               }}
             >
@@ -149,7 +149,7 @@ const Hero = () => {
               href="/calculator"
               className="w-full sm:w-auto"
               onClick={() => {
-                trackEvent("landing_calculator_click", {});
+                trackEvent("wc_landing_calculator_clicked", {});
               }}>
               <Button
                 variant="heroOutline"

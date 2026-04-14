@@ -37,6 +37,11 @@ import {
 
 interface User {
   id: string;
+  analytics_company_key?: string | null;
+  analytics_user_key?: string | null;
+  business_type?: "shop_online" | "brand" | "factory" | null;
+  current_plan?: string | null;
+  domestic_market?: string | null;
   email: string;
   full_name?: string;
   company_id?: string | null;
@@ -90,6 +95,7 @@ interface AuthContextType {
 
 interface BackendUser {
   id: string;
+  analytics_user_key?: string | null;
   email: string;
   full_name?: string | null;
   avatar_url?: string | null;
@@ -104,7 +110,12 @@ interface BackendProfile {
 }
 
 interface BackendCompany {
+  analytics_company_key?: string | null;
+  business_type?: "shop_online" | "brand" | "factory" | null;
+  current_plan?: string | null;
+  domestic_market?: string | null;
   id: string;
+  target_markets?: string[] | null;
 }
 
 interface BackendCompanyMembership {
@@ -134,6 +145,7 @@ interface SignUpOptions {
 }
 
 interface SignUpPayload {
+  analytics_user_key?: string | null;
   user?: BackendUser;
   profile?: BackendProfile | null;
   role?: "b2b" | "b2c" | "admin";
@@ -145,6 +157,7 @@ interface SignUpPayload {
 }
 
 interface SignInPayload {
+  analytics_user_key?: string | null;
   user: BackendUser;
   profile?: BackendProfile | null;
   roles?: Array<"b2b" | "b2c" | "admin">;
@@ -154,6 +167,7 @@ interface SignInPayload {
 }
 
 interface DemoPayload {
+  analytics_user_key?: string | null;
   user: BackendUser & {
     is_demo?: boolean;
     demo_expires_at?: string | null;
@@ -178,6 +192,7 @@ const getCurrentFrontendOrigin = () =>
   typeof window !== "undefined" ? window.location.origin : undefined;
 
 interface AccountPayload {
+  analytics_user_key?: string | null;
   profile?: BackendProfile | null;
   company?: BackendCompany | null;
   roles?: Array<"b2b" | "b2c" | "admin">;
@@ -236,7 +251,12 @@ const normalizeStoredUser = (user: User | null): User | null => {
 
   return {
     ...user,
+    analytics_company_key: user.analytics_company_key || null,
+    analytics_user_key: user.analytics_user_key || null,
+    business_type: user.business_type || null,
+    current_plan: user.current_plan || null,
     company_role: normalizedRole,
+    domestic_market: user.domestic_market || null,
     is_root: Boolean(user.is_root || normalizedRole === "root")
   };
 };
@@ -304,6 +324,11 @@ const buildUserFromSignIn = (payload: SignInPayload): User => {
   );
   return {
     id: payload.user.id,
+    analytics_company_key: payload.company?.analytics_company_key || null,
+    analytics_user_key: payload.user.analytics_user_key || payload.analytics_user_key || null,
+    business_type: payload.company?.business_type || null,
+    current_plan: payload.company?.current_plan || null,
+    domestic_market: payload.company?.domestic_market || null,
     email: payload.user.email,
     full_name: payload.user.full_name || payload.profile?.full_name || undefined,
     company_id: payload.company?.id || payload.profile?.company_id || null,
@@ -326,6 +351,11 @@ fallbackRole: "b2b")
 
   return {
     id: payload.user.id,
+    analytics_company_key: payload.company?.analytics_company_key || null,
+    analytics_user_key: payload.user.analytics_user_key || payload.analytics_user_key || null,
+    business_type: payload.company?.business_type || null,
+    current_plan: payload.company?.current_plan || null,
+    domestic_market: payload.company?.domestic_market || null,
     email: payload.user.email,
     full_name: payload.user.full_name || payload.profile?.full_name || undefined,
     company_id: payload.company?.id || payload.profile?.company_id || null,
@@ -348,6 +378,11 @@ fallbackRole: "b2b" | "b2c")
   );
   return {
     id: payload.user.id,
+    analytics_company_key: payload.company?.analytics_company_key || null,
+    analytics_user_key: payload.user.analytics_user_key || payload.analytics_user_key || null,
+    business_type: payload.company?.business_type || null,
+    current_plan: payload.company?.current_plan || null,
+    domestic_market: payload.company?.domestic_market || null,
     email: payload.user.email,
     full_name: payload.user.full_name || payload.profile?.full_name || undefined,
     company_id: payload.company?.id || payload.profile?.company_id || null,
@@ -381,6 +416,13 @@ fallbackUser: User | null)
 
   return {
     id: nextId,
+    analytics_company_key:
+      payload.company?.analytics_company_key || normalizedFallback?.analytics_company_key || null,
+    analytics_user_key: payload.analytics_user_key || normalizedFallback?.analytics_user_key || null,
+    business_type: payload.company?.business_type || normalizedFallback?.business_type || null,
+    current_plan: payload.company?.current_plan || normalizedFallback?.current_plan || null,
+    domestic_market:
+      payload.company?.domestic_market || normalizedFallback?.domestic_market || null,
     email: nextEmail,
     full_name: profile?.full_name || normalizedFallback?.full_name,
     company_id:

@@ -10,6 +10,7 @@ import {
   type ConversationSummary,
 } from "@/lib/chatApi";
 import { queryRagCollection, readRagRuntimeConfig } from "@/lib/ragApi";
+import { trackEvent } from "@/lib/analytics";
 
 interface UseWeaveyChatOptions {
   currentPage?: string;
@@ -100,6 +101,19 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
   const [isInitializing, setIsInitializing] = useState(false);
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasTrackedOpen, setHasTrackedOpen] = useState(false);
+
+  useEffect(() => {
+    if (hasTrackedOpen) {
+      return;
+    }
+
+    trackEvent("wc_chat_opened", {
+      variant,
+      feature_area: "chat"
+    });
+    setHasTrackedOpen(true);
+  }, [hasTrackedOpen, variant]);
 
   useEffect(() => {
     if (!isRemoteMode) {
@@ -211,6 +225,10 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
 
       try {
         await deletePersistedChatConversation(conversationId);
+        trackEvent("wc_chat_conversation_deleted", {
+          variant,
+          feature_area: "chat"
+        });
 
         let remainingConversations: ConversationSummary[] = [];
         setConversations((previous) => {
@@ -255,11 +273,16 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         setDeletingConversationId(null);
       }
     },
-    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode, localChatErrorMessage]
+    [activeConversationId, failedToLoadHistoryMessage, isRemoteMode, localChatErrorMessage, variant]
   );
 
   const sendLocalMessage = useCallback(
     async (input: string) => {
+      trackEvent("wc_chat_message_sent", {
+        has_conversation: messages.length > 0,
+        variant,
+        feature_area: "chat"
+      });
       const userMessage = createLocalMessage("user", input);
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
@@ -271,6 +294,10 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
           sanitizeAssistantContent(assistantContent, localChatErrorMessage)
         );
         setMessages((prev) => [...prev, assistantMessage]);
+        trackEvent("wc_chat_response_received", {
+          variant,
+          feature_area: "chat"
+        });
       } catch (error) {
         setMessages((prev) => [
           ...prev,
@@ -283,11 +310,16 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         setIsLoading(false);
       }
     },
-    [localChatErrorMessage]
+    [localChatErrorMessage, messages.length, variant]
   );
 
   const sendRemoteMessage = useCallback(
     async (input: string) => {
+      trackEvent("wc_chat_message_sent", {
+        has_conversation: Boolean(activeConversationId),
+        variant,
+        feature_area: "chat"
+      });
       const optimisticUserMessage = createLocalMessage("user", input, {
         optimistic: true,
       });
@@ -317,6 +349,10 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
             sanitizeConversationSummary(result.conversation, localChatErrorMessage)
           )
         );
+        trackEvent("wc_chat_response_received", {
+          variant,
+          feature_area: "chat"
+        });
       } catch (error) {
         setMessages((prev) => [
           ...prev,
@@ -332,7 +368,7 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         setIsLoading(false);
       }
     },
-    [activeConversationId, localChatErrorMessage, options.currentPage]
+    [activeConversationId, localChatErrorMessage, options.currentPage, variant]
   );
 
   const sendMessage = useCallback(

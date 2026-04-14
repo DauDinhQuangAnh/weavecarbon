@@ -76,10 +76,10 @@ const OnboardingClient: React.FC = () => {
     }
 
     const analyticsPayload = {
-      business_type: businessType,
+      business_type: businessType as "brand" | "factory" | "shop_online",
       domestic_market: domesticMarket || defaultDomesticMarket
     } as const;
-    trackEvent("onboarding_submit", analyticsPayload);
+    trackEvent("wc_onboarding_submit", analyticsPayload);
     setIsSubmitting(true);
 
     try {
@@ -116,7 +116,7 @@ const OnboardingClient: React.FC = () => {
         title: t("success"),
         description: t("companySaved")
       });
-      trackEvent("onboarding_success", analyticsPayload);
+      trackEvent("wc_onboarding_completed", analyticsPayload);
 
       if (typeof window !== "undefined") {
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
@@ -140,7 +140,7 @@ const OnboardingClient: React.FC = () => {
     } catch (error) {
       const message =
       error instanceof Error ? error.message : "Something went wrong";
-      trackEvent("onboarding_error", {
+      trackEvent("wc_onboarding_error", {
         ...analyticsPayload,
         error_code: toAnalyticsErrorCode(error)
       });

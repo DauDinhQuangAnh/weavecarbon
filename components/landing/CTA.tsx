@@ -20,24 +20,27 @@ const CTA = () => {
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
       toast.error(t("invalidEmail"));
-      trackEvent("lead_form_error", {
+      trackEvent("wc_lead_form_error", {
         error_code: "invalid_email"
       });
       return;
     }
 
-    trackEvent("lead_form_submit", {});
+    trackEvent("wc_lead_form_submit", {});
     setIsSubmitting(true);
 
     try {
       await api.post("/contact/lead", {
         email: normalizedEmail
       });
-      trackEvent("lead_form_success", {});
+      trackEvent("generate_lead", {
+        form_name: "landing_cta",
+        lead_type: "email_capture"
+      });
       toast.success(t("success"));
       setEmail("");
     } catch (error) {
-      trackEvent("lead_form_error", {
+      trackEvent("wc_lead_form_error", {
         error_code:
           isApiError(error) && error.code === "VALIDATION_ERROR" ?
             "validation_error" :

@@ -49,6 +49,7 @@ import {
 "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { trackEvent } from "@/lib/analytics";
 
 interface TeamMember {
   id: string;
@@ -213,6 +214,9 @@ const UsersSettings: React.FC = () => {
       setInvitePassword("");
       setShowPassword(false);
       setInviteRole("member");
+      trackEvent("wc_member_invited", {
+        member_role: inviteRole
+      });
       toast.success(t("inviteSuccess", { email: inviteEmail }));
     } catch (error) {
       console.error("Failed to invite member:", error);
@@ -238,6 +242,9 @@ const UsersSettings: React.FC = () => {
       await api.post("/auth/verify-email/resend", {
         email: member.email,
         frontend_origin: typeof window !== "undefined" ? window.location.origin : undefined
+      });
+      trackEvent("wc_member_invite_resent", {
+        member_role: toManageableRole(member.role)
       });
       toast.success(t("resendSuccess", { email: member.email || "" }));
     } catch (error) {
@@ -276,6 +283,10 @@ const UsersSettings: React.FC = () => {
       )
       );
 
+      trackEvent("wc_member_disabled", {
+        member_role: toManageableRole(member.role),
+        status: nextStatus
+      });
       toast.success(
         t("toggleSuccess", {
           action:
@@ -311,6 +322,9 @@ const UsersSettings: React.FC = () => {
     try {
       await api.delete(`/company/members/${member.id}`);
       setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      trackEvent("wc_member_removed", {
+        member_role: toManageableRole(member.role)
+      });
       toast.success(t("removeSuccess", { email: member.email || "" }));
     } catch (error) {
       console.error("Failed to remove member:", error);
@@ -361,6 +375,10 @@ const UsersSettings: React.FC = () => {
       )
       );
 
+      trackEvent("wc_member_role_changed", {
+        next_role: nextRole,
+        previous_role: currentRole
+      });
       toast.success(t("roleUpdateSuccess", { email: roleTargetMember.email || "" }));
       setRoleDialogOpen(false);
       setRoleTargetMember(null);

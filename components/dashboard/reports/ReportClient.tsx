@@ -1300,12 +1300,14 @@ const ReportsPage: React.FC = () => {
               format: format.toUpperCase()
             })
         );
-        trackEvent("report_quick_export_success", {
+        trackEvent("wc_report_requested", {
+          report_type: "dataset_export",
           dataset_type: dataset,
           format: analyticsFormat
         });
       } catch (error) {
-        trackEvent("report_quick_export_error", {
+        trackEvent("wc_report_generation_failed", {
+          report_type: "dataset_export",
           dataset_type: dataset,
           format: analyticsFormat,
           error_code: toAnalyticsErrorCode(error)
@@ -1329,12 +1331,9 @@ const ReportsPage: React.FC = () => {
     if (!ensureReportActionAllowed()) {
       return;
     }
-    trackEvent("report_quick_export_click", {
-      dataset_type: type,
-      format: "xlsx"
-    });
     if (getDatasetSourceCount(type) <= 0) {
-      trackEvent("report_quick_export_error", {
+      trackEvent("wc_report_generation_failed", {
+        report_type: "dataset_export",
         dataset_type: type,
         format: "xlsx",
         error_code: "no_data"
@@ -1389,16 +1388,10 @@ const ReportsPage: React.FC = () => {
         return;
       }
 
-      trackEvent("report_create_submit", {
-        report_type: createForm.type,
-        dataset_type: analyticsDatasetType,
-        format: createForm.format
-      });
-
       await api.post(REPORTS_ENDPOINT, payload);
       await loadReports(false);
 
-      trackEvent("report_create_success", {
+      trackEvent("wc_report_requested", {
         report_type: createForm.type,
         dataset_type: analyticsDatasetType,
         format: createForm.format
@@ -1407,7 +1400,7 @@ const ReportsPage: React.FC = () => {
       setCreateDialogOpen(false);
       resetCreateForm();
     } catch (error) {
-      trackEvent("report_create_error", {
+      trackEvent("wc_report_generation_failed", {
         report_type: createForm.type,
         dataset_type: getAnalyticsDatasetType(createForm.type),
         format: createForm.format,
@@ -1461,7 +1454,7 @@ const ReportsPage: React.FC = () => {
     }
     const analyticsFormat = getAnalyticsExportFormat(report.format);
     if (report.status !== "completed") {
-      trackEvent("report_download_error", {
+      trackEvent("wc_report_download_failed", {
         report_type: report.type,
         format: analyticsFormat,
         report_status: report.status,
@@ -1482,7 +1475,7 @@ const ReportsPage: React.FC = () => {
       )
     );
     if (candidatePaths.length === 0) {
-      trackEvent("report_download_error", {
+      trackEvent("wc_report_download_failed", {
         report_type: report.type,
         format: analyticsFormat,
         report_status: report.status,
@@ -1491,12 +1484,6 @@ const ReportsPage: React.FC = () => {
       toast.error(t("errors.reportFileUnavailable"));
       return;
     }
-
-    trackEvent("report_download_click", {
-      report_type: report.type,
-      format: analyticsFormat,
-      report_status: report.status
-    });
     setDownloadingReportId(report.id);
     try {
       const normalizedFormat = report.format.trim().toLowerCase();
@@ -1510,7 +1497,7 @@ const ReportsPage: React.FC = () => {
       for (const path of candidatePaths) {
         try {
           await downloadFileFromPath(path, fallbackName);
-          trackEvent("report_download_success", {
+          trackEvent("wc_report_downloaded", {
             report_type: report.type,
             format: analyticsFormat,
             report_status: report.status
@@ -1526,7 +1513,7 @@ const ReportsPage: React.FC = () => {
       }
       throw new Error(t("errors.downloadReportFailed"));
     } catch (error) {
-      trackEvent("report_download_error", {
+      trackEvent("wc_report_download_failed", {
         report_type: report.type,
         format: analyticsFormat,
         report_status: report.status,

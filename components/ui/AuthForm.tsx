@@ -375,9 +375,8 @@ const AuthForm: React.FC = () => {
     e.preventDefault();
     if (!validateForm(false)) return;
 
-    trackEvent("auth_login_submit", {
-      auth_method: "email",
-      intent: "signin",
+    trackEvent("wc_auth_login_submit", {
+      method: "email",
       entry_account_type: userType
     });
     setIsLoading(true);
@@ -387,9 +386,8 @@ const AuthForm: React.FC = () => {
     });
 
     if (needsConfirmation) {
-      trackEvent("auth_login_error", {
-        auth_method: "email",
-        intent: "signin",
+      trackEvent("wc_auth_login_error", {
+        method: "email",
         entry_account_type: userType,
         error_code: "email_not_verified"
       });
@@ -403,9 +401,8 @@ const AuthForm: React.FC = () => {
     }
 
     if (error) {
-      trackEvent("auth_login_error", {
-        auth_method: "email",
-        intent: "signin",
+      trackEvent("wc_auth_login_error", {
+        method: "email",
         entry_account_type: userType,
         error_code: toAnalyticsErrorCode(error)
       });
@@ -428,8 +425,8 @@ const AuthForm: React.FC = () => {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
       }
       const destination = await resolvePostLoginPath();
-      trackEvent("auth_login_success", {
-        auth_method: "email",
+      trackEvent("login", {
+        method: "email",
         intent: "signin",
         entry_account_type: userType
       });
@@ -442,18 +439,16 @@ const AuthForm: React.FC = () => {
     e.preventDefault();
     if (!validateForm(true)) return;
 
-    trackEvent("auth_signup_submit", {
-      auth_method: "email",
-      intent: "signup",
+    trackEvent("wc_auth_sign_up_submit", {
+      method: "email",
       entry_account_type: userType
     });
     setIsLoading(true);
     const result = await signUp(email, password, fullName, userType);
 
     if (result.error) {
-      trackEvent("auth_signup_error", {
-        auth_method: "email",
-        intent: "signup",
+      trackEvent("wc_auth_sign_up_error", {
+        method: "email",
         entry_account_type: userType,
         error_code: toAnalyticsErrorCode(result.error)
       });
@@ -469,8 +464,8 @@ const AuthForm: React.FC = () => {
       });
     } else {
       setIsLoading(false);
-      trackEvent("auth_signup_success", {
-        auth_method: "email",
+      trackEvent("sign_up", {
+        method: "email",
         intent: "signup",
         entry_account_type: userType
       });
@@ -498,8 +493,7 @@ const AuthForm: React.FC = () => {
   };
 
   const handleGoogleLogin = async () => {
-    trackEvent("auth_google_start", {
-      auth_method: "google",
+    trackEvent("wc_auth_google_start", {
       intent: activeTab === "signup" ? "signup" : "signin",
       entry_account_type: userType
     });

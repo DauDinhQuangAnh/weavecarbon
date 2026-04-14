@@ -39,6 +39,7 @@ import {
   type ProductRecord
 } from "@/lib/productsApi";
 import { isApiError } from "@/lib/apiClient";
+import { trackEvent } from "@/lib/analytics";
 
 interface BatchManagementModalProps {
   open: boolean;
@@ -395,6 +396,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
       setSelectedBatchId(batch.id);
       setActiveTab("detail");
 
+      trackEvent("wc_batch_created", {});
       onCompleted?.();
       toast.success(t("toasts.createdBatch", { name: batch.name }));
     } catch (error) {
@@ -475,6 +477,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
     try {
       const publishResult = await publishProductBatch(selectedBatchId);
       await Promise.all([loadBatchDetail(selectedBatchId), loadBatches()]);
+      trackEvent("wc_batch_published", {});
       onCompleted?.();
 
       if (publishResult.message) {

@@ -477,8 +477,8 @@ const ExportPage: React.FC = () => {
   const needsWorkMarkets = markets.filter((market) => (marketReadinessByScore[market] || 0) < 80).length;
 
   const handleOpenMarketDetail = (market: MarketCode) => {
-    trackEvent("export_market_open", {
-      market
+    trackEvent("wc_export_market_opened", {
+      market_code: market
     });
     setSelectedMarket(market);
     setIsDetailOpen(true);
@@ -549,7 +549,7 @@ const ExportPage: React.FC = () => {
 
   const handleOpenUpgradeModal = () => {
     if (typeof window === "undefined") return;
-    trackEvent("pricing_modal_open", {
+    trackEvent("wc_pricing_modal_opened", {
       source_page: "export"
     });
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
@@ -587,9 +587,8 @@ const ExportPage: React.FC = () => {
         setPreviewDocument(document);
         setPreviewDocumentTitle(`${document.name} (${document.market})`);
         setPreviewDocumentOpen(true);
-        trackEvent("export_document_preview_open", {
-          market: document.market,
-          document_id: document.documentId,
+        trackEvent("wc_document_preview_opened", {
+          market_code: document.market,
           document_group: document.group
         });
       } catch (openError) {
@@ -642,9 +641,8 @@ const ExportPage: React.FC = () => {
             ? "\u0110\u00e3 duy\u1ec7t t\u00e0i li\u1ec7u th\u00e0nh c\u00f4ng."
             : "Document approved successfully."
         );
-        trackEvent("export_document_approve_success", {
-          market: targetDocument.market,
-          document_id: targetDocument.documentId,
+        trackEvent("wc_document_approved", {
+          market_code: targetDocument.market,
           document_group: targetDocument.group
         });
         await loadComplianceData();
@@ -705,13 +703,12 @@ const ExportPage: React.FC = () => {
       )?.name ||
       targetDocumentId;
     const analyticsPayload = {
-      market: targetMarket,
-      document_id: targetDocumentId,
+      market_code: targetMarket,
       document_group: uploadModalGroup,
       mode: uploadModalMode
     } as const;
 
-    trackEvent("export_document_upload_submit", analyticsPayload);
+    trackEvent("wc_document_upload_submit", analyticsPayload);
     void (async () => {
       setUploadingDocument(true);
       try {
@@ -734,11 +731,11 @@ const ExportPage: React.FC = () => {
             ? t("documents.updateSuccess", { market: targetMarketName, document: targetDocumentName })
             : t("documents.uploadSuccess", { market: targetMarketName, document: targetDocumentName })
         );
-        trackEvent("export_document_upload_success", analyticsPayload);
+        trackEvent("wc_document_uploaded", analyticsPayload);
         await loadComplianceData();
         closeUploadModal(true);
       } catch (uploadError) {
-        trackEvent("export_document_upload_error", {
+        trackEvent("wc_document_upload_failed", {
           ...analyticsPayload,
           error_code: toAnalyticsErrorCode(uploadError)
         });

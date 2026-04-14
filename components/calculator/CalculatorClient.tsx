@@ -94,7 +94,7 @@ export default function CalculatorClient() {
   const calculateEmissions = () => {
     if (!weight || !material || !route) return;
 
-    trackEvent("calculator_run", {
+    trackEvent("wc_calculator_run", {
       material,
       route
     });
