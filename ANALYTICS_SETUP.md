@@ -1,62 +1,19 @@
-# WeaveCarbon GTM + GA4 Setup
+# WeaveCarbon GA4 Setup
 
-This frontend sends analytics events to `dataLayer` and expects Google Tag Manager to forward them to GA4.
+This frontend sends analytics events directly to Google Analytics 4 using `gtag.js`.
 
 ## Production Env
 
-Set this on the production frontend build only:
+Set this on the production frontend build:
 
 ```env
-NEXT_PUBLIC_GTM_ID=GTM-MTXG32D4
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-81EN7B9X8Z
 ```
 
-## GTM Container
+## Google Tag
 
-Use container: `GTM-MTXG32D4`
-
-Create a Google tag / GA4 tag with measurement ID:
-
-```text
-G-9P1TC4JZWL
-```
-
-Disable automatic page views in the GA4 configuration tag. Page views should come only from the custom `weave_page_view` event.
-
-## Triggers
-
-Create these triggers:
-
-1. Custom event trigger for `weave_page_view`
-2. Custom event trigger with regex:
-
-```text
-^(landing_|lead_|auth_|onboarding_|calculator_|dashboard_|pricing_|export_|report_)
-```
-
-## GA4 Tags
-
-Create:
-
-1. A GA4 `page_view` tag triggered by `weave_page_view`
-2. A generic GA4 event tag triggered by the regex trigger above, using built-in variable `{{Event}}` as the GA4 event name
-
-## Data Layer Variables
-
-Create variables for:
-
-- `page_path`
-- `page_group`
-- `locale`
-- `account_type`
-- `company_role`
-- `is_demo`
-- `auth_method`
-- `business_type`
-- `dataset_type`
-- `report_type`
-- `market`
-- `document_group`
-- `error_code`
+The app injects the Google tag script and configures it with `send_page_view: false`.
+SPA page views are sent manually on route change so they are not double-counted.
 
 ## GA4 Custom Dimensions
 
@@ -77,7 +34,7 @@ Register event-scoped custom dimensions for:
 
 Implemented events:
 
-- `weave_page_view`
+- `page_view`
 - `landing_start_click`
 - `landing_calculator_click`
 - `lead_form_submit`
@@ -121,9 +78,9 @@ npm run check
 npm run build
 ```
 
-Then verify in GTM Preview / Tag Assistant:
+Then verify in Google Tag Assistant and GA4 Realtime:
 
-- landing load fires `weave_page_view`
+- landing load fires `page_view`
 - hero start and calculator clicks fire
 - lead form submit/success/error fire
 - login/signup and Google start fire

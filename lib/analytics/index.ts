@@ -184,23 +184,24 @@ export interface AnalyticsPayloadMap {
     dataset_type: AnalyticsDatasetType;
     format: AnalyticsExportFormat;
   };
-  weave_page_view: {
-    page_group: AnalyticsPageGroup;
-    page_path?: string;
-  };
 }
 
 export type AnalyticsEventName = keyof AnalyticsPayloadMap;
 
 declare global {
   interface Window {
-    dataLayer?: Array<Record<string, unknown>>;
+    dataLayer?: unknown[];
+    gtag?: (
+      command: "config" | "event" | "js",
+      targetOrDate: Date | string,
+      params?: Record<string, unknown>
+    ) => void;
   }
 }
 
 let analyticsContext: AnalyticsContext = {};
 
-const GTM_ID = (process.env.NEXT_PUBLIC_GTM_ID || "").trim();
+const GA_MEASUREMENT_ID = (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "").trim();
 
 const DEFAULT_ACCOUNT_TYPE: AnalyticsAccountType = "anonymous";
 const DEFAULT_COMPANY_ROLE: AnalyticsCompanyRole = "none";
@@ -279,7 +280,10 @@ const getCurrentPagePath = () => {
   return normalizePagePath(`${window.location.pathname}${window.location.search}`);
 };
 
-const isAnalyticsEnabled = () => typeof window !== "undefined" && GTM_ID.length > 0;
+const isAnalyticsEnabled = () =>
+typeof window !== "undefined" &&
+GA_MEASUREMENT_ID.length > 0 &&
+typeof window.gtag === "function";
 
 const getCommonParams = (
   pageGroupOverride?: AnalyticsPageGroup,
@@ -296,7 +300,7 @@ const getCommonParams = (
   };
 };
 
-const pushToDataLayer = <TEventName extends AnalyticsEventName>(
+const sendAnalyticsEvent = <TEventName extends AnalyticsEventName>(
   eventName: TEventName,
   params: AnalyticsPayloadMap[TEventName]
 ) => {
@@ -304,7 +308,6 @@ const pushToDataLayer = <TEventName extends AnalyticsEventName>(
     return;
   }
 
-  window.dataLayer = window.dataLayer || [];
   const pageGroup =
     typeof params === "object" && params !== null && "page_group" in params ?
       (params.page_group as AnalyticsPageGroup) :
@@ -313,8 +316,7 @@ const pushToDataLayer = <TEventName extends AnalyticsEventName>(
     typeof params === "object" && params !== null && "page_path" in params ?
       (params.page_path as string | undefined) :
       undefined;
-  window.dataLayer.push({
-    event: eventName,
+  window.gtag?.("event", eventName, {
     ...getCommonParams(pageGroup, pagePath),
     ...params
   });
@@ -329,20 +331,33 @@ export const setAnalyticsContext = (nextContext: AnalyticsContext) => {
   };
 };
 
-export const trackEvent = <TEventName extends Exclude<AnalyticsEventName, "weave_page_view">>(
+export const trackEvent = <TEventName extends AnalyticsEventName>(
   eventName: TEventName,
   params: AnalyticsPayloadMap[TEventName]
 ) => {
-  pushToDataLayer(eventName, params);
+  sendAnalyticsEvent(eventName, params);
 };
 
 export const trackPageView = (
   pageGroup: AnalyticsPageGroup,
   pagePath?: string
 ) => {
-  pushToDataLayer("weave_page_view", {
+  if (!isAnalyticsEnabled()) {
+    return;
+  }
+
+  const normalizedPagePath = normalizePagePath(pagePath || getCurrentPagePath());
+  const pageLocation =
+    typeof window !== "undefined" ? window.location.href : normalizedPagePath;
+  const pageTitle =
+    typeof document !== "undefined" ? document.title : "WeaveCarbon";
+
+  window.gtag?.("event", "page_view", {
+    ...getCommonParams(pageGroup, normalizedPagePath),
     page_group: pageGroup,
-    page_path: pagePath
+    page_location: pageLocation,
+    page_path: normalizedPagePath,
+    page_title: pageTitle
   });
 };
 
