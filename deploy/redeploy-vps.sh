@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env.vps"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.vps.yml"
 PROJECT_NAME="weavecarbon"
+DEPLOY_MODE="full"
 
 compose() {
   docker compose \
@@ -13,6 +14,16 @@ compose() {
     --env-file "${ENV_FILE}" \
     -f "${COMPOSE_FILE}" \
     "$@"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: ./deploy/redeploy-vps.sh [--frontend-only]
+
+Options:
+  --frontend-only  Pulls up and rebuilds only the frontend service.
+  -h, --help       Show this help message.
+EOF
 }
 
 get_env_value() {
@@ -232,12 +243,37 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
+for arg in "$@"; do
+  case "${arg}" in
+    --frontend-only)
+      DEPLOY_MODE="frontend-only"
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: ${arg}"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
 cd "${ROOT_DIR}"
 
 compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
 require_frontend_analytics_config
-compose up -d --build --remove-orphans
+
+if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
+  echo "Deploy mode: frontend-only"
+  compose up -d --build --no-deps fe
+else
+  echo "Deploy mode: full stack"
+  compose up -d --build --remove-orphans
+fi
+
 verify_frontend_analytics_deploy
 compose ps
