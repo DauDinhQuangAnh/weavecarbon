@@ -9,13 +9,14 @@ PROJECT_NAME="weavecarbon"
 DEPLOY_MODE="full"
 
 compose() {
-  docker compose \
+  COMPOSE_BAKE=false docker compose \
     --project-name "${PROJECT_NAME}" \
     --env-file "${ENV_FILE}" \
     -f "${COMPOSE_FILE}" \
     "$@"
 }
 
+<<<<<<< HEAD
 usage() {
   cat <<'EOF'
 Usage: ./deploy/redeploy-vps.sh [--frontend-only]
@@ -24,6 +25,35 @@ Options:
   --frontend-only  Pulls up and rebuilds only the frontend service.
   -h, --help       Show this help message.
 EOF
+=======
+retry_command() {
+  local attempts="$1"
+  local delay_seconds="$2"
+  shift 2
+
+  local attempt=1
+  local exit_code=0
+
+  while (( attempt <= attempts )); do
+    if "$@"; then
+      return 0
+    else
+      exit_code=$?
+    fi
+
+    if (( attempt == attempts )); then
+      echo "Command failed after ${attempts} attempts: $*"
+      return "${exit_code}"
+    fi
+
+    echo "Command failed (attempt ${attempt}/${attempts}): $*"
+    echo "Retrying in ${delay_seconds}s..."
+    sleep "${delay_seconds}"
+    attempt=$((attempt + 1))
+  done
+
+  return "${exit_code}"
+>>>>>>> ac13ca3a5d93a7149c8602a791a9b2f18e35329e
 }
 
 get_env_value() {
@@ -266,6 +296,7 @@ compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
 require_frontend_analytics_config
+<<<<<<< HEAD
 
 if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
   echo "Deploy mode: frontend-only"
@@ -275,5 +306,8 @@ else
   compose up -d --build --remove-orphans
 fi
 
+=======
+retry_command 3 20 compose up -d --build --remove-orphans
+>>>>>>> ac13ca3a5d93a7149c8602a791a9b2f18e35329e
 verify_frontend_analytics_deploy
 compose ps
