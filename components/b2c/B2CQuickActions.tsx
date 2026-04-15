@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock3, ImagePlus, MapPin } from "lucide-react";
+import { Clock3, ImagePlus, MapPin, MoveRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface B2CQuickActionsProps {
@@ -21,14 +21,17 @@ const B2CQuickActions: React.FC<B2CQuickActionsProps> = ({
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Card
-        className="cursor-pointer transition-colors hover:border-primary/50"
+        className="group cursor-pointer border-primary/20 bg-linear-to-br from-card to-primary/5 transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
         onClick={onDonateClick}
       >
-        <CardContent className="p-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-            <ImagePlus className="h-7 w-7 text-primary" />
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 ring-1 ring-primary/20">
+              <ImagePlus className="h-7 w-7 text-primary" />
+            </div>
+            <MoveRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
           </div>
-          <h3 className="mb-1 font-semibold">{t("quickActions.photoDonationTitle")}</h3>
+          <h3 className="mb-1 font-semibold text-foreground">{t("quickActions.photoDonationTitle")}</h3>
           <p className="text-xs text-muted-foreground">
             {t("quickActions.photoDonationDescription")}
           </p>
@@ -36,14 +39,17 @@ const B2CQuickActions: React.FC<B2CQuickActionsProps> = ({
       </Card>
 
       <Card
-        className="cursor-pointer transition-colors hover:border-accent/50"
+        className="group cursor-pointer border-accent/25 bg-linear-to-br from-card to-accent/8 transition-all hover:-translate-y-0.5 hover:border-accent/55 hover:shadow-md"
         onClick={onLocationClick}
       >
-        <CardContent className="p-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent/10">
-            <MapPin className="h-7 w-7 text-accent" />
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 ring-1 ring-accent/25">
+              <MapPin className="h-7 w-7 text-accent" />
+            </div>
+            <MoveRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
           </div>
-          <h3 className="mb-1 font-semibold">{t("quickActions.collectionPointsTitle")}</h3>
+          <h3 className="mb-1 font-semibold text-foreground">{t("quickActions.collectionPointsTitle")}</h3>
           <p className="text-xs text-muted-foreground">
             {t("quickActions.collectionPointsDescription")}
           </p>
@@ -51,14 +57,17 @@ const B2CQuickActions: React.FC<B2CQuickActionsProps> = ({
       </Card>
 
       <Card
-        className="cursor-pointer transition-colors hover:border-foreground/20"
+        className="group cursor-pointer border-foreground/15 bg-linear-to-br from-card to-muted/35 transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-md"
         onClick={onHistoryClick}
       >
-        <CardContent className="p-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-foreground/5">
-            <Clock3 className="h-7 w-7 text-foreground" />
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-foreground/6 ring-1 ring-foreground/10">
+              <Clock3 className="h-7 w-7 text-foreground" />
+            </div>
+            <MoveRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
           </div>
-          <h3 className="mb-1 font-semibold">{t("quickActions.historyTitle")}</h3>
+          <h3 className="mb-1 font-semibold text-foreground">{t("quickActions.historyTitle")}</h3>
           <p className="text-xs text-muted-foreground">
             {t("quickActions.historyDescription")}
           </p>

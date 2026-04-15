@@ -42,6 +42,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useImageAnalysis } from "@/hooks/useImageAnalysis";
 import {
   createB2CDonation,
   fetchB2CCollectionPoints,
@@ -58,6 +59,13 @@ import {
   DEFAULT_B2C_MATERIAL_REWARDS,
   DEFAULT_OTHER_MATERIAL_ID
 } from "@/lib/b2cMaterialRewardsDefaults";
+import {
+  convertAnalysisResultToFormItems,
+  getAnalysisErrorMessage,
+  getAnalysisSummary,
+  hasMultipleProductsDetected,
+  isAnalysisUsable
+} from "@/components/b2c/ImageAnalysisService";
 
 type DonationCategory = "charity" | "recycle";
 type DeliveryMethod = "drop_off" | "shipping";
@@ -197,6 +205,18 @@ const B2CDonationClient: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successDonation, setSuccessDonation] = useState<DonationDetail | null>(null);
+
+  // Camera AI image analysis state
+  const {
+    isLoading: analysisLoading,
+    result: analysisResult,
+    error: analysisError,
+    isCompleted: analysisCompleted,
+    analyzeImage,
+    resetAnalysis,
+    clearError: clearAnalysisError
+  } = useImageAnalysis();
+  const [showAnalysisAlert, setShowAnalysisAlert] = useState(true);
 
   const stepTitles = [
     t.has("donationWizard.steps.photo")
@@ -452,6 +472,20 @@ const B2CDonationClient: React.FC = () => {
       source
     });
     setSubmitError(null);
+
+    // Reset existing analysis and show analysis alert for new image
+    resetAnalysis();
+    setShowAnalysisAlert(true);
+
+    // Trigger Camera AI image analysis
+    void (async () => {
+      try {
+        await analyzeImage(file, category);
+      } catch (error) {
+        console.error("Image analysis failed:", error);
+        // Error is handled in hook state, show user-friendly message
+      }
+    })();
   };
 
   const loadRecommendedCollectionPoints = useCallback(
@@ -627,6 +661,47 @@ const B2CDonationClient: React.FC = () => {
     setSelectedCollectionPointId("");
     setSelectedCollectionPointSnapshot(null);
   }, [category, selectedCollectionPointSnapshot]);
+
+  // Handle Camera AI analysis results - auto-fill donation items
+  useEffect(() => {
+    if (!analysisCompleted || !isAnalysisUsable(analysisResult) || !analysisResult) {
+      return;
+    }
+
+    const fallbackMaterialId = materialRewards[0]?.id || "";
+    if (!fallbackMaterialId) {
+      return;
+    }
+
+    // Convert AI analysis results to form items
+    const analyzedItems = convertAnalysisResultToFormItems(
+      analysisResult,
+      materialMap,
+      fallbackMaterialId
+    );
+
+    if (analyzedItems.length === 0) {
+      return;
+    }
+
+    // Replace current items with analyzed items
+    setItems(analyzedItems);
+
+    // Show helpful messages based on detection results
+    if (hasMultipleProductsDetected(analysisResult)) {
+      toast.info(
+        t.has("donationWizard.analysis.multipleItemsDetected")
+          ? t("donationWizard.analysis.multipleItemsDetected")
+          : `Detected ${analyzedItems.length} items! Review and adjust as needed.`
+      );
+    } else {
+      toast.success(
+        t.has("donationWizard.analysis.itemsAutoFilled")
+          ? t("donationWizard.analysis.itemsAutoFilled")
+          : "Item information auto-filled from image!"
+      );
+    }
+  }, [analysisCompleted, analysisResult, materialRewards, materialMap, t]);
 
   const isItemValid = (item: DonationItemFormState) => {
     const weight = Number(item.weight_kg);
@@ -1102,6 +1177,104 @@ const B2CDonationClient: React.FC = () => {
                         ? t("donationWizard.photoSourceImport")
                         : "Imported image"}
                   </Badge>
+
+                  {/* Camera AI Analysis Section */}
+                  {analysisLoading && (
+                    <Card className="border-primary/30 bg-primary/5">
+                      <CardContent className="flex items-center gap-3 p-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <div className="text-sm">
+                          <p className="font-medium text-primary">
+                            {t.has("donationWizard.analysis.analyzing")
+                              ? t("donationWizard.analysis.analyzing")
+                              : "Camera AI is analyzing your image..."}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t.has("donationWizard.analysis.analyzing_help")
+                              ? t("donationWizard.analysis.analyzing_help")
+                              : "This may take a moment."}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {analysisCompleted && analysisError && showAnalysisAlert && (
+                    <Card className="border-amber-200 bg-amber-50/80">
+                      <CardContent className="space-y-3 p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-amber-900">
+                              {t.has("donationWizard.analysis.failed")
+                                ? t("donationWizard.analysis.failed")
+                                : "Analysis failed"}
+                            </p>
+                            <p className="text-sm text-amber-800 mt-1">
+                              {getAnalysisErrorMessage(
+                                analysisError,
+                                (key) => t.has(key),
+                                (key) => t(key)
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowAnalysisAlert(false)}
+                          className="w-full border-amber-300 text-amber-900 hover:bg-amber-100"
+                        >
+                          {t.has("donationWizard.analysis.dismiss")
+                            ? t("donationWizard.analysis.dismiss")
+                            : "Dismiss"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {analysisCompleted && analysisResult && isAnalysisUsable(analysisResult) && showAnalysisAlert && (
+                    <Card className="border-green-200 bg-green-50/80">
+                      <CardContent className="space-y-3 p-4">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-green-900">
+                              {t.has("donationWizard.analysis.success")
+                                ? t("donationWizard.analysis.success")
+                                : "Analysis complete"}
+                            </p>
+                            <p className="text-sm text-green-800 mt-1">
+                              {getAnalysisSummary(
+                                analysisResult,
+                                (key) => t.has(key),
+                                (key) => t(key)
+                              )}
+                            </p>
+                            {hasMultipleProductsDetected(analysisResult) && (
+                              <p className="text-xs text-green-700 mt-2 font-medium">
+                                {t.has("donationWizard.analysis.multipleProducts")
+                                  ? t("donationWizard.analysis.multipleProducts")
+                                  : "Multiple items detected! You can add or remove items in the next step."}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowAnalysisAlert(false)}
+                          className="w-full border-green-300 text-green-900 hover:bg-green-100"
+                        >
+                          {t.has("donationWizard.analysis.dismiss")
+                            ? t("donationWizard.analysis.dismiss")
+                            : "Dismiss"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
             </CardContent>
