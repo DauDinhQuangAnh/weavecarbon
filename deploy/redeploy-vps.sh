@@ -16,7 +16,6 @@ compose() {
     "$@"
 }
 
-<<<<<<< HEAD
 usage() {
   cat <<'EOF'
 Usage: ./deploy/redeploy-vps.sh [--frontend-only]
@@ -25,7 +24,8 @@ Options:
   --frontend-only  Pulls up and rebuilds only the frontend service.
   -h, --help       Show this help message.
 EOF
-=======
+}
+
 retry_command() {
   local attempts="$1"
   local delay_seconds="$2"
@@ -53,7 +53,6 @@ retry_command() {
   done
 
   return "${exit_code}"
->>>>>>> ac13ca3a5d93a7149c8602a791a9b2f18e35329e
 }
 
 get_env_value() {
@@ -296,18 +295,13 @@ compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
 require_frontend_analytics_config
-<<<<<<< HEAD
 
 if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
   echo "Deploy mode: frontend-only"
-  compose up -d --build --no-deps fe
+  retry_command 3 20 compose up -d --build --no-deps fe
 else
   echo "Deploy mode: full stack"
-  compose up -d --build --remove-orphans
+  retry_command 3 20 compose up -d --build --remove-orphans
 fi
-
-=======
-retry_command 3 20 compose up -d --build --remove-orphans
->>>>>>> ac13ca3a5d93a7149c8602a791a9b2f18e35329e
 verify_frontend_analytics_deploy
 compose ps
