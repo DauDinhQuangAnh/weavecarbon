@@ -8,11 +8,40 @@ COMPOSE_FILE="${ROOT_DIR}/docker-compose.vps.yml"
 PROJECT_NAME="weavecarbon"
 
 compose() {
-  docker compose \
+  COMPOSE_BAKE=false docker compose \
     --project-name "${PROJECT_NAME}" \
     --env-file "${ENV_FILE}" \
     -f "${COMPOSE_FILE}" \
     "$@"
+}
+
+retry_command() {
+  local attempts="$1"
+  local delay_seconds="$2"
+  shift 2
+
+  local attempt=1
+  local exit_code=0
+
+  while (( attempt <= attempts )); do
+    if "$@"; then
+      return 0
+    else
+      exit_code=$?
+    fi
+
+    if (( attempt == attempts )); then
+      echo "Command failed after ${attempts} attempts: $*"
+      return "${exit_code}"
+    fi
+
+    echo "Command failed (attempt ${attempt}/${attempts}): $*"
+    echo "Retrying in ${delay_seconds}s..."
+    sleep "${delay_seconds}"
+    attempt=$((attempt + 1))
+  done
+
+  return "${exit_code}"
 }
 
 get_env_value() {
@@ -238,6 +267,6 @@ compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
 require_frontend_analytics_config
-compose up -d --build --remove-orphans
+retry_command 3 20 compose up -d --build --remove-orphans
 verify_frontend_analytics_deploy
 compose ps
