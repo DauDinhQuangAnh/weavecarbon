@@ -27,52 +27,10 @@ import {
 } from "lucide-react";
 import { useProducts, DashboardProduct } from "@/contexts/ProductContext";
 import { useAppRoutes } from "@/lib/demo/routes";
-
-const MATERIAL_FACTORS: Record<string, number> = {
-  cotton: 8.0,
-  polyester: 5.5,
-  wool: 10.1,
-  silk: 7.5,
-  linen: 5.2,
-  nylon: 6.8,
-  recycled_polyester: 2.5,
-  organic_cotton: 4.5,
-  bamboo: 3.8,
-  hemp: 2.9
-};
-
-const REGION_FACTORS: Record<string, number> = {
-  Vietnam: 1.0,
-  China: 1.2,
-  India: 1.1,
-  Bangladesh: 1.05,
-  EU: 0.75,
-  US: 0.85
-};
-
-const ENERGY_FACTORS: Record<string, number> = {
-  grid: 1.0,
-  solar: 0.4,
-  wind: 0.35,
-  mixed: 0.7,
-  coal: 1.5
-};
-
-const TRANSPORT_FACTORS: Record<string, number> = {
-  sea: 0.016,
-  air: 0.602,
-  road: 0.089,
-  rail: 0.028,
-  multimodal: 0.05
-};
-
-const PACKAGING_FACTORS: Record<string, number> = {
-  plastic: 3.0,
-  paper: 1.5,
-  biodegradable: 0.8,
-  recycled: 0.5,
-  minimal: 0.3
-};
+import {
+  calculateProductOverviewCarbon,
+  type ProductOverviewAdapterInput
+} from "@/lib/carbon/adapters";
 
 interface ProductData {
   productName: string;
@@ -125,55 +83,6 @@ const MATERIAL_LABELS: Record<string, string> = {
   hemp: "Hemp"
 };
 
-const MARKET_DISTANCES: Record<string, number> = {
-  eu: 10000,
-  us: 14000,
-  jp: 3500,
-  kr: 3200,
-  domestic: 500
-};
-
-const calculateCarbonFootprint = (data: ProductData): CarbonBreakdown => {
-  let weightKg = parseFloat(data.weight) || 0;
-  if (data.unit === "g") weightKg /= 1000;
-  if (data.unit === "lb") weightKg *= 0.453592;
-
-  const packagingWeightKg = parseFloat(data.packagingWeight) || 0;
-  const primaryPercentage = (parseFloat(data.materialPercentage) || 100) / 100;
-  const secondaryPercentage = (parseFloat(data.secondaryPercentage) || 0) / 100;
-  const recycledPercentage = (parseFloat(data.recycledContent) || 0) / 100;
-
-  const primaryFactor = MATERIAL_FACTORS[data.primaryMaterial] || 5.0;
-  const secondaryFactor = MATERIAL_FACTORS[data.secondaryMaterial] || 0;
-  const recycledDiscount = recycledPercentage * 0.5;
-
-  const materialsCO2 =
-    weightKg * (primaryFactor * primaryPercentage + secondaryFactor * secondaryPercentage) *
-    (1 - recycledDiscount);
-
-  const energyFactor = ENERGY_FACTORS[data.energySource] || 1.0;
-  const regionFactor = REGION_FACTORS[data.originCountry] || REGION_FACTORS.Vietnam;
-  const baseManufacturing = 2.5;
-  const manufacturingCO2 = weightKg * baseManufacturing * energyFactor * regionFactor;
-
-  const distance = MARKET_DISTANCES[data.destinationMarket] || 5000;
-  const transportFactor = TRANSPORT_FACTORS[data.transportMode] || 0.05;
-  const transportCO2 = weightKg * (distance / 1000) * transportFactor;
-
-  const packagingFactor = PACKAGING_FACTORS[data.packagingType] || 1.5;
-  const packagingCO2 = packagingWeightKg * packagingFactor;
-
-  const total = materialsCO2 + manufacturingCO2 + transportCO2 + packagingCO2;
-
-  return {
-    materials: Math.round(materialsCO2 * 100) / 100,
-    manufacturing: Math.round(manufacturingCO2 * 100) / 100,
-    transport: Math.round(transportCO2 * 100) / 100,
-    packaging: Math.round(packagingCO2 * 100) / 100,
-    total: Math.round(total * 100) / 100
-  };
-};
-
 const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
   open,
   onClose,
@@ -184,7 +93,16 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
   const appRoutes = useAppRoutes();
   const { addProduct } = useProducts();
 
-  const carbonBreakdown = calculateCarbonFootprint(productData);
+  const carbonResult = calculateProductOverviewCarbon(
+    productData as ProductOverviewAdapterInput
+  );
+  const carbonBreakdown: CarbonBreakdown = {
+    materials: carbonResult.perProduct.materials,
+    manufacturing: carbonResult.perProduct.production,
+    transport: carbonResult.perProduct.transport,
+    packaging: carbonResult.perProduct.packaging,
+    total: carbonResult.perProduct.total
+  };
   const hasAddedOnOpenRef = useRef(false);
 
   const {
@@ -238,7 +156,7 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
       weight: weightKg,
       unit: "kg",
       scope: "scope1",
-      confidenceScore: 45
+      confidenceScore: carbonResult.confidenceScore
     };
 
     addProduct(newProduct);
@@ -247,6 +165,7 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
     addProduct,
     carbonBreakdown.total,
     category,
+    carbonResult.confidenceScore,
     materialPercentage,
     open,
     primaryMaterial,

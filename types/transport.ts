@@ -15,6 +15,8 @@ export interface TransportLeg {
   distanceKm: number;
   emissionFactor: number;
   co2Kg: number;
+  co2PerTonKg?: number;
+  allocatedCo2Kg?: number;
   routeType: "road" | "sea" | "air" | "rail";
   geometry?: Array<[number, number]>;
 }

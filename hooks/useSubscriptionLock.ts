@@ -15,6 +15,13 @@ interface SubscriptionLockSnapshot {
   featuresLocked: boolean;
 }
 
+const EMPTY_SNAPSHOT: SubscriptionLockSnapshot = {
+  currentPlan: null,
+  trialEndsAt: null,
+  trialExpired: false,
+  featuresLocked: false
+};
+
 const readSnapshot = (): SubscriptionLockSnapshot => {
   const state = readSubscriptionLockState();
   return {
@@ -26,15 +33,19 @@ const readSnapshot = (): SubscriptionLockSnapshot => {
 };
 
 export const useSubscriptionLock = () => {
-  const [snapshot, setSnapshot] = useState<SubscriptionLockSnapshot>(() =>
-    readSnapshot()
+  const [snapshot, setSnapshot] = useState<SubscriptionLockSnapshot>(
+    EMPTY_SNAPSHOT
   );
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   const refresh = useCallback(() => {
     setSnapshot(readSnapshot());
   }, []);
 
   useEffect(() => {
+    refresh();
+    setHasHydrated(true);
+
     if (typeof window === "undefined") return;
 
     const handleStorage = (event: StorageEvent) => {
@@ -75,8 +86,9 @@ export const useSubscriptionLock = () => {
   return useMemo(
     () => ({
       ...snapshot,
+      hasHydrated,
       refresh
     }),
-    [refresh, snapshot]
+    [hasHydrated, refresh, snapshot]
   );
 };

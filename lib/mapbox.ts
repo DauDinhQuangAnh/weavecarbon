@@ -67,6 +67,7 @@ export const buildMapboxForwardGeocodingUrl = (
   options: {
     language?: string;
     limit?: number;
+    country?: string | string[];
     types?: string[];
   } = {}
 ) => {
@@ -80,6 +81,16 @@ export const buildMapboxForwardGeocodingUrl = (
 
   if (typeof options.limit === "number" && Number.isFinite(options.limit)) {
     params.set("limit", String(Math.max(1, Math.trunc(options.limit))));
+  }
+
+  const countryFilter =
+    Array.isArray(options.country) ?
+      options.country.map((value) => String(value || "").trim()).filter(Boolean) :
+    typeof options.country === "string" ?
+      [options.country.trim()].filter(Boolean) :
+      [];
+  if (countryFilter.length > 0) {
+    params.set("country", countryFilter.join(","));
   }
 
   if (options.types && options.types.length > 0) {

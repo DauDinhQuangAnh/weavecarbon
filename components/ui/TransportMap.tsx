@@ -165,10 +165,14 @@ const TransportMap: React.FC<TransportMapProps> = ({
     }),
     getOriginSource: (leg) => mapLocationTypeToRoadPointSource(leg.origin.type),
     getResolvedMetrics: (leg, route) => ({
+      co2PerTonKg:
+        leg.emissionFactor > 0 ?
+          roundMetricValue(route.distanceKm * leg.emissionFactor) :
+          leg.co2PerTonKg,
       co2Kg:
         leg.emissionFactor > 0 ?
           roundMetricValue(route.distanceKm * leg.emissionFactor) :
-          leg.co2Kg,
+          leg.co2Kg ?? leg.co2PerTonKg,
       distanceKm: route.distanceKm
     }),
     isRoadRoute: (leg) => isRoadTransportMode(leg.mode)
@@ -189,7 +193,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
         return {
           ...leg,
           distanceKm: resolvedRoadMetrics.distanceKm ?? leg.distanceKm,
-          co2Kg: resolvedRoadMetrics.co2Kg ?? leg.co2Kg
+          co2PerTonKg: resolvedRoadMetrics.co2PerTonKg ?? leg.co2PerTonKg,
+          co2Kg: resolvedRoadMetrics.co2Kg ?? leg.co2Kg ?? leg.co2PerTonKg
         };
       }),
     [legs, resolvedRoadMetricsById]

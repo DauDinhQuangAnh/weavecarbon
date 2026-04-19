@@ -1850,8 +1850,10 @@
     },
     "units": {
       "kgCO2e": "kg CO2e",
+      "kgCO2ePerTonne": "kg CO2e/t shipped",
       "kg": "kg",
-      "kgCO2PerKm": "kg CO2/km"
+      "kgCO2PerKm": "kg CO2/km",
+      "kgCO2PerTonneKm": "kg CO2e/tonne.km"
     }
   },
   "calculationHistory": {
@@ -2545,9 +2547,22 @@
         "unknownOrigin": "Material origin is unknown - using regional proxy factor",
         "noProcessInfo": "No process information - using industry average factor",
         "noEnergyInfo": "No energy information - using grid electricity factor",
+        "noEnergyInfoInferred": "No energy mix was provided - grid electricity was inferred for {location}",
+        "bomCoverage": "Material allocation totals {value}%, so the result uses partial allocation.",
+        "materialMissing": "Material inputs are missing, so the material stage is excluded from this estimate.",
+        "materialUnknownOrigin": "Material \"{material}\" has unknown origin, so uncertainty is widened.",
+        "materialGenericProxy": "Material \"{material}\" is using a generic internal proxy factor.",
+        "accessoryExcluded": "Accessory \"{accessory}\" has no explicit weight, so it is excluded from CO2e.",
+        "packagingExcluded": "Packaging is not included because packaging weight or type has not been provided yet.",
+        "energyMixNormalized": "Energy shares total {value}% and were normalized before calculation.",
+        "transportLegExcluded": "One transport leg is missing mode or factor, so it is excluded from the estimate.",
+        "transportDistanceDefault": "{mode} transport used the default market distance of {distance} km.",
+        "transportExcluded": "Transport is excluded because no transport legs were provided.",
+        "noValidInput": "No valid carbon input is available yet.",
         "transportEstimatedBySea": "Transport estimated with sea freight mode",
         "warning": "Some materials use proxy estimates. Carbon result confidence is lower.",
         "usedTitle": "Some proxy factors were used:",
+        "genericUsed": "{count} library or proxy factors were used where supplier-specific data is not available yet.",
         "addMoreInfo": "* Add more details to improve result accuracy",
         "fullData": "Sufficient data - result confidence is high"
       },
@@ -2555,7 +2570,8 @@
         "materials": "Materials",
         "production": "Production",
         "energy": "Energy",
-        "transport": "Transport"
+        "transport": "Transport",
+        "packaging": "Packaging"
       },
       "cards": {
         "perProductTitle": "CO₂e / Product",
@@ -2580,11 +2596,23 @@
       "scope": {
         "title": "Scope Analysis (GHG Protocol)",
         "scope1": "Scope 1",
+        "scope1Desc": "Direct fuel and process emissions inside operations",
         "scope2": "Scope 2",
-        "scope3": "Scope 3"
+        "scope2Desc": "Purchased electricity and energy used in production",
+        "scope3": "Scope 3",
+        "scope3Desc": "Materials, packaging, and transport across the value chain",
+        "notAvailable": "N/A"
       },
       "confidence": {
         "title": "Data Confidence",
+        "scoreLine": "Data score: {value}/100",
+        "axes": {
+          "completeness": "Completeness",
+          "specificity": "Specificity",
+          "geographicRelevance": "Geographic relevance",
+          "transportSpecificity": "Transport specificity",
+          "proxyShare": "Primary vs proxy share"
+        },
         "high": "High",
         "medium": "Medium",
         "low": "Low"

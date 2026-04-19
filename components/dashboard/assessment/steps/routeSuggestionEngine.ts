@@ -23,6 +23,7 @@ export type SuggestedRoute = {
   legs: Array<{
     autoSuggested?: boolean;
     co2Kg?: number;
+    co2PerTonKg?: number;
     distanceSource?: TransportLeg["distanceSource"];
     distanceStatus?: TransportLeg["distanceStatus"];
     emissionFactor?: number;
@@ -102,6 +103,7 @@ export interface RouteSuggestionRequest {
 
 type CandidateLeg = {
   co2Kg: number;
+  co2PerTonKg: number;
   corridorId?: string;
   distanceSource: NonNullable<TransportLeg["distanceSource"]>;
   distanceStatus: NonNullable<TransportLeg["distanceStatus"]>;
@@ -470,6 +472,7 @@ const buildRoadLegFromResolution = (
       distanceStatus: "resolved",
       routeResolved: true,
       emissionFactor,
+      co2PerTonKg: roundMetric(estimatedDistance * emissionFactor),
       co2Kg: roundMetric(estimatedDistance * emissionFactor),
       etaHours: roundMetric(resolution.route.durationMinutes / 60),
       snappedOrigin:
@@ -492,6 +495,7 @@ const buildRoadLegFromResolution = (
     distanceStatus: "estimated",
     routeResolved: false,
     emissionFactor,
+    co2PerTonKg: roundMetric(estimatedDistance * emissionFactor),
     co2Kg: roundMetric(estimatedDistance * emissionFactor),
     etaHours: roundMetric(estimatedDistance / MODE_SPEED_KM_PER_HOUR.road),
     roadFailureReason: resolution.failureReason
@@ -598,6 +602,7 @@ const buildCorridorLineHaulLeg = (
       distanceStatus: "resolved",
       routeResolved: true,
       emissionFactor,
+      co2PerTonKg: roundMetric(estimatedDistance * emissionFactor),
       co2Kg: roundMetric(estimatedDistance * emissionFactor),
       etaHours: roundMetric(estimatedDistance / MODE_SPEED_KM_PER_HOUR.air + handlingHours)
     };
@@ -629,6 +634,7 @@ const buildCorridorLineHaulLeg = (
       distanceStatus: "resolved",
       routeResolved: true,
       emissionFactor,
+      co2PerTonKg: roundMetric(estimatedDistance * emissionFactor),
       co2Kg: roundMetric(estimatedDistance * emissionFactor),
       etaHours: roundMetric(estimatedDistance / MODE_SPEED_KM_PER_HOUR.sea + handlingHours)
     };
@@ -660,6 +666,7 @@ const buildCorridorLineHaulLeg = (
       distanceStatus: "resolved",
       routeResolved: true,
       emissionFactor,
+      co2PerTonKg: roundMetric(estimatedDistance * emissionFactor),
       co2Kg: roundMetric(estimatedDistance * emissionFactor),
       etaHours: roundMetric(estimatedDistance / MODE_SPEED_KM_PER_HOUR.rail + handlingHours)
     };
@@ -820,7 +827,7 @@ const buildCandidateMetrics = (legs: CandidateLeg[]): RouteCandidateMetrics => {
   for (const leg of legs) {
     totalDistanceKm += leg.estimatedDistance;
     etaHours += leg.etaHours;
-    totalCo2PerTonKg += leg.co2Kg;
+    totalCo2PerTonKg += leg.co2PerTonKg;
 
     if (leg.segmentKind === "feeder") {
       feederRoadKm += leg.estimatedDistance;
@@ -894,6 +901,7 @@ const toSuggestedRoute = (legs: CandidateLeg[], autoSuggested: boolean): Suggest
       distanceStatus: leg.distanceStatus,
       segmentKind: leg.segmentKind,
       emissionFactor: leg.emissionFactor,
+      co2PerTonKg: leg.co2PerTonKg,
       co2Kg: leg.co2Kg
     }))
   };
@@ -1323,6 +1331,7 @@ const buildFallbackRouteLineHaulLeg = ({
     routeResolved: resolved.routeResolved,
     segmentKind: resolved.segmentKind,
     emissionFactor: resolved.emissionFactor,
+    co2PerTonKg: resolved.co2PerTonKg,
     co2Kg: resolved.co2Kg
   } satisfies SuggestedRoute["legs"][number];
 };

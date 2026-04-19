@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +69,8 @@ interface LocationPickerProps {
   label: string;
   defaultCenter?: [number, number];
   showCurrentLocationButton?: boolean;
+  lockedCountry?: string;
+  onInvalidCountrySelection?: (country: string | null) => void;
 }
 
 type AddressRole = "origin" | "destination";
@@ -146,6 +149,24 @@ const normalizeCountryToken = (value: string | null | undefined) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "");
+
+const buildTrialLockedAddress = (
+  address: AddressInput,
+  expectedCountry: string
+): AddressInput => ({
+  ...address,
+  aptSuite: "",
+  streetNumber: "",
+  street: "",
+  ward: "",
+  district: "",
+  city: "",
+  stateRegion: "",
+  postalCode: "",
+  country: expectedCountry,
+  lat: undefined,
+  lng: undefined
+});
 
 const toRadians = (value: number) => (value * Math.PI) / 180;
 
@@ -311,12 +332,14 @@ const buildLegMetrics = (
   estimatedDistance: number | undefined
 ) => {
   const emissionFactor = getModeCo2Factor(mode);
+  const co2PerTonKg =
+    emissionFactor && hasPositiveDistance(estimatedDistance) ?
+      roundCo2Kg(estimatedDistance * emissionFactor) :
+      undefined;
   return {
     emissionFactor,
-    co2Kg:
-      emissionFactor && hasPositiveDistance(estimatedDistance) ?
-        roundCo2Kg(estimatedDistance * emissionFactor) :
-        undefined
+    co2PerTonKg,
+    co2Kg: co2PerTonKg
   };
 };
 
@@ -394,6 +417,7 @@ const materializeSuggestedRouteLegs = (
     mode: leg.mode,
     estimatedDistance: leg.estimatedDistance,
     emissionFactor: leg.emissionFactor,
+    co2PerTonKg: leg.co2PerTonKg,
     co2Kg: leg.co2Kg,
     routeResolved: leg.routeResolved,
     fromNode: cloneTransportLegNodeRef(leg.fromNode),
@@ -472,6 +496,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   complianceDocumentsByMarketCode = {}
 }) => {
   const t = useTranslations("assessment.step4");
+  const tAssessmentClient = useTranslations("assessment.client");
   const locale = useLocale();
   const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
   const destinationMarketToken = normalizeMarketToken(data.destinationMarket);
@@ -488,6 +513,51 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     DESTINATION_MARKETS.filter((market) => market.value === starterDomesticMarket) :
     DESTINATION_MARKETS,
     [starterDomesticMarket]
+  );
+  const expectedTrialCountry = React.useMemo(
+    () => (starterDomesticMarket ? getExpectedCountryForMarket(starterDomesticMarket) : ""),
+    [starterDomesticMarket]
+  );
+  const showTrialDomesticOnlyToast = React.useCallback(
+    (currentCountry?: string | null) => {
+      if (!expectedTrialCountry) return;
+      const toastId = currentCountry ?
+        `trial-domestic-only-${normalizeCountryToken(currentCountry)}` :
+        "trial-domestic-only";
+      toast.error(
+        tAssessmentClient("toast.trialDomesticOnly", {
+          country: expectedTrialCountry
+        }),
+        { id: toastId }
+      );
+    },
+    [expectedTrialCountry, tAssessmentClient]
+  );
+  const sanitizeTrialRestrictedAddress = React.useCallback(
+    (address: AddressInput) => {
+      if (!isTrialPlan || !expectedTrialCountry) {
+        return address;
+      }
+
+      const normalizedCountry = normalizeCountryToken(address.country);
+      if (!normalizedCountry) {
+        return {
+          ...address,
+          country: expectedTrialCountry
+        };
+      }
+
+      if (normalizedCountry === normalizeCountryToken(expectedTrialCountry)) {
+        return {
+          ...address,
+          country: expectedTrialCountry
+        };
+      }
+
+      showTrialDomesticOnlyToast(address.country);
+      return buildTrialLockedAddress(address, expectedTrialCountry);
+    },
+    [expectedTrialCountry, isTrialPlan, showTrialDomesticOnlyToast]
   );
   const selectedDestinationMarketLabel = React.useMemo(() => {
     const selectedMarket = availableDestinationMarkets.find(
@@ -549,11 +619,18 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         source: RoadRoutePointSource;
       }
     ) => {
+      const nextAddress = sanitizeTrialRestrictedAddress(address);
       addressSourceRef.current.origin = meta?.source || addressSourceRef.current.origin;
-      addressValueRef.current.origin = address;
-      onChange({ originAddress: address });
+      addressValueRef.current.origin = nextAddress;
+      onChange({
+        originAddress: nextAddress,
+        ...(nextAddress.lat === undefined && nextAddress.lng === undefined ? {
+          transportLegs: [],
+          estimatedTotalDistance: 0
+        } : {})
+      });
     },
-    [onChange]
+    [onChange, sanitizeTrialRestrictedAddress]
   );
 
   const updateDestinationAddress = React.useCallback(
@@ -563,11 +640,18 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         source: RoadRoutePointSource;
       }
     ) => {
+      const nextAddress = sanitizeTrialRestrictedAddress(address);
       addressSourceRef.current.destination = meta?.source || addressSourceRef.current.destination;
-      addressValueRef.current.destination = address;
-      onChange({ destinationAddress: address });
+      addressValueRef.current.destination = nextAddress;
+      onChange({
+        destinationAddress: nextAddress,
+        ...(nextAddress.lat === undefined && nextAddress.lng === undefined ? {
+          transportLegs: [],
+          estimatedTotalDistance: 0
+        } : {})
+      });
     },
-    [onChange]
+    [onChange, sanitizeTrialRestrictedAddress]
   );
 
   const maybeBuildSnappedAddressUpdates = React.useCallback(
@@ -1443,10 +1527,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     t(`markets.${starterMarket.value}`) :
     starterMarket.label;
   }, [availableDestinationMarkets, starterDomesticMarket, t]);
-  const expectedTrialCountry = React.useMemo(
-    () => (starterDomesticMarket ? getExpectedCountryForMarket(starterDomesticMarket) : ""),
-    [starterDomesticMarket]
-  );
   const hasOriginOutsideTrialDomestic =
     Boolean(isTrialPlan && expectedTrialCountry) &&
     Boolean(data.originAddress.country?.trim()) &&
@@ -1457,6 +1537,33 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     Boolean(data.destinationAddress.country?.trim()) &&
     normalizeCountryToken(data.destinationAddress.country) !==
       normalizeCountryToken(expectedTrialCountry);
+
+  React.useEffect(() => {
+    if (!isTrialPlan || !expectedTrialCountry) return;
+    if (!hasOriginOutsideTrialDomestic && !hasDestinationOutsideTrialDomestic) return;
+
+    onChange({
+      ...(hasOriginOutsideTrialDomestic ? {
+        originAddress: buildTrialLockedAddress(data.originAddress, expectedTrialCountry)
+      } : {}),
+      ...(hasDestinationOutsideTrialDomestic ? {
+        destinationAddress: buildTrialLockedAddress(
+          data.destinationAddress,
+          expectedTrialCountry
+        )
+      } : {}),
+      transportLegs: [],
+      estimatedTotalDistance: 0
+    });
+  }, [
+    data.destinationAddress,
+    data.originAddress,
+    expectedTrialCountry,
+    hasDestinationOutsideTrialDomestic,
+    hasOriginOutsideTrialDomestic,
+    isTrialPlan,
+    onChange
+  ]);
 
   return (
     <div className="space-y-6">
@@ -1572,6 +1679,8 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 onChange={updateOriginAddress}
                 defaultCenter={ORIGIN_DEFAULT_CENTER}
                 showCurrentLocationButton
+                lockedCountry={isTrialPlan ? expectedTrialCountry : undefined}
+                onInvalidCountrySelection={isTrialPlan ? showTrialDomesticOnlyToast : undefined}
               />
               {hasOriginOutsideTrialDomestic ?
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -1593,6 +1702,8 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 onChange={updateDestinationAddress}
                 defaultCenter={destinationDefaultCenter}
                 showCurrentLocationButton={false}
+                lockedCountry={isTrialPlan ? expectedTrialCountry : undefined}
+                onInvalidCountrySelection={isTrialPlan ? showTrialDomesticOnlyToast : undefined}
               />
               {hasDestinationOutsideTrialDomestic ?
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

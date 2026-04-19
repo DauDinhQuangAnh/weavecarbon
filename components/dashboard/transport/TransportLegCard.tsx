@@ -39,6 +39,8 @@ interface TransportLegCardProps {
   onRemove: (id: string) => void;
   roadRouteIssue?: string | null;
   calculateCO2: (leg: LegInput) => number;
+  emissionUnitLabel: string;
+  emissionFactorUnitLabel: string;
 }
 
 const TransportLegCard: React.FC<TransportLegCardProps> = ({
@@ -49,7 +51,9 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
   onUpdate,
   onRemove,
   roadRouteIssue,
-  calculateCO2
+  calculateCO2,
+  emissionUnitLabel,
+  emissionFactorUnitLabel
 }) => {
   const t = useTranslations("transport");
   const getModeIcon = (mode: string) => {
@@ -185,11 +189,11 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{t("legCO2")}</span>
               <span className="font-medium text-primary">
-                {calculateCO2(leg).toFixed(2)} {t("units.kgCO2e")}
+                {calculateCO2(leg).toFixed(2)} {emissionUnitLabel}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {t("emissionFactor")}: {EMISSION_FACTORS[leg.mode]} {t("units.kgCO2PerKm")}
+              {t("emissionFactor")}: {EMISSION_FACTORS[leg.mode]} {emissionFactorUnitLabel}
             </p>
           </div>
         }

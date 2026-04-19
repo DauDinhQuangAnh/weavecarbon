@@ -29,6 +29,7 @@ interface TransportResultsSidebarProps {
   calculateLegCO2: (leg: LegInput) => number;
   onSubmit: () => void;
   isLoading?: boolean;
+  emissionUnitLabel: string;
 }
 
 const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
@@ -38,7 +39,8 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
   hasLocationPermission,
   calculateLegCO2,
   onSubmit,
-  isLoading = false
+  isLoading = false,
+  emissionUnitLabel
 }) => {
   const t = useTranslations("transport");
   const locale = useLocale();
@@ -93,7 +95,7 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
           </div>
           <p className="text-3xl font-bold text-primary">
             {isLoading ? "..." : totalCO2.toFixed(2)}
-            <span className="text-lg font-normal ml-1">{t("units.kgCO2e")}</span>
+            <span className="text-lg font-normal ml-1">{emissionUnitLabel}</span>
           </p>
         </div>
 
@@ -109,7 +111,7 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
                   {getModeIcon(leg.mode)}
                   {t("legLabel")} {index + 1}
                 </span>
-                <span>{calculateLegCO2(leg).toFixed(2)} {t("units.kg")}</span>
+                <span>{calculateLegCO2(leg).toFixed(2)} {emissionUnitLabel}</span>
               </div>
           )}
           </div>

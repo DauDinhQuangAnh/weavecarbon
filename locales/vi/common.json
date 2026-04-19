@@ -1850,7 +1850,9 @@
     "units": {
       "kg": "kg",
       "kgCO2PerKm": "kg CO2/km",
-      "kgCO2e": "kg CO2e"
+      "kgCO2PerTonneKm": "kg CO2e/tan.km",
+      "kgCO2e": "kg CO2e",
+      "kgCO2ePerTonne": "kg CO2e/tan hang"
     },
     "unknownLocation": "Không xác định"
   },
@@ -2325,9 +2327,22 @@
         "unknownOrigin": "Nguồn gốc vật liệu chưa xác định - dùng hệ số theo khu vực",
         "noProcessInfo": "Thiếu thông tin quy trình - dùng hệ số trung bình ngành",
         "noEnergyInfo": "Thiếu thông tin năng lượng - dùng hệ số điện lưới",
+        "noEnergyInfoInferred": "Thiếu cơ cấu năng lượng - hệ thống tạm suy ra điện lưới cho {location}",
+        "bomCoverage": "Tổng phân bổ vật liệu là {value}%, nên kết quả đang dựa trên phân bổ chưa đầy đủ.",
+        "materialMissing": "Chưa có dữ liệu vật liệu nên phần vật liệu đang bị loại khỏi phép tính này.",
+        "materialUnknownOrigin": "Vật liệu \"{material}\" chưa rõ nguồn gốc nên độ bất định được nới rộng.",
+        "materialGenericProxy": "Vật liệu \"{material}\" đang dùng hệ số proxy nội bộ tổng quát.",
+        "accessoryExcluded": "Phụ kiện \"{accessory}\" chưa có khối lượng cụ thể nên bị loại khỏi CO2e.",
+        "packagingExcluded": "Đóng gói chưa được tính vì hiện chưa có khối lượng hoặc loại bao bì.",
+        "energyMixNormalized": "Tổng tỷ lệ năng lượng là {value}% và đã được chuẩn hóa trước khi tính.",
+        "transportLegExcluded": "Có một chặng vận chuyển thiếu mode hoặc hệ số nên bị loại khỏi phép tính.",
+        "transportDistanceDefault": "Chặng {mode} đang dùng khoảng cách mặc định theo thị trường là {distance} km.",
+        "transportExcluded": "Vận chuyển chưa được tính vì chưa có chặng vận chuyển nào.",
+        "noValidInput": "Chưa có dữ liệu đầu vào carbon hợp lệ.",
         "transportEstimatedBySea": "Vận chuyển được ước tính theo đường biển",
         "warning": "Một số vật liệu dùng ước tính proxy. Độ tin cậy kết quả carbon sẽ thấp hơn.",
         "usedTitle": "Các hệ số ước tính đã dùng:",
+        "genericUsed": "Đã dùng {count} hệ số thư viện hoặc proxy do chưa có đủ dữ liệu đặc thù từ nhà cung cấp.",
         "addMoreInfo": "* Bổ sung thêm dữ liệu để tăng độ chính xác kết quả",
         "fullData": "Dữ liệu đầy đủ - độ tin cậy kết quả cao"
       },
@@ -2335,7 +2350,8 @@
         "materials": "Vật liệu",
         "production": "Sản xuất",
         "energy": "Năng lượng",
-        "transport": "Vận chuyển"
+        "transport": "Vận chuyển",
+        "packaging": "Đóng gói"
       },
       "cards": {
         "perProductTitle": "CO₂e / Sản phẩm",
@@ -2360,11 +2376,23 @@
       "scope": {
         "title": "Phân tích Scope (GHG Protocol)",
         "scope1": "Scope 1",
+        "scope1Desc": "Phát thải trực tiếp từ nhiên liệu và quy trình trong vận hành",
         "scope2": "Scope 2",
-        "scope3": "Scope 3"
+        "scope2Desc": "Điện năng và năng lượng mua ngoài dùng cho sản xuất",
+        "scope3": "Scope 3",
+        "scope3Desc": "Vật liệu, đóng gói và vận chuyển trong chuỗi giá trị",
+        "notAvailable": "Chưa có"
       },
       "confidence": {
         "title": "Độ tin cậy dữ liệu",
+        "scoreLine": "Điểm dữ liệu: {value}/100",
+        "axes": {
+          "completeness": "Độ đầy đủ",
+          "specificity": "Độ đặc thù",
+          "geographicRelevance": "Mức phù hợp địa lý",
+          "transportSpecificity": "Mức đặc thù vận chuyển",
+          "proxyShare": "Tỷ lệ dữ liệu gốc so với proxy"
+        },
         "high": "Cao",
         "medium": "Trung bình",
         "low": "Thấp"

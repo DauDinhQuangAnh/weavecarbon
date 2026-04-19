@@ -46,8 +46,6 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children
-
-
 }: Readonly<{children: React.ReactNode;}>) {
   const backendHealth = await getBackendHealth();
   const { locale, messages } = await getScopedMessages(ROOT_NAMESPACES);
@@ -61,16 +59,18 @@ gtag('config', ${JSON.stringify(googleAnalyticsMeasurementId)}, { send_page_view
     : "";
   return (
     <html data-scroll-behavior="smooth" lang={locale} suppressHydrationWarning>
-      {googleAnalyticsMeasurementId ? (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsMeasurementId}`}
-            strategy="afterInteractive" />
-          <Script id="google-analytics-init" strategy="beforeInteractive">
-            {googleAnalyticsInitSnippet}
-          </Script>
-        </>
-      ) : null}
+      <head>
+        {googleAnalyticsMeasurementId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsMeasurementId}`}
+              strategy="afterInteractive" />
+            <Script id="google-analytics-init" strategy="beforeInteractive">
+              {googleAnalyticsInitSnippet}
+            </Script>
+          </>
+        ) : null}
+      </head>
       <body
         className={`${beVietnamProBody.variable} ${beVietnamProHeading.variable} antialiased`}>
         {backendHealth.healthy ? (
@@ -93,6 +93,6 @@ gtag('config', ${JSON.stringify(googleAnalyticsMeasurementId)}, { send_page_view
           <MaintenanceScreen healthUrl={backendHealth.healthUrl} />
         )}
       </body>
-    </html>);
-
+    </html>
+  );
 }

@@ -567,9 +567,9 @@ const buildCarbonResults = (row: BulkProductRow) => {
   const perProduct = {
     materials: computed.materialsCO2,
     production: computed.manufacturingCO2,
-    energy: 0,
+    energy: computed.energyCO2,
     transport: computed.transportCO2,
-    packaging: 0,
+    packaging: computed.packagingCO2,
     total: computed.totalCO2
   };
 
@@ -584,11 +584,17 @@ const buildCarbonResults = (row: BulkProductRow) => {
       total: perProduct.total * safeQuantity
     },
     confidenceLevel,
-    proxyUsed: true,
-    proxyNotes: [],
-    scope1: perProduct.production,
-    scope2: perProduct.energy,
-    scope3: perProduct.materials + perProduct.transport + perProduct.packaging
+    confidenceScore: computed.confidenceScore,
+    proxyUsed: computed.proxyUsed,
+    proxyNotes: computed.proxyNotes,
+    scope1: computed.scope1,
+    scope2: computed.scope2,
+    scope3: computed.scope3,
+    co2eRange: computed.co2eRange,
+    methodologyVersion: computed.methodologyVersion,
+    assumptionsUsed: computed.assumptionsUsed,
+    factorSourceSummary: computed.factorSourceSummary,
+    dataQualityBreakdown: computed.dataQualityBreakdown
   };
 };
 
@@ -709,6 +715,22 @@ forcedDomesticMarket?: string | null)
     unit_co2e: carbonResults.perProduct.total,
     confidenceLevel: carbonResults.confidenceLevel,
     confidence_level: carbonResults.confidenceLevel,
+    confidenceScore: carbonResults.confidenceScore,
+    confidence_score: carbonResults.confidenceScore,
+    proxyUsed: carbonResults.proxyUsed,
+    proxy_used: carbonResults.proxyUsed,
+    proxyNotes: carbonResults.proxyNotes,
+    proxy_notes: carbonResults.proxyNotes,
+    co2eRange: carbonResults.co2eRange,
+    co2e_range: carbonResults.co2eRange,
+    methodologyVersion: carbonResults.methodologyVersion,
+    methodology_version: carbonResults.methodologyVersion,
+    assumptionsUsed: carbonResults.assumptionsUsed,
+    assumptions_used: carbonResults.assumptionsUsed,
+    factorSourceSummary: carbonResults.factorSourceSummary,
+    factor_source_summary: carbonResults.factorSourceSummary,
+    dataQualityBreakdown: carbonResults.dataQualityBreakdown,
+    data_quality_breakdown: carbonResults.dataQualityBreakdown,
     scope1: carbonResults.scope1,
     scope2: carbonResults.scope2,
     scope3: carbonResults.scope3

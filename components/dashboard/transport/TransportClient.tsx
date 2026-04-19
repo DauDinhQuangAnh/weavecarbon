@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,7 @@ export interface LegInput {
   destination: AddressData;
   distanceKm: string;
   co2Kg?: number;
+  co2PerTonKg?: number;
 }
 
 type ShipmentLoadState = "idle" | "loading" | "ready" | "not_found" | "error";
@@ -242,7 +243,8 @@ const toLegInput = (leg: TransportLeg): LegInput => ({
   leg.distanceKm > 0 ?
   String(Math.round((leg.distanceKm + Number.EPSILON) * 100) / 100) :
   "",
-  co2Kg: leg.co2Kg
+  co2Kg: leg.co2Kg,
+  co2PerTonKg: leg.co2PerTonKg
 });
 
 const mapProductTransportMode = (
@@ -359,7 +361,8 @@ const buildFallbackLegFromProduct = (product: ProductRecord): LegInput | null =>
     origin,
     destination,
     distanceKm: distance > 0 ? String(distance) : "",
-    co2Kg: transportCo2
+    co2Kg: transportCo2,
+    co2PerTonKg: firstTransportLeg?.co2PerTonKg
   };
 };
 
@@ -582,6 +585,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [legs, setLegs] = useState<LegInput[]>([createInitialLeg()]);
+  const [loadedProduct, setLoadedProduct] = useState<ProductRecord | null>(null);
   const [shipmentLoadState, setShipmentLoadState] = useState<ShipmentLoadState>(
     hasLookupInput ? "loading" : "idle"
   );
@@ -605,13 +609,14 @@ const TransportClient: React.FC<TransportClientProps> = ({
     let isCancelled = false;
 
     const hydrateFromShipment = async () => {
-      if (!hasLookupInput) {
-        if (isCancelled) return;
-        setShipmentLoadState("idle");
-        setShipmentError(null);
-        setLegs([createInitialLeg()]);
-        return;
-      }
+        if (!hasLookupInput) {
+          if (isCancelled) return;
+          setShipmentLoadState("idle");
+          setShipmentError(null);
+          setLoadedProduct(null);
+          setLegs([createInitialLeg()]);
+          return;
+        }
 
       setShipmentLoadState("loading");
       setShipmentError(null);
@@ -625,6 +630,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
             productDetail = null;
           }
         }
+        setLoadedProduct(productDetail);
 
         const matchedShipment = await resolveShipmentForProduct({
           shipmentId,
@@ -682,6 +688,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
         t("errors.loadLogisticsFailed");
         setShipmentError(message);
         setShipmentLoadState("error");
+        setLoadedProduct(null);
         setLegs([createInitialLeg()]);
       }
     };
@@ -763,7 +770,8 @@ const TransportClient: React.FC<TransportClientProps> = ({
           return {
             ...leg,
             distanceKm: cachedUpdate.distanceKm,
-            co2Kg: undefined
+            co2Kg: undefined,
+            co2PerTonKg: undefined
           };
         })
       );
@@ -879,7 +887,8 @@ const TransportClient: React.FC<TransportClientProps> = ({
             return {
               ...leg,
               distanceKm: nextUpdate.distanceKm,
-              co2Kg: undefined
+              co2Kg: undefined,
+              co2PerTonKg: undefined
             };
           })
         );
@@ -928,20 +937,50 @@ const updateLeg = (
       return {
         ...leg,
         [field]: value,
-        co2Kg: undefined
+        co2Kg: undefined,
+        co2PerTonKg: undefined
       };
     })
     );
   };
 
-  const calculateLegCO2 = (leg: LegInput): number => {
-    if (typeof leg.co2Kg === "number" && Number.isFinite(leg.co2Kg)) {
-      return Math.max(0, leg.co2Kg);
+  const batchMassTonne = useMemo(() => {
+    if (!loadedProduct) return 0;
+    return ((Math.max(0, Number(loadedProduct.weightPerUnit) || 0) / 1000) *
+      Math.max(1, Number(loadedProduct.quantity) || 1)) /
+      1000;
+  }, [loadedProduct]);
+
+  const calculateLegCo2PerTon = useCallback((leg: LegInput): number => {
+    if (typeof leg.co2PerTonKg === "number" && Number.isFinite(leg.co2PerTonKg)) {
+      return Math.max(0, leg.co2PerTonKg);
+    }
+    if (
+      batchMassTonne > 0 &&
+      typeof leg.co2Kg === "number" &&
+      Number.isFinite(leg.co2Kg)
+    ) {
+      return Math.max(0, leg.co2Kg / batchMassTonne);
     }
     const distance = parseFloat(leg.distanceKm) || 0;
     const factor = EMISSION_FACTORS[leg.mode] || 0;
     return distance * factor;
-  };
+  }, [batchMassTonne]);
+
+  const calculateLegCO2 = useCallback((leg: LegInput): number => {
+    if (
+      batchMassTonne > 0 &&
+      typeof leg.co2PerTonKg === "number" &&
+      Number.isFinite(leg.co2PerTonKg)
+    ) {
+      return Math.max(0, leg.co2PerTonKg * batchMassTonne);
+    }
+    if (typeof leg.co2Kg === "number" && Number.isFinite(leg.co2Kg)) {
+      return Math.max(0, leg.co2Kg);
+    }
+    const perTonValue = calculateLegCo2PerTon(leg);
+    return batchMassTonne > 0 ? perTonValue * batchMassTonne : perTonValue;
+  }, [batchMassTonne, calculateLegCo2PerTon]);
 
   const totalDistance = useMemo(
     () =>
@@ -954,7 +993,7 @@ const updateLeg = (
 
   const totalCO2 = useMemo(
     () => legs.reduce((sum, leg) => sum + calculateLegCO2(leg), 0),
-    [legs]
+    [calculateLegCO2, legs]
   );
 
   const displayLegs = useMemo(
@@ -1005,7 +1044,7 @@ const updateLeg = (
       } as TransportLeg;
     }).
     filter((leg): leg is TransportLeg => leg !== null),
-    [legs, t]
+    [calculateLegCO2, legs, t]
   );
 
   const handleSubmit = async () => {
@@ -1019,22 +1058,43 @@ const updateLeg = (
     try {
       const product = await fetchProductById(productId);
       const quantity = Math.max(1, Number(product.quantity) || 1);
+      const batchMassTonne =
+        ((Math.max(0, Number(product.weightPerUnit) || 0) / 1000) * quantity) / 1000;
+      const totalCo2PerTonKg = Math.max(
+        0,
+        legs.reduce((sum, leg) => sum + calculateLegCo2PerTon(leg), 0)
+      );
       const nextTransportLegs = legs.map((leg) => {
         const distance = Number.parseFloat(leg.distanceKm);
         const normalizedDistance =
         Number.isFinite(distance) && distance > 0 ? distance : undefined;
-        const co2Kg = Math.max(0, calculateLegCO2(leg));
+        const inferredPerTonFromDistance =
+          normalizedDistance && normalizedDistance > 0 ?
+            normalizedDistance * (EMISSION_FACTORS[leg.mode] || 0) :
+            0;
+        const co2PerTonKg = Math.max(
+          0,
+          typeof leg.co2PerTonKg === "number" && Number.isFinite(leg.co2PerTonKg) ?
+            leg.co2PerTonKg :
+            batchMassTonne > 0 && typeof leg.co2Kg === "number" && Number.isFinite(leg.co2Kg) ?
+              leg.co2Kg / batchMassTonne :
+              inferredPerTonFromDistance
+        );
         const emissionFactor =
         normalizedDistance && normalizedDistance > 0 ?
-        co2Kg / normalizedDistance :
+        co2PerTonKg / normalizedDistance :
         EMISSION_FACTORS[leg.mode];
+        const allocatedCo2Kg =
+          batchMassTonne > 0 ? co2PerTonKg * batchMassTonne : co2PerTonKg;
 
         return {
           id: leg.id,
           mode: toProductTransportMode(leg.mode),
           estimatedDistance: normalizedDistance,
           emissionFactor: Number.isFinite(emissionFactor) ? emissionFactor : undefined,
-          co2Kg: co2Kg > 0 ? co2Kg : undefined
+          co2PerTonKg: co2PerTonKg > 0 ? co2PerTonKg : undefined,
+          allocatedCo2Kg: allocatedCo2Kg > 0 ? allocatedCo2Kg : undefined,
+          co2Kg: allocatedCo2Kg > 0 ? allocatedCo2Kg : undefined
         };
       });
 
@@ -1062,7 +1122,9 @@ const updateLeg = (
       Number(currentTotalBatch?.packaging) > 0 ?
       Number(currentTotalBatch?.packaging) / quantity :
       0);
-      const transport = Math.max(0, totalCO2);
+      const batchTransport =
+        batchMassTonne > 0 ? totalCo2PerTonKg * batchMassTonne : totalCo2PerTonKg;
+      const transport = quantity > 0 ? batchTransport / quantity : batchTransport;
       const perProductTotal =
       materials +
       production +
@@ -1086,15 +1148,16 @@ const updateLeg = (
       Number(currentTotalBatch?.packaging) > 0 ?
       Number(currentTotalBatch?.packaging) :
       packaging * quantity;
-      const batchTransport = transport * quantity;
 
       const nextCarbonResults = {
+        ...product.carbonResults,
         confidenceLevel: product.carbonResults?.confidenceLevel || "medium",
+        confidenceScore: product.carbonResults?.confidenceScore,
         proxyUsed: Boolean(product.carbonResults?.proxyUsed),
         proxyNotes: product.carbonResults?.proxyNotes || [],
-        scope1: Number(product.carbonResults?.scope1) || 0,
-        scope2: Number(product.carbonResults?.scope2) || 0,
-        scope3: Number(product.carbonResults?.scope3) || 0,
+        scope1: product.carbonResults?.scope1 ?? null,
+        scope2: product.carbonResults?.scope2 ?? null,
+        scope3: product.carbonResults?.scope3 ?? null,
         perProduct: {
           materials,
           production,
@@ -1280,7 +1343,17 @@ const updateLeg = (
               onUpdate={updateLeg}
               onRemove={handleRemoveLeg}
               roadRouteIssue={roadRouteFailureByLegId[leg.id] ? t("status.roadRouteUnconfirmed") : null}
-              calculateCO2={calculateLegCO2} />
+              calculateCO2={calculateLegCO2}
+              emissionUnitLabel={
+                batchMassTonne > 0 ?
+                  t("units.kgCO2e") :
+                  (t.has("units.kgCO2ePerTonne") ? t("units.kgCO2ePerTonne") : "kg CO2e/t shipped")
+              }
+              emissionFactorUnitLabel={
+                t.has("units.kgCO2PerTonneKm") ?
+                  t("units.kgCO2PerTonneKm") :
+                  "kg CO2e/tonne.km"
+              } />
 
             )}
 
@@ -1302,7 +1375,12 @@ const updateLeg = (
             hasLocationPermission={hasLocationPermission}
             calculateLegCO2={calculateLegCO2}
             onSubmit={handleSubmit}
-            isLoading={isBusy} />
+            isLoading={isBusy}
+            emissionUnitLabel={
+              batchMassTonne > 0 ?
+                t("units.kgCO2e") :
+                (t.has("units.kgCO2ePerTonne") ? t("units.kgCO2ePerTonne") : "kg CO2e/t shipped")
+            } />
 
         </div>
       </div>

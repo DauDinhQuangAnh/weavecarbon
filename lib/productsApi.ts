@@ -263,6 +263,14 @@ const asNumber = (value: unknown, fallback = 0) => {
   return fallback;
 };
 
+const asNullableNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = toFiniteNumber(value);
+  return parsed ?? null;
+};
+
 const asBoolean = (value: unknown, fallback = false) => {
   if (typeof value === "boolean") {
     return value;
@@ -1272,9 +1280,87 @@ quantityFallback = 1)
       source.proxyNotes ??
       source.proxy_notes
     ).map((note) => asString(note)),
-    scope1: asNumber(structured?.scope1 ?? source.scope1),
-    scope2: asNumber(structured?.scope2 ?? source.scope2),
-    scope3: asNumber(structured?.scope3 ?? source.scope3)
+    scope1: asNullableNumber(structured?.scope1 ?? source.scope1),
+    scope2: asNullableNumber(structured?.scope2 ?? source.scope2),
+    scope3: asNullableNumber(structured?.scope3 ?? source.scope3),
+    co2eRange: (() => {
+      const raw =
+        structured?.co2eRange ??
+        structured?.co2e_range ??
+        source.co2eRange ??
+        source.co2e_range;
+      if (!isObject(raw)) return undefined;
+      const min = asNullableNumber(raw.min);
+      const max = asNullableNumber(raw.max);
+      if (typeof min === "number" && typeof max === "number") {
+        return { min, max };
+      }
+      return undefined;
+    })(),
+    methodologyVersion: asNonEmptyString(
+      structured?.methodologyVersion ??
+      structured?.methodology_version ??
+      source.methodologyVersion ??
+      source.methodology_version
+    ) ?? undefined,
+    assumptionsUsed: asArray(
+      structured?.assumptionsUsed ??
+      structured?.assumptions_used ??
+      source.assumptionsUsed ??
+      source.assumptions_used
+    )
+      .map((item) => asString(item))
+      .filter(Boolean),
+    factorSourceSummary: asArray(
+      structured?.factorSourceSummary ??
+      structured?.factor_source_summary ??
+      source.factorSourceSummary ??
+      source.factor_source_summary
+    )
+      .filter(isObject)
+      .map((item) => ({
+        factorId: asString(item.factorId ?? item.factor_id),
+        label: asString(item.label),
+        stage: asString(item.stage) as NonNullable<CarbonAssessmentResult["factorSourceSummary"]>[number]["stage"],
+        unit: asString(item.unit),
+        value: asNumber(item.value),
+        source: asString(item.source),
+        sourceUrl: asString(item.sourceUrl ?? item.source_url),
+        geography: asNonEmptyString(item.geography) ?? undefined,
+        year: asNullableNumber(item.year) ?? undefined,
+        quality: asString(item.quality) as NonNullable<CarbonAssessmentResult["factorSourceSummary"]>[number]["quality"],
+        isProxy: asBoolean(item.isProxy ?? item.is_proxy)
+      })),
+    dataQualityBreakdown: (() => {
+      const raw =
+        structured?.dataQualityBreakdown ??
+        structured?.data_quality_breakdown ??
+        source.dataQualityBreakdown ??
+        source.data_quality_breakdown;
+      if (!isObject(raw)) return undefined;
+      const normalizeAxis = (value: unknown, maxScore: number) => {
+        if (!isObject(value)) {
+          return { score: 0, maxScore };
+        }
+        return {
+          score: asNumber(value.score),
+          maxScore: asNumber(value.maxScore ?? value.max_score, maxScore)
+        };
+      };
+      return {
+        completeness: normalizeAxis(raw.completeness, 30),
+        specificity: normalizeAxis(raw.specificity, 25),
+        geographicRelevance: normalizeAxis(
+          raw.geographicRelevance ?? raw.geographic_relevance,
+          15
+        ),
+        transportSpecificity: normalizeAxis(
+          raw.transportSpecificity ?? raw.transport_specificity,
+          15
+        ),
+        proxyShare: normalizeAxis(raw.proxyShare ?? raw.proxy_share, 15)
+      };
+    })()
   };
 };
 

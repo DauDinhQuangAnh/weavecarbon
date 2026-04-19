@@ -33,6 +33,8 @@ interface LocationPickerProps {
   label: string;
   defaultCenter?: [number, number];
   showCurrentLocationButton?: boolean;
+  lockedCountry?: string;
+  onInvalidCountrySelection?: (country: string | null) => void;
 }
 
 interface GeocodingResult {
@@ -111,12 +113,38 @@ const hasCoordinatePair = (
   lng: number | undefined
 ) => isFiniteCoordinate(lat) && isFiniteCoordinate(lng);
 
+const normalizeCountryToken = (value: string | null | undefined) =>
+  String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+
+const MAPBOX_COUNTRY_FILTER_BY_NAME: Record<string, string> = {
+  vietnam: "vn",
+  unitedstates: "us",
+  usa: "us",
+  southkorea: "kr",
+  korea: "kr",
+  japan: "jp",
+  germany: "de",
+  china: "cn"
+};
+
+const resolveMapboxCountryFilter = (value: string | null | undefined) => {
+  const normalized = normalizeCountryToken(value);
+  return MAPBOX_COUNTRY_FILTER_BY_NAME[normalized] || null;
+};
+
 const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
   onChange,
   label,
   defaultCenter = [106.6297, 10.8231],
-  showCurrentLocationButton = true
+  showCurrentLocationButton = true,
+  lockedCountry,
+  onInvalidCountrySelection
 }) => {
   const t = useTranslations("assessment.locationPicker");
   const tAddress = useTranslations("addressSelection");
@@ -144,6 +172,8 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   addressRef.current = address;
 
   const reverseGeocodeRef = useRef<ReverseGeocodeHandler>(async () => {});
+  const normalizedLockedCountry = normalizeCountryToken(lockedCountry);
+  const mapboxCountryFilter = resolveMapboxCountryFilter(lockedCountry);
 
   const resetMapToDefaultCenter = useCallback(() => {
     const map = mapRef.current;
@@ -251,6 +281,15 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     []
   );
 
+  const isCountryAllowed = useCallback(
+    (country: string | null | undefined) => {
+      if (!normalizedLockedCountry) return true;
+      const normalizedCountry = normalizeCountryToken(country);
+      return !normalizedCountry || normalizedCountry === normalizedLockedCountry;
+    },
+    [normalizedLockedCountry]
+  );
+
   const pickBestReverseGeocodingFeature = useCallback((features: GeocodingResult[]) => {
     return features.reduce<GeocodingResult | null>((bestFeature, feature) => {
       if (!bestFeature) {
@@ -299,89 +338,6 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     });
   }, []);
 
-  const reverseGeocode = useCallback(
-    async (lng: number, lat: number, source: RoadRoutePointSource = "manual") => {
-      const requestSeq = reverseGeocodeRequestSeqRef.current + 1;
-      reverseGeocodeRequestSeqRef.current = requestSeq;
-      reverseGeocodeAbortRef.current?.abort();
-      const controller = new AbortController();
-      reverseGeocodeAbortRef.current = controller;
-
-      try {
-        const reverseGeocodingUrl = buildMapboxReverseGeocodingUrl(lng, lat, {
-          language: mapLanguage,
-          types: [...REVERSE_GEOCODING_TYPES]
-        });
-        if (!reverseGeocodingUrl) {
-          if (
-            controller.signal.aborted ||
-            requestSeq !== reverseGeocodeRequestSeqRef.current
-          ) {
-            return;
-          }
-          const nextAddress = {
-            ...addressRef.current,
-            lat,
-            lng
-          };
-          addressRef.current = nextAddress;
-          onChangeRef.current(nextAddress, { source });
-          return;
-        }
-
-        const response = await fetch(reverseGeocodingUrl, {
-          signal: controller.signal
-        });
-        const data = await response.json();
-        if (
-          controller.signal.aborted ||
-          requestSeq !== reverseGeocodeRequestSeqRef.current
-        ) {
-          return;
-        }
-
-        if (data.features && data.features.length > 0) {
-          const feature = pickBestReverseGeocodingFeature(data.features) || data.features[0];
-          const addressParts = parseGeocodingResult(feature);
-          const nextAddress = buildGeocodedAddress(lat, lng, addressParts);
-
-          addressRef.current = nextAddress;
-          onChangeRef.current(nextAddress, { source });
-          return;
-        }
-
-        const nextAddress = {
-          ...addressRef.current,
-          lat,
-          lng
-        };
-        addressRef.current = nextAddress;
-        onChangeRef.current(nextAddress, { source });
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        console.error("Reverse geocoding error:", error);
-        if (requestSeq !== reverseGeocodeRequestSeqRef.current) {
-          return;
-        }
-        const nextAddress = {
-          ...addressRef.current,
-          lat,
-          lng
-        };
-        addressRef.current = nextAddress;
-        onChangeRef.current(nextAddress, { source });
-      } finally {
-        if (reverseGeocodeAbortRef.current === controller) {
-          reverseGeocodeAbortRef.current = null;
-        }
-      }
-    },
-    [buildGeocodedAddress, mapLanguage, parseGeocodingResult, pickBestReverseGeocodingFeature]
-  );
-  reverseGeocodeRef.current = reverseGeocode;
-
   const syncMarker = useCallback(
     (lng: number, lat: number, options?: { flyTo?: boolean }) => {
       const map = mapRef.current;
@@ -426,6 +382,157 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     },
     []
   );
+
+  const restoreMarkerToCurrentAddress = useCallback(() => {
+    const currentAddress = addressRef.current;
+    if (hasCoordinatePair(currentAddress.lat, currentAddress.lng)) {
+      syncMarker(currentAddress.lng as number, currentAddress.lat as number, {
+        flyTo: false
+      });
+      return;
+    }
+
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+    resetMapToDefaultCenter();
+  }, [resetMapToDefaultCenter, syncMarker]);
+
+  const commitAddressChange = useCallback(
+    (nextAddress: AddressInput, source: RoadRoutePointSource) => {
+      const detectedCountry = nextAddress.country?.trim() || null;
+      if (!isCountryAllowed(detectedCountry)) {
+        onInvalidCountrySelection?.(detectedCountry);
+        restoreMarkerToCurrentAddress();
+        setShowResults(false);
+        setSearchResults([]);
+        return false;
+      }
+
+      const normalizedAddress =
+        lockedCountry && detectedCountry ?
+          {
+            ...nextAddress,
+            country: lockedCountry
+          } :
+          nextAddress;
+
+      addressRef.current = normalizedAddress;
+      onChangeRef.current(normalizedAddress, { source });
+      return true;
+    },
+    [isCountryAllowed, lockedCountry, onInvalidCountrySelection, restoreMarkerToCurrentAddress]
+  );
+
+  const reverseGeocode = useCallback(
+    async (lng: number, lat: number, source: RoadRoutePointSource = "manual") => {
+      const requestSeq = reverseGeocodeRequestSeqRef.current + 1;
+      reverseGeocodeRequestSeqRef.current = requestSeq;
+      reverseGeocodeAbortRef.current?.abort();
+      const controller = new AbortController();
+      reverseGeocodeAbortRef.current = controller;
+
+      try {
+        const reverseGeocodingUrl = buildMapboxReverseGeocodingUrl(lng, lat, {
+          language: mapLanguage,
+          types: [...REVERSE_GEOCODING_TYPES]
+        });
+        if (!reverseGeocodingUrl) {
+          if (
+            controller.signal.aborted ||
+            requestSeq !== reverseGeocodeRequestSeqRef.current
+          ) {
+            return;
+          }
+          if (normalizedLockedCountry) {
+            onInvalidCountrySelection?.(null);
+            restoreMarkerToCurrentAddress();
+            return;
+          }
+          commitAddressChange(
+            {
+              ...addressRef.current,
+              lat,
+              lng
+            },
+            source
+          );
+          return;
+        }
+
+        const response = await fetch(reverseGeocodingUrl, {
+          signal: controller.signal
+        });
+        const data = await response.json();
+        if (
+          controller.signal.aborted ||
+          requestSeq !== reverseGeocodeRequestSeqRef.current
+        ) {
+          return;
+        }
+
+        if (data.features && data.features.length > 0) {
+          const feature = pickBestReverseGeocodingFeature(data.features) || data.features[0];
+          const addressParts = parseGeocodingResult(feature);
+          const nextAddress = buildGeocodedAddress(lat, lng, addressParts);
+          commitAddressChange(nextAddress, source);
+          return;
+        }
+
+        if (normalizedLockedCountry) {
+          onInvalidCountrySelection?.(null);
+          restoreMarkerToCurrentAddress();
+          return;
+        }
+
+        commitAddressChange(
+          {
+            ...addressRef.current,
+            lat,
+            lng
+          },
+          source
+        );
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        console.error("Reverse geocoding error:", error);
+        if (requestSeq !== reverseGeocodeRequestSeqRef.current) {
+          return;
+        }
+        if (normalizedLockedCountry) {
+          onInvalidCountrySelection?.(null);
+          restoreMarkerToCurrentAddress();
+          return;
+        }
+        commitAddressChange(
+          {
+            ...addressRef.current,
+            lat,
+            lng
+          },
+          source
+        );
+      } finally {
+        if (reverseGeocodeAbortRef.current === controller) {
+          reverseGeocodeAbortRef.current = null;
+        }
+      }
+    },
+    [
+      buildGeocodedAddress,
+      commitAddressChange,
+      mapLanguage,
+      normalizedLockedCountry,
+      onInvalidCountrySelection,
+      parseGeocodingResult,
+      pickBestReverseGeocodingFeature,
+      restoreMarkerToCurrentAddress
+    ]
+  );
+  reverseGeocodeRef.current = reverseGeocode;
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -557,6 +664,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
       try {
         const forwardGeocodingUrl = buildMapboxForwardGeocodingUrl(normalizedQuery, {
+          country: mapboxCountryFilter || undefined,
           limit: 5,
           language: mapLanguage,
           types: ["address", "poi", "neighborhood", "locality", "place", "district", "region"]
@@ -582,11 +690,13 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         ) {
           return;
         }
-        setSearchResults(
+        const nextResults =
           Array.isArray(data.features) ?
-            sortForwardGeocodingResults(data.features) :
-            []
-        );
+            sortForwardGeocodingResults(data.features).filter((feature) =>
+              isCountryAllowed(parseGeocodingResult(feature).country)
+            ) :
+            [];
+        setSearchResults(nextResults);
         setShowResults(true);
       } catch (error) {
         if (controller.signal.aborted) {
@@ -603,17 +713,23 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         }
       }
     },
-    [mapLanguage, sortForwardGeocodingResults]
+    [isCountryAllowed, mapLanguage, mapboxCountryFilter, parseGeocodingResult, sortForwardGeocodingResults]
   );
 
   const selectLocation = (result: GeocodingResult) => {
+    const addressParts = parseGeocodingResult(result);
+    const detectedCountry = addressParts.country || null;
+    if (!isCountryAllowed(detectedCountry)) {
+      onInvalidCountrySelection?.(detectedCountry);
+      setShowResults(false);
+      setSearchResults([]);
+      return;
+    }
+
     const [lng, lat] = result.center;
     syncMarker(lng, lat);
-
-    const addressParts = parseGeocodingResult(result);
     const nextAddress = buildGeocodedAddress(lat, lng, addressParts);
-    addressRef.current = nextAddress;
-    onChange(nextAddress, { source: "search" });
+    void commitAddressChange(nextAddress, "search");
 
     skipNextSearchRef.current = true;
     setSearchQuery(result.place_name);
@@ -870,8 +986,9 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
               {tAddress("countryLabel")}
             </Label>
             <Input
-              value={address.country || ""}
+              value={lockedCountry || address.country || ""}
               placeholder={tAddress("countryPlaceholder")}
+              disabled={Boolean(lockedCountry)}
               onChange={(event) =>
                 applyManualAddressChange({
                   ...address,

@@ -5,10 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
-  isSubscriptionLocked,
-  readSubscriptionLockState
-} from "@/lib/subscriptionLockState";
-import {
   canAccessSettings,
   canAccessSystemSettings,
   canAccessUsersSettings,
@@ -22,7 +18,7 @@ export const usePermissions = () => {
   const { currentPlan, featuresLocked } = useSubscriptionLock();
 
   return useMemo(() => {
-    const subscriptionLocked = featuresLocked || isSubscriptionLocked(readSubscriptionLockState());
+    const subscriptionLocked = featuresLocked;
     const fallbackRole = user?.user_type === "admin" ? "root" : "member";
     const role = resolveCompanyRole(
       {

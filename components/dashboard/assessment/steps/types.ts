@@ -1,5 +1,10 @@
 
 import { MATERIAL_CERTIFICATION_OPTIONS } from "@/lib/materialCertificationDefinitions";
+import type {
+  CarbonDataQualityBreakdown,
+  CarbonFactorSummaryItem,
+  CarbonRange
+} from "@/lib/carbon/types";
 
 
 export interface MaterialInput {
@@ -34,6 +39,8 @@ export interface TransportLeg {
   estimatedDistance?: number;
   emissionFactor?: number;
   co2Kg?: number;
+  co2PerTonKg?: number;
+  allocatedCo2Kg?: number;
   routeResolved?: boolean;
   fromNode?: TransportLegNodeRef;
   toNode?: TransportLegNodeRef;
@@ -116,9 +123,14 @@ export interface CarbonAssessmentResult {
   confidenceScore?: number;
   proxyUsed: boolean;
   proxyNotes: string[];
-  scope1: number;
-  scope2: number;
-  scope3: number;
+  scope1: number | null;
+  scope2: number | null;
+  scope3: number | null;
+  co2eRange?: CarbonRange;
+  methodologyVersion?: string;
+  assumptionsUsed?: string[];
+  factorSourceSummary?: CarbonFactorSummaryItem[];
+  dataQualityBreakdown?: CarbonDataQualityBreakdown;
 }
 
 export interface MarketComplianceDocumentSummary {
