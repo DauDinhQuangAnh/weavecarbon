@@ -64,6 +64,7 @@ const B2CClient: React.FC = () => {
 
         <B2CQuickActions
           onDonateClick={() => router.push("/b2c/donate")}
+          onCouponsClick={() => router.push("/b2c/coupons")}
           onLocationClick={() => router.push("/b2c/collection-points")}
           onHistoryClick={() => router.push("/b2c/history")}
         />

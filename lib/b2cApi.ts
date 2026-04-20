@@ -64,6 +64,37 @@ export interface MaterialRewardListPayload {
   items: MaterialReward[];
 }
 
+export interface B2CCoupon {
+  id: string;
+  title: string;
+  merchant_name: string;
+  category: string;
+  description?: string | null;
+  points_cost: number;
+  discount_type: string;
+  discount_value?: number | null;
+  currency?: string | null;
+  code?: string | null;
+  image_url?: string | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  stock_total?: number | null;
+  stock_remaining?: number | null;
+  redemption_limit_per_user?: number | null;
+  redemption_method?: string | null;
+  terms?: string | null;
+  tags?: string[] | null;
+  is_featured: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface B2CCouponListPayload {
+  items: B2CCoupon[];
+  total_count?: number;
+}
+
 export interface DonationCollectionPointSummary {
   id: string;
   name: string;
@@ -220,6 +251,24 @@ export const fetchB2CMaterialRewards = () =>
   api.get<MaterialRewardListPayload>("/b2c/material-rewards", {
     disableResponseCache: true
   });
+
+export const fetchB2CCoupons = (params?: {
+  search?: string;
+  category?: string;
+  status?: "active" | "all";
+  limit?: number;
+}) =>
+  api.get<B2CCouponListPayload>(
+    `/b2c/coupons${toQueryString({
+      search: params?.search,
+      category: params?.category,
+      status: params?.status,
+      limit: params?.limit
+    })}`,
+    {
+      disableResponseCache: true
+    }
+  );
 
 export const createB2CDonation = (
   payload: CreateB2CDonationPayload,
