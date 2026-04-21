@@ -6,7 +6,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { z } from "zod";
 import { ArrowRight, LayoutDashboard, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/apiClient";
+import {
+  buildCheckEmailUrl,
+  getDashboardPath,
+  normalizeAuthUserTypeOrNull,
+  resolvePostLoginPath as resolveSharedPostLoginPath
+} from "@/lib/auth/routing";
 import {
   Card,
   CardContent
@@ -21,24 +26,10 @@ import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
 const REMEMBER_EMAIL_KEY = "weavecarbon_auth_email";
 const REMEMBER_ME_KEY = "weavecarbon_auth_remember_me";
 
-type CompanyCheckPayload = {
-  is_b2b?: boolean;
-  has_company?: boolean;
-  user_type?: "b2b" | "b2c" | "admin";
-  data?: {
-    is_b2b?: boolean;
-    has_company?: boolean;
-    user_type?: "b2b" | "b2c" | "admin";
-  };
-};
-
 type AccountType = "b2b" | "b2c" | "admin";
 
 const normalizeAccountType = (value?: string | null): AccountType | null => {
-  if (value === "b2b" || value === "b2c" || value === "admin") {
-    return value;
-  }
-  return null;
+  return normalizeAuthUserTypeOrNull(value);
 };
 
 const parseAccountTypeMismatch = (message?: string | null) => {
@@ -55,16 +46,6 @@ const parseAccountTypeMismatch = (message?: string | null) => {
   }
 
   return { actual, expected };
-};
-
-const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
-  const nested = payload?.data;
-  const source = nested || payload || {};
-  const isB2b =
-    typeof source.is_b2b === "boolean" ? source.is_b2b : source.user_type === "b2b";
-  const hasCompany =
-    typeof source.has_company === "boolean" ? source.has_company : false;
-  return { isB2b, hasCompany };
 };
 
 const AuthForm: React.FC = () => {
@@ -149,43 +130,22 @@ const AuthForm: React.FC = () => {
     [getAccountTypeLabel, t, userType]
   );
 
-  const getDashboardPath = useCallback(
-    (type: "b2b" | "b2c" | "admin" | undefined) => {
-      return type === "b2c" ? "/b2c" : "/overview";
-    },
-    []
-  );
-
   const resolvePostLoginPath = useCallback(async (
   accountType?: "b2b" | "b2c" | "admin") => {
-    const effectiveType = accountType || userType;
-    if (effectiveType === "b2c") return "/b2c";
-
-    try {
-      const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
-      const { isB2b, hasCompany } = normalizeCompanyCheck(payload);
-      if (isB2b && !hasCompany) return "/onboarding";
-      return "/overview";
-    } catch {
-      return "/overview";
-    }
+    return resolveSharedPostLoginPath({
+      accountType: accountType || userType,
+      onboardingPath: "/onboarding"
+    });
   }, [userType]);
 
   const redirectToCheckEmail = useCallback(
     (params: {email?: string;source?: "email" | "google";intent?: "signin" | "signup";}) => {
-      const nextParams = new URLSearchParams();
-      nextParams.set("type", userType);
-      if (params.email?.trim()) {
-        nextParams.set("email", params.email.trim());
-      }
-      if (params.source) {
-        nextParams.set("source", params.source);
-      }
-      if (params.intent) {
-        nextParams.set("intent", params.intent);
-      }
-      const query = nextParams.toString();
-      router.push(query ? `/auth/check-email?${query}` : "/auth/check-email");
+      router.push(buildCheckEmailUrl({
+        email: params.email,
+        intent: params.intent,
+        source: params.source,
+        type: userType
+      }));
     },
     [router, userType]
   );
@@ -250,7 +210,7 @@ const AuthForm: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, loading, router, getDashboardPath, forceLogin, resolvePostLoginPath]);
+  }, [user, loading, router, forceLogin, resolvePostLoginPath]);
 
   useEffect(() => {
     if (!forceLogin || loading || forceLoginCheckedRef.current) return;

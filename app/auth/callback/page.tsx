@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, authTokenStore, isApiError, isUnauthorizedApiError } from "@/lib/apiClient";
+import { authTokenStore, isApiError, isUnauthorizedApiError } from "@/lib/apiClient";
+import {
+  buildAuthErrorUrl,
+  buildCheckEmailUrl,
+  normalizeAuthUserType,
+  resolveAuthenticatedUserType,
+  resolvePostLoginPath,
+  type AuthUserType
+} from "@/lib/auth/routing";
 import {
   clearGoogleOAuthInflightState,
   getGoogleRememberPreference,
@@ -12,41 +20,6 @@ import {
 } from "@/lib/auth/googleOAuth";
 
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
-
-type CompanyCheckPayload = {
-  is_b2b?: boolean;
-  has_company?: boolean;
-  user_type?: "b2b" | "b2c" | "admin";
-  data?: {
-    is_b2b?: boolean;
-    has_company?: boolean;
-    user_type?: "b2b" | "b2c" | "admin";
-  };
-};
-
-type AccountPayload = {
-  roles?: Array<"b2b" | "b2c" | "admin">;
-};
-
-const normalizeRole = (
-  role?: string | null
-): "b2b" | "b2c" | "admin" | undefined => {
-  if (role === "b2b" || role === "b2c" || role === "admin") {
-    return role;
-  }
-  return undefined;
-};
-
-const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
-  const nested = payload?.data;
-  const source = nested || payload || {};
-  const userType = normalizeRole(source.user_type);
-  const isB2b =
-    typeof source.is_b2b === "boolean" ? source.is_b2b : userType === "b2b";
-  const hasCompany =
-    typeof source.has_company === "boolean" ? source.has_company : false;
-  return { isB2b, hasCompany, userType };
-};
 
 const clearStoredAuthUser = () => {
   if (typeof window === "undefined") return;
@@ -57,45 +30,6 @@ const clearCallbackHash = () => {
   if (typeof window === "undefined") return;
   if (!window.location.hash && !window.location.search) return;
   window.history.replaceState({}, document.title, window.location.pathname);
-};
-
-const buildCheckEmailUrl = (params: {
-  email?: string | null;
-  source?: "google" | "email";
-  intent?: "signin" | "signup";
-  type?: "b2b" | "b2c" | "admin" | null;
-}) => {
-  const query = new URLSearchParams();
-  if (params.type) {
-    query.set("type", params.type);
-  }
-  if (params.email?.trim()) {
-    query.set("email", params.email.trim());
-  }
-  if (params.source) {
-    query.set("source", params.source);
-  }
-  if (params.intent) {
-    query.set("intent", params.intent);
-  }
-  const serialized = query.toString();
-  return serialized ? `/auth/check-email?${serialized}` : "/auth/check-email";
-};
-
-const buildAuthErrorUrl = (params: {
-  type?: "b2b" | "b2c" | "admin" | null;
-  error: string;
-  errorDescription?: string | null;
-}) => {
-  const query = new URLSearchParams();
-  if (params.type) {
-    query.set("type", params.type);
-  }
-  query.set("error", params.error);
-  if (params.errorDescription?.trim()) {
-    query.set("error_description", params.errorDescription.trim());
-  }
-  return `/auth?${query.toString()}`;
 };
 
 const mapGoogleErrorMessage = (
@@ -126,24 +60,6 @@ fallback?: string) =>
 const isTruthyFlag = (value: string | null) =>
 ["1", "true"].includes((value || "").toLowerCase());
 
-const resolveAuthenticatedUserType = async () => {
-  try {
-    const account = await api.get<AccountPayload>("/account");
-    const accountRole = normalizeRole(account?.roles?.[0]);
-    if (accountRole) {
-      return accountRole;
-    }
-  } catch (error) {
-    if (isUnauthorizedApiError(error)) {
-      throw error;
-    }
-  }
-
-  const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
-  const { isB2b, userType } = normalizeCompanyCheck(payload);
-  return userType || (isB2b ? "b2b" : "b2c");
-};
-
 export default function AuthCallbackPage() {
   const t = useTranslations("authCallback");
   const router = useRouter();
@@ -157,43 +73,8 @@ export default function AuthCallbackPage() {
 
     let cancelled = false;
 
-    const resolvePostLoginPath = async (
-      accountType?: "b2b" | "b2c" | "admin",
-      requestedType?: "b2b" | "b2c" | "admin" | null
-    ) => {
-      if (accountType === "b2c") return "/b2c";
-      if (accountType === "admin") return "/overview";
-
-      try {
-        const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
-        const { isB2b, hasCompany } = normalizeCompanyCheck(payload);
-        if (isB2b && !hasCompany) return "/onboarding?source=google";
-        if (!isB2b) return "/b2c";
-        return "/overview";
-      } catch (error) {
-        if (isApiError(error) && error.code === "EMAIL_NOT_VERIFIED") {
-          authTokenStore.clear();
-          clearStoredAuthUser();
-          return buildCheckEmailUrl({
-            source: "google",
-            intent: "signin",
-            type: requestedType
-          });
-        }
-        if (isUnauthorizedApiError(error)) {
-          authTokenStore.clear();
-          clearStoredAuthUser();
-          return buildAuthErrorUrl({
-            type: requestedType,
-            error: "UNAUTHORIZED"
-          });
-        }
-        return "/overview";
-      }
-    };
-
     const handleCallback = async () => {
-      let callbackRequestedRole: "b2b" | "b2c" | "admin" | null =
+      let callbackRequestedRole: AuthUserType | null =
         getGoogleRequestedRole();
 
       try {
@@ -209,7 +90,7 @@ export default function AuthCallbackPage() {
         authIntentRaw === "signup" ? "signup" as const : "signin" as const;
         const callbackEmail = hash.get("email") || query.get("email");
         callbackRequestedRole =
-          normalizeRole(
+          normalizeAuthUserType(
             hash.get("type") ||
             query.get("type") ||
             hash.get("role") ||
@@ -285,7 +166,7 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        if (!accessToken || !refreshToken) {
+        if (!accessToken) {
           clearGoogleOAuthInflightState();
           clearCallbackHash();
           const message = mapGoogleErrorMessage("MISSING_CODE", t);
@@ -306,13 +187,19 @@ export default function AuthCallbackPage() {
 
         authTokenStore.setTokens({
           access_token: accessToken,
-          refresh_token: refreshToken
-        }, { persist: rememberMe });
+          refresh_token: refreshToken || undefined
+        }, {
+          persist: rememberMe,
+          cookieBacked: true,
+          storeRefreshToken: false
+        });
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
         clearGoogleOAuthInflightState();
         clearCallbackHash();
 
-        const actualRole = await resolveAuthenticatedUserType();
+        const actualRole = await resolveAuthenticatedUserType({
+          shouldIgnoreAccountError: (error) => !isUnauthorizedApiError(error)
+        });
         if (
           requestedRole &&
           actualRole &&
@@ -331,10 +218,33 @@ export default function AuthCallbackPage() {
         }
 
         await refreshUser();
-        const destination = await resolvePostLoginPath(
-          actualRole,
-          callbackRequestedRole || requestedRole
-        );
+        const destination = await resolvePostLoginPath({
+          accountType: actualRole,
+          onboardingPath: "/onboarding?source=google",
+          requestedType: callbackRequestedRole || requestedRole,
+          onCompanyCheckError: (error, context) => {
+            if (isApiError(error) && error.code === "EMAIL_NOT_VERIFIED") {
+              authTokenStore.clear();
+              clearStoredAuthUser();
+              return buildCheckEmailUrl({
+                source: "google",
+                intent: "signin",
+                type: context.requestedType
+              });
+            }
+
+            if (isUnauthorizedApiError(error)) {
+              authTokenStore.clear();
+              clearStoredAuthUser();
+              return buildAuthErrorUrl({
+                type: context.requestedType,
+                error: "UNAUTHORIZED"
+              });
+            }
+
+            return null;
+          }
+        });
         router.replace(destination);
       } catch {
         clearGoogleOAuthInflightState();

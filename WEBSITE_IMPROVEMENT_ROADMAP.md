@@ -1,0 +1,229 @@
+# Website Improvement Roadmap
+
+Tai lieu nay tong hop nhung khu vuc nen uu tien cai tien trong frontend hien tai, dua tren codebase o thoi diem 2026-04-21. Muc tieu la giam rui ro van hanh, cai thien hieu nang, va lam cho viec phat trien tiep theo de bao tri hon.
+
+## Uu tien 1
+
+### 1. Khoa cac route noi bo va cong cu van hanh
+
+Day la diem can uu tien cao nhat vi lien quan truc tiep toi bao mat va van hanh.
+
+- `app/AI_CONFIG/page.tsx` chi moi dat `robots: noindex`, nhung van la mot route public.
+- `components/ai-config/AIConfigConsole.tsx:46-48` dang de unlock code ngay trong client: `AI_CONFIG_UNLOCK_CODE = "Qadepzai"`.
+- `app/tools/analytics-lab/page.tsx` cung la route public, hien chi la noindex va chua co auth gate that su.
+
+De xuat:
+
+- Chuyen `AI_CONFIG` va `/tools/analytics-lab` sang server-side gate dua tren role `admin` hoac env flag chi mo trong staging/dev.
+- Khong de unlock code trong client bundle.
+- Neu van can tool noi bo tren production, bo sung audit trail va role check o server.
+
+Tac dong mong doi:
+
+- Giam nguy co lo cong cu noi bo.
+- Tranh viec nguoi dung ben ngoai truy cap cac man debug, config, hoac fake analytics.
+
+### 2. Gom logic auth, onboarding, va company-check ve mot noi
+
+Hien tai logic xac dinh B2B/B2C, company status, va redirect sau login dang bi lap lai o nhieu noi:
+
+- `components/ui/AuthForm.tsx:60-68`
+- `components/dashboard/DashboardLayoutContent.tsx:30-38`
+- `app/auth/callback/page.tsx:40-49`
+- `contexts/AuthContext.tsx:309-317`
+
+Van de cua cach lam nay:
+
+- De sinh lech logic khi sua mot noi ma quen sua cac noi con lai.
+- Kho debug cac bug dang redirect sai, onboarding loop, hoac phan quyen sai.
+- Tang chi phi maintain cho nhung flow nhay cam nhat cua san pham.
+
+De xuat:
+
+- Tao mot module chung, vi du `lib/auth-routing.ts`, de chua:
+  - `normalizeCompanyCheck`
+  - `resolveAuthenticatedUserType`
+  - `resolvePostLoginPath`
+  - cac helper build URL cho `check-email`, auth error, onboarding
+- De `AuthContext` hoac mot server action lam noi quyet dinh chinh, cac component chi consume ket qua.
+
+Tac dong mong doi:
+
+- Giam bug login/onboarding.
+- Don gian hoa viec them flow moi nhu admin, demo, hoac enterprise onboarding.
+
+### 3. Tach nho cac component va module dang qua lon
+
+Codebase hien co nhieu file lon, nhieu file trong so do la client-side va gan voi man hinh nang:
+
+- `lib/productsApi.ts` - 2182 lines
+- `components/dashboard/reports/ReportClient.tsx` - 1920 lines
+- `components/dashboard/SummaryClient.tsx` - 1778 lines
+- `components/dashboard/assessment/steps/routeSuggestionEngine.ts` - 1774 lines
+- `components/dashboard/assessment/steps/Step4Content.tsx` - 1724 lines
+- `components/b2c/B2CDonationClient.tsx` - 1674 lines
+- `components/dashboard/export/ExportClient.tsx` - 1459 lines
+- `components/landing/LeafHero3D.tsx` - 1436 lines
+
+Rui ro:
+
+- Kho review, kho test, kho toi uu.
+- Thay doi nho de gay side effect lon.
+- Bundle client de bi phinh, nhat la voi reports, dashboard, 3D landing, export.
+
+De xuat:
+
+- Tach theo domain nho hon: hooks, selectors, view-model, validators, API mapping, presentational sections.
+- Uu tien tach `ReportClient.tsx`, `ExportClient.tsx`, `SummaryClient.tsx`, `Step4Content.tsx`.
+- Day cac phan co the SSR/server compute ra khoi client component.
+
+Tac dong mong doi:
+
+- Giam do phuc tap cho team.
+- De them test, de toi uu render, de theo doi regression.
+
+## Uu tien 2
+
+### 4. Tang do phu test cho frontend
+
+Hien tai trong `package.json` chi co script test la:
+
+- `test:carbon`: `vitest run`
+
+Va khi quet codebase, test thuc te gan nhu chi thay o:
+
+- `lib/carbon/engine.test.ts`
+
+Dieu nay co nghia la cac khu vuc quan trong nhu auth, onboarding, reports, export, subscription gating, analytics, va settings gan nhu chua co test tu dong.
+
+De xuat:
+
+- Bo sung unit test cho helper auth/company-check va subscription guard.
+- Bo sung integration test cho:
+  - login -> redirect
+  - onboarding -> company created
+  - reports -> export
+  - export compliance -> upload/update/delete
+- Neu chua lam E2E ngay, bat dau bang vitest + React Testing Library cho cac luong co gia tri cao.
+
+Tac dong mong doi:
+
+- Giam regression moi khi refactor.
+- Tu tin hon khi tach nho cac file lon.
+
+### 5. Tang type safety va chuan hoa boundary voi API
+
+`lib/reportsApi.ts:1` dang tat rule `no-explicit-any`, cho thay boundary voi backend chua that su chat.
+
+Ngoai ra, nhieu module lon dang xu ly mapping va normalizing ngay trong client, dan den:
+
+- kho tai su dung
+- kho test rieng
+- kho phat hien payload sai som
+
+De xuat:
+
+- Dua parsing/normalization API ve cac module schema ro rang hon.
+- Uu tien dung `zod` cho response quan trong.
+- Giam dan `any`, bat dau tu `reports`, `export`, `products`, `auth`.
+
+Tac dong mong doi:
+
+- Loi payload duoc phat hien som hon.
+- Giam bug do backend tra shape khong dung ky vong.
+
+### 6. Toi uu provider toan cuc va chi phi runtime
+
+`app/layout.tsx:77-88` dang mount `AuthProvider`, `NextIntlClientProvider`, `LanguageProvider`, `AnalyticsProvider`, va toaster cho toan bo app. Dong thoi analytics script cung duoc chen ngay o root layout (`app/layout.tsx:52-70`).
+
+Van de:
+
+- Moi route deu gan chi phi runtime giong nhau, ke ca cac route khong can day du provider stack.
+- Kho tach biet public pages, dashboard pages, internal tools, va demo pages theo nhu cau that.
+
+De xuat:
+
+- Can nhac tach layout theo zone: public, dashboard, internal tools, demo.
+- Giu root layout gon nhat co the.
+- Chi mount provider nang o nhung khu vuc can thiet.
+
+Tac dong mong doi:
+
+- Giam chi phi hydrate.
+- De toi uu page load theo tung nhom route.
+
+## Uu tien 3
+
+### 7. Don dep debug log, code cu comment lai, va hygiene chung
+
+`components/landing/LeafHero3D.tsx` la vi du kha ro:
+
+- Phan dau file con giu mot khoi lon code cu dang comment (`LeafHero3D.tsx:1-30` va con dai hon nua).
+- Van con debug log o runtime:
+  - `LeafHero3D.tsx:1157`
+  - `LeafHero3D.tsx:1394-1410`
+
+De xuat:
+
+- Xoa khoi code cu dang comment neu da khong con can.
+- Chuyen log debug sang logger co gate theo env.
+- Dat rule ro rang: khong merge `console.log` tren luong production tru khi la error logging co chu dich.
+
+Tac dong mong doi:
+
+- Code sach hon, de doc hon.
+- Giam nhieu noise khi debug issue that.
+
+### 8. Xem lai flow invite user va password tam tao o frontend
+
+`components/dashboard/settings/UsersSettings.tsx:133-143` dang tao temporary password bang `Math.random()` ngay tren frontend.
+
+Ngay ca khi day moi la gia tri tam, day van la logic nhay cam va nen duoc day ve backend hoac doi sang invite-token flow.
+
+De xuat:
+
+- Khong tao password tam o client nua.
+- Chuyen sang invite link hoac one-time activation flow.
+- Neu backend bat buoc can password tam, server phai la noi sinh ra va ghi nhan.
+
+Tac dong mong doi:
+
+- Giam rui ro bao mat.
+- UX moi an toan va hien dai hon cho team member onboarding.
+
+## Cac quick wins nen lam trong 1-2 sprint
+
+1. Khoa `AI_CONFIG` va `/tools/analytics-lab` bang server-side auth/env gate.
+2. Extract mot bo helper auth chung cho `company-check`, `post-login redirect`, `account type`.
+3. Tach `ReportClient.tsx` thanh cac khoi nho hon: list/filter/export/create.
+4. Bo sung test cho auth redirect, onboarding redirect, subscription guard.
+5. Xoa debug log va commented legacy block o `LeafHero3D.tsx`.
+6. Doi flow invite user sang token/invite link thay vi sinh password o client.
+
+## Thu tu khuyen nghi de trien khai
+
+### Phase 1 - Bao mat va do on dinh
+
+- Protect internal routes
+- Gom auth/company-check logic
+- Bo sung test cho login/onboarding/subscription
+
+### Phase 2 - Hieu nang va maintainability
+
+- Tach file lon nhat trong dashboard va reports
+- Toi uu layout/provider theo route group
+- Chuan hoa API parsing va typing
+
+### Phase 3 - Chat luong trai nghiem
+
+- Don dep log/debug/legacy code
+- Toi uu landing 3D va cac man client nang
+- Ra soat tiep accessibility, loading state, va error state cho cac flow chinh
+
+## Ket qua mong muon sau khi hoan thanh
+
+- Khong con route noi bo public theo kieu "chi noindex la du".
+- Auth va onboarding co mot nguon su that duy nhat cho redirect logic.
+- Cac man reports/export/dashboard de maintain hon va it regression hon.
+- Test coverage khong chi tap trung vao carbon engine ma mo rong sang cac flow kinh doanh quan trong.
+- Frontend an toan hon, sach hon, va san sang cho cac vong mo rong tiep theo.

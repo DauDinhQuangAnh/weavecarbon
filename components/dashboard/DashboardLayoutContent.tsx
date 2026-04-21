@@ -9,33 +9,13 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { LanguageToggle } from "../ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
+import { normalizeCompanyCheck, type CompanyCheckPayload } from "@/lib/auth/routing";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
   resolveSubscriptionState,
   type SubscriptionApiPayload } from
 "@/lib/subscriptionState";
-
-type CompanyCheckPayload = {
-  is_b2b?: boolean;
-  has_company?: boolean;
-  user_type?: "b2b" | "b2c" | "admin";
-  data?: {
-    is_b2b?: boolean;
-    has_company?: boolean;
-    user_type?: "b2b" | "b2c" | "admin";
-  };
-};
-
-const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
-  const nested = payload?.data;
-  const source = nested || payload || {};
-  const isB2b =
-    typeof source.is_b2b === "boolean" ? source.is_b2b : source.user_type === "b2b";
-  const hasCompany =
-    typeof source.has_company === "boolean" ? source.has_company : false;
-  return { isB2b, hasCompany };
-};
 
 interface DashboardLayoutContentProps {
   children: React.ReactNode;

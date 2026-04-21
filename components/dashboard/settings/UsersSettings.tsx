@@ -40,7 +40,7 @@ import {
   SelectValue } from
 "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Users, UserPlus, Mail, MoreHorizontal, Check, X, Eye, EyeOff, RefreshCw, Copy, Search } from "lucide-react";
+import { Users, UserPlus, Mail, MoreHorizontal, Check, X, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,26 +121,12 @@ const UsersSettings: React.FC = () => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
-  const [invitePassword, setInvitePassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [inviteRole, setInviteRole] = useState<"member" | "viewer">("member");
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [roleTargetMember, setRoleTargetMember] = useState<TeamMember | null>(null);
   const [nextRole, setNextRole] = useState<TeamManageableRole>("member");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const generateTemporaryPassword = () => {
-    const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-    const lower = "abcdefghijkmnopqrstuvwxyz";
-    const numbers = "23456789";
-    const symbols = "!@#$%^&*";
-    const all = `${upper}${lower}${numbers}${symbols}`;
-    const pick = (chars: string) =>
-    chars.charAt(Math.floor(Math.random() * chars.length));
-    const core = Array.from({ length: 8 }, () => pick(all)).join("");
-    return `${pick(upper)}${pick(lower)}${pick(numbers)}${pick(symbols)}${core}`;
-  };
 
   const loadMembers = useCallback(async () => {
     if (!companyId) {
@@ -176,12 +162,6 @@ const UsersSettings: React.FC = () => {
       return;
     }
 
-    const passwordToSend = invitePassword.trim() || generateTemporaryPassword();
-    if (passwordToSend.length < 8) {
-      toast.error(t("passwordTooShort"));
-      return;
-    }
-
     if (!companyId) {
       toast.error(t("companyNotSet"));
       return;
@@ -196,9 +176,9 @@ const UsersSettings: React.FC = () => {
         {
           full_name: inviteFullName,
           email: inviteEmail,
-          password: passwordToSend,
           role: inviteRole,
-          send_notification_email: true
+          send_notification_email: true,
+          frontend_origin: typeof window !== "undefined" ? window.location.origin : undefined
         }
       );
 
@@ -211,8 +191,6 @@ const UsersSettings: React.FC = () => {
       setInviteOpen(false);
       setInviteEmail("");
       setInviteName("");
-      setInvitePassword("");
-      setShowPassword(false);
       setInviteRole("member");
       trackEvent("wc_member_invited", {
         member_role: inviteRole
@@ -239,8 +217,7 @@ const UsersSettings: React.FC = () => {
     if (!companyId || !member.email) return;
 
     try {
-      await api.post("/auth/verify-email/resend", {
-        email: member.email,
+      await api.post(`/company/members/${member.id}/resend-invite`, {
         frontend_origin: typeof window !== "undefined" ? window.location.origin : undefined
       });
       trackEvent("wc_member_invite_resent", {
@@ -622,55 +599,9 @@ const UsersSettings: React.FC = () => {
 
                     </div>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>{t("password")}</Label>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 gap-1 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                          onClick={() => {
-                            const pwd = generateTemporaryPassword();
-                            setInvitePassword(pwd);
-                            setShowPassword(true);
-                          }}>
-                          <RefreshCw className="w-3 h-3" />
-                          {t("generatePassword")}
-                        </Button>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          className="border-slate-200 bg-white pr-20"
-                          type={showPassword ? "text" : "password"}
-                          placeholder={t("passwordPlaceholder")}
-                          value={invitePassword}
-                          onChange={(e) => setInvitePassword(e.target.value)} />
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                          {invitePassword && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-slate-400 hover:text-slate-600"
-                              onClick={() => {
-                                navigator.clipboard.writeText(invitePassword);
-                                toast.success(t("passwordCopied"));
-                              }}>
-                              <Copy className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-slate-400 hover:text-slate-600"
-                            onClick={() => setShowPassword(!showPassword)}>
-                            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        {t("passwordHint")}
+                      <Label>{t("inviteByEmail")}</Label>
+                      <p className="rounded-md border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                        {t("inviteEmailNotice")}
                       </p>
                     </div>
                     <div className="space-y-2">

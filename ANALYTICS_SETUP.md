@@ -14,6 +14,15 @@ Set this on the production frontend build:
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-81EN7B9X8Z
 ```
 
+## Analytics Lab
+
+- Hidden internal route: `/tools/analytics-lab`
+- The lab now runs through a real app route in a separate window so `page_view` happens on the actual target page before the custom event is sent.
+- Use it to fake `page_view` and `wc_*` events from the frontend through the same GA4 wrapper used by the app while keeping the route context close to a normal user session.
+- The lab can force-send outside normal production-only tracking checks and can optionally attach `debug_mode` for GA4 DebugView.
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` must be present or the tool will only show previews and not send anything.
+- Internal routes `/AI_CONFIG` and `/tools/analytics-lab` skip automatic `page_view` tracking to avoid polluting analytics during ops work.
+
 ## Backend Env
 
 Set these on the backend:

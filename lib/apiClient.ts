@@ -16,6 +16,7 @@ export const API_BASE_URL = normalizeBaseUrl(
 );
 
 const ACCESS_TOKEN_STORAGE_KEY = "weavecarbon_access_token";
+const COOKIE_SESSION_MODE_KEY = "weavecarbon_cookie_session_mode";
 const REFRESH_TOKEN_STORAGE_KEY = "weavecarbon_refresh_token";
 const TOKEN_STORAGE_MODE_KEY = "weavecarbon_token_storage_mode";
 const LEGACY_ACCESS_TOKEN_STORAGE_KEYS = ["token", "access_token"];
@@ -107,6 +108,29 @@ const setTokenStorageMode = (mode: TokenStorageMode) => {
   writeToStorage(sessionStorage, TOKEN_STORAGE_MODE_KEY, mode === "session" ? mode : null);
 };
 
+const getCookieSessionMode = (): TokenStorageMode | null => {
+  if (typeof window === "undefined") return null;
+
+  const explicitLocalMode = readFromStorage(localStorage, COOKIE_SESSION_MODE_KEY);
+  if (explicitLocalMode === "local" || explicitLocalMode === "session") {
+    return explicitLocalMode;
+  }
+
+  const explicitSessionMode = readFromStorage(sessionStorage, COOKIE_SESSION_MODE_KEY);
+  if (explicitSessionMode === "local" || explicitSessionMode === "session") {
+    return explicitSessionMode;
+  }
+
+  return null;
+};
+
+const setCookieSessionMode = (mode: TokenStorageMode | null) => {
+  if (typeof window === "undefined") return;
+
+  writeToStorage(localStorage, COOKIE_SESSION_MODE_KEY, mode === "local" ? mode : null);
+  writeToStorage(sessionStorage, COOKIE_SESSION_MODE_KEY, mode === "session" ? mode : null);
+};
+
 const getStoredCompanyRole = () => {
   if (typeof window === "undefined") return null;
   const rawUser = readFromStorage(localStorage, USER_STORAGE_KEY);
@@ -184,6 +208,19 @@ const readStorage = (key: string) => {
   );
 };
 
+const hasSessionModeMarker = () => {
+  return getCookieSessionMode() !== null;
+};
+
+const readAccessTokenStorage = () => {
+  if (typeof window === "undefined") return null;
+
+  return (
+    normalizeToken(readFromStorage(sessionStorage, ACCESS_TOKEN_STORAGE_KEY)) ||
+    normalizeToken(readFromStorage(localStorage, ACCESS_TOKEN_STORAGE_KEY))
+  );
+};
+
 const readLegacyStorage = (keys: string[]) => {
   if (typeof window === "undefined") return null;
   for (const key of keys) {
@@ -205,6 +242,14 @@ const clearFromAllStorages = (keys: string[]) => {
     writeToStorage(localStorage, key, null);
     writeToStorage(sessionStorage, key, null);
   }
+};
+
+const writeAccessTokenStorage = (value: string | null) => {
+  if (typeof window === "undefined") return;
+
+  const normalized = normalizeToken(value);
+  writeToStorage(sessionStorage, ACCESS_TOKEN_STORAGE_KEY, normalized);
+  writeToStorage(localStorage, ACCESS_TOKEN_STORAGE_KEY, null);
 };
 
 const writeStorage = (key: string, value: string | null, mode: TokenStorageMode) => {
@@ -247,7 +292,7 @@ const isTokenExpired = (token: string, skewMs = 0) => {
 
 export const authTokenStore = {
   getAccessToken: () => {
-    const accessToken = readStorage(ACCESS_TOKEN_STORAGE_KEY);
+    const accessToken = readAccessTokenStorage();
     if (accessToken && !isTokenExpired(accessToken)) {
       return accessToken;
     }
@@ -266,7 +311,7 @@ export const authTokenStore = {
       return null;
     }
 
-    writeStorage(ACCESS_TOKEN_STORAGE_KEY, legacyAccessToken, getTokenStorageMode());
+    writeAccessTokenStorage(legacyAccessToken);
     clearFromAllStorages(LEGACY_ACCESS_TOKEN_STORAGE_KEYS);
     return legacyAccessToken;
   },
@@ -296,9 +341,14 @@ export const authTokenStore = {
   },
   setTokens: (
   tokens: AuthTokens | null | undefined,
-  options?: {persist?: boolean;}) => {
+  options?: {
+    persist?: boolean;
+    cookieBacked?: boolean;
+    storeRefreshToken?: boolean;
+  }) => {
     if (!tokens) {
       clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY]);
+      clearFromAllStorages([COOKIE_SESSION_MODE_KEY]);
       clearFromAllStorages([TOKEN_STORAGE_MODE_KEY]);
       clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
       return;
@@ -312,12 +362,27 @@ export const authTokenStore = {
     getTokenStorageMode();
 
     setTokenStorageMode(mode);
-    writeStorage(ACCESS_TOKEN_STORAGE_KEY, tokens.access_token || null, mode);
-    writeStorage(REFRESH_TOKEN_STORAGE_KEY, tokens.refresh_token || null, mode);
+    setCookieSessionMode(options?.cookieBacked ? mode : null);
+    writeAccessTokenStorage(tokens.access_token || null);
+
+    const shouldStoreRefreshToken =
+    options?.storeRefreshToken ??
+    !(options?.cookieBacked);
+
+    writeStorage(
+      REFRESH_TOKEN_STORAGE_KEY,
+      shouldStoreRefreshToken ? tokens.refresh_token || null : null,
+      mode
+    );
     clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
   },
+  getSessionMode: () => getCookieSessionMode() || getTokenStorageMode(),
+  hasSessionMarker: () => hasSessionModeMarker(),
+  hasRefreshCapability: () =>
+  hasSessionModeMarker() || Boolean(authTokenStore.getRefreshToken()),
   clear: () => {
     clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY]);
+    clearFromAllStorages([COOKIE_SESSION_MODE_KEY]);
     clearFromAllStorages([TOKEN_STORAGE_MODE_KEY]);
     clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
   }
@@ -442,7 +507,7 @@ const shouldAttemptTokenRefresh = (params: {
   if (params.alreadyRetried) return false;
   if (params.hasExplicitAuthorization) return false;
   if (!isReplayableBody(params.body)) return false;
-  if (!authTokenStore.getRefreshToken()) return false;
+  if (!authTokenStore.hasRefreshCapability()) return false;
   if ((params.method || "GET").toUpperCase() === "OPTIONS") return false;
 
   if (isNonRefreshableAuthPath(params.path)) {
@@ -508,13 +573,19 @@ const writeCachedGetResponse = (key: string, value: unknown) => {
 
 const refreshAccessToken = async (): Promise<AuthTokens | null> => {
   const refreshToken = authTokenStore.getRefreshToken();
-  if (!refreshToken) {
+  const hasCookieBackedSession = authTokenStore.hasSessionMarker();
+
+  if (!refreshToken && !hasCookieBackedSession) {
     return null;
   }
 
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
+        const requestBody =
+        refreshToken ?
+        JSON.stringify({ refresh_token: refreshToken }) :
+        undefined;
         const response = await fetch(buildUrl(AUTH_REFRESH_PATH), {
           method: "POST",
           headers: {
@@ -522,7 +593,7 @@ const refreshAccessToken = async (): Promise<AuthTokens | null> => {
           },
           credentials: "include",
           cache: "no-store",
-          body: JSON.stringify({ refresh_token: refreshToken })
+          body: requestBody
         });
 
         const payload = await parseResponse(response);
@@ -539,9 +610,13 @@ const refreshAccessToken = async (): Promise<AuthTokens | null> => {
 
         const normalizedTokens: AuthTokens = {
           access_token: nextTokens.access_token,
-          refresh_token: nextTokens.refresh_token || refreshToken
+          refresh_token: nextTokens.refresh_token || refreshToken || undefined
         };
-        authTokenStore.setTokens(normalizedTokens);
+        authTokenStore.setTokens(normalizedTokens, {
+          persist: authTokenStore.getSessionMode() === "local",
+          cookieBacked: hasCookieBackedSession,
+          storeRefreshToken: !hasCookieBackedSession
+        });
         return normalizedTokens;
       } catch {
         authTokenStore.clear();
@@ -565,7 +640,7 @@ export const ensureAccessToken = async (): Promise<string | null> => {
     clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY]);
   }
 
-  if (!authTokenStore.getRefreshToken()) {
+  if (!authTokenStore.hasRefreshCapability()) {
     return null;
   }
 

@@ -55,6 +55,11 @@ export interface AnalyticsIdentity {
   userId?: string | null;
 }
 
+export interface AnalyticsDispatchOptions {
+  allowDebugOverride?: boolean;
+  debugMode?: boolean;
+}
+
 export interface AnalyticsUserProperties {
   accountType?: "admin" | "b2b" | "b2c" | null;
   businessType?: string | null;
@@ -313,6 +318,83 @@ export interface AnalyticsPayloadMapV2 {
 
 export type AnalyticsEventNameV2 = keyof AnalyticsPayloadMapV2;
 
+export const ANALYTICS_EVENT_NAMES = [
+  "begin_checkout",
+  "generate_lead",
+  "login",
+  "purchase",
+  "sign_up",
+  "wc_auth_google_start",
+  "wc_auth_login_error",
+  "wc_auth_login_submit",
+  "wc_auth_sign_up_error",
+  "wc_auth_sign_up_submit",
+  "wc_batch_created",
+  "wc_batch_published",
+  "wc_bulk_import_completed",
+  "wc_bulk_import_failed",
+  "wc_bulk_import_started",
+  "wc_calculator_run",
+  "wc_chat_conversation_deleted",
+  "wc_chat_message_sent",
+  "wc_chat_opened",
+  "wc_chat_response_received",
+  "wc_chat_settings_saved",
+  "wc_dashboard_quick_action_clicked",
+  "wc_document_approved",
+  "wc_document_preview_opened",
+  "wc_document_upload_failed",
+  "wc_document_upload_submit",
+  "wc_document_uploaded",
+  "wc_email_verification_completed",
+  "wc_export_market_opened",
+  "wc_export_report_requested",
+  "wc_landing_calculator_clicked",
+  "wc_landing_start_clicked",
+  "wc_lead_form_error",
+  "wc_lead_form_submit",
+  "wc_member_disabled",
+  "wc_member_invite_resent",
+  "wc_member_invited",
+  "wc_member_removed",
+  "wc_member_role_changed",
+  "wc_onboarding_completed",
+  "wc_onboarding_error",
+  "wc_onboarding_submit",
+  "wc_payment_failed",
+  "wc_plan_selected",
+  "wc_pricing_modal_opened",
+  "wc_product_created",
+  "wc_product_deleted",
+  "wc_product_published",
+  "wc_product_updated",
+  "wc_product_viewed",
+  "wc_profile_updated",
+  "wc_report_download_failed",
+  "wc_report_downloaded",
+  "wc_report_generation_failed",
+  "wc_report_generated",
+  "wc_report_requested",
+  "wc_route_simulation_run",
+  "wc_shipment_created",
+  "wc_shipment_status_changed",
+  "wc_shipment_updated"
+] as const satisfies readonly AnalyticsEventNameV2[];
+
+export interface AnalyticsPreparedEvent {
+  eventName: string;
+  params: Record<string, unknown>;
+}
+
+export interface AnalyticsRuntimeState {
+  canTrackDefault: boolean;
+  canTrackWithDebugOverride: boolean;
+  hasGtag: boolean;
+  hasMeasurementId: boolean;
+  isProductionRuntime: boolean;
+  measurementId: string;
+}
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
@@ -336,6 +418,7 @@ const DEFAULT_PLAN_FAMILY: AnalyticsPlanFamily = "free";
 const DYNAMIC_PATH_PARENTS = new Set(["history", "passport", "summary"]);
 const DYNAMIC_SEGMENT_PATTERN =
   /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{5,}|[a-z0-9_-]{20,})$/i;
+const INTERNAL_TOOL_PATHS = new Set(["/ai_config", "/analytics_lab", "/tools/analytics-lab"]);
 
 let analyticsIdentity: AnalyticsIdentity = {};
 let analyticsUserProperties: AnalyticsUserProperties = {};
@@ -449,11 +532,20 @@ const getCurrentPagePath = () => {
   return normalizePagePath(window.location.pathname);
 };
 
-const isAnalyticsEnabled = () =>
+const canDispatchAnalytics = (options: AnalyticsDispatchOptions = {}) =>
   typeof window !== "undefined" &&
-  IS_PRODUCTION_RUNTIME &&
   GA_MEASUREMENT_ID.length > 0 &&
-  typeof window.gtag === "function";
+  typeof window.gtag === "function" &&
+  (IS_PRODUCTION_RUNTIME || Boolean(options.allowDebugOverride));
+
+const withDebugModeParam = (
+  params: Record<string, unknown>,
+  options: AnalyticsDispatchOptions = {}
+) =>
+  compactAnalyticsParams({
+    ...params,
+    ...(options.debugMode ? { debug_mode: true } : {})
+  });
 
 const getCommonParams = (
   overrides: AnalyticsEventContextOverride = {}
@@ -501,16 +593,36 @@ const buildAnalyticsUserProperties = () =>
       analyticsUserProperties.domesticMarket?.trim().toUpperCase() || DEFAULT_DOMESTIC_MARKET
   });
 
-const syncAnalyticsConfig = () => {
-  if (!isAnalyticsEnabled()) {
+const syncAnalyticsConfig = (options: AnalyticsDispatchOptions = {}) => {
+  if (!canDispatchAnalytics(options)) {
     return;
   }
 
-  window.gtag?.("config", GA_MEASUREMENT_ID, compactAnalyticsParams({
-    send_page_view: false,
-    user_id: analyticsIdentity.userId?.trim() || undefined,
-    user_properties: buildAnalyticsUserProperties()
-  }));
+  window.gtag?.(
+    "config",
+    GA_MEASUREMENT_ID,
+    withDebugModeParam(
+      compactAnalyticsParams({
+        send_page_view: false,
+        user_id: analyticsIdentity.userId?.trim() || undefined,
+        user_properties: buildAnalyticsUserProperties()
+      }),
+      options
+    )
+  );
+};
+
+const dispatchPreparedEvent = (
+  preparedEvent: AnalyticsPreparedEvent,
+  options: AnalyticsDispatchOptions = {}
+) => {
+  if (!canDispatchAnalytics(options)) {
+    return false;
+  }
+
+  syncAnalyticsConfig(options);
+  window.gtag?.("event", preparedEvent.eventName, preparedEvent.params);
+  return true;
 };
 
 export const setAnalyticsIdentity = (nextIdentity: AnalyticsIdentity) => {
@@ -543,35 +655,52 @@ export const setAnalyticsUserProperties = (
 
 export const setAnalyticsContext = setAnalyticsUserProperties;
 
-export const trackEvent = <TEventName extends AnalyticsEventNameV2>(
-  eventName: TEventName,
-  params: AnalyticsPayloadMapV2[TEventName]
+export const shouldTrackAnalyticsPageView = (
+  pagePath: string | null | undefined
 ) => {
-  if (!isAnalyticsEnabled()) {
-    return;
-  }
+  const normalizedPath = normalizePagePath(pagePath).toLowerCase();
+  return ![...INTERNAL_TOOL_PATHS].some((toolPath) =>
+    normalizedPath === toolPath || normalizedPath.startsWith(`${toolPath}/`)
+  );
+};
 
-  const { page_group, page_path, feature_area, ...eventParams } = params || {};
+export const prepareAnalyticsEvent = <TEventName extends AnalyticsEventNameV2>(
+  eventName: TEventName,
+  params: AnalyticsPayloadMapV2[TEventName],
+  options: AnalyticsDispatchOptions = {}
+) => {
+  const { page_group, page_path, feature_area, ...eventParams } = (params || {}) as
+    AnalyticsPayloadMapV2[TEventName];
   const commonParams = getCommonParams({
     page_group,
     page_path,
     feature_area
   });
 
-  window.gtag?.("event", eventName, {
-    ...commonParams,
-    ...compactAnalyticsParams(eventParams)
-  });
+  return {
+    eventName,
+    params: withDebugModeParam(
+      {
+        ...commonParams,
+        ...compactAnalyticsParams(eventParams as Record<string, unknown>)
+      },
+      options
+    )
+  } satisfies AnalyticsPreparedEvent;
 };
 
-export const trackPageView = (
-  pageGroup: AnalyticsPageGroup,
-  pagePath?: string
+export const trackEvent = <TEventName extends AnalyticsEventNameV2>(
+  eventName: TEventName,
+  params: AnalyticsPayloadMapV2[TEventName]
 ) => {
-  if (!isAnalyticsEnabled()) {
-    return;
-  }
+  dispatchPreparedEvent(prepareAnalyticsEvent(eventName, params));
+};
 
+export const prepareAnalyticsPageView = (
+  pageGroup: AnalyticsPageGroup,
+  pagePath?: string,
+  options: AnalyticsDispatchOptions = {}
+) => {
   const normalizedPagePath = normalizePagePath(pagePath || getCurrentPagePath());
   const pageLocation =
     typeof window !== "undefined" ?
@@ -580,17 +709,83 @@ export const trackPageView = (
   const pageTitle =
     typeof document !== "undefined" ? document.title : "WeaveCarbon";
 
-  window.gtag?.("event", "page_view", {
-    ...getCommonParams({
-      page_group: pageGroup,
-      page_path: normalizedPagePath
-    }),
-    page_group: pageGroup,
-    page_location: pageLocation,
-    page_path: normalizedPagePath,
-    page_title: pageTitle
-  });
+  return {
+    eventName: "page_view",
+    params: withDebugModeParam(
+      {
+        ...getCommonParams({
+          page_group: pageGroup,
+          page_path: normalizedPagePath
+        }),
+        page_group: pageGroup,
+        page_location: pageLocation,
+        page_path: normalizedPagePath,
+        page_title: pageTitle
+      },
+      options
+    )
+  } satisfies AnalyticsPreparedEvent;
 };
+
+export const trackPageView = (
+  pageGroup: AnalyticsPageGroup,
+  pagePath?: string
+) => {
+  dispatchPreparedEvent(prepareAnalyticsPageView(pageGroup, pagePath));
+};
+
+export const trackTestEvent = <TEventName extends AnalyticsEventNameV2>(
+  eventName: TEventName,
+  params: AnalyticsPayloadMapV2[TEventName],
+  options: Pick<AnalyticsDispatchOptions, "debugMode"> = {}
+) =>
+  dispatchPreparedEvent(
+    prepareAnalyticsEvent(eventName, params, options),
+    {
+      allowDebugOverride: true,
+      debugMode: options.debugMode
+    }
+  );
+
+export const trackTestPageView = (
+  pageGroup: AnalyticsPageGroup,
+  pagePath?: string,
+  options: Pick<AnalyticsDispatchOptions, "debugMode"> = {}
+) =>
+  dispatchPreparedEvent(
+    prepareAnalyticsPageView(pageGroup, pagePath, options),
+    {
+      allowDebugOverride: true,
+      debugMode: options.debugMode
+    }
+  );
+
+export const trackDebugEvent = <TEventName extends AnalyticsEventNameV2>(
+  eventName: TEventName,
+  params: AnalyticsPayloadMapV2[TEventName]
+) =>
+  trackTestEvent(eventName, params, {
+    debugMode: true
+  });
+
+export const trackDebugPageView = (
+  pageGroup: AnalyticsPageGroup,
+  pagePath?: string
+) =>
+  trackTestPageView(pageGroup, pagePath, {
+    debugMode: true
+  });
+
+export const getAnalyticsRuntimeState = (): AnalyticsRuntimeState => ({
+  measurementId: GA_MEASUREMENT_ID,
+  hasMeasurementId: GA_MEASUREMENT_ID.length > 0,
+  hasGtag: typeof window !== "undefined" && typeof window.gtag === "function",
+  isProductionRuntime: IS_PRODUCTION_RUNTIME,
+  canTrackDefault: canDispatchAnalytics(),
+  canTrackWithDebugOverride: canDispatchAnalytics({
+    allowDebugOverride: true
+  })
+});
 
 export const toAnalyticsErrorCode = (error: unknown) => {
   if (error && typeof error === "object") {

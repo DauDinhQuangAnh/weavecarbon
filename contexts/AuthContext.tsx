@@ -34,6 +34,11 @@ import {
   hasActiveGoogleOAuthInflight,
   markGoogleOAuthInflight
 } from "@/lib/auth/googleOAuth";
+import {
+  normalizeAuthUserType,
+  resolveAuthenticatedUserType as resolveSharedAuthenticatedUserType,
+  type AuthUserType
+} from "@/lib/auth/routing";
 
 interface User {
   id: string;
@@ -179,15 +184,6 @@ interface DemoPayload {
   tokens?: AuthTokens;
 }
 
-interface CompanyCheckPayload {
-  is_b2b?: boolean;
-  user_type?: "b2b" | "b2c" | "admin";
-  data?: {
-    is_b2b?: boolean;
-    user_type?: "b2b" | "b2c" | "admin";
-  };
-}
-
 const getCurrentFrontendOrigin = () =>
   typeof window !== "undefined" ? window.location.origin : undefined;
 
@@ -205,6 +201,8 @@ const STORAGE_KEY = "weavecarbon_user";
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
 const TOKEN_STORAGE_KEYS = [
 "weavecarbon_access_token",
+"weavecarbon_cookie_session_mode",
+"weavecarbon_token_storage_mode",
 "weavecarbon_refresh_token",
 "token",
 "access_token",
@@ -297,27 +295,8 @@ const writeDemoLockState = () => {
   });
 };
 
-const normalizeRole = (
-role?: string | null)
-: User["user_type"] | undefined => {
-  if (role === "b2b" || role === "b2c" || role === "admin") {
-    return role;
-  }
-  return undefined;
-};
-
-const normalizeCompanyCheck = (payload: CompanyCheckPayload | null) => {
-  const nested = payload?.data;
-  const source = nested || payload || {};
-  const userType = normalizeRole(source.user_type);
-  const isB2b =
-    typeof source.is_b2b === "boolean" ? source.is_b2b : userType === "b2b";
-
-  return { isB2b, userType };
-};
-
 const buildUserFromSignIn = (payload: SignInPayload): User => {
-  const role = normalizeRole(payload.roles?.[0]);
+  const role = normalizeAuthUserType(payload.roles?.[0]);
   const membership = normalizeCompanyMembership(
     payload.company_membership,
     getDefaultCompanyRole(role)
@@ -340,10 +319,10 @@ const buildUserFromSignIn = (payload: SignInPayload): User => {
 };
 
 const buildUserFromDemo = (
-payload: DemoPayload,
-fallbackRole: "b2b")
+  payload: DemoPayload,
+  fallbackRole: "b2b")
 : User => {
-  const normalizedUserType = normalizeRole(payload.roles?.[0]) || fallbackRole;
+  const normalizedUserType = normalizeAuthUserType(payload.roles?.[0]) || fallbackRole;
   const membership = normalizeCompanyMembership(
     payload.company_membership,
     getDefaultCompanyRole(normalizedUserType)
@@ -367,11 +346,11 @@ fallbackRole: "b2b")
 };
 
 const buildUserFromSignUp = (
-payload: SignUpPayload,
-fallbackRole: "b2b" | "b2c")
+  payload: SignUpPayload,
+  fallbackRole: "b2b" | "b2c")
 : User | null => {
   if (!payload.user) return null;
-  const normalizedUserType = normalizeRole(payload.role) || fallbackRole;
+  const normalizedUserType = normalizeAuthUserType(payload.role) || fallbackRole;
   const membership = normalizeCompanyMembership(
     payload.company_membership,
     getDefaultCompanyRole(normalizedUserType)
@@ -394,12 +373,12 @@ fallbackRole: "b2b" | "b2c")
 };
 
 const buildUserFromAccount = (
-payload: AccountPayload,
-fallbackUser: User | null)
+  payload: AccountPayload,
+  fallbackUser: User | null)
 : User | null => {
   const normalizedFallback = normalizeStoredUser(fallbackUser);
   const accountUserType =
-  normalizeRole(payload.roles?.[0]) || normalizedFallback?.user_type;
+  normalizeAuthUserType(payload.roles?.[0]) || normalizedFallback?.user_type;
   const profile = payload.profile;
   const membership = normalizeCompanyMembership(
     payload.company_membership,
@@ -473,6 +452,23 @@ const isUnauthorizedError = (error: unknown) => {
   return message.includes("unauthorized") || message.includes("invalid token");
 };
 
+const getAuthSessionSafely = async (): Promise<SignInPayload | null> => {
+  if (!authTokenStore.hasSessionMarker()) {
+    return null;
+  }
+
+  try {
+    return await api.get<SignInPayload>("/auth/session", {
+      disableResponseCache: true
+    });
+  } catch (error) {
+    if (isNotFoundError(error) || isUnauthorizedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+};
+
 const getAccountSafely = async (): Promise<AccountPayload | null> => {
   if (!ACCOUNT_ENDPOINT_ENABLED) {
     return null;
@@ -494,30 +490,17 @@ const getAccountSafely = async (): Promise<AccountPayload | null> => {
 };
 
 const resolveAuthenticatedUserType = async (
-fallbackRole?: User["user_type"])
+  fallbackRole?: User["user_type"])
 : Promise<User["user_type"] | undefined> => {
   const account = await getAccountSafely();
-  const accountRole = normalizeRole(account?.roles?.[0]);
-  if (accountRole) {
-    return accountRole;
-  }
-
-  try {
-    const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
-    const { isB2b, userType } = normalizeCompanyCheck(payload);
-    if (userType) {
-      return userType;
-    }
-    if (typeof isB2b === "boolean") {
-      return isB2b ? "b2b" : "b2c";
-    }
-    return fallbackRole;
-  } catch (error) {
-    if (isNotFoundError(error) || isUnauthorizedError(error)) {
-      return fallbackRole;
-    }
-    throw error;
-  }
+  return resolveSharedAuthenticatedUserType({
+    accountPayload: account
+      ? { roles: account.roles as AuthUserType[] | undefined }
+      : null,
+    fallbackRole,
+    shouldIgnoreCompanyCheckError: (error) =>
+      isNotFoundError(error) || isUnauthorizedError(error)
+  });
 };
 
 const isEmailNotVerifiedError = (error: unknown) => {
@@ -564,7 +547,7 @@ const syncUserCompanyRole = async (baseUser: User | null): Promise<User | null> 
   }
 
   const hasAuthToken = Boolean(
-    authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+    authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
   );
   if (!hasAuthToken) {
     return normalizedBaseUser;
@@ -631,7 +614,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const hasRealSession = Boolean(
-    user?.id || authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+    user?.id || authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
   );
   const effectiveUser = isDemoRuntime ? demoUser || user : user;
 
@@ -673,36 +656,72 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         return;
       }
 
-      const hasAuthToken = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+      const hasAuthCapability = Boolean(
+        authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
       );
 
-      if (!hasAuthToken && stored) {
+      if (!hasAuthCapability && stored) {
         persistUser(null);
       }
-      if (!hasAuthToken) {
+      if (!hasAuthCapability) {
         clearSubscriptionLockStateCache();
       }
 
       if (!cancelled) {
-        setUser(hasAuthToken ? stored : null);
+        setUser(hasAuthCapability ? stored : null);
       }
 
       try {
-        const account = await getAccountSafely();
-        if (account) {
-          const nextUser = await syncUserCompanyRole(
-            buildUserFromAccount(account, stored)
-          );
+        const hasAccessToken = Boolean(authTokenStore.getAccessToken());
+        const sessionPayload =
+          !hasAccessToken && authTokenStore.hasSessionMarker() ?
+          await getAuthSessionSafely() :
+          null;
+
+        if (sessionPayload?.tokens?.access_token) {
+          authTokenStore.setTokens(sessionPayload.tokens, {
+            persist: authTokenStore.getSessionMode() === "local",
+            cookieBacked: true,
+            storeRefreshToken: false
+          });
+          clearSubscriptionLockStateCache();
+          const nextUser = await syncUserCompanyRole(buildUserFromSignIn(sessionPayload));
           persistUser(nextUser);
           if (!cancelled) {
             setUser(nextUser);
           }
-        } else if (hasAuthToken && stored) {
-          const nextUser = await syncUserCompanyRole(stored);
-          persistUser(nextUser);
+        } else if (hasAuthCapability) {
+          const account = await getAccountSafely();
+          const hasLiveAuthCapability = Boolean(
+            authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
+          );
+          if (account) {
+            const nextUser = await syncUserCompanyRole(
+              buildUserFromAccount(account, stored)
+            );
+            persistUser(nextUser);
+            if (!cancelled) {
+              setUser(nextUser);
+            }
+          } else if (hasLiveAuthCapability && stored) {
+            const nextUser = await syncUserCompanyRole(stored);
+            persistUser(nextUser);
+            if (!cancelled) {
+              setUser(nextUser);
+            }
+          } else {
+            authTokenStore.clear();
+            clearSubscriptionLockStateCache();
+            persistUser(null);
+            if (!cancelled) {
+              setUser(null);
+            }
+          }
+        } else {
+          authTokenStore.clear();
+          persistUser(null);
           if (!cancelled) {
-            setUser(nextUser);
+            setUser(null);
           }
         }
       } catch {
@@ -741,7 +760,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
 
       const hasAuthToken = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+        authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
       );
       if (!hasAuthToken) {
         persistUser(null);
@@ -790,6 +809,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     }
 
     try {
+      if (!authTokenStore.getAccessToken() && authTokenStore.hasSessionMarker()) {
+        const sessionPayload = await getAuthSessionSafely();
+        if (sessionPayload?.tokens?.access_token) {
+          authTokenStore.setTokens(sessionPayload.tokens, {
+            persist: authTokenStore.getSessionMode() === "local",
+            cookieBacked: true,
+            storeRefreshToken: false
+          });
+          clearSubscriptionLockStateCache();
+          const nextUser = await syncUserCompanyRole(buildUserFromSignIn(sessionPayload));
+          persistUser(nextUser);
+          setUser(nextUser);
+          return;
+        }
+      }
+
       const account = await getAccountSafely();
       if (account) {
         const nextUser = await syncUserCompanyRole(
@@ -799,7 +834,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         setUser(nextUser);
       } else {
         const hasAuthToken = Boolean(
-          authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+          authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
         );
         if (!hasAuthToken) {
           persistUser(null);
@@ -811,7 +846,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
     } catch {
       const hasAuthToken = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+        authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
       );
       if (!hasAuthToken) {
         persistUser(null);
@@ -919,7 +954,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         }
       );
 
-      authTokenStore.setTokens(payload.tokens, { persist: rememberMe });
+      authTokenStore.setTokens(payload.tokens, {
+        persist: rememberMe,
+        cookieBacked: true,
+        storeRefreshToken: false
+      });
       clearSubscriptionLockStateCache();
 
       const signedInUser = buildUserFromSignIn(payload);
@@ -989,13 +1028,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         window.location.assign(
           `${API_BASE_URL}/auth/google?intent=signup&role=${encodeURIComponent(
             role
-          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}`
+          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}&remember_me=${
+            options?.rememberMe === false ? "0" : "1"
+          }`
         );
       } else {
         window.location.assign(
           `${API_BASE_URL}/auth/google?intent=signin&role=${encodeURIComponent(
             role
-          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}`
+          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}&remember_me=${
+            options?.rememberMe === false ? "0" : "1"
+          }`
         );
       }
 
