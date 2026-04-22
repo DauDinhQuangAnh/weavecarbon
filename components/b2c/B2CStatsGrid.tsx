@@ -19,40 +19,78 @@ const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
     treesEquivalent: profile?.treesEquivalent || 0
   };
 
+  const statItems = [
+    {
+      key: "points",
+      label: t("circularPoints"),
+      value: stats.circularPoints,
+      icon: Award,
+      tone: "text-amber-600",
+      ring: "ring-amber-200",
+      bg: "bg-amber-50"
+    },
+    {
+      key: "donated",
+      label: t("donated"),
+      value: stats.garmentsDonated,
+      icon: Shirt,
+      tone: "text-primary",
+      ring: "ring-primary/25",
+      bg: "bg-primary/8"
+    },
+    {
+      key: "co2",
+      label: t("co2Saved"),
+      value: `${stats.co2Saved} kg`,
+      icon: Recycle,
+      tone: "text-emerald-600",
+      ring: "ring-emerald-200",
+      bg: "bg-emerald-50"
+    },
+    {
+      key: "trees",
+      label: t("treesEquivalent"),
+      value: stats.treesEquivalent,
+      icon: TrendingUp,
+      tone: "text-accent",
+      ring: "ring-accent/25",
+      bg: "bg-accent/10"
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-      <Card>
-        <CardContent className="p-4 text-center">
-          <Award className="w-6 h-6 mx-auto mb-2 text-yellow-500" />
-          <p className="text-2xl font-bold">{stats.circularPoints}</p>
-          <p className="text-xs text-muted-foreground">{t("circularPoints")}</p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {statItems.map((item) => {
+        const Icon = item.icon;
 
-      <Card>
-        <CardContent className="p-4 text-center">
-          <Shirt className="w-6 h-6 mx-auto mb-2 text-primary" />
-          <p className="text-2xl font-bold">{stats.garmentsDonated}</p>
-          <p className="text-xs text-muted-foreground">{t("donated")}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4 text-center">
-          <Recycle className="w-6 h-6 mx-auto mb-2 text-green-500" />
-          <p className="text-2xl font-bold">{stats.co2Saved} kg</p>
-          <p className="text-xs text-muted-foreground">{t("co2Saved")}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4 text-center">
-          <TrendingUp className="w-6 h-6 mx-auto mb-2 text-accent" />
-          <p className="text-2xl font-bold">{stats.treesEquivalent}</p>
-          <p className="text-xs text-muted-foreground">{t("treesEquivalent")}</p>
-        </CardContent>
-      </Card>
-    </div>);
+        return (
+          <Card
+            key={item.key}
+            className="overflow-hidden border-border/80 bg-card/90 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+                    {item.value}
+                  </p>
+                </div>
+                <div className={`rounded-2xl p-2.5 ring-1 ${item.bg} ${item.ring}`}>
+                  <Icon className={`h-5 w-5 ${item.tone}`} />
+                </div>
+              </div>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted/60">
+                <div className="h-full rounded-full bg-linear-to-r from-primary to-accent" />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
 
 };
 

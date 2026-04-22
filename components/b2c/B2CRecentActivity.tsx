@@ -15,37 +15,37 @@ const B2CRecentActivity: React.FC<B2CRecentActivityProps> = ({ activities }) => 
   const t = useTranslations("b2c");
 
   return (
-    <Card>
+    <Card className="border-border/80 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg">{t("recentActivity.title")}</CardTitle>
+        <CardTitle className="text-lg tracking-tight">{t("recentActivity.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {activities.length === 0 &&
-          <div className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border bg-muted/35 p-5 text-sm text-muted-foreground">
             {t("recentActivity.empty")}
           </div>
         }
         {activities.map((activity) =>
         <div
           key={activity.id}
-          className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+          className="group flex items-center gap-4 rounded-xl border border-transparent bg-muted/35 p-3 transition-all hover:border-border/80 hover:bg-card">
           
             <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-            activity.type === "donate" ? "bg-primary/10" : "bg-green-100"}`
+            className={`flex h-10 w-10 items-center justify-center rounded-full ring-1 ${
+            activity.type === "donate" ? "bg-primary/10 ring-primary/20" : "bg-green-100 ring-green-200"}`
             }>
             
               {activity.type === "donate" ?
-            <Gift className="w-5 h-5 text-primary" /> :
+            <Gift className="h-5 w-5 text-primary" /> :
 
-            <Recycle className="w-5 h-5 text-green-600" />
+            <Recycle className="h-5 w-5 text-green-600" />
             }
             </div>
             <div className="flex-1">
-              <p className="font-medium text-sm">{activity.item}</p>
+              <p className="text-sm font-medium text-foreground">{activity.item}</p>
               <p className="text-xs text-muted-foreground">{activity.date}</p>
             </div>
-            <Badge variant="secondary" className="text-yellow-600">
+            <Badge variant="secondary" className="border border-amber-200 bg-amber-50 text-amber-700">
               +{activity.points} {t("pointsAbbrev")}
             </Badge>
           </div>
