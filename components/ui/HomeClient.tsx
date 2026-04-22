@@ -1,45 +1,48 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import LoadingScreen from "@/app/loading";
+
+const FIRST_VISIT_LOADING_MS = 900;
 
 export default function HomeClient({
   children
-
-
-}: {children: React.ReactNode;}) {
+}: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
-
-    const hasSeenLoading = sessionStorage.getItem("hasSeenLoading");
-    if (hasSeenLoading) {
+    try {
+      const hasSeenLoading = sessionStorage.getItem("hasSeenLoading");
+      if (hasSeenLoading) {
+        setIsLoading(false);
+      }
+    } catch {
       setIsLoading(false);
-      setShowContent(true);
     }
   }, []);
 
   const handleLoadingComplete = () => {
-    sessionStorage.setItem("hasSeenLoading", "true");
+    try {
+      sessionStorage.setItem("hasSeenLoading", "true");
+    } catch {
+      // Ignore storage failures and continue showing the page.
+    }
     setIsLoading(false);
-    setTimeout(() => setShowContent(true), 100);
   };
 
   return (
     <>
-      {isLoading &&
-      <LoadingScreen onComplete={handleLoadingComplete} minDuration={2500} />
-      }
+      <div className="min-h-screen overflow-x-clip bg-background">
+        {children}
+      </div>
 
-      {!isLoading &&
-      <div
-        className={`min-h-screen overflow-x-clip bg-background transition-opacity duration-500 ${showContent ? "opacity-100" : "opacity-0"}`}>
-
-          {children}
-        </div>
-      }
-    </>);
-
+      {isLoading ? (
+        <LoadingScreen
+          onComplete={handleLoadingComplete}
+          minDuration={FIRST_VISIT_LOADING_MS}
+        />
+      ) : null}
+    </>
+  );
 }
