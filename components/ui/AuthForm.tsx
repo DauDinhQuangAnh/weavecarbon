@@ -8,7 +8,6 @@ import { ArrowRight, LayoutDashboard, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   buildCheckEmailUrl,
-  getDashboardPath,
   normalizeAuthUserTypeOrNull,
   resolvePostLoginPath as resolveSharedPostLoginPath
 } from "@/lib/auth/routing";
@@ -187,30 +186,6 @@ const AuthForm: React.FC = () => {
       localStorage.removeItem(REMEMBER_EMAIL_KEY);
     }
   }, [rememberMe]);
-
-  useEffect(() => {
-    if (forceLogin || loading || !user) return;
-
-    let cancelled = false;
-    const redirectLoggedInUser = async () => {
-      if (user.user_type === "b2b") {
-        const destination = await resolvePostLoginPath(user.user_type);
-        if (!cancelled) {
-          router.push(destination);
-        }
-        return;
-      }
-
-      if (!cancelled) {
-        router.push(getDashboardPath(user.user_type));
-      }
-    };
-
-    void redirectLoggedInUser();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, loading, router, forceLogin, resolvePostLoginPath]);
 
   useEffect(() => {
     if (!forceLogin || loading || forceLoginCheckedRef.current) return;
@@ -459,7 +434,7 @@ const AuthForm: React.FC = () => {
     });
     setIsLoading(true);
     const intent = activeTab === "signup" ? "signup" : "signin";
-    const { error } = await signInWithGoogle(userType, intent, { rememberMe });
+    const { error } = await signInWithGoogle(userType, intent);
 
     if (error) {
       setIsLoading(false);

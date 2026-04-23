@@ -4,17 +4,21 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback } from
 "react";
 import { usePathname } from "next/navigation";
 import {
+  AUTH_INVALIDATED_EVENT,
   api,
   API_BASE_URL,
   authTokenStore,
   AuthTokens,
+  clearPersistedAuthState,
   ensureAccessToken,
-  isApiError } from
+  isApiError,
+  setAuthUserSnapshot } from
 "@/lib/apiClient";
 import { resolveCompanyRole, type CompanyRole } from "@/lib/permissions";
 import {
@@ -197,16 +201,7 @@ interface AccountPayload {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = "weavecarbon_user";
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
-const TOKEN_STORAGE_KEYS = [
-"weavecarbon_access_token",
-"weavecarbon_cookie_session_mode",
-"weavecarbon_token_storage_mode",
-"weavecarbon_refresh_token",
-"token",
-"access_token",
-"refresh_token"];
 
 const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === "1";
 const ACCOUNT_ENDPOINT_ENABLED =
@@ -259,25 +254,9 @@ const normalizeStoredUser = (user: User | null): User | null => {
   };
 };
 
-const loadStoredUser = (): User | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? normalizeStoredUser(JSON.parse(raw) as User) : null;
-  } catch {
-    return null;
-  }
-};
-
-const persistUser = (user: User | null) => {
-  if (typeof window === "undefined") return;
-
-  if (!user) {
-    localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeStoredUser(user)));
+const clearLegacyRealAuthArtifacts = () => {
+  clearPersistedAuthState();
+  setAuthUserSnapshot(null);
 };
 
 const loadDemoUser = (): User | null => {
@@ -341,7 +320,8 @@ const buildUserFromDemo = (
     user_type: normalizedUserType,
     company_role: membership.company_role,
     is_root: membership.is_root,
-    avatar_url: payload.user.avatar_url || null
+    avatar_url: payload.user.avatar_url || null,
+    is_demo: true
   };
 };
 
@@ -452,23 +432,6 @@ const isUnauthorizedError = (error: unknown) => {
   return message.includes("unauthorized") || message.includes("invalid token");
 };
 
-const getAuthSessionSafely = async (): Promise<SignInPayload | null> => {
-  if (!authTokenStore.hasSessionMarker()) {
-    return null;
-  }
-
-  try {
-    return await api.get<SignInPayload>("/auth/session", {
-      disableResponseCache: true
-    });
-  } catch (error) {
-    if (isNotFoundError(error) || isUnauthorizedError(error)) {
-      return null;
-    }
-    throw error;
-  }
-};
-
 const getAccountSafely = async (): Promise<AccountPayload | null> => {
   if (!ACCOUNT_ENDPOINT_ENABLED) {
     return null;
@@ -546,9 +509,7 @@ const syncUserCompanyRole = async (baseUser: User | null): Promise<User | null> 
     return normalizedBaseUser;
   }
 
-  const hasAuthToken = Boolean(
-    authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
-  );
+  const hasAuthToken = Boolean(authTokenStore.getAccessToken());
   if (!hasAuthToken) {
     return normalizedBaseUser;
   }
@@ -613,30 +574,46 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   const [user, setUser] = useState<User | null>(null);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const hasRealSession = Boolean(
-    user?.id || authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
-  );
+  const userRef = useRef<User | null>(null);
+  const hasClearedLegacyAuthRef = useRef(false);
+  const hasRealSession = Boolean(user?.id || authTokenStore.getAccessToken());
   const effectiveUser = isDemoRuntime ? demoUser || user : user;
+
+  const applyRuntimeUser = useCallback((nextUser: User | null) => {
+    const normalizedUser = normalizeStoredUser(nextUser);
+    userRef.current = normalizedUser;
+    setAuthUserSnapshot(normalizedUser);
+    setUser(normalizedUser);
+  }, []);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    if (isDemoRuntime || hasClearedLegacyAuthRef.current) {
+      return;
+    }
+
+    hasClearedLegacyAuthRef.current = true;
+    clearLegacyRealAuthArtifacts();
+  }, [applyRuntimeUser, isDemoRuntime]);
 
   useEffect(() => {
     let cancelled = false;
 
     const bootstrapSession = async () => {
-      const stored = loadStoredUser();
-
       if (isDemoRuntime) {
         try {
           ensureDemoDataset();
           ensureDemoSession();
           writeDemoLockState();
           if (!cancelled) {
-            setUser(stored);
             setDemoUser(loadDemoUser());
             setLoading(false);
           }
         } catch {
           if (!cancelled) {
-            setUser(stored);
             setDemoUser(null);
             setLoading(false);
           }
@@ -650,82 +627,42 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 
       if (AUTH_DISABLED) {
         if (!cancelled) {
-          setUser(stored);
+          applyRuntimeUser(null);
           setLoading(false);
         }
         return;
       }
 
-      const hasAuthCapability = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
-      );
-
-      if (!hasAuthCapability && stored) {
-        persistUser(null);
-      }
-      if (!hasAuthCapability) {
-        clearSubscriptionLockStateCache();
-      }
-
-      if (!cancelled) {
-        setUser(hasAuthCapability ? stored : null);
-      }
-
       try {
-        const hasAccessToken = Boolean(authTokenStore.getAccessToken());
-        const sessionPayload =
-          !hasAccessToken && authTokenStore.hasSessionMarker() ?
-          await getAuthSessionSafely() :
-          null;
-
-        if (sessionPayload?.tokens?.access_token) {
-          authTokenStore.setTokens(sessionPayload.tokens, {
-            persist: authTokenStore.getSessionMode() === "local",
-            cookieBacked: true,
-            storeRefreshToken: false
-          });
+        const accessToken = await ensureAccessToken();
+        if (!accessToken) {
           clearSubscriptionLockStateCache();
-          const nextUser = await syncUserCompanyRole(buildUserFromSignIn(sessionPayload));
-          persistUser(nextUser);
           if (!cancelled) {
-            setUser(nextUser);
+            applyRuntimeUser(null);
           }
-        } else if (hasAuthCapability) {
-          const account = await getAccountSafely();
-          const hasLiveAuthCapability = Boolean(
-            authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
+          return;
+        }
+
+        const account = await getAccountSafely();
+        if (account) {
+          const nextUser = await syncUserCompanyRole(
+            buildUserFromAccount(account, userRef.current)
           );
-          if (account) {
-            const nextUser = await syncUserCompanyRole(
-              buildUserFromAccount(account, stored)
-            );
-            persistUser(nextUser);
-            if (!cancelled) {
-              setUser(nextUser);
-            }
-          } else if (hasLiveAuthCapability && stored) {
-            const nextUser = await syncUserCompanyRole(stored);
-            persistUser(nextUser);
-            if (!cancelled) {
-              setUser(nextUser);
-            }
-          } else {
-            authTokenStore.clear();
-            clearSubscriptionLockStateCache();
-            persistUser(null);
-            if (!cancelled) {
-              setUser(null);
-            }
-          }
-        } else {
-          authTokenStore.clear();
-          persistUser(null);
           if (!cancelled) {
-            setUser(null);
+            applyRuntimeUser(nextUser);
           }
+          return;
+        }
+
+        clearSubscriptionLockStateCache();
+        if (!cancelled) {
+          applyRuntimeUser(null);
         }
       } catch {
-
+        const fallbackUser = await syncUserCompanyRole(userRef.current);
+        if (!cancelled) {
+          applyRuntimeUser(fallbackUser);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -738,44 +675,40 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     return () => {
       cancelled = true;
     };
-  }, [isDemoRuntime]);
+  }, [applyRuntimeUser, isDemoRuntime]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || AUTH_DISABLED) {
+    if (typeof window === "undefined") {
       return;
     }
 
     const handleStorage = (event: StorageEvent) => {
-      const watchedKeyChanged =
-      event.key === null ||
-      event.key === STORAGE_KEY ||
-      event.key === DEMO_SESSION_STORAGE_KEY ||
-      TOKEN_STORAGE_KEYS.includes(event.key);
-      if (!watchedKeyChanged) {
+      if (event.key !== null && event.key !== DEMO_SESSION_STORAGE_KEY) {
         return;
       }
 
       if (isDemoRuntime) {
         setDemoUser(loadDemoUser());
       }
+    };
 
-      const hasAuthToken = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
-      );
-      if (!hasAuthToken) {
-        persistUser(null);
-        setUser(null);
+    const handleAuthInvalidated = () => {
+      if (isDemoRuntime) {
         return;
       }
 
-      setUser(loadStoredUser());
+      clearSubscriptionLockStateCache();
+      applyRuntimeUser(null);
+      setLoading(false);
     };
 
     window.addEventListener("storage", handleStorage);
+    window.addEventListener(AUTH_INVALIDATED_EVENT, handleAuthInvalidated);
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(AUTH_INVALIDATED_EVENT, handleAuthInvalidated);
     };
-  }, [isDemoRuntime]);
+  }, [applyRuntimeUser, isDemoRuntime]);
 
   const updateUser = useCallback((updates: Partial<User>) => {
     if (isDemoRuntime) {
@@ -785,8 +718,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 
     setUser((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, ...updates };
-      persistUser(next);
+      const next = normalizeStoredUser({ ...prev, ...updates });
+      userRef.current = next;
+      setAuthUserSnapshot(next);
       return next;
     });
   }, [isDemoRuntime]);
@@ -802,63 +736,42 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     }
 
     if (AUTH_DISABLED) {
-      const stored = loadStoredUser();
-      setUser(stored);
+      applyRuntimeUser(null);
       setLoading(false);
       return;
     }
 
     try {
-      if (!authTokenStore.getAccessToken() && authTokenStore.hasSessionMarker()) {
-        const sessionPayload = await getAuthSessionSafely();
-        if (sessionPayload?.tokens?.access_token) {
-          authTokenStore.setTokens(sessionPayload.tokens, {
-            persist: authTokenStore.getSessionMode() === "local",
-            cookieBacked: true,
-            storeRefreshToken: false
-          });
-          clearSubscriptionLockStateCache();
-          const nextUser = await syncUserCompanyRole(buildUserFromSignIn(sessionPayload));
-          persistUser(nextUser);
-          setUser(nextUser);
-          return;
-        }
+      const accessToken = await ensureAccessToken();
+      if (!accessToken) {
+        clearSubscriptionLockStateCache();
+        applyRuntimeUser(null);
+        return;
       }
 
       const account = await getAccountSafely();
       if (account) {
         const nextUser = await syncUserCompanyRole(
-          buildUserFromAccount(account, user)
+          buildUserFromAccount(account, userRef.current)
         );
-        persistUser(nextUser);
-        setUser(nextUser);
+        applyRuntimeUser(nextUser);
       } else {
-        const hasAuthToken = Boolean(
-          authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
-        );
-        if (!hasAuthToken) {
-          persistUser(null);
-        }
-        const stored = hasAuthToken ? loadStoredUser() : null;
-        const nextUser = await syncUserCompanyRole(stored);
-        persistUser(nextUser);
-        setUser(nextUser);
+        const nextUser = await syncUserCompanyRole(userRef.current);
+        applyRuntimeUser(nextUser);
       }
     } catch {
-      const hasAuthToken = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.hasRefreshCapability()
-      );
+      const hasAuthToken = Boolean(authTokenStore.getAccessToken());
       if (!hasAuthToken) {
-        persistUser(null);
+        clearSubscriptionLockStateCache();
+        applyRuntimeUser(null);
+      } else {
+        const nextUser = await syncUserCompanyRole(userRef.current);
+        applyRuntimeUser(nextUser);
       }
-      const stored = hasAuthToken ? loadStoredUser() : null;
-      const nextUser = await syncUserCompanyRole(stored);
-      persistUser(nextUser);
-      setUser(nextUser);
     } finally {
       setLoading(false);
     }
-  }, [isDemoRuntime, user]);
+  }, [applyRuntimeUser, isDemoRuntime]);
 
   const signUp = async (
   email: string,
@@ -907,15 +820,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       const hasAccessToken = Boolean(payload?.tokens?.access_token);
 
       if (hasAccessToken && payload?.tokens) {
-        authTokenStore.setTokens(payload.tokens);
+        authTokenStore.setTokens(payload.tokens, {
+          storeRefreshToken: false
+        });
         clearSubscriptionLockStateCache();
       }
 
       const nextUser = buildUserFromSignUp(payload, role);
       if (nextUser && hasAccessToken && !needsConfirmation) {
         const syncedUser = await syncUserCompanyRole(nextUser);
-        persistUser(syncedUser);
-        setUser(syncedUser);
+        applyRuntimeUser(syncedUser);
         if (typeof window !== "undefined" && syncedUser?.user_type === "b2b") {
           sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
         }
@@ -955,8 +869,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       );
 
       authTokenStore.setTokens(payload.tokens, {
-        persist: rememberMe,
-        cookieBacked: true,
         storeRefreshToken: false
       });
       clearSubscriptionLockStateCache();
@@ -972,8 +884,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       if (userType && resolvedUserType && resolvedUserType !== userType) {
         authTokenStore.clear();
         clearSubscriptionLockStateCache();
-        persistUser(null);
-        setUser(null);
+        applyRuntimeUser(null);
         return {
           error: new Error(`ACCOUNT_TYPE_MISMATCH:${resolvedUserType}:${userType}`)
         };
@@ -983,15 +894,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
       }
       const syncedUser = await syncUserCompanyRole(nextUser);
-      persistUser(syncedUser);
-      setUser(syncedUser);
+      applyRuntimeUser(syncedUser);
       return { error: null };
     } catch (error) {
       if (isEmailNotVerifiedError(error)) {
         authTokenStore.clear();
         clearSubscriptionLockStateCache();
-        persistUser(null);
-        setUser(null);
+        applyRuntimeUser(null);
         return { error: null, needsConfirmation: true };
       }
       return {
@@ -1019,26 +928,20 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
 
       const role = userType ?? "b2b";
-      markGoogleOAuthInflight(
-        options?.rememberMe !== false,
-        role
-      );
+      void options;
+      markGoogleOAuthInflight(role);
       const frontendOrigin = window.location.origin;
       if (intent === "signup") {
         window.location.assign(
           `${API_BASE_URL}/auth/google?intent=signup&role=${encodeURIComponent(
             role
-          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}&remember_me=${
-            options?.rememberMe === false ? "0" : "1"
-          }`
+          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}`
         );
       } else {
         window.location.assign(
           `${API_BASE_URL}/auth/google?intent=signin&role=${encodeURIComponent(
             role
-          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}&remember_me=${
-            options?.rememberMe === false ? "0" : "1"
-          }`
+          )}&frontend_origin=${encodeURIComponent(frontendOrigin)}`
         );
       }
 
@@ -1072,12 +975,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         return { error: new Error("Demo sign-in did not return valid tokens.") };
       }
 
-      authTokenStore.setTokens(payload.tokens, { persist: true });
+      authTokenStore.setTokens(payload.tokens, {
+        persist: true,
+        storageScope: "storage"
+      });
       clearSubscriptionLockStateCache();
       const nextUser = buildUserFromDemo(payload, userType);
       const syncedUser = await syncUserCompanyRole(nextUser);
-      persistUser(syncedUser);
-      setUser(syncedUser);
+      applyRuntimeUser(syncedUser);
 
       return { error: null };
     } catch (error) {
@@ -1131,8 +1036,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     }
     authTokenStore.clear();
     clearSubscriptionLockStateCache();
-    persistUser(null);
-    setUser(null);
+    applyRuntimeUser(null);
   };
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 export const GOOGLE_OAUTH_INFLIGHT_KEY = "google_oauth_inflight";
-export const GOOGLE_OAUTH_REMEMBER_ME_KEY = "google_oauth_remember_me";
 export const GOOGLE_OAUTH_REQUESTED_ROLE_KEY = "google_oauth_requested_role";
 
 const GOOGLE_OAUTH_INFLIGHT_TTL_MS = 2 * 60 * 1000;
@@ -12,15 +11,7 @@ export const clearGoogleOAuthInflightState = () => {
   if (typeof window === "undefined") return;
 
   sessionStorage.removeItem(GOOGLE_OAUTH_INFLIGHT_KEY);
-  sessionStorage.removeItem(GOOGLE_OAUTH_REMEMBER_ME_KEY);
   sessionStorage.removeItem(GOOGLE_OAUTH_REQUESTED_ROLE_KEY);
-};
-
-export const getGoogleRememberPreference = () => {
-  if (typeof window === "undefined") return true;
-
-  const preference = sessionStorage.getItem(GOOGLE_OAUTH_REMEMBER_ME_KEY);
-  return preference !== "0";
 };
 
 export const getGoogleRequestedRole = (): GoogleOAuthRequestedRole | null => {
@@ -53,13 +44,11 @@ export const hasActiveGoogleOAuthInflight = () => {
 };
 
 export const markGoogleOAuthInflight = (
-  rememberMe = true,
   requestedRole?: GoogleOAuthRequestedRole
 ) => {
   if (typeof window === "undefined") return;
 
   sessionStorage.setItem(GOOGLE_OAUTH_INFLIGHT_KEY, String(Date.now()));
-  sessionStorage.setItem(GOOGLE_OAUTH_REMEMBER_ME_KEY, rememberMe ? "1" : "0");
   if (requestedRole) {
     sessionStorage.setItem(GOOGLE_OAUTH_REQUESTED_ROLE_KEY, requestedRole);
     return;

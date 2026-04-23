@@ -30,6 +30,7 @@ const ALL_LEGACY_TOKEN_STORAGE_KEYS = [
 const ACCESS_TOKEN_EXPIRY_SKEW_MS = 30 * 1000;
 const USER_STORAGE_KEY = "weavecarbon_user";
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+export const AUTH_INVALIDATED_EVENT = "weavecarbon:auth-invalidated";
 const PLAN_LOCK_PROTECTED_PREFIXES = [
 "/products",
 "/product-batches",
@@ -41,11 +42,16 @@ const PLAN_LOCK_PROTECTED_PREFIXES = [
 const CLIENT_ROLE_GUARD_ENABLED =
 process.env.NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD === "1";
 type TokenStorageMode = "local" | "session";
+type AuthTokenStorageScope = "memory" | "storage";
 
 export interface AuthTokens {
   access_token?: string;
   refresh_token?: string;
 }
+
+let inMemoryAccessToken: string | null = null;
+let inMemoryRefreshToken: string | null = null;
+let authUserSnapshot: Record<string, unknown> | null = null;
 
 const readFromStorage = (storage: Storage, key: string) => {
   try {
@@ -131,39 +137,48 @@ const setCookieSessionMode = (mode: TokenStorageMode | null) => {
   writeToStorage(sessionStorage, COOKIE_SESSION_MODE_KEY, mode === "session" ? mode : null);
 };
 
+const resolveCompanyRoleFromSnapshot = (snapshot: Record<string, unknown> | null) => {
+  if (!snapshot) return null;
+
+  const userTypeRaw = snapshot.user_type ?? snapshot.userType;
+  const fallbackRole =
+  userTypeRaw === "admin" ? "root" : "member";
+  const membership =
+  typeof snapshot.company_membership === "object" &&
+  snapshot.company_membership !== null ?
+  snapshot.company_membership as Record<string, unknown> :
+  null;
+
+  return resolveCompanyRole(
+    {
+      role:
+      snapshot.company_role ??
+      snapshot.companyRole ??
+      snapshot.role ??
+      membership?.role,
+      isRoot:
+      snapshot.is_root ??
+      snapshot.isRoot ??
+      membership?.is_root ??
+      membership?.isRoot
+    },
+    fallbackRole
+  );
+};
+
 const getStoredCompanyRole = () => {
+  const runtimeRole = resolveCompanyRoleFromSnapshot(authUserSnapshot);
+  if (runtimeRole) {
+    return runtimeRole;
+  }
+
   if (typeof window === "undefined") return null;
   const rawUser = readFromStorage(localStorage, USER_STORAGE_KEY);
   if (!rawUser) return null;
 
   try {
     const parsedUser = JSON.parse(rawUser) as Record<string, unknown>;
-    const userTypeRaw = parsedUser.user_type ?? parsedUser.userType;
-    const fallbackRole =
-    userTypeRaw === "admin" ? "root" : "member";
-    const membership =
-    typeof parsedUser.company_membership === "object" &&
-    parsedUser.company_membership !== null ?
-    parsedUser.company_membership as Record<string, unknown> :
-    null;
-
-    const resolvedRole = resolveCompanyRole(
-      {
-        role:
-        parsedUser.company_role ??
-        parsedUser.companyRole ??
-        parsedUser.role ??
-        membership?.role,
-        isRoot:
-        parsedUser.is_root ??
-        parsedUser.isRoot ??
-        membership?.is_root ??
-        membership?.isRoot
-      },
-      fallbackRole
-    );
-
-    return resolvedRole;
+    return resolveCompanyRoleFromSnapshot(parsedUser);
   } catch {
     return null;
   }
@@ -208,8 +223,12 @@ const readStorage = (key: string) => {
   );
 };
 
-const hasSessionModeMarker = () => {
-  return getCookieSessionMode() !== null;
+const shouldReadPersistedTokens = () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.location.pathname.toLowerCase().startsWith("/demo");
 };
 
 const readAccessTokenStorage = () => {
@@ -242,6 +261,29 @@ const clearFromAllStorages = (keys: string[]) => {
     writeToStorage(localStorage, key, null);
     writeToStorage(sessionStorage, key, null);
   }
+};
+
+const emitAuthInvalidated = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(AUTH_INVALIDATED_EVENT));
+};
+
+export const clearPersistedAuthState = () => {
+  clearFromAllStorages([
+    USER_STORAGE_KEY,
+    ACCESS_TOKEN_STORAGE_KEY,
+    REFRESH_TOKEN_STORAGE_KEY,
+    COOKIE_SESSION_MODE_KEY,
+    TOKEN_STORAGE_MODE_KEY,
+    ...ALL_LEGACY_TOKEN_STORAGE_KEYS
+  ]);
+};
+
+export const setAuthUserSnapshot = (snapshot: object | null) => {
+  authUserSnapshot =
+    snapshot && typeof snapshot === "object" ?
+      { ...(snapshot as Record<string, unknown>) } :
+      null;
 };
 
 const writeAccessTokenStorage = (value: string | null) => {
@@ -290,14 +332,47 @@ const isTokenExpired = (token: string, skewMs = 0) => {
   return Date.now() + skewMs >= expMs;
 };
 
+const clearRuntimeTokens = ({
+  clearPersistentTokens = true,
+  notify = false
+}: {
+  clearPersistentTokens?: boolean;
+  notify?: boolean;
+} = {}) => {
+  inMemoryAccessToken = null;
+  inMemoryRefreshToken = null;
+  authUserSnapshot = null;
+
+  if (clearPersistentTokens) {
+    clearPersistedAuthState();
+  }
+
+  if (notify) {
+    emitAuthInvalidated();
+  }
+};
+
 export const authTokenStore = {
   getAccessToken: () => {
-    const accessToken = readAccessTokenStorage();
-    if (accessToken && !isTokenExpired(accessToken)) {
-      return accessToken;
+    const runtimeAccessToken = normalizeToken(inMemoryAccessToken);
+    if (runtimeAccessToken) {
+      if (isTokenExpired(runtimeAccessToken)) {
+        clearRuntimeTokens({ notify: true });
+        return null;
+      }
+      return runtimeAccessToken;
     }
 
-    if (accessToken) {
+    if (!shouldReadPersistedTokens()) {
+      return null;
+    }
+
+    const storedAccessToken = readAccessTokenStorage();
+    if (storedAccessToken && !isTokenExpired(storedAccessToken)) {
+      return storedAccessToken;
+    }
+
+    if (storedAccessToken) {
       clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY]);
     }
 
@@ -316,12 +391,25 @@ export const authTokenStore = {
     return legacyAccessToken;
   },
   getRefreshToken: () => {
-    const refreshToken = readStorage(REFRESH_TOKEN_STORAGE_KEY);
-    if (refreshToken && !isTokenExpired(refreshToken)) {
-      return refreshToken;
+    const runtimeRefreshToken = normalizeToken(inMemoryRefreshToken);
+    if (runtimeRefreshToken) {
+      if (isTokenExpired(runtimeRefreshToken)) {
+        inMemoryRefreshToken = null;
+        return null;
+      }
+      return runtimeRefreshToken;
     }
 
-    if (refreshToken) {
+    if (!shouldReadPersistedTokens()) {
+      return null;
+    }
+
+    const storedRefreshToken = readStorage(REFRESH_TOKEN_STORAGE_KEY);
+    if (storedRefreshToken && !isTokenExpired(storedRefreshToken)) {
+      return storedRefreshToken;
+    }
+
+    if (storedRefreshToken) {
       clearFromAllStorages([REFRESH_TOKEN_STORAGE_KEY]);
     }
 
@@ -343,14 +431,23 @@ export const authTokenStore = {
   tokens: AuthTokens | null | undefined,
   options?: {
     persist?: boolean;
-    cookieBacked?: boolean;
+    storageScope?: AuthTokenStorageScope;
     storeRefreshToken?: boolean;
   }) => {
     if (!tokens) {
-      clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY]);
-      clearFromAllStorages([COOKIE_SESSION_MODE_KEY]);
-      clearFromAllStorages([TOKEN_STORAGE_MODE_KEY]);
-      clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
+      clearRuntimeTokens();
+      return;
+    }
+
+    inMemoryAccessToken = normalizeToken(tokens.access_token);
+    inMemoryRefreshToken =
+    options?.storeRefreshToken === false ?
+    null :
+    normalizeToken(tokens.refresh_token);
+
+    const storageScope = options?.storageScope ?? "memory";
+    if (storageScope !== "storage") {
+      clearPersistedAuthState();
       return;
     }
 
@@ -362,12 +459,10 @@ export const authTokenStore = {
     getTokenStorageMode();
 
     setTokenStorageMode(mode);
-    setCookieSessionMode(options?.cookieBacked ? mode : null);
+    setCookieSessionMode(null);
     writeAccessTokenStorage(tokens.access_token || null);
 
-    const shouldStoreRefreshToken =
-    options?.storeRefreshToken ??
-    !(options?.cookieBacked);
+    const shouldStoreRefreshToken = options?.storeRefreshToken ?? true;
 
     writeStorage(
       REFRESH_TOKEN_STORAGE_KEY,
@@ -377,24 +472,15 @@ export const authTokenStore = {
     clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
   },
   getSessionMode: () => getCookieSessionMode() || getTokenStorageMode(),
-  hasSessionMarker: () => hasSessionModeMarker(),
-  hasRefreshCapability: () =>
-  hasSessionModeMarker() || Boolean(authTokenStore.getRefreshToken()),
-  clear: () => {
-    clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY]);
-    clearFromAllStorages([COOKIE_SESSION_MODE_KEY]);
-    clearFromAllStorages([TOKEN_STORAGE_MODE_KEY]);
-    clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
-  }
+  hasSessionMarker: () => false,
+  hasRefreshCapability: () => false,
+  clear: (options?: { clearPersistentTokens?: boolean; notify?: boolean; }) =>
+  clearRuntimeTokens(options)
 };
 
 export type ApiOptions = RequestInit & {
   skipJson?: boolean;
   disableResponseCache?: boolean;
-};
-
-type InternalApiOptions = ApiOptions & {
-  _retryAfterRefresh?: boolean;
 };
 
 interface ApiErrorPayload {
@@ -466,8 +552,7 @@ const buildUrl = (path: string) => {
 
 export const resolveApiUrl = (path: string) => buildUrl(path);
 
-const AUTH_REFRESH_PATH = "/auth/refresh";
-const NON_REFRESHABLE_AUTH_PATHS = [
+const NON_INVALIDATING_AUTH_PATHS = [
 "/auth/signin",
 "/auth/sign-in",
 "/auth/signup",
@@ -479,72 +564,12 @@ const NON_REFRESHABLE_AUTH_PATHS = [
 "/auth/demo"];
 
 
-const isNonRefreshableAuthPath = (path: string) => {
+const isNonInvalidatingAuthPath = (path: string) => {
   const normalizedPath = path.toLowerCase();
-  return NON_REFRESHABLE_AUTH_PATHS.some((segment) =>
+  return NON_INVALIDATING_AUTH_PATHS.some((segment) =>
   normalizedPath.includes(segment)
   );
 };
-
-const isReplayableBody = (body: RequestInit["body"] | undefined) => {
-  if (typeof body === "undefined" || body === null) return true;
-  if (typeof body === "string") return true;
-  if (body instanceof Blob) return true;
-  if (body instanceof URLSearchParams) return true;
-  if (body instanceof ArrayBuffer) return true;
-  if (ArrayBuffer.isView(body)) return true;
-  if (isFormData(body)) return true;
-  return false;
-};
-
-const shouldAttemptTokenRefresh = (params: {
-  path: string;
-  method?: string;
-  hasExplicitAuthorization: boolean;
-  body: RequestInit["body"] | undefined;
-  alreadyRetried: boolean;
-}) => {
-  if (params.alreadyRetried) return false;
-  if (params.hasExplicitAuthorization) return false;
-  if (!isReplayableBody(params.body)) return false;
-  if (!authTokenStore.hasRefreshCapability()) return false;
-  if ((params.method || "GET").toUpperCase() === "OPTIONS") return false;
-
-  if (isNonRefreshableAuthPath(params.path)) {
-    return false;
-  }
-
-  return true;
-};
-
-const extractTokensFromPayload = (payload: unknown): AuthTokens | null => {
-  if (!isObject(payload)) return null;
-
-  const dataCandidate = isObject(payload.data) ? payload.data : payload;
-  const tokenCandidate = isObject(dataCandidate.tokens) ?
-  dataCandidate.tokens :
-  dataCandidate;
-
-  const accessToken =
-  typeof tokenCandidate.access_token === "string" ?
-  tokenCandidate.access_token :
-  undefined;
-  const refreshToken =
-  typeof tokenCandidate.refresh_token === "string" ?
-  tokenCandidate.refresh_token :
-  undefined;
-
-  if (!accessToken) {
-    return null;
-  }
-
-  return {
-    access_token: accessToken,
-    refresh_token: refreshToken
-  };
-};
-
-let refreshInFlight: Promise<AuthTokens | null> | null = null;
 let apiRequestAdapter: ApiRequestAdapter | null = null;
 const inflightGetRequests = new Map<string, Promise<unknown>>();
 const recentGetResponses = new Map<string, {value: unknown;expiresAt: number;}>();
@@ -571,65 +596,6 @@ const writeCachedGetResponse = (key: string, value: unknown) => {
   });
 };
 
-const refreshAccessToken = async (): Promise<AuthTokens | null> => {
-  const refreshToken = authTokenStore.getRefreshToken();
-  const hasCookieBackedSession = authTokenStore.hasSessionMarker();
-
-  if (!refreshToken && !hasCookieBackedSession) {
-    return null;
-  }
-
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      try {
-        const requestBody =
-        refreshToken ?
-        JSON.stringify({ refresh_token: refreshToken }) :
-        undefined;
-        const response = await fetch(buildUrl(AUTH_REFRESH_PATH), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "include",
-          cache: "no-store",
-          body: requestBody
-        });
-
-        const payload = await parseResponse(response);
-        if (!response.ok) {
-          authTokenStore.clear();
-          return null;
-        }
-
-        const nextTokens = extractTokensFromPayload(payload);
-        if (!nextTokens?.access_token) {
-          authTokenStore.clear();
-          return null;
-        }
-
-        const normalizedTokens: AuthTokens = {
-          access_token: nextTokens.access_token,
-          refresh_token: nextTokens.refresh_token || refreshToken || undefined
-        };
-        authTokenStore.setTokens(normalizedTokens, {
-          persist: authTokenStore.getSessionMode() === "local",
-          cookieBacked: hasCookieBackedSession,
-          storeRefreshToken: !hasCookieBackedSession
-        });
-        return normalizedTokens;
-      } catch {
-        authTokenStore.clear();
-        return null;
-      } finally {
-        refreshInFlight = null;
-      }
-    })();
-  }
-
-  return refreshInFlight;
-};
-
 export const ensureAccessToken = async (): Promise<string | null> => {
   const accessToken = authTokenStore.getAccessToken();
   if (accessToken && !isTokenExpired(accessToken, ACCESS_TOKEN_EXPIRY_SKEW_MS)) {
@@ -637,15 +603,10 @@ export const ensureAccessToken = async (): Promise<string | null> => {
   }
 
   if (accessToken) {
-    clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY]);
+    authTokenStore.clear({ notify: true });
   }
 
-  if (!authTokenStore.hasRefreshCapability()) {
-    return null;
-  }
-
-  const refreshedTokens = await refreshAccessToken();
-  return normalizeToken(refreshedTokens?.access_token);
+  return null;
 };
 
 export const setApiRequestAdapter = (adapter: ApiRequestAdapter | null) => {
@@ -760,7 +721,6 @@ export const apiRequest = async <T,>(
 path: string,
 options: ApiOptions = {})
 : Promise<T> => {
-  const internalOptions = options as InternalApiOptions;
   const url = buildUrl(path);
   const headers = new Headers(options.headers || {});
   const hasExplicitAuthorization = headers.has("Authorization");
@@ -806,9 +766,7 @@ options: ApiOptions = {})
   }
 
   if (!hasExplicitAuthorization) {
-    const accessToken = isNonRefreshableAuthPath(path) ?
-    authTokenStore.getAccessToken() :
-    await ensureAccessToken();
+    const accessToken = await ensureAccessToken();
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
     }
@@ -833,27 +791,17 @@ options: ApiOptions = {})
       return { response, payload };
     };
 
-    let { response, payload } = await doFetch(headers);
-
-    if (
-    response.status === 401 &&
-    shouldAttemptTokenRefresh({
-      path,
-      method: options.method,
-      hasExplicitAuthorization,
-      body,
-      alreadyRetried: Boolean(internalOptions._retryAfterRefresh)
-    }))
-    {
-      const refreshedTokens = await refreshAccessToken();
-      if (refreshedTokens?.access_token) {
-        const retryHeaders = new Headers(headers);
-        retryHeaders.set("Authorization", `Bearer ${refreshedTokens.access_token}`);
-        ({ response, payload } = await doFetch(retryHeaders));
-      }
-    }
+    const { response, payload } = await doFetch(headers);
 
     if (!response.ok) {
+      if (
+        response.status === 401 &&
+        !hasExplicitAuthorization &&
+        !isNonInvalidatingAuthPath(path))
+      {
+        authTokenStore.clear({ notify: true });
+      }
+
       throw new ApiError(getErrorMessage(payload, response.statusText), {
         status: response.status,
         code: getErrorCode(payload),

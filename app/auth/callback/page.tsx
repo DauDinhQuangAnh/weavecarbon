@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
-import { authTokenStore, isApiError, isUnauthorizedApiError } from "@/lib/apiClient";
+import {
+  authTokenStore,
+  clearPersistedAuthState,
+  isApiError,
+  isUnauthorizedApiError
+} from "@/lib/apiClient";
 import {
   buildAuthErrorUrl,
   buildCheckEmailUrl,
@@ -15,15 +20,13 @@ import {
 } from "@/lib/auth/routing";
 import {
   clearGoogleOAuthInflightState,
-  getGoogleRememberPreference,
   getGoogleRequestedRole
 } from "@/lib/auth/googleOAuth";
 
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
 
 const clearStoredAuthUser = () => {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("weavecarbon_user");
+  clearPersistedAuthState();
 };
 
 const clearCallbackHash = () => {
@@ -135,7 +138,6 @@ export default function AuthCallbackPage() {
         }
 
         const accessToken = hash.get("access_token") || query.get("access_token");
-        const refreshToken = hash.get("refresh_token") || query.get("refresh_token");
         const requiresEmailVerification = isTruthyFlag(
           hash.get("requires_email_verification") || query.get("requires_email_verification")
         ) || isTruthyFlag(
@@ -182,15 +184,11 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        const rememberMe = getGoogleRememberPreference();
         const requestedRole = getGoogleRequestedRole();
 
         authTokenStore.setTokens({
-          access_token: accessToken,
-          refresh_token: refreshToken || undefined
+          access_token: accessToken
         }, {
-          persist: rememberMe,
-          cookieBacked: true,
           storeRefreshToken: false
         });
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
