@@ -11,11 +11,11 @@ import React, {
 import { usePathname } from "next/navigation";
 import {
   AUTH_INVALIDATED_EVENT,
+  AUTH_INVALIDATED_STORAGE_KEY,
   api,
   API_BASE_URL,
   authTokenStore,
   AuthTokens,
-  clearPersistedAuthState,
   ensureAccessToken,
   isApiError,
   setAuthUserSnapshot } from
@@ -252,11 +252,6 @@ const normalizeStoredUser = (user: User | null): User | null => {
     domestic_market: user.domestic_market || null,
     is_root: Boolean(user.is_root || normalizedRole === "root")
   };
-};
-
-const clearLegacyRealAuthArtifacts = () => {
-  clearPersistedAuthState();
-  setAuthUserSnapshot(null);
 };
 
 const loadDemoUser = (): User | null => {
@@ -575,7 +570,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const userRef = useRef<User | null>(null);
-  const hasClearedLegacyAuthRef = useRef(false);
   const hasRealSession = Boolean(user?.id || authTokenStore.getAccessToken());
   const effectiveUser = isDemoRuntime ? demoUser || user : user;
 
@@ -589,15 +583,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   useEffect(() => {
     userRef.current = user;
   }, [user]);
-
-  useEffect(() => {
-    if (isDemoRuntime || hasClearedLegacyAuthRef.current) {
-      return;
-    }
-
-    hasClearedLegacyAuthRef.current = true;
-    clearLegacyRealAuthArtifacts();
-  }, [applyRuntimeUser, isDemoRuntime]);
 
   useEffect(() => {
     let cancelled = false;
@@ -634,32 +619,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
 
       try {
-        const accessToken = await ensureAccessToken();
-        if (!accessToken) {
-          clearSubscriptionLockStateCache();
-          if (!cancelled) {
-            applyRuntimeUser(null);
-          }
-          return;
-        }
-
-        const account = await getAccountSafely();
-        if (account) {
-          const nextUser = await syncUserCompanyRole(
-            buildUserFromAccount(account, userRef.current)
-          );
-          if (!cancelled) {
-            applyRuntimeUser(nextUser);
-          }
-          return;
-        }
-
-        clearSubscriptionLockStateCache();
+        const session = await api.get<SignInPayload>("/auth/session", {
+          disableResponseCache: true
+        });
+        authTokenStore.setTokens(session.tokens, {
+          storeRefreshToken: false
+        });
+        const nextUser = await syncUserCompanyRole(buildUserFromSignIn(session));
         if (!cancelled) {
-          applyRuntimeUser(null);
+          applyRuntimeUser(nextUser);
         }
       } catch {
         const fallbackUser = await syncUserCompanyRole(userRef.current);
+        if (!fallbackUser) {
+          clearSubscriptionLockStateCache();
+        }
         if (!cancelled) {
           applyRuntimeUser(fallbackUser);
         }
@@ -683,6 +657,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     }
 
     const handleStorage = (event: StorageEvent) => {
+      if (event.key === AUTH_INVALIDATED_STORAGE_KEY) {
+        if (!isDemoRuntime) {
+          clearSubscriptionLockStateCache();
+          applyRuntimeUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       if (event.key !== null && event.key !== DEMO_SESSION_STORAGE_KEY) {
         return;
       }
@@ -1034,7 +1017,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 
       }
     }
-    authTokenStore.clear();
+    authTokenStore.clear({ notify: true });
     clearSubscriptionLockStateCache();
     applyRuntimeUser(null);
   };

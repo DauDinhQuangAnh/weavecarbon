@@ -49,7 +49,6 @@ import {
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Building2, Save, X, Zap, User, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
@@ -119,7 +118,6 @@ const isEndpointUnavailableError = (error: unknown) => {
 
 const SystemSettings: React.FC = () => {
   const t = useTranslations("settings.system");
-  const tSettings = useTranslations("settings");
   const tPricing = useTranslations("pricingModal");
   const locale = useLocale();
   const isVi = locale === "vi";
@@ -773,17 +771,6 @@ const SystemSettings: React.FC = () => {
                 className="border-slate-300 bg-slate-100 text-slate-800 disabled:text-slate-800 disabled:opacity-100"
                 disabled />
 
-            </div>
-            <div className="md:col-span-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1.5">
-                  <Label>{tSettings("mobileLanguageTitle")}</Label>
-                  <p className="text-xs text-slate-600">{tSettings("mobileLanguageDesc")}</p>
-                </div>
-                <div className="shrink-0">
-                  <LanguageToggle />
-                </div>
-              </div>
             </div>
           </div>
         </CardContent>

@@ -31,6 +31,7 @@ const ACCESS_TOKEN_EXPIRY_SKEW_MS = 30 * 1000;
 const USER_STORAGE_KEY = "weavecarbon_user";
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 export const AUTH_INVALIDATED_EVENT = "weavecarbon:auth-invalidated";
+export const AUTH_INVALIDATED_STORAGE_KEY = "weavecarbon_auth_invalidated_at";
 const PLAN_LOCK_PROTECTED_PREFIXES = [
 "/products",
 "/product-batches",
@@ -265,6 +266,11 @@ const clearFromAllStorages = (keys: string[]) => {
 
 const emitAuthInvalidated = () => {
   if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(AUTH_INVALIDATED_STORAGE_KEY, String(Date.now()));
+  } catch {
+
+  }
   window.dispatchEvent(new CustomEvent(AUTH_INVALIDATED_EVENT));
 };
 
@@ -472,8 +478,8 @@ export const authTokenStore = {
     clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
   },
   getSessionMode: () => getCookieSessionMode() || getTokenStorageMode(),
-  hasSessionMarker: () => false,
-  hasRefreshCapability: () => false,
+  hasSessionMarker: () => true,
+  hasRefreshCapability: () => true,
   clear: (options?: { clearPersistentTokens?: boolean; notify?: boolean; }) =>
   clearRuntimeTokens(options)
 };
@@ -558,6 +564,7 @@ const NON_INVALIDATING_AUTH_PATHS = [
 "/auth/signup",
 "/auth/sign-up",
 "/auth/refresh",
+"/auth/session",
 "/auth/google",
 "/auth/google/callback",
 "/auth/verify-email",
@@ -571,6 +578,7 @@ const isNonInvalidatingAuthPath = (path: string) => {
   );
 };
 let apiRequestAdapter: ApiRequestAdapter | null = null;
+let inflightAccessTokenRefresh: Promise<string | null> | null = null;
 const inflightGetRequests = new Map<string, Promise<unknown>>();
 const recentGetResponses = new Map<string, {value: unknown;expiresAt: number;}>();
 const GET_RESPONSE_CACHE_TTL_MS = 3000;
@@ -596,17 +604,59 @@ const writeCachedGetResponse = (key: string, value: unknown) => {
   });
 };
 
-export const ensureAccessToken = async (): Promise<string | null> => {
+export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): Promise<string | null> => {
+  const forceRefresh = options?.forceRefresh === true;
   const accessToken = authTokenStore.getAccessToken();
-  if (accessToken && !isTokenExpired(accessToken, ACCESS_TOKEN_EXPIRY_SKEW_MS)) {
+  if (!forceRefresh && accessToken && !isTokenExpired(accessToken, ACCESS_TOKEN_EXPIRY_SKEW_MS)) {
     return accessToken;
   }
 
   if (accessToken) {
-    authTokenStore.clear({ notify: true });
+    authTokenStore.clear({ clearPersistentTokens: false });
   }
 
-  return null;
+  if (inflightAccessTokenRefresh) {
+    return inflightAccessTokenRefresh;
+  }
+
+  inflightAccessTokenRefresh = (async () => {
+    try {
+      const response = await fetch(buildUrl("/auth/refresh"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        body: JSON.stringify({}),
+        credentials: "include",
+        cache: "no-store"
+      });
+      const payload = await parseResponse(response);
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const sessionPayload = unwrapPayload<{
+        tokens?: AuthTokens;
+      }>(payload);
+      const nextAccessToken = normalizeToken(sessionPayload?.tokens?.access_token);
+      if (!nextAccessToken) {
+        return null;
+      }
+
+      authTokenStore.setTokens(
+        { access_token: nextAccessToken },
+        { storeRefreshToken: false }
+      );
+      return nextAccessToken;
+    } catch {
+      return null;
+    } finally {
+      inflightAccessTokenRefresh = null;
+    }
+  })();
+
+  return inflightAccessTokenRefresh;
 };
 
 export const setApiRequestAdapter = (adapter: ApiRequestAdapter | null) => {
@@ -765,7 +815,7 @@ options: ApiOptions = {})
     );
   }
 
-  if (!hasExplicitAuthorization) {
+  if (!hasExplicitAuthorization && !isNonInvalidatingAuthPath(path)) {
     const accessToken = await ensureAccessToken();
     if (accessToken) {
       headers.set("Authorization", `Bearer ${accessToken}`);
@@ -791,7 +841,22 @@ options: ApiOptions = {})
       return { response, payload };
     };
 
-    const { response, payload } = await doFetch(headers);
+    let { response, payload } = await doFetch(headers);
+
+    if (
+      response.status === 401 &&
+      !hasExplicitAuthorization &&
+      !isNonInvalidatingAuthPath(path)
+    ) {
+      const refreshedAccessToken = await ensureAccessToken({ forceRefresh: true });
+      if (refreshedAccessToken) {
+        const retryHeaders = new Headers(headers);
+        retryHeaders.set("Authorization", `Bearer ${refreshedAccessToken}`);
+        const retryResult = await doFetch(retryHeaders);
+        response = retryResult.response;
+        payload = retryResult.payload;
+      }
+    }
 
     if (!response.ok) {
       if (

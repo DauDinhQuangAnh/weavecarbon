@@ -22,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Save, X, User, KeyRound, CalendarDays, Mail } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,7 +58,6 @@ const isEndpointUnavailableError = (error: unknown) => {
 
 const PersonalSettings: React.FC = () => {
   const t = useTranslations("settings.system");
-  const tSettings = useTranslations("settings");
   const locale = useLocale();
   const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
   const { user, updateUser, refreshUser } = useAuth();
@@ -388,19 +386,6 @@ const PersonalSettings: React.FC = () => {
                 className="border-slate-200 bg-white/85 text-slate-800 disabled:text-slate-800 disabled:opacity-100"
                 disabled />
 
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 md:col-span-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {tSettings("mobileLanguageTitle")}
-                  </Label>
-                  <p className="text-xs text-slate-600">{tSettings("mobileLanguageDesc")}</p>
-                </div>
-                <div className="shrink-0">
-                  <LanguageToggle />
-                </div>
-              </div>
             </div>
           </div>
         </CardContent>

@@ -168,36 +168,33 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        if (!accessToken) {
-          clearGoogleOAuthInflightState();
-          clearCallbackHash();
-          const message = mapGoogleErrorMessage("MISSING_CODE", t);
-          if (!cancelled) {
-            setErrorMessage(message);
-          }
-          router.replace(
-            buildAuthErrorUrl({
-              type: callbackRequestedRole,
-              error: "MISSING_CODE"
-            })
-          );
-          return;
-        }
-
         const requestedRole = getGoogleRequestedRole();
 
-        authTokenStore.setTokens({
-          access_token: accessToken
-        }, {
-          storeRefreshToken: false
-        });
+        if (accessToken) {
+          authTokenStore.setTokens({
+            access_token: accessToken
+          }, {
+            storeRefreshToken: false
+          });
+        }
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
         clearGoogleOAuthInflightState();
         clearCallbackHash();
 
-        const actualRole = await resolveAuthenticatedUserType({
-          shouldIgnoreAccountError: (error) => !isUnauthorizedApiError(error)
+        try {
+          await refreshUser();
+        } catch {
+          if (!accessToken) {
+            throw new Error("GOOGLE_SESSION_BOOTSTRAP_FAILED");
+          }
+        }
+
+        let actualRole = await resolveAuthenticatedUserType({
+          fallbackRole: callbackRequestedRole || requestedRole || undefined,
+          shouldIgnoreAccountError: (error) => !isUnauthorizedApiError(error),
+          shouldIgnoreCompanyCheckError: (error) => !isUnauthorizedApiError(error)
         });
+        actualRole = actualRole || callbackRequestedRole || requestedRole || undefined;
         if (
           requestedRole &&
           actualRole &&
@@ -215,7 +212,6 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        await refreshUser();
         const destination = await resolvePostLoginPath({
           accountType: actualRole,
           onboardingPath: "/onboarding?source=google",

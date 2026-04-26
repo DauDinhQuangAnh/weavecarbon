@@ -298,12 +298,31 @@ export default function PricingModalGate() {
     const trimmedSessionId = sessionId.trim();
     if (!trimmedSessionId) return "pending" as const;
 
-    const paymentStatus = await api.get<PaymentStatusSnapshot>(
-      `/subscription/payment-status?session_id=${encodeURIComponent(trimmedSessionId)}`,
-      {
-        disableResponseCache: true
-      }
+    if (loading || !user || user.user_type === "b2c") {
+      return "pending" as const;
+    }
+
+    const hasToken = Boolean(
+      authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
     );
+    if (!hasToken) {
+      return "pending" as const;
+    }
+
+    let paymentStatus: PaymentStatusSnapshot;
+    try {
+      paymentStatus = await api.get<PaymentStatusSnapshot>(
+        `/subscription/payment-status?session_id=${encodeURIComponent(trimmedSessionId)}`,
+        {
+          disableResponseCache: true
+        }
+      );
+    } catch (error) {
+      if (isUnauthorizedApiError(error)) {
+        await signOut();
+      }
+      return "pending" as const;
+    }
 
     if (paymentStatus.status === "paid") {
       await loadCurrentPlan({ force: true });
@@ -336,10 +355,13 @@ export default function PricingModalGate() {
     return "pending" as const;
   }, [
     loadCurrentPlan,
+    loading,
     pendingUpgradeExpectedProductsLimit,
     pendingUpgradePlan,
     setPendingUpgrade,
-    toast
+    signOut,
+    toast,
+    user
   ]);
 
   useEffect(() => {
