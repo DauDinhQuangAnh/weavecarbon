@@ -8,10 +8,7 @@ import UserTypeDialog from "./UserTypeDialog";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Waves from "../icons/Waves";
-import { useEffect, useRef, useState } from "react";
-import { trackEvent } from "@/lib/analytics";
-
-const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
+import { useEffect, useRef, useState } from "react";const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
   ssr: false,
   loading: () => null,
 });
@@ -138,7 +135,6 @@ const Hero = () => {
               size="xl"
               className="h-12 w-full px-6 text-base sm:h-14 sm:w-auto sm:px-10 sm:text-lg"
               onClick={() => {
-                trackEvent("wc_landing_start_clicked", {});
                 setShowUserTypeDialog(true);
               }}
             >
@@ -149,8 +145,7 @@ const Hero = () => {
               href="/calculator"
               className="w-full sm:w-auto"
               onClick={() => {
-                trackEvent("wc_landing_calculator_clicked", {});
-              }}>
+                }}>
               <Button
                 variant="heroOutline"
                 size="xl"

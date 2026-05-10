@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Script from "next/script";
 import { Toaster as SonnerToaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -14,7 +13,6 @@ import {
   DEFAULT_TOAST_POSITION,
   DEFAULT_TOAST_SWIPE_DIRECTIONS
 } from "@/lib/toastConfig";
-import AnalyticsProvider from "@/components/system/AnalyticsProvider";
 import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 
 const beVietnamProBody = Be_Vietnam_Pro({
@@ -49,43 +47,21 @@ export default async function RootLayout({
 }: Readonly<{children: React.ReactNode;}>) {
   const backendHealth = await getBackendHealth();
   const { locale, messages } = await getScopedMessages(ROOT_NAMESPACES);
-  const googleAnalyticsMeasurementId = (process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "").trim();
-  const googleAnalyticsInitSnippet = googleAnalyticsMeasurementId
-    ? `window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-window.gtag = window.gtag || gtag;
-gtag('js', new Date());
-gtag('config', ${JSON.stringify(googleAnalyticsMeasurementId)}, { send_page_view: false });`
-    : "";
   return (
     <html data-scroll-behavior="smooth" lang={locale} suppressHydrationWarning>
-      <head>
-        {googleAnalyticsMeasurementId ? (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsMeasurementId}`}
-              strategy="afterInteractive" />
-            <Script id="google-analytics-init" strategy="beforeInteractive">
-              {googleAnalyticsInitSnippet}
-            </Script>
-          </>
-        ) : null}
-      </head>
       <body
         className={`${beVietnamProBody.variable} ${beVietnamProHeading.variable} antialiased`}>
         {backendHealth.healthy ? (
           <AuthProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>
               <LanguageProvider>
-                <AnalyticsProvider>
-                  {children}
-                  <SonnerToaster
-                    position={DEFAULT_TOAST_POSITION}
-                    richColors
-                    closeButton={false}
-                    duration={DEFAULT_TOAST_DURATION}
-                    swipeDirections={[...DEFAULT_TOAST_SWIPE_DIRECTIONS]} />
-                </AnalyticsProvider>
+                {children}
+                <SonnerToaster
+                  position={DEFAULT_TOAST_POSITION}
+                  richColors
+                  closeButton={false}
+                  duration={DEFAULT_TOAST_DURATION}
+                  swipeDirections={[...DEFAULT_TOAST_SWIPE_DIRECTIONS]} />
               </LanguageProvider>
             </NextIntlClientProvider>
           </AuthProvider>

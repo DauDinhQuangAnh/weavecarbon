@@ -10,18 +10,18 @@ Day la diem can uu tien cao nhat vi lien quan truc tiep toi bao mat va van hanh.
 
 - `app/AI_CONFIG/page.tsx` chi moi dat `robots: noindex`, nhung van la mot route public.
 - `components/ai-config/AIConfigConsole.tsx:46-48` dang de unlock code ngay trong client: `AI_CONFIG_UNLOCK_CODE = "Qadepzai"`.
-- `app/tools/analytics-lab/page.tsx` cung la route public, hien chi la noindex va chua co auth gate that su.
+- Cong cu thu analytics da duoc go bo; neu them lai cong cu noi bo trong tuong lai, can gate o server.
 
 De xuat:
 
-- Chuyen `AI_CONFIG` va `/tools/analytics-lab` sang server-side gate dua tren role `admin` hoac env flag chi mo trong staging/dev.
+- Chuyen `AI_CONFIG` sang server-side gate dua tren role `admin` hoac env flag chi mo trong staging/dev.
 - Khong de unlock code trong client bundle.
 - Neu van can tool noi bo tren production, bo sung audit trail va role check o server.
 
 Tac dong mong doi:
 
 - Giam nguy co lo cong cu noi bo.
-- Tranh viec nguoi dung ben ngoai truy cap cac man debug, config, hoac fake analytics.
+- Tranh viec nguoi dung ben ngoai truy cap cac man debug hoac config noi bo.
 
 ### 2. Gom logic auth, onboarding, va company-check ve mot noi
 
@@ -134,7 +134,7 @@ Tac dong mong doi:
 
 ### 6. Toi uu provider toan cuc va chi phi runtime
 
-`app/layout.tsx:77-88` dang mount `AuthProvider`, `NextIntlClientProvider`, `LanguageProvider`, `AnalyticsProvider`, va toaster cho toan bo app. Dong thoi analytics script cung duoc chen ngay o root layout (`app/layout.tsx:52-70`).
+`app/layout.tsx` dang mount `AuthProvider`, `NextIntlClientProvider`, `LanguageProvider`, va toaster cho toan bo app.
 
 Van de:
 
@@ -193,7 +193,7 @@ Tac dong mong doi:
 
 ## Cac quick wins nen lam trong 1-2 sprint
 
-1. Khoa `AI_CONFIG` va `/tools/analytics-lab` bang server-side auth/env gate.
+1. Khoa `AI_CONFIG` bang server-side auth/env gate.
 2. Extract mot bo helper auth chung cho `company-check`, `post-login redirect`, `account type`.
 3. Tach `ReportClient.tsx` thanh cac khoi nho hon: list/filter/export/create.
 4. Bo sung test cho auth redirect, onboarding redirect, subscription guard.

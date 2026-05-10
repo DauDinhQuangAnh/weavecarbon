@@ -39,10 +39,7 @@ import {
   fetchRoadRoute,
   isRoadTransportMode,
   type RoadRouteFailureReason
-} from "@/lib/roadRouting";
-import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
-
-export interface AddressData {
+} from "@/lib/roadRouting";export interface AddressData {
   streetAddress: string;
   aptSuite: string;
   city: string;
@@ -851,11 +848,7 @@ const TransportClient: React.FC<TransportClientProps> = ({
       });
 
       if (hasNewTrackedRoadRoute) {
-        trackEvent("wc_route_simulation_run", {
-          feature_area: "logistics",
-          route_type: "road"
-        });
-      }
+        }
 
       setRoadRouteFailureByLegId((current) => {
         const next = { ...current };
@@ -1195,15 +1188,8 @@ const updateLeg = (
       });
 
       await updateProduct(productId, payload);
-      trackEvent("wc_shipment_updated", {
-        feature_area: "logistics"
-      });
       router.push(`/calculation-history?productId=${encodeURIComponent(productId)}`);
     } catch (error) {
-      trackEvent("wc_shipment_status_changed", {
-        feature_area: "logistics",
-        status: toAnalyticsErrorCode(error)
-      });
       toast.error(formatApiErrorMessage(error, t("errors.loadLogisticsFailed")));
     } finally {
       setIsSaving(false);

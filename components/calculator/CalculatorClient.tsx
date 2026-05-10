@@ -31,11 +31,7 @@ import {
 "lucide-react";
 import Header from "@/components/landing/Header";
 import Footer from "@/components/landing/Footer";
-import { useTranslations } from "next-intl";
-import { trackEvent } from "@/lib/analytics";
-
-
-const materialFactors: Record<string, number> = {
+import { useTranslations } from "next-intl";const materialFactors: Record<string, number> = {
   cotton: 5.9,
   polyester: 6.4,
   wool: 10.1,
@@ -94,10 +90,6 @@ export default function CalculatorClient() {
   const calculateEmissions = () => {
     if (!weight || !material || !route) return;
 
-    trackEvent("wc_calculator_run", {
-      material,
-      route
-    });
     const weightNum = parseFloat(weight);
     const materialEmission = weightNum * materialFactors[material];
     const manufacturingEmission = weightNum * manufacturingFactor;

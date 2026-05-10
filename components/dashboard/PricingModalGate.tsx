@@ -29,10 +29,7 @@ import {
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { toAnalyticsErrorCode, trackEvent } from "@/lib/analytics";
-
-const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
+import { Button } from "@/components/ui/button";const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
 const PENDING_UPGRADE_PLAN_KEY = "weavecarbon_pending_upgrade_plan";
 const PENDING_UPGRADE_DISPLAY_PLAN_KEY = "weavecarbon_pending_upgrade_display_plan";
 const PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY =
@@ -94,19 +91,6 @@ const toPlanActivationLabel = (
     return `${displayName} (${Math.round(productsLimit)} SKU)`;
   }
   return displayName;
-};
-
-const resolvePlanValueVnd = (
-  planFamily: "standard" | "export",
-  skuLimit?: number | null
-) => {
-  if (planFamily === "export") {
-    return 3000000;
-  }
-
-  if (skuLimit && skuLimit >= 50) return 1499000;
-  if (skuLimit && skuLimit >= 35) return 1199000;
-  return 899000;
 };
 
 export default function PricingModalGate() {
@@ -256,9 +240,6 @@ export default function PricingModalGate() {
         });
 
         if (nextSnapshot.featuresLocked && !open) {
-          trackEvent("wc_pricing_modal_opened", {
-            source_page: "subscription_lock"
-          });
           setOpen(true);
         }
       }
@@ -330,13 +311,6 @@ export default function PricingModalGate() {
     }
 
     if (paymentStatus.status === "failed" || paymentStatus.status === "expired") {
-      trackEvent("wc_payment_failed", {
-        billing_cycle: "monthly",
-        error_code: paymentStatus.status,
-        payment_provider: "vnpay",
-        plan_family: pendingUpgradePlan && getSubscriptionPlanFamily(pendingUpgradePlan) === "export" ? "export" : "standard",
-        plan_sku_limit: pendingUpgradeExpectedProductsLimit ?? undefined
-      });
       setPendingUpgrade(null, null, null, null);
       toast({
         title:
@@ -356,8 +330,6 @@ export default function PricingModalGate() {
   }, [
     loadCurrentPlan,
     loading,
-    pendingUpgradeExpectedProductsLimit,
-    pendingUpgradePlan,
     setPendingUpgrade,
     signOut,
     toast,
@@ -495,20 +467,6 @@ export default function PricingModalGate() {
       });
       void loadCurrentPlan({ force: true });
     } else {
-      trackEvent("wc_payment_failed", {
-        billing_cycle: "monthly",
-        error_code: paymentStatus || "failed",
-        payment_provider: "vnpay",
-        plan_family: paymentPlan === "export" ? "export" : "standard",
-        plan_sku_limit:
-          paymentPlan === "standard"
-            ? Number(
-                typeof window !== "undefined"
-                  ? sessionStorage.getItem(PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY)
-                  : null
-              ) || undefined
-            : undefined
-      });
       setPendingUpgrade(null, null, null, null);
       toast({
         title: "Thanh toán chưa thành công",
@@ -546,9 +504,6 @@ export default function PricingModalGate() {
   const handleSelectPlan = async ({ planId, standardSkuLimit }: PricingSelection) => {
     if (!user) return;
 
-    let analyticsPlanFamily: "standard" | "export" = "standard";
-    let analyticsPlanSkuLimit: number | undefined;
-
     try {
       const isStandardAddonPurchase = planId === "standard";
       const normalizedTargetPlan =
@@ -576,16 +531,6 @@ export default function PricingModalGate() {
         targetPlanFamily === "standard" ?
           currentStandardProductsLimit + requestedStandardSkuIncrement :
           null;
-      analyticsPlanFamily = targetPlanFamily === "export" ? "export" : "standard";
-      analyticsPlanSkuLimit =
-        analyticsPlanFamily === "standard" ?
-          requestedStandardSkuIncrement :
-          undefined;
-      const analyticsValue = resolvePlanValueVnd(
-        analyticsPlanFamily,
-        analyticsPlanSkuLimit
-      );
-
       if (isStandardAddonPurchase && currentPlanFamily === "export") {
         toast({
           title: "Không thể đăng ký gói thấp hơn",
@@ -621,25 +566,10 @@ export default function PricingModalGate() {
             ? "vnpay"
             : undefined
       });
-      trackEvent("wc_plan_selected", {
-        billing_cycle: "monthly",
-        payment_provider: "vnpay",
-        plan_family: analyticsPlanFamily,
-        plan_sku_limit: analyticsPlanSkuLimit
-      });
-
       const paymentUrl =
         upgrade?.payment_url || upgrade?.vnpay_url || upgrade?.checkout_url;
 
       if (paymentUrl && typeof window !== "undefined") {
-        trackEvent("begin_checkout", {
-          billing_cycle: "monthly",
-          currency: "VND",
-          payment_provider: "vnpay",
-          plan_family: analyticsPlanFamily,
-          plan_sku_limit: analyticsPlanSkuLimit,
-          value: analyticsValue
-        });
         setPendingUpgrade(
           isStandardAddonPurchase ? "standard" : normalizedTargetPlan,
           isStandardAddonPurchase ? "standard" : normalizedTargetPlan,
@@ -659,13 +589,6 @@ export default function PricingModalGate() {
         await signOut();
         return;
       }
-      trackEvent("wc_payment_failed", {
-        billing_cycle: "monthly",
-        error_code: toAnalyticsErrorCode(error),
-        payment_provider: "vnpay",
-        plan_family: analyticsPlanFamily,
-        plan_sku_limit: analyticsPlanSkuLimit
-      });
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",

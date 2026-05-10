@@ -6,9 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
-import { showNoPermissionToast } from "@/lib/noPermissionToast";
-import { trackEvent } from "@/lib/analytics";
-import {
+import { showNoPermissionToast } from "@/lib/noPermissionToast";import {
   generateCompanyRecommendations,
   readRagRuntimeConfig,
 } from "@/lib/ragApi";
@@ -347,16 +345,7 @@ const OverviewPage: React.FC = () => {
 
   const handleOpenPricingModal = () => {
     if (typeof window === "undefined") return;
-    trackEvent("wc_pricing_modal_opened", {
-      source_page: "overview"
-    });
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
-  };
-
-  const handleQuickActionClick = (action: "add_product" | "logistics" | "reports") => {
-    trackEvent("wc_dashboard_quick_action_clicked", {
-      action
-    });
   };
 
   useEffect(() => {
@@ -974,7 +963,6 @@ const OverviewPage: React.FC = () => {
               showNoPermissionToast();
               return;
             }
-            handleQuickActionClick("add_product");
             navigate.push(appRoutes.toAppPath("/products"));
           }}>
 
@@ -1005,7 +993,6 @@ const OverviewPage: React.FC = () => {
         <Card
           className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
-            handleQuickActionClick("logistics");
             navigate.push(appRoutes.toAppPath("/logistics"));
           }}>
 
@@ -1036,7 +1023,6 @@ const OverviewPage: React.FC = () => {
         <Card
           className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
-            handleQuickActionClick("reports");
             navigate.push(appRoutes.toAppPath("/reports"));
           }}>
 
