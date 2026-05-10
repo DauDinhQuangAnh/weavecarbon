@@ -24,6 +24,7 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: 3000
       BACKEND_HEALTH_URL: ${BACKEND_HEALTH_URL:-}
+      AI_CONFIG_CONSOLE_ENABLED: ${AI_CONFIG_CONSOLE_ENABLED:-0}
     ports:
       - "3000:3000"
     restart: unless-stopped

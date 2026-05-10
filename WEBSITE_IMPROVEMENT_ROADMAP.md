@@ -6,16 +6,23 @@ Tai lieu nay tong hop nhung khu vuc nen uu tien cai tien trong frontend hien tai
 
 ### 1. Khoa cac route noi bo va cong cu van hanh
 
+Trang thai cap nhat:
+
+- Da lam: go bo `/tools/analytics-lab`, cac file `tools/analytics-lab/*`, `AnalyticsProvider`, `lib/analytics`, cau hinh GA4, va cac event tracking GA4 trong UI.
+- Da lam: `app/AI_CONFIG/page.tsx` da duoc gate server-side bang `AI_CONFIG_CONSOLE_ENABLED=1`; mac dinh la tat va tra 404.
+- Da lam: da xoa unlock code hard-coded trong `components/ai-config/AIConfigConsole.tsx`, khong con secret trong client bundle.
+- Con lai: neu can mo console tren production, nen bo sung role/audit check tu backend thay vi chi dung env gate.
+
 Day la diem can uu tien cao nhat vi lien quan truc tiep toi bao mat va van hanh.
 
-- `app/AI_CONFIG/page.tsx` chi moi dat `robots: noindex`, nhung van la mot route public.
-- `components/ai-config/AIConfigConsole.tsx:46-48` dang de unlock code ngay trong client: `AI_CONFIG_UNLOCK_CODE = "Qadepzai"`.
-- Cong cu thu analytics da duoc go bo; neu them lai cong cu noi bo trong tuong lai, can gate o server.
+- Truoc day `app/AI_CONFIG/page.tsx` chi moi dat `robots: noindex`, nhung hien da co env gate server-side.
+- Truoc day `components/ai-config/AIConfigConsole.tsx` de unlock code ngay trong client; hien da xoa unlock code nay.
+- Cong cu thu analytics va GA4 da duoc go bo; neu them lai cong cu noi bo trong tuong lai, can gate o server.
 
 De xuat:
 
-- Chuyen `AI_CONFIG` sang server-side gate dua tren role `admin` hoac env flag chi mo trong staging/dev.
-- Khong de unlock code trong client bundle.
+- Chuyen `AI_CONFIG` sang server-side gate dua tren role `admin` hoac env flag chi mo trong staging/dev. Env gate da co; role/audit co the bo sung sau neu can mo console tren production.
+- Khong de unlock code trong client bundle. Da lam.
 - Neu van can tool noi bo tren production, bo sung audit trail va role check o server.
 
 Tac dong mong doi:
@@ -24,6 +31,12 @@ Tac dong mong doi:
 - Tranh viec nguoi dung ben ngoai truy cap cac man debug hoac config noi bo.
 
 ### 2. Gom logic auth, onboarding, va company-check ve mot noi
+
+Trang thai cap nhat:
+
+- Da lam mot phan: da co module chung `lib/auth/routing.ts` voi `normalizeCompanyCheck`, `resolveAuthenticatedUserType`, `resolvePostLoginPath`, `buildCheckEmailUrl`, `buildAuthErrorUrl`.
+- Da lam mot phan: `AuthForm`, `app/auth/callback/page.tsx`, `AuthContext`, va `DashboardLayoutContent` da dung helper chung.
+- Con lai: can bo sung test de khoa hanh vi redirect va ra soat cac flow auth/onboarding phu.
 
 Hien tai logic xac dinh B2B/B2C, company status, va redirect sau login dang bi lap lai o nhieu noi:
 
@@ -53,6 +66,10 @@ Tac dong mong doi:
 - Don gian hoa viec them flow moi nhu admin, demo, hoac enterprise onboarding.
 
 ### 3. Tach nho cac component va module dang qua lon
+
+Trang thai cap nhat:
+
+- Chua lam trong dot vua roi. Cac file lon van can tach rieng sau khi dong bao mat/analytics da on.
 
 Codebase hien co nhieu file lon, nhieu file trong so do la client-side va gan voi man hinh nang:
 
@@ -193,8 +210,8 @@ Tac dong mong doi:
 
 ## Cac quick wins nen lam trong 1-2 sprint
 
-1. Khoa `AI_CONFIG` bang server-side auth/env gate.
-2. Extract mot bo helper auth chung cho `company-check`, `post-login redirect`, `account type`.
+1. Da lam: Khoa `AI_CONFIG` bang server-side env gate `AI_CONFIG_CONSOLE_ENABLED`.
+2. Da lam mot phan: Extract mot bo helper auth chung cho `company-check`, `post-login redirect`, `account type`.
 3. Tach `ReportClient.tsx` thanh cac khoi nho hon: list/filter/export/create.
 4. Bo sung test cho auth redirect, onboarding redirect, subscription guard.
 5. Xoa debug log va commented legacy block o `LeafHero3D.tsx`.

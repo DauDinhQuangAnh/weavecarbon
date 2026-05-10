@@ -128,6 +128,7 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: 3000
       BACKEND_HEALTH_URL: ${BACKEND_HEALTH_URL:-http://be:4000/health}
+      AI_CONFIG_CONSOLE_ENABLED: ${AI_CONFIG_CONSOLE_ENABLED:-0}
 
   proxy:
     image: caddy:2-alpine

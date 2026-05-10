@@ -2,24 +2,21 @@
 
 import React from "react";
 import {
-  AlertCircle,
   Bot,
   Database,
   Loader2,
-  Lock,
   RefreshCw,
   Save,
   Search,
   Shield,
   Trash2,
-  Unlock,
   Upload,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,9 +37,6 @@ import { getGlobalAiRuntimeConfig, saveGlobalAiRuntimeConfig } from "@/lib/aiCon
   type RagCollectionDetail,
   type RagRuntimeConfig,
 } from "@/lib/ragApi";
-
-const AI_CONFIG_UNLOCK_STORAGE_KEY = "weavecarbon_ai_config_unlock_v1";
-const AI_CONFIG_UNLOCK_CODE = "Qadepzai";
 
 type StatusTone = "unknown" | "ok" | "error";
 
@@ -144,9 +138,6 @@ const StatusPanel = ({
 const AIConfigConsole: React.FC = () => {
   const fallbackConfig = React.useMemo(() => getDefaultRagRuntimeConfig(), []);
   const [hydrated, setHydrated] = React.useState(false);
-  const [unlocked, setUnlocked] = React.useState(false);
-  const [unlockCode, setUnlockCode] = React.useState("");
-  const [unlockError, setUnlockError] = React.useState("");
 
   const [runtimeConfig, setRuntimeConfig] = React.useState<RagRuntimeConfig>(fallbackConfig);
   const [columnsInput, setColumnsInput] = React.useState(formatColumns(fallbackConfig.columnsToAnswer));
@@ -313,56 +304,16 @@ const AIConfigConsole: React.FC = () => {
 
   React.useEffect(() => {
     setHydrated(true);
-    if (typeof window !== "undefined") {
-      setUnlocked(window.localStorage.getItem(AI_CONFIG_UNLOCK_STORAGE_KEY) === "1");
-    }
   }, []);
 
   React.useEffect(() => {
-    if (!unlocked) return;
+    if (!hydrated) return;
     void bootstrap();
-  }, [bootstrap, unlocked]);
+  }, [bootstrap, hydrated]);
 
   React.useEffect(() => {
     syncSelectedCollectionEditor(selectedCollection);
   }, [selectedCollection, syncSelectedCollectionEditor]);
-
-  const handleUnlock = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (unlockCode.trim() !== AI_CONFIG_UNLOCK_CODE) {
-      setUnlockError("Incorrect access code.");
-      return;
-    }
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(AI_CONFIG_UNLOCK_STORAGE_KEY, "1");
-    }
-
-    setUnlockCode("");
-    setUnlockError("");
-    setUnlocked(true);
-    toast.success("AI config console unlocked.");
-  };
-
-  const handleLock = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(AI_CONFIG_UNLOCK_STORAGE_KEY);
-    }
-
-    setUnlocked(false);
-    setUnlockCode("");
-    setUnlockError("");
-    setCollections([]);
-    setSelectedCollectionName("");
-    setEditCollectionName("");
-    setEditCollectionDescription("");
-    setQueryState({
-      answer: "",
-      retrievedData: "",
-      error: ""
-    });
-    toast.success("AI config console locked.");
-  };
 
   const saveRuntime = async () => {
     const columns = parseColumns(columnsInput);
@@ -591,68 +542,6 @@ const AIConfigConsole: React.FC = () => {
     );
   }
 
-  if (!unlocked) {
-    return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1f5b49_0%,#0f172a_42%,#020617_100%)] px-4 py-12 text-slate-100">
-        <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-5 rounded-[28px] border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
-            <Badge variant="outline" className="border-emerald-300/30 bg-emerald-400/10 text-emerald-100">
-              Hidden Console
-            </Badge>
-            <div className="space-y-3">
-              <h1 className="text-4xl font-semibold tracking-tight">AI runtime config</h1>
-              <p className="max-w-xl text-sm leading-6 text-slate-300">
-                Unlock the hidden console to manage the live dashboard chatbot runtime and the old AI admin tools.
-              </p>
-            </div>
-          </div>
-
-          <Card className="overflow-hidden border-white/10 bg-white text-slate-900 shadow-2xl">
-            <CardHeader className="space-y-4 border-b border-slate-200 bg-slate-50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Enter access code</CardTitle>
-                  <CardDescription>Use the hidden code to unlock `/AI_CONFIG`.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form className="space-y-4" onSubmit={handleUnlock}>
-                <Field label="Access code" hint="This is a FE-only browser gate, not server security.">
-                  <Input
-                    value={unlockCode}
-                    onChange={(event) => {
-                      setUnlockCode(event.target.value);
-                      if (unlockError) {
-                        setUnlockError("");
-                      }
-                    }}
-                    type="password"
-                    placeholder="Enter hidden code"
-                    autoComplete="off"
-                  />
-                </Field>
-                {unlockError ? (
-                  <div className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{unlockError}</span>
-                  </div>
-                ) : null}
-                <Button className="w-full" size="lg" type="submit">
-                  <Unlock className="h-4 w-4" />
-                  Unlock console
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -694,14 +583,6 @@ const AIConfigConsole: React.FC = () => {
                   <RefreshCw className="h-4 w-4" />
                 )}
                 Refresh RAG
-              </Button>
-              <Button
-                variant="outline"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-                onClick={handleLock}
-              >
-                <Lock className="h-4 w-4" />
-                Lock
               </Button>
             </div>
           </div>
@@ -1124,7 +1005,7 @@ const AIConfigConsole: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-slate-600">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  Unlock is FE-only and stored locally in this browser.
+                  This console is gated server-side by `AI_CONFIG_CONSOLE_ENABLED`.
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   Saving runtime here changes the configuration used by dashboard chatbot messages globally.

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, authTokenStore, isUnauthorizedApiError } from "@/lib/apiClient";
+import { api, authTokenStore, isApiError, isUnauthorizedApiError } from "@/lib/apiClient";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import {
   resolveSubscriptionState,
@@ -35,6 +35,9 @@ const PENDING_UPGRADE_DISPLAY_PLAN_KEY = "weavecarbon_pending_upgrade_display_pl
 const PENDING_UPGRADE_EXPECTED_PRODUCTS_LIMIT_KEY =
   "weavecarbon_pending_upgrade_expected_products_limit";
 const PENDING_UPGRADE_SESSION_ID_KEY = "weavecarbon_pending_upgrade_session_id";
+const PAYMENT_STATUS_POLL_INTERVAL_MS = 15000;
+const PAYMENT_STATUS_MAX_ATTEMPTS = 12;
+const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 60000;
 
 type NormalizedPlanId = SubscriptionPlanId;
 
@@ -109,6 +112,8 @@ export default function PricingModalGate() {
   const [upgradeSuccessProductsLimit, setUpgradeSuccessProductsLimit] = useState<number | null>(
     null
   );
+  const paymentStatusInFlightRef = useRef(false);
+  const paymentStatusRateLimitedUntilRef = useRef(0);
 
   const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
@@ -278,6 +283,12 @@ export default function PricingModalGate() {
   const syncPendingPaymentStatus = useCallback(async (sessionId: string) => {
     const trimmedSessionId = sessionId.trim();
     if (!trimmedSessionId) return "pending" as const;
+    if (Date.now() < paymentStatusRateLimitedUntilRef.current) {
+      return "pending" as const;
+    }
+    if (paymentStatusInFlightRef.current) {
+      return "pending" as const;
+    }
 
     if (loading || !user || user.user_type === "b2c") {
       return "pending" as const;
@@ -292,6 +303,7 @@ export default function PricingModalGate() {
 
     let paymentStatus: PaymentStatusSnapshot;
     try {
+      paymentStatusInFlightRef.current = true;
       paymentStatus = await api.get<PaymentStatusSnapshot>(
         `/subscription/payment-status?session_id=${encodeURIComponent(trimmedSessionId)}`,
         {
@@ -299,11 +311,20 @@ export default function PricingModalGate() {
         }
       );
     } catch (error) {
+      if (isApiError(error) && error.status === 429) {
+        paymentStatusRateLimitedUntilRef.current =
+          Date.now() + PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS;
+        return "pending" as const;
+      }
       if (isUnauthorizedApiError(error)) {
         await signOut();
       }
       return "pending" as const;
+    } finally {
+      paymentStatusInFlightRef.current = false;
     }
+
+    paymentStatusRateLimitedUntilRef.current = 0;
 
     if (paymentStatus.status === "paid") {
       await loadCurrentPlan({ force: true });
@@ -409,15 +430,18 @@ export default function PricingModalGate() {
     let attempts = 0;
     const pollId = window.setInterval(() => {
       attempts += 1;
+      if (document.visibilityState !== "visible") {
+        return;
+      }
       if (pendingUpgradeSessionId) {
         void syncPendingPaymentStatus(pendingUpgradeSessionId);
       } else {
         void loadCurrentPlan();
       }
-      if (attempts >= 120) {
+      if (attempts >= PAYMENT_STATUS_MAX_ATTEMPTS) {
         window.clearInterval(pollId);
       }
-    }, 5000);
+    }, PAYMENT_STATUS_POLL_INTERVAL_MS);
 
     return () => {
       window.clearInterval(pollId);

@@ -9,7 +9,7 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { LanguageToggle } from "../ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
-import { normalizeCompanyCheck, type CompanyCheckPayload } from "@/lib/auth/routing";
+import { resolvePostLoginPath, type CompanyCheckPayload } from "@/lib/auth/routing";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
@@ -54,10 +54,15 @@ export default function DashboardLayoutContent({
       if (user.company_id) return;
 
       try {
-        const payload = await api.get<CompanyCheckPayload>("/auth/check-company");
-        const { isB2b, hasCompany } = normalizeCompanyCheck(payload);
-        if (!cancelled && isB2b && !hasCompany) {
-          router.replace("/onboarding");
+        const destination = await resolvePostLoginPath({
+          accountType: user.user_type,
+          companyCheckPayload: await api.get<CompanyCheckPayload>("/auth/check-company"),
+          onboardingPath: "/onboarding",
+          overviewPath: "/overview",
+          b2cPath: "/b2c"
+        });
+        if (!cancelled && destination === "/onboarding" && destination !== (pathname || "")) {
+          router.replace(destination);
         }
       } catch {
         if (!cancelled) {
@@ -70,7 +75,7 @@ export default function DashboardLayoutContent({
     return () => {
       cancelled = true;
     };
-  }, [loading, user, router]);
+  }, [loading, pathname, user, router]);
 
   useEffect(() => {
     if (loading || !user || user.user_type === "b2c") return;
