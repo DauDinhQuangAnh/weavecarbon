@@ -11,11 +11,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
 import { resolvePostLoginPath, type CompanyCheckPayload } from "@/lib/auth/routing";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
-import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import {
-  resolveSubscriptionState,
-  type SubscriptionApiPayload } from
-"@/lib/subscriptionState";
+  isStarterRestrictedDashboardPath,
+  resolveRestrictedDashboardRedirect
+} from "@/lib/dashboard/accessGuards";
+import type { SubscriptionApiPayload } from "@/lib/subscriptionState";
 
 interface DashboardLayoutContentProps {
   children: React.ReactNode;
@@ -80,40 +80,32 @@ export default function DashboardLayoutContent({
   useEffect(() => {
     if (loading || !user || user.user_type === "b2c") return;
     const currentPath = pathname || "";
-    const isRestrictedPage =
-      currentPath === "/export" ||
-      currentPath.startsWith("/export/") ||
-      currentPath === "/reports" ||
-      currentPath.startsWith("/reports/");
-    if (!isRestrictedPage) return;
+    if (!isStarterRestrictedDashboardPath(currentPath)) return;
 
     let cancelled = false;
     const enforceStarterRestrictions = async () => {
       try {
         const payload: SubscriptionApiPayload = await getSubscriptionApiPayload();
-        const resolved = resolveSubscriptionState(payload);
-        let effectivePlan = resolved.plan;
-
-        if (effectivePlan !== "trial") {
-          try {
-            const account = await api.get<{
-              company?: {
-                current_plan?: string | null;
-              } | null;
-            }>("/account");
-            if (getSubscriptionPlanFamily(account?.company?.current_plan || null) === "trial") {
-              effectivePlan = "trial";
-            }
-          } catch {
-            // noop: subscription endpoint remains primary source
-          }
+        let accountPlan: string | null = null;
+        try {
+          const account = await api.get<{
+            company?: {
+              current_plan?: string | null;
+            } | null;
+          }>("/account");
+          accountPlan = account?.company?.current_plan || null;
+        } catch {
+          // noop: subscription endpoint remains primary source
         }
 
-        if (
-          !cancelled &&
-          effectivePlan === "trial"
-        ) {
-          router.replace("/overview");
+        const redirectPath = resolveRestrictedDashboardRedirect({
+          pathname: currentPath,
+          subscriptionPayload: payload,
+          accountCompanyPlan: accountPlan
+        });
+
+        if (!cancelled && redirectPath) {
+          router.replace(redirectPath);
         }
       } catch {
         // Do not hard redirect on transient errors to avoid false Starter lock.

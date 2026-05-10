@@ -103,15 +103,25 @@ Tac dong mong doi:
 
 ### 4. Tang do phu test cho frontend
 
-Hien tai trong `package.json` chi co script test la:
+Trang thai cap nhat:
 
-- `test:carbon`: `vitest run`
+- Da lam mot phan: them script `test`: `vitest run`.
+- Da lam mot phan: bo sung `lib/dashboard/accessGuards.ts` va test cho guard subscription cua `/reports` va `/export`.
+- Da lam mot phan: tong test hien co tang tu 15 len 21 test.
+- Con lai: can tiep tuc bo sung React Testing Library/integration test cho login UI, onboarding company-created, reports/export compliance upload/update/delete.
 
-Va khi quet codebase, test thuc te gan nhu chi thay o:
+Hien tai trong `package.json` da co script test co the chay toan bo Vitest:
 
+- `test`: `vitest run`
+- `test:carbon`: `vitest run` (giu lai de tuong thich)
+
+Test thuc te hien co:
+
+- `lib/dashboard/accessGuards.test.ts`
+- `lib/auth/routing.test.ts`
 - `lib/carbon/engine.test.ts`
 
-Dieu nay co nghia la cac khu vuc quan trong nhu auth, onboarding, reports, export, subscription gating, analytics, va settings gan nhu chua co test tu dong.
+Dieu nay co nghia la subscription gating va auth helper da co mot lop test dau tien, nhung cac khu vuc quan trong nhu onboarding UI, reports/export workflow, analytics, va settings van con can them test tu dong.
 
 De xuat:
 
@@ -130,7 +140,12 @@ Tac dong mong doi:
 
 ### 5. Tang type safety va chuan hoa boundary voi API
 
-`lib/reportsApi.ts:1` dang tat rule `no-explicit-any`, cho thay boundary voi backend chua that su chat.
+Trang thai cap nhat:
+
+- Da lam mot phan: `lib/reportsApi.ts` khong con tat rule `no-explicit-any`; cac helper workbook/worksheet/row da dung type tu `exceljs`.
+- Con lai: can tiep tuc them schema `zod` cho response quan trong cua reports/export/products/auth.
+
+`lib/reportsApi.ts` da go bo disable `no-explicit-any` cho cac helper ExcelJS, nhung boundary voi backend van can duoc chuan hoa tiep bang schema ro rang.
 
 Ngoai ra, nhieu module lon dang xu ly mapping va normalizing ngay trong client, dan den:
 
@@ -173,12 +188,16 @@ Tac dong mong doi:
 
 ### 7. Don dep debug log, code cu comment lai, va hygiene chung
 
+Trang thai cap nhat:
+
+- Da lam: xoa legacy commented block o dau `components/landing/LeafHero3D.tsx`.
+- Da lam: xoa cac `console.log` runtime trong `LeafHero3D.tsx`; chi giu `console.error` cho loi load model.
+- Con lai: neu muon chat hon, co the them lint rule de chan `console.log` trong production code.
+
 `components/landing/LeafHero3D.tsx` la vi du kha ro:
 
-- Phan dau file con giu mot khoi lon code cu dang comment (`LeafHero3D.tsx:1-30` va con dai hon nua).
-- Van con debug log o runtime:
-  - `LeafHero3D.tsx:1157`
-  - `LeafHero3D.tsx:1394-1410`
+- Truoc day phan dau file con giu mot khoi lon code cu dang comment.
+- Truoc day van con debug log o runtime trong loading/model setup.
 
 De xuat:
 
@@ -193,15 +212,27 @@ Tac dong mong doi:
 
 ### 8. Xem lai flow invite user va password tam tao o frontend
 
-`components/dashboard/settings/UsersSettings.tsx:133-143` dang tao temporary password bang `Math.random()` ngay tren frontend.
+Trang thai cap nhat:
 
-Ngay ca khi day moi la gia tri tam, day van la logic nhay cam va nen duoc day ve backend hoac doi sang invite-token flow.
+- Da xac minh FE: `components/dashboard/settings/UsersSettings.tsx` khong con tao temporary password bang `Math.random()`.
+- Da xac minh BE: `POST /api/company/members` dung email invite token flow qua `companyMembersService.createMember`, `authService.generateCompanyInviteToken`, va `emailService.sendCompanyInviteEmail`.
+- Con lai: BE van tao `temporaryPassword` noi bo trong `authService.createInvitedCompanyUser` cho invited user moi. Password nay khong duoc FE sinh ra va khong duoc gui trong company invite email, nhung flow sau khi accept invite hien tra `next_step: 'signin'`, nen can quyet dinh tiep: cho invited user dat password qua one-time setup link, magic session, hoac reset-password flow.
+
+Truoc day can lo viec frontend tao temporary password bang `Math.random()`. Hien tai client da chuyen sang payload invite:
+
+- `full_name`
+- `email`
+- `role`
+- `send_notification_email`
+- `frontend_origin`
+
+Rui ro con lai nam o backend/product flow cho invited user moi, khong con nam o FE.
 
 De xuat:
 
-- Khong tao password tam o client nua.
-- Chuyen sang invite link hoac one-time activation flow.
-- Neu backend bat buoc can password tam, server phai la noi sinh ra va ghi nhan.
+- Khong tao password tam o client nua. Da dat.
+- Chuyen sang invite link hoac one-time activation flow. Da co invite link, nhung can bo sung buoc dat password/magic session sau accept invite.
+- Neu backend bat buoc can password tam, server phai la noi sinh ra va ghi nhan. BE dang sinh noi bo; nen tranh de nguoi dung bi ket o buoc sign-in khi khong co password.
 
 Tac dong mong doi:
 

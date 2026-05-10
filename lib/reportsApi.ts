@@ -1,4 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
+  Row,
+  Workbook,
+  Worksheet
+} from "exceljs";
 import { api } from "@/lib/apiClient";
 
 export type ReportDatasetType =
@@ -315,10 +319,10 @@ const triggerBlobDownload = (blob: Blob, filename: string) => {
   window.setTimeout(() => URL.revokeObjectURL(href), 60000);
 };
 
-const autoFitWorksheetColumns = (worksheet: any, maxWidth = 42) => {
-  worksheet.columns?.forEach((column: any) => {
+const autoFitWorksheetColumns = (worksheet: Worksheet, maxWidth = 42) => {
+  worksheet.columns?.forEach((column) => {
     let width = 14;
-    column.eachCell?.({ includeEmpty: true }, (cell: any) => {
+    column.eachCell?.({ includeEmpty: true }, (cell) => {
       const text = stringifyValue(cell.value);
       width = Math.max(width, Math.min(text.length + 2, maxWidth));
     });
@@ -327,7 +331,7 @@ const autoFitWorksheetColumns = (worksheet: any, maxWidth = 42) => {
 };
 
 const applyTitleBlock = (
-  worksheet: any,
+  worksheet: Worksheet,
   title: string,
   subtitle: string,
   accent: string,
@@ -347,9 +351,9 @@ const applyTitleBlock = (
   subtitleCell.font = { size: 10, italic: true, color: { argb: "475569" } };
 };
 
-const styleHeaderRow = (row: any, accent: string) => {
+const styleHeaderRow = (row: Row, accent: string) => {
   row.height = 22;
-  row.eachCell((cell: any) => {
+  row.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accent } };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
@@ -362,8 +366,8 @@ const styleHeaderRow = (row: any, accent: string) => {
   });
 };
 
-const styleBodyRow = (row: any, isEven: boolean) => {
-  row.eachCell((cell: any) => {
+const styleBodyRow = (row: Row, isEven: boolean) => {
+  row.eachCell((cell) => {
     cell.alignment = { vertical: "top", wrapText: true };
     cell.border = {
       top: { style: "thin", color: { argb: "E2E8F0" } },
@@ -378,7 +382,7 @@ const styleBodyRow = (row: any, isEven: boolean) => {
 };
 
 const addOverviewSheet = (
-  workbook: any,
+  workbook: Workbook,
   datasetType: ReportDatasetType,
   analysis: DatasetAnalysis,
   options: ReportWorkbookOptions
@@ -436,7 +440,7 @@ const addOverviewSheet = (
 };
 
 const addSummarySheet = (
-  workbook: any,
+  workbook: Workbook,
   datasetType: ReportDatasetType,
   analysis: DatasetAnalysis
 ) => {
@@ -485,7 +489,7 @@ const addSummarySheet = (
 };
 
 const addDictionarySheet = (
-  workbook: any,
+  workbook: Workbook,
   datasetType: ReportDatasetType,
   analysis: DatasetAnalysis
 ) => {
@@ -513,7 +517,7 @@ const addDictionarySheet = (
 };
 
 const addDataSheet = (
-  workbook: any,
+  workbook: Workbook,
   datasetType: ReportDatasetType,
   columns: string[],
   rows: Record<string, unknown>[],
@@ -860,4 +864,3 @@ export const exportFullStandardReport = async (
 
   return { total, datasets: datasets.length };
 };
-
