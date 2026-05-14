@@ -7,7 +7,7 @@
 
 import { useCallback, useState } from "react";
 import { analyzeImageForDonation } from "@/lib/b2cImageAnalysisApi";
-import type { ImageAnalysisResult, ImageAnalysisState } from "@/types/imageAnalysis";
+import type { ImageAnalysisState } from "@/types/imageAnalysis";
 
 const initialState: ImageAnalysisState = {
   isLoading: false,

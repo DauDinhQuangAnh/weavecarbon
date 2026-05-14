@@ -213,8 +213,7 @@ const B2CDonationClient: React.FC = () => {
     error: analysisError,
     isCompleted: analysisCompleted,
     analyzeImage,
-    resetAnalysis,
-    clearError: clearAnalysisError
+    resetAnalysis
   } = useImageAnalysis();
   const [showAnalysisAlert, setShowAnalysisAlert] = useState(true);
 

@@ -5,7 +5,7 @@
  */
 
 import type { MaterialReward } from "@/lib/b2cApi";
-import type { ImageAnalysisResult, AnalyzedProduct } from "@/types/imageAnalysis";
+import type { ImageAnalysisResult } from "@/types/imageAnalysis";
 
 export interface DonationItemFormState {
   id: string;
