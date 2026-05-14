@@ -17,7 +17,7 @@ interface CompanyMutationResponse {
 }
 
 const OnboardingClient: React.FC = () => {
-  const { user, loading, refreshUser, updateUser } = useAuth();
+  const { user, loading, authStatus, refreshUser, updateUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -38,7 +38,7 @@ const OnboardingClient: React.FC = () => {
   }, [defaultDomesticMarket, domesticMarket]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authStatus === "checking" || authStatus === "recovering") return;
 
     if (!user) {
       router.replace("/auth");
@@ -50,7 +50,7 @@ const OnboardingClient: React.FC = () => {
     if (user.company_id && !isGoogleFlow) {
       router.replace("/overview");
     }
-  }, [user, loading, router, isGoogleFlow]);
+  }, [user, loading, authStatus, router, isGoogleFlow]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

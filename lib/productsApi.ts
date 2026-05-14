@@ -1320,6 +1320,11 @@ quantityFallback = 1)
       .filter(isObject)
       .map((item) => ({
         factorId: asString(item.factorId ?? item.factor_id),
+        factorVersionId: asString(
+          item.factorVersionId ??
+          item.factor_version_id ??
+          `${asString(item.factorId ?? item.factor_id)}:legacy`
+        ),
         label: asString(item.label),
         stage: asString(item.stage) as NonNullable<CarbonAssessmentResult["factorSourceSummary"]>[number]["stage"],
         unit: asString(item.unit),
@@ -1329,6 +1334,48 @@ quantityFallback = 1)
         geography: asNonEmptyString(item.geography) ?? undefined,
         year: asNullableNumber(item.year) ?? undefined,
         quality: asString(item.quality) as NonNullable<CarbonAssessmentResult["factorSourceSummary"]>[number]["quality"],
+        factorClass: asString(
+          item.factorClass ??
+          item.factor_class ??
+          (asBoolean(item.isProxy ?? item.is_proxy) ? "internal_proxy" : "documented_secondary")
+        ) as NonNullable<CarbonAssessmentResult["factorSourceSummary"]>[number]["factorClass"],
+        boundaryType: asString(
+          item.boundaryType ??
+          item.boundary_type ??
+          "unknown"
+        ) as NonNullable<CarbonAssessmentResult["factorSourceSummary"]>[number]["boundaryType"],
+        gwpBasis: asString(item.gwpBasis ?? item.gwp_basis, "IPCC_AR5_100y"),
+        uncertaintyCv: asNumber(item.uncertaintyCv ?? item.uncertainty_cv, 0.5),
+        qualityScores: (() => {
+          const qualityScores = item.qualityScores ?? item.quality_scores;
+          if (!isObject(qualityScores)) {
+            return {
+              technologicalRepresentativeness: 5,
+              temporalRepresentativeness: 5,
+              geographicalRepresentativeness: 5,
+              completeness: 5,
+              reliability: 5
+            };
+          }
+          return {
+            technologicalRepresentativeness: asNumber(
+              qualityScores.technologicalRepresentativeness ??
+              qualityScores.technological_representativeness,
+              5
+            ),
+            temporalRepresentativeness: asNumber(
+              qualityScores.temporalRepresentativeness ?? qualityScores.temporal_representativeness,
+              5
+            ),
+            geographicalRepresentativeness: asNumber(
+              qualityScores.geographicalRepresentativeness ??
+              qualityScores.geographical_representativeness,
+              5
+            ),
+            completeness: asNumber(qualityScores.completeness, 5),
+            reliability: asNumber(qualityScores.reliability, 5)
+          };
+        })(),
         isProxy: asBoolean(item.isProxy ?? item.is_proxy)
       })),
     dataQualityBreakdown: (() => {

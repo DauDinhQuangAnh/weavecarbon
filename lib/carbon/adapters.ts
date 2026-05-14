@@ -99,7 +99,8 @@ const buildTransportEntry = (
     mode: mode as CarbonTransportInput["mode"],
     factorId: TRANSPORT_FACTOR_BY_MODE[mode] || "transport-multimodal-proxy",
     distanceKm,
-    defaultDistanceKey: marketKey
+    defaultDistanceKey: marketKey,
+    boundaryType: "gate_to_market"
   };
 };
 
@@ -171,6 +172,7 @@ export const buildCarbonEngineInputFromBulkRow = (row: BulkProductRow): CarbonEn
   return {
     unitMassKg,
     quantity: Math.max(1, toNumber(row.quantity)),
+    reportingActorRole: "manufacturer",
     materials: buildBulkMaterials(row),
     accessories: accessoryNames.map((name, index) => ({
       id: `accessory-${index + 1}`,
@@ -217,6 +219,7 @@ export const buildCarbonEngineInputFromAssessment = (
   return {
     unitMassKg: Math.max(0, toNumber(data.weightPerUnit) / 1000),
     quantity: Math.max(1, toNumber(data.quantity)),
+    reportingActorRole: "manufacturer",
     materials: data.materials.map((material) => ({
       id: material.id,
       type: material.materialType,
@@ -257,7 +260,8 @@ export const buildCarbonEngineInputFromAssessment = (
       mode: leg.mode,
       factorId: TRANSPORT_FACTOR_BY_MODE[leg.mode] || "transport-multimodal-proxy",
       distanceKm: leg.estimatedDistance,
-      defaultDistanceKey: destinationMarket
+      defaultDistanceKey: destinationMarket,
+      boundaryType: "gate_to_market"
     }))
   };
 };
@@ -284,6 +288,7 @@ export const buildCarbonEngineInputFromProductOverview = (
   return {
     unitMassKg,
     quantity: 1,
+    reportingActorRole: "manufacturer",
     materials: [
       {
         id: "material-1",

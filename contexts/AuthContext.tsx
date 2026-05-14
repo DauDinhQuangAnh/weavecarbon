@@ -17,7 +17,9 @@ import {
   authTokenStore,
   AuthTokens,
   ensureAccessToken,
+  isDefinitiveAuthExpiredCode,
   isApiError,
+  readAuthUserSnapshot,
   setAuthUserSnapshot } from
 "@/lib/apiClient";
 import { resolveCompanyRole, type CompanyRole } from "@/lib/permissions";
@@ -70,6 +72,7 @@ interface SignInOptions {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authStatus: AuthSessionStatus;
   isDemoSession: boolean;
   hasRealSession: boolean;
   signUp: (
@@ -98,8 +101,19 @@ interface AuthContextType {
   => Promise<{error: Error | null;}>;
   exitDemoSession: () => Promise<void>;
   signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: (options?: RefreshUserOptions) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
+}
+
+type AuthSessionStatus =
+  | "checking"
+  | "authenticated"
+  | "recovering"
+  | "anonymous"
+  | "expired";
+
+interface RefreshUserOptions {
+  preserveUserOnFailure?: boolean;
 }
 
 interface BackendUser {
@@ -427,6 +441,20 @@ const isUnauthorizedError = (error: unknown) => {
   return message.includes("unauthorized") || message.includes("invalid token");
 };
 
+const isConfirmedSessionExpiredError = (error: unknown) =>
+  isApiError(error) &&
+  error.status === 401 &&
+  isDefinitiveAuthExpiredCode(error.code);
+
+const loadStoredAuthUser = (): User | null => {
+  const snapshot = readAuthUserSnapshot();
+  if (!snapshot) {
+    return null;
+  }
+
+  return normalizeStoredUser(snapshot as unknown as User);
+};
+
 const getAccountSafely = async (): Promise<AccountPayload | null> => {
   if (!ACCOUNT_ENDPOINT_ENABLED) {
     return null;
@@ -569,6 +597,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   const [user, setUser] = useState<User | null>(null);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authStatus, setAuthStatus] = useState<AuthSessionStatus>("checking");
   const userRef = useRef<User | null>(null);
   const hasRealSession = Boolean(user?.id || authTokenStore.getAccessToken());
   const effectiveUser = isDemoRuntime ? demoUser || user : user;
@@ -595,11 +624,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
           writeDemoLockState();
           if (!cancelled) {
             setDemoUser(loadDemoUser());
+            setAuthStatus("authenticated");
             setLoading(false);
           }
         } catch {
           if (!cancelled) {
             setDemoUser(null);
+            setAuthStatus("anonymous");
             setLoading(false);
           }
         }
@@ -613,9 +644,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       if (AUTH_DISABLED) {
         if (!cancelled) {
           applyRuntimeUser(null);
+          setAuthStatus("anonymous");
           setLoading(false);
         }
         return;
+      }
+
+      const storedUser = loadStoredAuthUser();
+      if (storedUser && !cancelled) {
+        applyRuntimeUser(storedUser);
+        setAuthStatus("recovering");
+      } else if (!cancelled) {
+        setAuthStatus("checking");
       }
 
       try {
@@ -628,14 +668,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         const nextUser = await syncUserCompanyRole(buildUserFromSignIn(session));
         if (!cancelled) {
           applyRuntimeUser(nextUser);
+          setAuthStatus("authenticated");
         }
-      } catch {
-        const fallbackUser = await syncUserCompanyRole(userRef.current);
+      } catch (error) {
+        const fallbackBaseUser = userRef.current || storedUser;
+        const fallbackUser = await syncUserCompanyRole(fallbackBaseUser);
         if (!fallbackUser) {
           clearSubscriptionLockStateCache();
         }
         if (!cancelled) {
-          applyRuntimeUser(fallbackUser);
+          if (fallbackUser && !isConfirmedSessionExpiredError(error)) {
+            applyRuntimeUser(fallbackUser);
+            setAuthStatus("recovering");
+          } else {
+            applyRuntimeUser(null);
+            setAuthStatus(isConfirmedSessionExpiredError(error) ? "expired" : "anonymous");
+          }
         }
       } finally {
         if (!cancelled) {
@@ -661,6 +709,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         if (!isDemoRuntime) {
           clearSubscriptionLockStateCache();
           applyRuntimeUser(null);
+          setAuthStatus("expired");
           setLoading(false);
         }
         return;
@@ -682,6 +731,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 
       clearSubscriptionLockStateCache();
       applyRuntimeUser(null);
+      setAuthStatus("expired");
       setLoading(false);
     };
 
@@ -708,27 +758,39 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     });
   }, [isDemoRuntime]);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (options?: RefreshUserOptions) => {
+    const preserveUserOnFailure = options?.preserveUserOnFailure === true;
     if (isDemoRuntime) {
       ensureDemoDataset();
       ensureDemoSession();
       writeDemoLockState();
       setDemoUser(loadDemoUser());
+      setAuthStatus("authenticated");
       setLoading(false);
       return;
     }
 
     if (AUTH_DISABLED) {
       applyRuntimeUser(null);
+      setAuthStatus("anonymous");
       setLoading(false);
       return;
     }
 
     try {
+      if (preserveUserOnFailure && userRef.current) {
+        setAuthStatus("recovering");
+      }
+
       const accessToken = await ensureAccessToken();
       if (!accessToken) {
+        if (preserveUserOnFailure && userRef.current) {
+          setAuthStatus("recovering");
+          return;
+        }
         clearSubscriptionLockStateCache();
         applyRuntimeUser(null);
+        setAuthStatus("expired");
         return;
       }
 
@@ -738,23 +800,62 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
           buildUserFromAccount(account, userRef.current)
         );
         applyRuntimeUser(nextUser);
+        setAuthStatus(nextUser ? "authenticated" : "anonymous");
       } else {
         const nextUser = await syncUserCompanyRole(userRef.current);
         applyRuntimeUser(nextUser);
+        setAuthStatus(nextUser ? "authenticated" : "anonymous");
       }
-    } catch {
+    } catch (error) {
       const hasAuthToken = Boolean(authTokenStore.getAccessToken());
-      if (!hasAuthToken) {
+      if (preserveUserOnFailure && userRef.current && !isConfirmedSessionExpiredError(error)) {
+        setAuthStatus("recovering");
+      } else if (!hasAuthToken || isConfirmedSessionExpiredError(error)) {
         clearSubscriptionLockStateCache();
         applyRuntimeUser(null);
+        setAuthStatus(isConfirmedSessionExpiredError(error) ? "expired" : "anonymous");
       } else {
         const nextUser = await syncUserCompanyRole(userRef.current);
         applyRuntimeUser(nextUser);
+        setAuthStatus(nextUser ? "authenticated" : "anonymous");
       }
     } finally {
       setLoading(false);
     }
   }, [applyRuntimeUser, isDemoRuntime]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isDemoRuntime || AUTH_DISABLED) {
+      return;
+    }
+
+    const recoverSession = () => {
+      if (!userRef.current && !loadStoredAuthUser()) {
+        return;
+      }
+      void refreshUser({ preserveUserOnFailure: true });
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        recoverSession();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        recoverSession();
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isDemoRuntime, refreshUser]);
 
   const signUp = async (
   email: string,
@@ -813,6 +914,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       if (nextUser && hasAccessToken && !needsConfirmation) {
         const syncedUser = await syncUserCompanyRole(nextUser);
         applyRuntimeUser(syncedUser);
+        setAuthStatus(syncedUser ? "authenticated" : "anonymous");
         if (typeof window !== "undefined" && syncedUser?.user_type === "b2b") {
           sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
         }
@@ -868,6 +970,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         authTokenStore.clear();
         clearSubscriptionLockStateCache();
         applyRuntimeUser(null);
+        setAuthStatus("anonymous");
         return {
           error: new Error(`ACCOUNT_TYPE_MISMATCH:${resolvedUserType}:${userType}`)
         };
@@ -878,12 +981,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
       const syncedUser = await syncUserCompanyRole(nextUser);
       applyRuntimeUser(syncedUser);
+      setAuthStatus(syncedUser ? "authenticated" : "anonymous");
       return { error: null };
     } catch (error) {
       if (isEmailNotVerifiedError(error)) {
         authTokenStore.clear();
         clearSubscriptionLockStateCache();
         applyRuntimeUser(null);
+        setAuthStatus("anonymous");
         return { error: null, needsConfirmation: true };
       }
       return {
@@ -966,6 +1071,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       const nextUser = buildUserFromDemo(payload, userType);
       const syncedUser = await syncUserCompanyRole(nextUser);
       applyRuntimeUser(syncedUser);
+      setAuthStatus(syncedUser ? "authenticated" : "anonymous");
 
       return { error: null };
     } catch (error) {
@@ -984,6 +1090,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       ensureDemoSession();
       writeDemoLockState();
       setDemoUser(loadDemoUser());
+      setAuthStatus("authenticated");
       setLoading(false);
       return { error: null };
     } catch (error) {
@@ -998,6 +1105,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     clearDemoSession();
     clearSubscriptionLockStateCache();
     setDemoUser(null);
+    setAuthStatus("anonymous");
     setLoading(false);
   };
 
@@ -1020,6 +1128,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     authTokenStore.clear({ notify: true });
     clearSubscriptionLockStateCache();
     applyRuntimeUser(null);
+    setAuthStatus("expired");
   };
 
   return (
@@ -1027,6 +1136,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       value={{
         user: effectiveUser,
         loading,
+        authStatus,
         isDemoSession: isDemoRuntime,
         hasRealSession,
         signUp,

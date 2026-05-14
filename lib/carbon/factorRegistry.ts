@@ -2,7 +2,12 @@ import {
   MATERIAL_CATALOG,
   type CatalogMaterial
 } from "@/components/dashboard/assessment/materialCatalog";
-import type { CarbonFactorMetadata } from "@/lib/carbon/types";
+import type {
+  CarbonFactorClass,
+  CarbonFactorMetadata,
+  CarbonFactorQuality,
+  CarbonQualityScores
+} from "@/lib/carbon/types";
 
 const GHG_PROTOCOL_PRODUCT_STANDARD_URL =
   "https://ghgprotocol.org/sites/default/files/standards/Product-Life-Cycle-Accounting-Reporting-Standard_041613.pdf";
@@ -19,7 +24,83 @@ const normalizeToken = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "");
 
-const buildCatalogFactor = (material: CatalogMaterial): CarbonFactorMetadata => ({
+type RawCarbonFactorMetadata = Omit<
+  CarbonFactorMetadata,
+  | "boundaryType"
+  | "factorClass"
+  | "factorVersionId"
+  | "gwpBasis"
+  | "qualityScores"
+  | "uncertaintyCv"
+>;
+
+const GWP_BASIS = "IPCC_AR5_100y";
+
+const QUALITY_SCORES_BY_QUALITY: Record<CarbonFactorQuality, CarbonQualityScores> = {
+  primary: {
+    technologicalRepresentativeness: 1,
+    temporalRepresentativeness: 1,
+    geographicalRepresentativeness: 1,
+    completeness: 1,
+    reliability: 1
+  },
+  documented_secondary: {
+    technologicalRepresentativeness: 2,
+    temporalRepresentativeness: 2,
+    geographicalRepresentativeness: 2,
+    completeness: 2,
+    reliability: 2
+  },
+  internal_proxy: {
+    technologicalRepresentativeness: 4,
+    temporalRepresentativeness: 3,
+    geographicalRepresentativeness: 4,
+    completeness: 3,
+    reliability: 4
+  },
+  market_default_or_missing: {
+    technologicalRepresentativeness: 5,
+    temporalRepresentativeness: 4,
+    geographicalRepresentativeness: 5,
+    completeness: 5,
+    reliability: 5
+  }
+};
+
+const FACTOR_CLASS_BY_QUALITY: Record<CarbonFactorQuality, CarbonFactorClass> = {
+  primary: "measured_primary_activity",
+  documented_secondary: "documented_secondary",
+  internal_proxy: "internal_proxy",
+  market_default_or_missing: "market_default"
+};
+
+const UNCERTAINTY_CV_BY_QUALITY: Record<CarbonFactorQuality, number> = {
+  primary: 0.1,
+  documented_secondary: 0.2,
+  internal_proxy: 0.35,
+  market_default_or_missing: 0.5
+};
+
+const resolveBoundaryType = (
+  factor: RawCarbonFactorMetadata
+): CarbonFactorMetadata["boundaryType"] => {
+  if (factor.id.startsWith("transport-")) return "gate_to_market";
+  if (factor.id.startsWith("process-")) return "gate_to_gate";
+  return "cradle_to_gate";
+};
+
+const enrichFactor = (factor: RawCarbonFactorMetadata): CarbonFactorMetadata => ({
+  ...factor,
+  boundaryType: resolveBoundaryType(factor),
+  factorClass: FACTOR_CLASS_BY_QUALITY[factor.quality],
+  factorVersionId: `${factor.id}:v1`,
+  gwpBasis: GWP_BASIS,
+  qualityScores: QUALITY_SCORES_BY_QUALITY[factor.quality],
+  uncertaintyCv: UNCERTAINTY_CV_BY_QUALITY[factor.quality],
+  validFrom: factor.year ? `${factor.year}-01-01` : undefined
+});
+
+const buildCatalogFactor = (material: CatalogMaterial): RawCarbonFactorMetadata => ({
   id: material.id,
   label: material.displayNameEn,
   unit: "kgCO2e/kg",
@@ -31,7 +112,7 @@ const buildCatalogFactor = (material: CatalogMaterial): CarbonFactorMetadata => 
   isProxy: true
 });
 
-const CATALOG_FACTORS = MATERIAL_CATALOG.reduce<Record<string, CarbonFactorMetadata>>(
+const CATALOG_FACTORS = MATERIAL_CATALOG.reduce<Record<string, RawCarbonFactorMetadata>>(
   (accumulator, material) => {
     accumulator[material.id] = buildCatalogFactor(material);
     return accumulator;
@@ -39,7 +120,7 @@ const CATALOG_FACTORS = MATERIAL_CATALOG.reduce<Record<string, CarbonFactorMetad
   {}
 );
 
-const STATIC_FACTORS: Record<string, CarbonFactorMetadata> = {
+const STATIC_FACTORS: Record<string, RawCarbonFactorMetadata> = {
   "energy-grid-vn-2023": {
     id: "energy-grid-vn-2023",
     label: "Vietnam grid electricity 2023",
@@ -383,10 +464,14 @@ export const MARKET_DISTANCE_DEFAULTS: Record<string, number> = {
   other: 5000
 };
 
-const CARBON_FACTORS: Record<string, CarbonFactorMetadata> = {
+const RAW_CARBON_FACTORS: Record<string, RawCarbonFactorMetadata> = {
   ...CATALOG_FACTORS,
   ...STATIC_FACTORS
 };
+
+const CARBON_FACTORS: Record<string, CarbonFactorMetadata> = Object.fromEntries(
+  Object.entries(RAW_CARBON_FACTORS).map(([id, factor]) => [id, enrichFactor(factor)])
+);
 
 export const resolveCarbonFactorId = (value: string | null | undefined) => {
   const raw = String(value || "").trim();

@@ -25,7 +25,7 @@ export default function DashboardLayoutContent({
   children
 }: DashboardLayoutContentProps) {
   const { title, subtitle } = useDashboardTitle();
-  const { user, loading } = useAuth();
+  const { user, loading, authStatus } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isProductsPage = pathname === "/products" || pathname === "/demo/products";
@@ -47,7 +47,13 @@ export default function DashboardLayoutContent({
           : "pt-[4.4rem]";
 
   useEffect(() => {
-    if (loading || !user || user.user_type === "b2c") return;
+    if (
+      loading ||
+      authStatus === "checking" ||
+      authStatus === "recovering" ||
+      !user ||
+      user.user_type === "b2c"
+    ) return;
 
     let cancelled = false;
     const verifyCompanyAndRedirect = async () => {
@@ -65,9 +71,7 @@ export default function DashboardLayoutContent({
           router.replace(destination);
         }
       } catch {
-        if (!cancelled) {
-          router.replace("/onboarding");
-        }
+        // Keep the current page on transient session/network errors.
       }
     };
 
@@ -75,10 +79,16 @@ export default function DashboardLayoutContent({
     return () => {
       cancelled = true;
     };
-  }, [loading, pathname, user, router]);
+  }, [authStatus, loading, pathname, user, router]);
 
   useEffect(() => {
-    if (loading || !user || user.user_type === "b2c") return;
+    if (
+      loading ||
+      authStatus === "checking" ||
+      authStatus === "recovering" ||
+      !user ||
+      user.user_type === "b2c"
+    ) return;
     const currentPath = pathname || "";
     if (!isStarterRestrictedDashboardPath(currentPath)) return;
 
@@ -116,7 +126,7 @@ export default function DashboardLayoutContent({
     return () => {
       cancelled = true;
     };
-  }, [loading, user, pathname, router]);
+  }, [authStatus, loading, user, pathname, router]);
 
   return (
     <>

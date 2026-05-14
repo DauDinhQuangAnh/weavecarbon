@@ -6,20 +6,39 @@ export type CarbonFactorQuality =
   | "internal_proxy"
   | "market_default_or_missing";
 
+export type CarbonFactorClass =
+  | "measured_primary_activity"
+  | "supplier_specific"
+  | "documented_secondary"
+  | "market_default"
+  | "internal_proxy";
+
 export type CarbonStageKey =
   | "materials"
+  | "finished_goods_manufacturing"
+  | "logistics_and_storage"
   | "production"
-  | "energy"
   | "transport"
   | "packaging";
+
+export type CarbonReportingActorRole = "manufacturer" | "brand" | "supplier" | "other";
 
 export interface CarbonRange {
   min: number;
   max: number;
 }
 
+export interface CarbonQualityScores {
+  technologicalRepresentativeness: number;
+  temporalRepresentativeness: number;
+  geographicalRepresentativeness: number;
+  completeness: number;
+  reliability: number;
+}
+
 export interface CarbonFactorMetadata {
   id: string;
+  factorVersionId: string;
   label: string;
   unit: string;
   value: number;
@@ -28,11 +47,19 @@ export interface CarbonFactorMetadata {
   year?: number;
   geography?: string;
   quality: CarbonFactorQuality;
+  factorClass: CarbonFactorClass;
+  boundaryType: "cradle_to_gate" | "gate_to_gate" | "gate_to_market" | "unknown";
+  gwpBasis: string;
+  validFrom?: string;
+  validTo?: string;
+  uncertaintyCv: number;
+  qualityScores: CarbonQualityScores;
   isProxy: boolean;
 }
 
 export interface CarbonFactorSummaryItem {
   factorId: string;
+  factorVersionId: string;
   label: string;
   stage: CarbonStageKey;
   unit: string;
@@ -42,6 +69,11 @@ export interface CarbonFactorSummaryItem {
   geography?: string;
   year?: number;
   quality: CarbonFactorQuality;
+  factorClass: CarbonFactorClass;
+  boundaryType: CarbonFactorMetadata["boundaryType"];
+  gwpBasis: string;
+  uncertaintyCv: number;
+  qualityScores: CarbonQualityScores;
   isProxy: boolean;
 }
 
@@ -72,6 +104,7 @@ export interface CarbonMaterialInput {
   factorId?: string;
   type: string;
   percentage: number;
+  yieldToProduct?: number;
   source?: "domestic" | "imported" | "unknown";
   provenanceFactorId?: string;
   name?: string;
@@ -90,6 +123,7 @@ export interface CarbonAccessoryInput {
 export interface CarbonPackagingInput {
   factorId?: string;
   weightKg: number;
+  yieldToProduct?: number;
   label?: string;
   isPrimaryData?: boolean;
 }
@@ -108,6 +142,7 @@ export interface CarbonTransportInput {
   distanceKm?: number;
   defaultDistanceKey?: string;
   geography?: string;
+  boundaryType?: "gate_to_market" | "inbound" | "interfacility";
   isPrimaryData?: boolean;
 }
 
@@ -123,6 +158,7 @@ export interface CarbonEngineInput {
   manufacturingGeography?: string;
   originGeography?: string;
   destinationMarket?: string;
+  reportingActorRole?: CarbonReportingActorRole;
   transport: CarbonTransportInput[];
 }
 
@@ -138,6 +174,9 @@ export interface CarbonBreakdownResult {
 export interface CarbonComputationResult {
   perProduct: CarbonBreakdownResult;
   totalBatch: CarbonBreakdownResult;
+  cradleToGateCoreKgCO2e: number;
+  gateToMarketExtensionKgCO2e: number;
+  reportedTotalKgCO2e: number;
   confidenceLevel: CarbonConfidenceLevel;
   confidenceScore: number;
   proxyUsed: boolean;
@@ -147,6 +186,49 @@ export interface CarbonComputationResult {
   scope3: number | null;
   co2eRange: CarbonRange;
   methodologyVersion: string;
+  methodology: {
+    name: string;
+    methodologyVersion: string;
+    standardsAlignment: string[];
+    impactCategory: "climate_change_only";
+    inventoryType: "partial_cfp";
+    boundaryType: "cradle_to_gate_plus_gate_to_market_extension";
+    gwpBasis: string;
+    reportingActorRole: CarbonReportingActorRole;
+  };
+  boundary: {
+    includedStages: CarbonStageKey[];
+    excludedStages: string[];
+    partialCfp: boolean;
+  };
+  quality: {
+    dataQualityRating1To5: number;
+    dataQualityPercent: number;
+    confidenceLevel: CarbonConfidenceLevel;
+    primaryDataEmissionsShare: number;
+    supplierSpecificEmissionsShare: number;
+    secondaryEmissionsShare: number;
+    proxyEmissionsShare: number;
+  };
+  uncertainty: {
+    method: "rss_fallback";
+    p5KgCO2e: number;
+    p95KgCO2e: number;
+    halfWidth95Percent: number;
+  };
+  energyBreakdown: Array<{
+    factorId: string;
+    label: string;
+    amount: number;
+    scope: "scope1" | "scope2" | "scope3";
+  }>;
+  factorSources: CarbonFactorSummaryItem[];
+  warnings: string[];
+  trace: {
+    factorManifest: string[];
+    calculationGraphVersion: string;
+    ruleEngineVersion: string;
+  };
   assumptionsUsed: string[];
   factorSourceSummary: CarbonFactorSummaryItem[];
   dataQualityBreakdown: CarbonDataQualityBreakdown;

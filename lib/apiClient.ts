@@ -264,6 +264,16 @@ const clearFromAllStorages = (keys: string[]) => {
   }
 };
 
+const clearPersistedTokenState = () => {
+  clearFromAllStorages([
+    ACCESS_TOKEN_STORAGE_KEY,
+    REFRESH_TOKEN_STORAGE_KEY,
+    COOKIE_SESSION_MODE_KEY,
+    TOKEN_STORAGE_MODE_KEY,
+    ...ALL_LEGACY_TOKEN_STORAGE_KEYS
+  ]);
+};
+
 const emitAuthInvalidated = () => {
   if (typeof window === "undefined") return;
   try {
@@ -277,12 +287,34 @@ const emitAuthInvalidated = () => {
 export const clearPersistedAuthState = () => {
   clearFromAllStorages([
     USER_STORAGE_KEY,
-    ACCESS_TOKEN_STORAGE_KEY,
-    REFRESH_TOKEN_STORAGE_KEY,
-    COOKIE_SESSION_MODE_KEY,
-    TOKEN_STORAGE_MODE_KEY,
-    ...ALL_LEGACY_TOKEN_STORAGE_KEYS
   ]);
+  clearPersistedTokenState();
+};
+
+export const readAuthUserSnapshot = (): Record<string, unknown> | null => {
+  if (authUserSnapshot) {
+    return { ...authUserSnapshot };
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawUser = readFromStorage(localStorage, USER_STORAGE_KEY);
+  if (!rawUser) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(rawUser);
+    if (parsedUser && typeof parsedUser === "object" && !Array.isArray(parsedUser)) {
+      return parsedUser as Record<string, unknown>;
+    }
+  } catch {
+    writeToStorage(localStorage, USER_STORAGE_KEY, null);
+  }
+
+  return null;
 };
 
 export const setAuthUserSnapshot = (snapshot: object | null) => {
@@ -290,6 +322,22 @@ export const setAuthUserSnapshot = (snapshot: object | null) => {
     snapshot && typeof snapshot === "object" ?
       { ...(snapshot as Record<string, unknown>) } :
       null;
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const isDemoSnapshot = Boolean(authUserSnapshot?.is_demo);
+  if (authUserSnapshot && !isDemoSnapshot) {
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUserSnapshot));
+    } catch {
+
+    }
+    return;
+  }
+
+  writeToStorage(localStorage, USER_STORAGE_KEY, null);
 };
 
 const writeAccessTokenStorage = (value: string | null) => {
@@ -363,7 +411,7 @@ export const authTokenStore = {
     const runtimeAccessToken = normalizeToken(inMemoryAccessToken);
     if (runtimeAccessToken) {
       if (isTokenExpired(runtimeAccessToken)) {
-        clearRuntimeTokens({ notify: true });
+        inMemoryAccessToken = null;
         return null;
       }
       return runtimeAccessToken;
@@ -453,7 +501,7 @@ export const authTokenStore = {
 
     const storageScope = options?.storageScope ?? "memory";
     if (storageScope !== "storage") {
-      clearPersistedAuthState();
+      clearPersistedTokenState();
       return;
     }
 
@@ -480,6 +528,10 @@ export const authTokenStore = {
   getSessionMode: () => getCookieSessionMode() || getTokenStorageMode(),
   hasSessionMarker: () => true,
   hasRefreshCapability: () => true,
+  clearAccessToken: () => {
+    inMemoryAccessToken = null;
+    clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY]);
+  },
   clear: (options?: { clearPersistentTokens?: boolean; notify?: boolean; }) =>
   clearRuntimeTokens(options)
 };
@@ -612,7 +664,7 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
   }
 
   if (accessToken) {
-    authTokenStore.clear({ clearPersistentTokens: false });
+    authTokenStore.clearAccessToken();
   }
 
   if (inflightAccessTokenRefresh) {
@@ -633,6 +685,10 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
       const payload = await parseResponse(response);
 
       if (!response.ok) {
+        const errorCode = getErrorCode(payload);
+        if (response.status === 401 && isDefinitiveAuthExpiredCode(errorCode)) {
+          authTokenStore.clear({ notify: true });
+        }
         return null;
       }
 
@@ -705,6 +761,16 @@ const getErrorCode = (payload: unknown) => {
   }
   return undefined;
 };
+
+const DEFINITIVE_AUTH_EXPIRED_CODES = new Set([
+  "SESSION_EXPIRED",
+  "INVALID_REFRESH_TOKEN",
+  "REFRESH_TOKEN_REUSED_OR_REVOKED",
+  "SESSION_USER_NOT_FOUND"
+]);
+
+export const isDefinitiveAuthExpiredCode = (code?: string) =>
+  typeof code === "string" && DEFINITIVE_AUTH_EXPIRED_CODES.has(code);
 
 const getErrorDetails = (payload: unknown) => {
   if (!isObject(payload)) return undefined;
@@ -859,17 +925,19 @@ options: ApiOptions = {})
     }
 
     if (!response.ok) {
+      const errorCode = getErrorCode(payload);
       if (
         response.status === 401 &&
         !hasExplicitAuthorization &&
-        !isNonInvalidatingAuthPath(path))
+        !isNonInvalidatingAuthPath(path) &&
+        isDefinitiveAuthExpiredCode(errorCode))
       {
         authTokenStore.clear({ notify: true });
       }
 
       throw new ApiError(getErrorMessage(payload, response.statusText), {
         status: response.status,
-        code: getErrorCode(payload),
+        code: errorCode,
         details: getErrorDetails(payload)
       });
     }

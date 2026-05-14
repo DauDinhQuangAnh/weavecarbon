@@ -4,6 +4,7 @@ import {
   resolveMarketDistanceDefault
 } from "@/lib/carbon/factorRegistry";
 import type {
+  CarbonConfidenceLevel,
   CarbonComputationResult,
   CarbonDataQualityBreakdown,
   CarbonEngineInput,
@@ -15,7 +16,17 @@ import type {
   CarbonStageKey
 } from "@/lib/carbon/types";
 
-const METHODOLOGY_VERSION = "WeaveCarbon PCF v2.0 cradle-to-market climate-only";
+const METHODOLOGY_NAME = "WeaveCarbon Attributional Textile PCF";
+const METHODOLOGY_VERSION = "WeaveCarbon Attributional Textile PCF v2.1 - climate-only partial CFP";
+const CALCULATION_GRAPH_VERSION = "textile-pcf-2.1.0";
+const RULE_ENGINE_VERSION = "scope-quality-rss-1.0.0";
+
+const CORE_STAGE_KEYS = [
+  "materials",
+  "finished_goods_manufacturing",
+  "packaging",
+  "logistics_and_storage"
+] as const satisfies CarbonStageKey[];
 
 const QUALITY_RANK: Record<CarbonFactorQuality, number> = {
   primary: 0,
@@ -68,6 +79,11 @@ type StageAccumulator = {
 
 type ScopeKey = "scope1" | "scope2" | "scope3";
 
+type ContributionTerm = {
+  amount: number;
+  factor: CarbonFactorMetadata;
+};
+
 const createStageAccumulator = (): StageAccumulator => ({
   amount: 0,
   factors: [],
@@ -87,6 +103,7 @@ const addFactorSummary = (
 
   accumulator.factors.push({
     factorId: factor.id,
+    factorVersionId: factor.factorVersionId,
     label: factor.label,
     stage,
     unit: factor.unit,
@@ -96,6 +113,11 @@ const addFactorSummary = (
     geography: factor.geography,
     year: factor.year,
     quality: factor.quality,
+    factorClass: factor.factorClass,
+    boundaryType: factor.boundaryType,
+    gwpBasis: factor.gwpBasis,
+    uncertaintyCv: factor.uncertaintyCv,
+    qualityScores: factor.qualityScores,
     isProxy: factor.isProxy
   });
   accumulator.quality = maxQuality(accumulator.quality, factor.quality);
@@ -145,28 +167,81 @@ const resolveFactorOrFallback = (
   return getCarbonFactor(factorId) ?? getCarbonFactor(fallbackId)!;
 };
 
-const resolveEnergyScope = (factor: CarbonFactorMetadata): ScopeKey => {
-  if (factor.id.startsWith("energy-coal") || factor.id.startsWith("energy-gas")) {
-    return "scope1";
+const resolveEnergyScope = (
+  factor: CarbonFactorMetadata,
+  reportingActorRole: CarbonEngineInput["reportingActorRole"]
+): ScopeKey => {
+  if (reportingActorRole === "brand") return "scope3";
+  if (factor.id.startsWith("energy-coal") || factor.id.startsWith("energy-gas")) return "scope1";
+  return "scope2";
+};
+
+const buildRssUncertainty = (terms: ContributionTerm[], total: number) => {
+  if (total <= 0 || terms.length === 0) {
+    return {
+      method: "rss_fallback" as const,
+      p5KgCO2e: 0,
+      p95KgCO2e: 0,
+      halfWidth95Percent: 0
+    };
   }
 
-  return "scope2";
+  const variance = terms.reduce((sum, term) => {
+    const cv = term.factor.uncertaintyCv || UNCERTAINTY_BY_QUALITY[term.factor.quality];
+    return sum + Math.pow(term.amount * cv, 2);
+  }, 0);
+  const halfWidth = 1.96 * Math.sqrt(variance);
+  return {
+    method: "rss_fallback" as const,
+    p5KgCO2e: roundPerProduct(Math.max(0, total - halfWidth)),
+    p95KgCO2e: roundPerProduct(total + halfWidth),
+    halfWidth95Percent: roundPerProduct((halfWidth / total) * 100)
+  };
+};
+
+const averageQualityScore = (factor: CarbonFactorMetadata) => {
+  const scores = factor.qualityScores;
+  return (
+    scores.technologicalRepresentativeness +
+    scores.temporalRepresentativeness +
+    scores.geographicalRepresentativeness +
+    scores.completeness +
+    scores.reliability
+  ) / 5;
+};
+
+const resolveConfidenceLevel = (
+  dataQualityRating1To5: number,
+  proxyShare: number,
+  uncertaintyHalfWidth95Percent: number
+): CarbonConfidenceLevel => {
+  if (dataQualityRating1To5 <= 2 && proxyShare <= 0.15 && uncertaintyHalfWidth95Percent <= 20) {
+    return "high";
+  }
+  if (dataQualityRating1To5 <= 3.5 && proxyShare <= 0.5 && uncertaintyHalfWidth95Percent <= 60) {
+    return "medium";
+  }
+  return "low";
 };
 
 export const calculateCarbonFootprint = (
   input: CarbonEngineInput
 ): CarbonComputationResult => {
   const notes: string[] = [];
+  const warnings: string[] = [
+    "This result is an attributional, climate-only partial CFP estimate for decision support.",
+    "This result is not a comparative claim, product label, ISO certification, or third-party verification statement."
+  ];
   const quantity = isFiniteNumber(input.quantity) && input.quantity > 0 ? input.quantity : 1;
   const unitMassKg = isFiniteNumber(input.unitMassKg) ? Math.max(0, input.unitMassKg) : 0;
   const includePackagingFallbackNote = input.includePackagingFallbackNote ?? true;
+  const reportingActorRole = input.reportingActorRole || "manufacturer";
 
-  const stages: Record<CarbonStageKey, StageAccumulator> = {
+  const stages: Record<(typeof CORE_STAGE_KEYS)[number], StageAccumulator> = {
     materials: createStageAccumulator(),
-    production: createStageAccumulator(),
-    energy: createStageAccumulator(),
-    transport: createStageAccumulator(),
-    packaging: createStageAccumulator()
+    finished_goods_manufacturing: createStageAccumulator(),
+    packaging: createStageAccumulator(),
+    logistics_and_storage: createStageAccumulator()
   };
 
   let proxyContribution = 0;
@@ -174,20 +249,19 @@ export const calculateCarbonFootprint = (
   let scope1Amount = 0;
   let scope2Amount = 0;
   let scope3Amount = 0;
+  const contributionTerms: ContributionTerm[] = [];
+  const energyBreakdown: CarbonComputationResult["energyBreakdown"] = [];
   const addContribution = (amount: number, factor: CarbonFactorMetadata) => {
+    if (amount <= 0) return;
     totalContribution += amount;
-    if (factor.isProxy) {
-      proxyContribution += amount;
-    }
+    contributionTerms.push({ amount, factor });
+    if (factor.isProxy) proxyContribution += amount;
   };
 
   const totalAccessoryMassKg = input.accessories.reduce((sum, accessory) => {
-    if (!isFiniteNumber(accessory.weightKg) || accessory.weightKg <= 0) {
-      return sum;
-    }
+    if (!isFiniteNumber(accessory.weightKg) || accessory.weightKg <= 0) return sum;
     return sum + accessory.weightKg;
   }, 0);
-
   const materialBaseMassKg = Math.max(unitMassKg - totalAccessoryMassKg, 0);
   const unknownMaterialOriginCount = input.materials.filter(
     (material) => (material.source || "unknown") === "unknown"
@@ -200,6 +274,7 @@ export const calculateCarbonFootprint = (
   if (bomCoverage < 95 || bomCoverage > 105) {
     notes.push(`BOM coverage is ${roundPerProduct(bomCoverage)}%; results rely on partial material allocation.`);
     stages.materials.quality = maxQuality(stages.materials.quality, "market_default_or_missing");
+    warnings.push("Material BOM coverage is outside the 95-105% control range.");
   }
 
   if (input.materials.length === 0) {
@@ -210,8 +285,11 @@ export const calculateCarbonFootprint = (
   for (const material of input.materials) {
     const factor = resolveFactorOrFallback(material.factorId ?? material.type, "cat-other-generic");
     const percentage = clamp(material.percentage || 0, 0, 100);
-    const massKg = materialBaseMassKg * (percentage / 100);
-    const amount = massKg * factor.value;
+    const yieldToProduct =
+      isFiniteNumber(material.yieldToProduct) && material.yieldToProduct > 0 ?
+        clamp(material.yieldToProduct, 0.01, 1) :
+        1;
+    const amount = (materialBaseMassKg * (percentage / 100) / yieldToProduct) * factor.value;
 
     if (amount > 0) {
       stages.materials.amount += amount;
@@ -250,7 +328,11 @@ export const calculateCarbonFootprint = (
 
   let packagingMassKg = 0;
   if (input.packaging && isFiniteNumber(input.packaging.weightKg) && input.packaging.weightKg > 0) {
-    packagingMassKg = input.packaging.weightKg;
+    const packagingYield =
+      isFiniteNumber(input.packaging.yieldToProduct) && input.packaging.yieldToProduct > 0 ?
+        clamp(input.packaging.yieldToProduct, 0.01, 1) :
+        1;
+    packagingMassKg = input.packaging.weightKg / packagingYield;
     const factor = resolveFactorOrFallback(
       input.packaging.factorId ?? input.packaging.label,
       "packaging-minimal-proxy"
@@ -273,12 +355,15 @@ export const calculateCarbonFootprint = (
 
   if (input.processFactorIds.length === 0) {
     notes.push("Manufacturing processes are missing; a generic garment process proxy was used.");
-    stages.production.quality = maxQuality(stages.production.quality, "market_default_or_missing");
+    stages.finished_goods_manufacturing.quality = maxQuality(
+      stages.finished_goods_manufacturing.quality,
+      "market_default_or_missing"
+    );
   }
 
   const processIntensityKwhPerKg = processFactorIds.reduce((sum, factorId) => {
     const factor = resolveFactorOrFallback(factorId, "process-generic-garment");
-    addFactorSummary(stages.production, "production", factor);
+    addFactorSummary(stages.finished_goods_manufacturing, "finished_goods_manufacturing", factor);
     return sum + factor.value;
   }, 0);
 
@@ -297,7 +382,10 @@ export const calculateCarbonFootprint = (
         ? `No energy mix was provided; grid electricity was inferred for ${manufacturingGeography}.`
         : "No energy mix was provided; a generic grid electricity fallback was used."
     );
-    stages.production.quality = maxQuality(stages.production.quality, "market_default_or_missing");
+    stages.finished_goods_manufacturing.quality = maxQuality(
+      stages.finished_goods_manufacturing.quality,
+      "market_default_or_missing"
+    );
   }
 
   const totalEnergyPercent = sumValues(
@@ -307,30 +395,46 @@ export const calculateCarbonFootprint = (
     notes.push(
       `Energy mix coverage is ${roundPerProduct(totalEnergyPercent)}%; shares were normalized before calculation.`
     );
-    stages.production.quality = maxQuality(stages.production.quality, "market_default_or_missing");
+    stages.finished_goods_manufacturing.quality = maxQuality(
+      stages.finished_goods_manufacturing.quality,
+      "market_default_or_missing"
+    );
   }
 
   const normalizedEnergyDenominator = totalEnergyPercent > 0 ? totalEnergyPercent : 100;
   const weightedEnergyFactor = energyEntries.reduce((sum, entry) => {
     const factor = resolveEnergyFactor(entry.factorId, entry.geography || manufacturingGeography);
-    addFactorSummary(stages.production, "production", factor);
+    addFactorSummary(stages.finished_goods_manufacturing, "finished_goods_manufacturing", factor);
     const normalizedShare = Math.max(0, entry.percentage || 0) / normalizedEnergyDenominator;
     const scopedAmount = unitMassKg * processIntensityKwhPerKg * factor.value * normalizedShare;
-    const scopeKey = resolveEnergyScope(factor);
+    const scopeKey = resolveEnergyScope(factor, reportingActorRole);
     if (scopeKey === "scope1") {
       scope1Amount += scopedAmount;
-    } else {
+    } else if (scopeKey === "scope2") {
       scope2Amount += scopedAmount;
+    } else {
+      scope3Amount += scopedAmount;
     }
+    energyBreakdown.push({
+      factorId: factor.id,
+      label: factor.label,
+      amount: roundPerProduct(scopedAmount),
+      scope: scopeKey
+    });
     return sum + factor.value * normalizedShare;
   }, 0);
 
   const productionAmount = unitMassKg * processIntensityKwhPerKg * weightedEnergyFactor;
-  stages.production.amount += productionAmount;
+  stages.finished_goods_manufacturing.amount += productionAmount;
   if (productionAmount > 0) {
-    totalContribution += productionAmount;
-    if (stages.production.factors.some((factor) => factor.isProxy)) {
-      proxyContribution += productionAmount;
+    const productionQualityFactor =
+      stages.finished_goods_manufacturing.factors.find((factor) => factor.isProxy) ??
+      stages.finished_goods_manufacturing.factors[0];
+    if (productionQualityFactor) {
+      addContribution(
+        productionAmount,
+        resolveFactorOrFallback(productionQualityFactor.factorId, "process-generic-garment")
+      );
     }
   }
 
@@ -340,7 +444,10 @@ export const calculateCarbonFootprint = (
   for (const transport of transportEntries) {
     if (!transport.mode && !transport.factorId) {
       notes.push("A transport leg is missing mode/factor and was excluded from the estimate.");
-      stages.transport.quality = maxQuality(stages.transport.quality, "market_default_or_missing");
+      stages.logistics_and_storage.quality = maxQuality(
+        stages.logistics_and_storage.quality,
+        "market_default_or_missing"
+      );
       continue;
     }
 
@@ -348,7 +455,6 @@ export const calculateCarbonFootprint = (
       transport.factorId ?? transport.mode,
       "transport-multimodal-proxy"
     );
-
     const explicitDistanceKm = isFiniteNumber(transport.distanceKm) && transport.distanceKm > 0
       ? transport.distanceKm
       : undefined;
@@ -361,43 +467,41 @@ export const calculateCarbonFootprint = (
       notes.push(
         `Transport distance for ${transport.mode || factor.label} used market default ${roundPerProduct(distanceKm)} km.`
       );
-      stages.transport.quality = maxQuality(stages.transport.quality, "market_default_or_missing");
+      stages.logistics_and_storage.quality = maxQuality(
+        stages.logistics_and_storage.quality,
+        "market_default_or_missing"
+      );
     }
 
     const amount = shippedMassTonne * distanceKm * factor.value;
-    stages.transport.amount += amount;
-    addFactorSummary(stages.transport, "transport", factor);
+    stages.logistics_and_storage.amount += amount;
+    addFactorSummary(stages.logistics_and_storage, "logistics_and_storage", factor);
     addContribution(amount, factor);
     scope3Amount += amount;
   }
 
   if (transportEntries.length === 0) {
     notes.push("Transport is excluded because no transport legs were provided.");
-    stages.transport.quality = maxQuality(stages.transport.quality, "market_default_or_missing");
+    stages.logistics_and_storage.quality = maxQuality(
+      stages.logistics_and_storage.quality,
+      "market_default_or_missing"
+    );
   }
 
-  const stageBreakdown = ([
-    "materials",
-    "production",
-    "energy",
-    "transport",
-    "packaging"
-  ] as CarbonStageKey[]).map((stage) => toStageBreakdown(stage, stages[stage]));
-
+  const stageBreakdown = CORE_STAGE_KEYS.map((stage) => toStageBreakdown(stage, stages[stage]));
   const perProduct = {
     materials: roundPerProduct(stages.materials.amount),
-    production: roundPerProduct(stages.production.amount),
+    production: roundPerProduct(stages.finished_goods_manufacturing.amount),
     energy: 0,
-    transport: roundPerProduct(stages.transport.amount),
+    transport: roundPerProduct(stages.logistics_and_storage.amount),
     packaging: roundPerProduct(stages.packaging.amount),
     total: roundPerProduct(
       stages.materials.amount +
-        stages.production.amount +
-        stages.transport.amount +
+        stages.finished_goods_manufacturing.amount +
+        stages.logistics_and_storage.amount +
         stages.packaging.amount
     )
   };
-
   const totalBatch = {
     materials: roundBatch(perProduct.materials * quantity),
     production: roundBatch(perProduct.production * quantity),
@@ -407,14 +511,11 @@ export const calculateCarbonFootprint = (
     total: roundBatch(perProduct.total * quantity)
   };
 
-  const range = stageBreakdown.reduce<CarbonRange>(
-    (accumulator, stage) => ({
-      min: roundPerProduct(accumulator.min + stage.range.min),
-      max: roundPerProduct(accumulator.max + stage.range.max)
-    }),
-    buildEmptyRange()
-  );
-
+  const uncertainty = buildRssUncertainty(contributionTerms, perProduct.total);
+  const range: CarbonRange = {
+    min: uncertainty.p5KgCO2e,
+    max: uncertainty.p95KgCO2e
+  };
   const proxyShare = totalContribution > 0 ? clamp(proxyContribution / totalContribution, 0, 1) : 1;
 
   const explicitMaterialFactorCount = input.materials.filter((material) => Boolean(material.factorId)).length;
@@ -470,7 +571,6 @@ export const calculateCarbonFootprint = (
     15
   );
   const proxyShareScore = clamp(Math.round((1 - proxyShare) * 15), 0, 15);
-
   const dataQualityBreakdown: CarbonDataQualityBreakdown = {
     completeness: { score: completenessScore, maxScore: 30 },
     specificity: { score: specificityScore, maxScore: 25 },
@@ -478,8 +578,7 @@ export const calculateCarbonFootprint = (
     transportSpecificity: { score: transportSpecificityScore, maxScore: 15 },
     proxyShare: { score: proxyShareScore, maxScore: 15 }
   };
-
-  const confidenceScore = clamp(
+  const legacyConfidenceScore = clamp(
     completenessScore +
       specificityScore +
       geographicScore +
@@ -488,12 +587,34 @@ export const calculateCarbonFootprint = (
     0,
     100
   );
-  const confidenceLevel =
-    confidenceScore >= 80 ? "high" : confidenceScore >= 60 ? "medium" : "low";
+  const weightedQualityNumerator = contributionTerms.reduce(
+    (sum, term) => sum + averageQualityScore(term.factor) * term.amount,
+    0
+  );
+  const dataQualityRating1To5 = totalContribution > 0 ?
+    roundPerProduct(weightedQualityNumerator / totalContribution) :
+    5;
+  const dataQualityPercent = roundPerProduct(100 * (5 - dataQualityRating1To5) / 4);
+  const confidenceLevel = resolveConfidenceLevel(
+    dataQualityRating1To5,
+    proxyShare,
+    uncertainty.halfWidth95Percent
+  );
+  const confidenceScore = clamp(Math.round((legacyConfidenceScore + dataQualityPercent) / 2), 0, 100);
+  const cradleToGateCoreKgCO2e = roundPerProduct(
+    perProduct.materials + perProduct.production + perProduct.packaging
+  );
+  const gateToMarketExtensionKgCO2e = perProduct.transport;
+  const factorSourceSummary = stageBreakdown.flatMap((stage) => stage.factors);
+  const factorManifest = Array.from(new Set(factorSourceSummary.map((factor) => factor.factorVersionId)));
+  const contributionDenominator = totalContribution > 0 ? totalContribution : 1;
 
   return {
     perProduct,
     totalBatch,
+    cradleToGateCoreKgCO2e,
+    gateToMarketExtensionKgCO2e,
+    reportedTotalKgCO2e: perProduct.total,
     confidenceLevel,
     confidenceScore,
     proxyUsed: proxyShare > 0 || notes.length > 0,
@@ -503,12 +624,58 @@ export const calculateCarbonFootprint = (
     scope3: roundPerProduct(scope3Amount),
     co2eRange: range,
     methodologyVersion: METHODOLOGY_VERSION,
+    methodology: {
+      name: METHODOLOGY_NAME,
+      methodologyVersion: METHODOLOGY_VERSION,
+      standardsAlignment: ["GHG Product Standard", "ISO 14067", "ISO 14040", "ISO 14044"],
+      impactCategory: "climate_change_only",
+      inventoryType: "partial_cfp",
+      boundaryType: "cradle_to_gate_plus_gate_to_market_extension",
+      gwpBasis: "IPCC_AR5_100y",
+      reportingActorRole
+    },
+    boundary: {
+      includedStages: [...CORE_STAGE_KEYS],
+      excludedStages: ["use", "end_of_life"],
+      partialCfp: true
+    },
+    quality: {
+      dataQualityRating1To5,
+      dataQualityPercent,
+      confidenceLevel,
+      primaryDataEmissionsShare: roundPerProduct(
+        contributionTerms
+          .filter((term) => term.factor.factorClass === "measured_primary_activity")
+          .reduce((sum, term) => sum + term.amount, 0) / contributionDenominator
+      ),
+      supplierSpecificEmissionsShare: roundPerProduct(
+        contributionTerms
+          .filter((term) => term.factor.factorClass === "supplier_specific")
+          .reduce((sum, term) => sum + term.amount, 0) / contributionDenominator
+      ),
+      secondaryEmissionsShare: roundPerProduct(
+        contributionTerms
+          .filter((term) => term.factor.factorClass === "documented_secondary")
+          .reduce((sum, term) => sum + term.amount, 0) / contributionDenominator
+      ),
+      proxyEmissionsShare: roundPerProduct(proxyShare)
+    },
+    uncertainty,
+    energyBreakdown,
+    factorSources: factorSourceSummary,
+    warnings: dedupeMessages(warnings),
+    trace: {
+      factorManifest,
+      calculationGraphVersion: CALCULATION_GRAPH_VERSION,
+      ruleEngineVersion: RULE_ENGINE_VERSION
+    },
     assumptionsUsed: dedupeMessages([
-      "Boundary: cradle-to-market climate-only.",
-      "Manufacturing energy is reported inside production; energy split is not shown separately.",
+      "Boundary: climate-only partial CFP with cradle-to-gate core and gate-to-market extension.",
+      "Manufacturing energy is modeled as a process input inside finished goods manufacturing.",
+      "Uncertainty range uses WeaveCarbon internal RSS fallback, not Monte Carlo.",
       ...notes
     ]),
-    factorSourceSummary: stageBreakdown.flatMap((stage) => stage.factors),
+    factorSourceSummary,
     dataQualityBreakdown,
     stageBreakdown
   };
@@ -531,6 +698,9 @@ export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
     packaging: 0,
     total: 0
   },
+  cradleToGateCoreKgCO2e: 0,
+  gateToMarketExtensionKgCO2e: 0,
+  reportedTotalKgCO2e: 0,
   confidenceLevel: "low",
   confidenceScore: 0,
   proxyUsed: true,
@@ -540,14 +710,54 @@ export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
   scope3: null,
   co2eRange: buildEmptyRange(),
   methodologyVersion: METHODOLOGY_VERSION,
-  assumptionsUsed: ["Boundary: cradle-to-market climate-only."],
+  methodology: {
+    name: METHODOLOGY_NAME,
+    methodologyVersion: METHODOLOGY_VERSION,
+    standardsAlignment: ["GHG Product Standard", "ISO 14067", "ISO 14040", "ISO 14044"],
+    impactCategory: "climate_change_only",
+    inventoryType: "partial_cfp",
+    boundaryType: "cradle_to_gate_plus_gate_to_market_extension",
+    gwpBasis: "IPCC_AR5_100y",
+    reportingActorRole: "manufacturer"
+  },
+  boundary: {
+    includedStages: [...CORE_STAGE_KEYS],
+    excludedStages: ["use", "end_of_life"],
+    partialCfp: true
+  },
+  quality: {
+    dataQualityRating1To5: 5,
+    dataQualityPercent: 0,
+    confidenceLevel: "low",
+    primaryDataEmissionsShare: 0,
+    supplierSpecificEmissionsShare: 0,
+    secondaryEmissionsShare: 0,
+    proxyEmissionsShare: 1
+  },
+  uncertainty: {
+    method: "rss_fallback",
+    p5KgCO2e: 0,
+    p95KgCO2e: 0,
+    halfWidth95Percent: 0
+  },
+  energyBreakdown: [],
+  factorSources: [],
+  warnings: [
+    "This result is an attributional, climate-only partial CFP estimate for decision support.",
+    "This result is not a comparative claim, product label, ISO certification, or third-party verification statement."
+  ],
+  trace: {
+    factorManifest: [],
+    calculationGraphVersion: CALCULATION_GRAPH_VERSION,
+    ruleEngineVersion: RULE_ENGINE_VERSION
+  },
+  assumptionsUsed: ["Boundary: climate-only partial CFP with cradle-to-gate core and gate-to-market extension."],
   factorSourceSummary: [],
   dataQualityBreakdown: buildEmptyDataQualityBreakdown(),
   stageBreakdown: [
     { stage: "materials", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true },
-    { stage: "production", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true },
-    { stage: "energy", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true },
-    { stage: "transport", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true },
-    { stage: "packaging", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true }
+    { stage: "finished_goods_manufacturing", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true },
+    { stage: "packaging", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true },
+    { stage: "logistics_and_storage", amount: 0, range: buildEmptyRange(), quality: "market_default_or_missing", factors: [], isEstimated: true }
   ]
 };

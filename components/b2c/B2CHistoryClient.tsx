@@ -25,7 +25,7 @@ import {
 
 const B2CHistoryClient: React.FC = () => {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
   const [donations, setDonations] = useState<DonationSummary[]>([]);
@@ -34,7 +34,7 @@ const B2CHistoryClient: React.FC = () => {
   const [pageError, setPageError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authStatus === "checking" || authStatus === "recovering") return;
 
     if (!user) {
       router.push("/auth?type=b2c");
@@ -44,7 +44,7 @@ const B2CHistoryClient: React.FC = () => {
     if (user.user_type === "b2b" || user.user_type === "admin") {
       router.replace("/overview");
     }
-  }, [loading, router, user]);
+  }, [authStatus, loading, router, user]);
 
   useEffect(() => {
     let cancelled = false;

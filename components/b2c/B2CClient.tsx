@@ -14,14 +14,14 @@ import B2CRecentActivity from "./B2CRecentActivity";
 
 const B2CClient: React.FC = () => {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, authStatus, signOut } = useAuth();
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
   const { activities, isLoaded: activitiesLoaded } = useRecentActivity(
     user?.email
   );
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authStatus === "checking" || authStatus === "recovering") return;
 
     if (!user) {
       router.push("/auth?type=b2c");
@@ -31,7 +31,7 @@ const B2CClient: React.FC = () => {
     if (user.user_type === "b2b" || user.user_type === "admin") {
       router.replace("/overview");
     }
-  }, [user, loading, router]);
+  }, [user, loading, authStatus, router]);
 
   const handleSignOut = async () => {
     await signOut();

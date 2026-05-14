@@ -1,6 +1,7 @@
 
 import { MATERIAL_CERTIFICATION_OPTIONS } from "@/lib/materialCertificationDefinitions";
 import type {
+  CarbonComputationResult,
   CarbonDataQualityBreakdown,
   CarbonFactorSummaryItem,
   CarbonRange
@@ -116,7 +117,21 @@ export interface CarbonBreakdown {
   total: number;
 }
 
-export interface CarbonAssessmentResult {
+export interface CarbonAssessmentResult extends Partial<Pick<
+  CarbonComputationResult,
+  | "cradleToGateCoreKgCO2e"
+  | "gateToMarketExtensionKgCO2e"
+  | "reportedTotalKgCO2e"
+  | "methodology"
+  | "boundary"
+  | "quality"
+  | "uncertainty"
+  | "energyBreakdown"
+  | "factorSources"
+  | "warnings"
+  | "trace"
+  | "stageBreakdown"
+>> {
   perProduct: CarbonBreakdown;
   totalBatch: CarbonBreakdown;
   confidenceLevel: "high" | "medium" | "low";

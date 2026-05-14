@@ -196,6 +196,56 @@ describe("carbon engine", () => {
     expect(fuelPowered.scope2).toBeCloseTo(0, 3);
   });
 
+  it("reports v2.1 partial CFP boundary totals without changing legacy total", () => {
+    const result = calculateCarbonFootprint(buildBaseInput({ quantity: 1 }));
+
+    expect(result.methodologyVersion).toBe(
+      "WeaveCarbon Attributional Textile PCF v2.1 - climate-only partial CFP"
+    );
+    expect(result.reportedTotalKgCO2e).toBeCloseTo(result.perProduct.total, 3);
+    expect(result.cradleToGateCoreKgCO2e).toBeCloseTo(
+      result.perProduct.materials + result.perProduct.production + result.perProduct.packaging,
+      3
+    );
+    expect(result.gateToMarketExtensionKgCO2e).toBeCloseTo(result.perProduct.transport, 3);
+    expect(result.cradleToGateCoreKgCO2e).not.toBeCloseTo(result.perProduct.total, 3);
+    expect(result.boundary.partialCfp).toBe(true);
+    expect(result.boundary.excludedStages).toEqual(expect.arrayContaining(["use", "end_of_life"]));
+  });
+
+  it("keeps energy as an analytical view instead of a top-level lifecycle stage", () => {
+    const result = calculateCarbonFootprint(buildBaseInput({ quantity: 1 }));
+    const stageIds = result.stageBreakdown.map((stage) => stage.stage);
+
+    expect(stageIds).toEqual([
+      "materials",
+      "finished_goods_manufacturing",
+      "packaging",
+      "logistics_and_storage"
+    ]);
+    expect(stageIds).not.toContain("energy");
+    expect(result.energyBreakdown.length).toBeGreaterThan(0);
+    expect(result.energyBreakdown[0]?.scope).toBe("scope2");
+    expect(result.perProduct.energy).toBe(0);
+  });
+
+  it("maps outsourced production to scope 3 for brand reporting actor", () => {
+    const manufacturer = calculateCarbonFootprint(buildBaseInput({ quantity: 1 }));
+    const brand = calculateCarbonFootprint(
+      buildBaseInput({
+        quantity: 1,
+        reportingActorRole: "brand"
+      })
+    );
+
+    expect(manufacturer.scope2).toBeCloseTo(manufacturer.perProduct.production, 3);
+    expect(brand.scope1).toBeCloseTo(0, 3);
+    expect(brand.scope2).toBeCloseTo(0, 3);
+    expect(brand.scope3).toBeCloseTo(brand.perProduct.total, 3);
+    expect(brand.energyBreakdown[0]?.scope).toBe("scope3");
+    expect(brand.methodology.reportingActorRole).toBe("brand");
+  });
+
   it("scales transport linearly with product mass and distance", () => {
     const base = calculateCarbonFootprint(
       buildBaseInput({
@@ -371,7 +421,7 @@ describe("carbon engine", () => {
     expect(unknown.confidenceScore).toBeLessThan(imported.confidenceScore);
   });
 
-  it("reduces confidence and widens uncertainty for proxy-heavy inputs", () => {
+  it("reduces confidence for proxy-heavy inputs", () => {
     const highQuality = calculateCarbonFootprint(buildBaseInput({ quantity: 1 }));
     const proxyHeavy = calculateCarbonFootprint(
       buildBaseInput({
@@ -405,11 +455,55 @@ describe("carbon engine", () => {
       })
     );
 
-    const highQualityRangeWidth = highQuality.co2eRange.max - highQuality.co2eRange.min;
-    const proxyHeavyRangeWidth = proxyHeavy.co2eRange.max - proxyHeavy.co2eRange.min;
-
     expect(proxyHeavy.confidenceScore).toBeLessThan(highQuality.confidenceScore);
-    expect(proxyHeavyRangeWidth).toBeGreaterThan(highQualityRangeWidth);
     expect(proxyHeavy.proxyUsed).toBe(true);
+  });
+
+  it("uses wider RSS uncertainty for proxy factors than documented factors with the same activity", () => {
+    const commonOverrides = {
+      unitMassKg: 10,
+      quantity: 1,
+      materials: [],
+      processFactorIds: [],
+      energyMix: []
+    } satisfies Partial<CarbonEngineInput>;
+
+    const documented = calculateCarbonFootprint(
+      buildBaseInput({
+        ...commonOverrides,
+        transport: [{ mode: "road", factorId: "transport-road-defra-2025", distanceKm: 1000 }]
+      })
+    );
+    const proxy = calculateCarbonFootprint(
+      buildBaseInput({
+        ...commonOverrides,
+        transport: [{ mode: "multimodal", factorId: "transport-multimodal-proxy", distanceKm: 1000 }]
+      })
+    );
+
+    expect(proxy.uncertainty.halfWidth95Percent).toBeGreaterThan(
+      documented.uncertainty.halfWidth95Percent
+    );
+  });
+
+  it("includes audit-ready factor metadata in factor summaries", () => {
+    const result = calculateCarbonFootprint(buildBaseInput({ quantity: 1 }));
+    const factor = result.factorSourceSummary.find(
+      (entry) => entry.factorId === "transport-road-defra-2025"
+    );
+
+    expect(factor?.factorVersionId).toBe("transport-road-defra-2025:v1");
+    expect(factor?.boundaryType).toBe("gate_to_market");
+    expect(factor?.factorClass).toBe("documented_secondary");
+    expect(factor?.gwpBasis).toBe("IPCC_AR5_100y");
+    expect(typeof factor?.uncertaintyCv).toBe("number");
+    expect(factor?.qualityScores).toEqual(
+      expect.objectContaining({
+        technologicalRepresentativeness: expect.any(Number),
+        reliability: expect.any(Number)
+      })
+    );
+    expect(result.trace.factorManifest).toContain("transport-road-defra-2025:v1");
+    expect(result.warnings.some((warning) => warning.includes("not a comparative claim"))).toBe(true);
   });
 });

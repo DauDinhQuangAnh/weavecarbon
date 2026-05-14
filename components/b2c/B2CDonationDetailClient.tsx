@@ -27,7 +27,7 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
   donationId
 }) => {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
   const [donation, setDonation] = useState<DonationDetail | null>(null);
@@ -35,7 +35,7 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
   const [pageError, setPageError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authStatus === "checking" || authStatus === "recovering") return;
 
     if (!user) {
       router.push("/auth?type=b2c");
@@ -45,7 +45,7 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
     if (user.user_type === "b2b" || user.user_type === "admin") {
       router.replace("/overview");
     }
-  }, [loading, router, user]);
+  }, [authStatus, loading, router, user]);
 
   useEffect(() => {
     let cancelled = false;

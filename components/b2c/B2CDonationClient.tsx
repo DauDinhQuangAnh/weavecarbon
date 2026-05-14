@@ -160,7 +160,7 @@ const doesCollectionPointSupportCategory = (
 
 const B2CDonationClient: React.FC = () => {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const locale = useLocale();
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
@@ -324,7 +324,7 @@ const B2CDonationClient: React.FC = () => {
   const estimatedCo2Saved = Number(metrics.co2Saved.toFixed(4));
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authStatus === "checking" || authStatus === "recovering") return;
 
     if (!user) {
       router.push("/auth?type=b2c");
@@ -334,7 +334,7 @@ const B2CDonationClient: React.FC = () => {
     if (user.user_type === "b2b" || user.user_type === "admin") {
       router.replace("/overview");
     }
-  }, [loading, router, user]);
+  }, [authStatus, loading, router, user]);
 
   const loadMaterialRewards = useCallback(
     async (showBlockingSpinner = false) => {
