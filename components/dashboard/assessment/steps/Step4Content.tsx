@@ -69,6 +69,7 @@ interface LocationPickerProps {
   label: string;
   defaultCenter?: [number, number];
   showCurrentLocationButton?: boolean;
+  autoLocateOnMount?: boolean;
   lockedCountry?: string;
   onInvalidCountrySelection?: (country: string | null) => void;
 }
@@ -1679,6 +1680,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 onChange={updateOriginAddress}
                 defaultCenter={ORIGIN_DEFAULT_CENTER}
                 showCurrentLocationButton
+                autoLocateOnMount
                 lockedCountry={isTrialPlan ? expectedTrialCountry : undefined}
                 onInvalidCountrySelection={isTrialPlan ? showTrialDomesticOnlyToast : undefined}
               />

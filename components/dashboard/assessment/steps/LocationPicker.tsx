@@ -33,6 +33,7 @@ interface LocationPickerProps {
   label: string;
   defaultCenter?: [number, number];
   showCurrentLocationButton?: boolean;
+  autoLocateOnMount?: boolean;
   lockedCountry?: string;
   onInvalidCountrySelection?: (country: string | null) => void;
 }
@@ -137,12 +138,26 @@ const resolveMapboxCountryFilter = (value: string | null | undefined) => {
   return MAPBOX_COUNTRY_FILTER_BY_NAME[normalized] || null;
 };
 
+const hasAddressContent = (address: AddressInput) =>
+  Boolean(
+    address.streetNumber.trim() ||
+      address.street.trim() ||
+      address.ward.trim() ||
+      address.district.trim() ||
+      address.city.trim() ||
+      address.stateRegion.trim() ||
+      address.country.trim() ||
+      address.postalCode.trim() ||
+      hasCoordinatePair(address.lat, address.lng)
+  );
+
 const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
   onChange,
   label,
   defaultCenter = [106.6297, 10.8231],
   showCurrentLocationButton = true,
+  autoLocateOnMount = false,
   lockedCountry,
   onInvalidCountrySelection
 }) => {
@@ -159,6 +174,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const searchAbortRef = useRef<AbortController | null>(null);
   const searchRequestSeqRef = useRef(0);
   const skipNextSearchRef = useRef(false);
+  const autoLocateAttemptedRef = useRef(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
@@ -758,9 +774,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     return () => clearTimeout(timer);
   }, [searchLocation, searchQuery]);
 
-  const getCurrentLocation = () => {
+  const getCurrentLocation = useCallback((options?: { silent?: boolean }) => {
     if (!navigator.geolocation) {
-      window.alert(t("browserNotSupported"));
+      if (!options?.silent) {
+        window.alert(t("browserNotSupported"));
+      }
       return;
     }
 
@@ -779,7 +797,9 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       },
       () => {
         setIsLocating(false);
-        window.alert(t("cannotGetLocation"));
+        if (!options?.silent) {
+          window.alert(t("cannotGetLocation"));
+        }
       },
       {
         enableHighAccuracy: true,
@@ -787,7 +807,20 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         maximumAge: 0
       }
     );
-  };
+  }, [reverseGeocode, syncMarker, t]);
+
+  useEffect(() => {
+    if (!autoLocateOnMount || autoLocateAttemptedRef.current) {
+      return;
+    }
+
+    if (hasAddressContent(addressRef.current)) {
+      return;
+    }
+
+    autoLocateAttemptedRef.current = true;
+    getCurrentLocation({ silent: true });
+  }, [autoLocateOnMount, getCurrentLocation]);
 
   const streetAddressInputValue = [address.streetNumber, address.street]
     .map((part) => part.trim())
@@ -863,7 +896,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={getCurrentLocation}
+                onClick={() => getCurrentLocation()}
                 title={isLocating ? t("locating") : t("currentLocation")}
                 aria-label={isLocating ? t("locating") : t("currentLocation")}
                 disabled={isLocating}
