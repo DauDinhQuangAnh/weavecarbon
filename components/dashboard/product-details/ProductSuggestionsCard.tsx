@@ -21,15 +21,14 @@ import {
 } from "@/components/ui/card";
 import {
   generateProductSuggestions,
-  readRagRuntimeConfig,
-  type RagProductSuggestion,
-} from "@/lib/ragApi";
+  type AiProductSuggestion,
+} from "@/lib/chatApi";
 
 interface ProductSuggestionsCardProps {
   productId: string;
 }
 
-const DIFFICULTY_STYLES: Record<RagProductSuggestion["difficulty"], string> = {
+const DIFFICULTY_STYLES: Record<AiProductSuggestion["difficulty"], string> = {
   easy: "border-emerald-200 bg-emerald-50 text-emerald-700",
   medium: "border-amber-200 bg-amber-50 text-amber-700",
   hard: "border-rose-200 bg-rose-50 text-rose-700",
@@ -45,7 +44,7 @@ const TYPE_STYLES: Record<string, string> = {
 
 const normalizeDifficulty = (
   value: string
-): RagProductSuggestion["difficulty"] => {
+): AiProductSuggestion["difficulty"] => {
   if (value === "easy" || value === "hard") {
     return value;
   }
@@ -58,7 +57,7 @@ const ProductSuggestionsCard: React.FC<ProductSuggestionsCardProps> = ({
   const locale = useLocale();
   const t = useTranslations("productDetail.aiSuggestions");
   const requestSequenceRef = useRef(0);
-  const [suggestions, setSuggestions] = useState<RagProductSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AiProductSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -91,20 +90,17 @@ const ProductSuggestionsCard: React.FC<ProductSuggestionsCardProps> = ({
 
     const requestId = requestSequenceRef.current + 1;
     requestSequenceRef.current = requestId;
-    const runtimeConfig = readRagRuntimeConfig();
 
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await generateProductSuggestions(
-        runtimeConfig.baseUrl,
         productId,
         {
           product_id: productId,
           language: locale.toLowerCase().startsWith("vi") ? "vi" : "en",
-        },
-        runtimeConfig.timeoutMs
+        }
       );
 
       if (requestSequenceRef.current !== requestId) return;

@@ -290,10 +290,10 @@ const DEFAULT_TRANSPORT_FACTOR_BY_MODE: Record<
   "road" | "sea" | "air" | "rail",
   number
 > = {
-  road: 0.105,
-  sea: 0.016,
-  air: 0.602,
-  rail: 0.028
+  road: 0.12226,
+  sea: 0.01612,
+  air: 0.89939,
+  rail: 0.02779
 };
 
 const normalizeLookupValue = (value: string | null | undefined) =>

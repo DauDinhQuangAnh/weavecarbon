@@ -69,7 +69,7 @@ const clampInteger = (value: unknown, fallback: number, min: number, max: number
 
 const asMetadata = (value: unknown) => (isObject(value) ? value : {});
 
-export type ChatConfigSource = "self" | "company_admin" | null;
+export type ChatConfigSource = "self" | "company_admin" | "global" | null;
 
 export interface ChatMessage {
   id: string;
@@ -106,6 +106,37 @@ export interface ChatSendResult {
   conversation: ConversationSummary;
   userMessage: ChatMessage;
   assistantMessage: ChatMessage;
+  configSource: ChatConfigSource;
+}
+
+export interface AiCompanyRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  impact: "high" | "medium" | "low";
+  reduction: string;
+  difficulty: string;
+  category: string;
+}
+
+export interface AiCompanyRecommendationResult {
+  companyId: string;
+  recommendations: AiCompanyRecommendation[];
+  configSource: ChatConfigSource;
+}
+
+export interface AiProductSuggestion {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  potentialReduction: number;
+  difficulty: "easy" | "medium" | "hard";
+}
+
+export interface AiProductSuggestionResult {
+  productId: string;
+  suggestions: AiProductSuggestion[];
   configSource: ChatConfigSource;
 }
 
@@ -221,6 +252,67 @@ export const getChatConversation = async (conversationId: string): Promise<Conve
   return normalizeConversationDetail(payload);
 };
 
+const normalizeConfigSource = (value: unknown): ChatConfigSource => {
+  const normalized = asNullableString(value);
+  if (normalized === "self" || normalized === "company_admin" || normalized === "global") {
+    return normalized;
+  }
+  return null;
+};
+
+const normalizeRecommendationImpact = (
+  value: unknown
+): AiCompanyRecommendation["impact"] => {
+  const normalized = asString(value, "").toLowerCase();
+  if (normalized === "high" || normalized === "low") {
+    return normalized;
+  }
+  return "medium";
+};
+
+const normalizeSuggestionDifficulty = (
+  value: unknown
+): AiProductSuggestion["difficulty"] => {
+  const normalized = asString(value, "").toLowerCase();
+  if (normalized === "easy" || normalized === "hard") {
+    return normalized;
+  }
+  return "medium";
+};
+
+const normalizeCompanyRecommendation = (
+  value: unknown,
+  index: number
+): AiCompanyRecommendation => {
+  const candidate = isObject(value) ? value : {};
+
+  return {
+    id: asString(candidate.id, `recommendation-${index + 1}`),
+    title: asString(candidate.title, `Recommendation ${index + 1}`),
+    description: asString(candidate.description, ""),
+    impact: normalizeRecommendationImpact(candidate.impact),
+    reduction: asString(candidate.reduction, "0%"),
+    difficulty: asString(candidate.difficulty, ""),
+    category: asString(candidate.category, ""),
+  };
+};
+
+const normalizeProductSuggestion = (
+  value: unknown,
+  index: number
+): AiProductSuggestion => {
+  const candidate = isObject(value) ? value : {};
+
+  return {
+    id: asString(candidate.id, `suggestion-${index + 1}`),
+    type: asString(candidate.type, "manufacturing"),
+    title: asString(candidate.title, `Suggestion ${index + 1}`),
+    description: asString(candidate.description, ""),
+    potentialReduction: Math.max(0, Math.round(asNumber(candidate.potentialReduction, 0))),
+    difficulty: normalizeSuggestionDifficulty(candidate.difficulty),
+  };
+};
+
 export const deleteChatConversation = async (conversationId: string): Promise<void> => {
   await api.delete<unknown>(`/chat/conversations/${encodeURIComponent(conversationId)}`);
 };
@@ -242,7 +334,7 @@ export const sendChatMessage = async (payload: {
     conversation: normalizeConversationSummary(candidate.conversation),
     userMessage: normalizeMessage(candidate.user_message),
     assistantMessage: normalizeMessage(candidate.assistant_message),
-    configSource: (asNullableString(candidate.config_source) as ChatConfigSource) || null,
+    configSource: normalizeConfigSource(candidate.config_source),
   };
 };
 
@@ -252,7 +344,7 @@ export const getChatSettings = async (): Promise<ResolvedChatSettings> => {
 
   return {
     config: normalizeRagConfig(candidate.config),
-    configSource: (asNullableString(candidate.config_source) as ChatConfigSource) || null,
+    configSource: normalizeConfigSource(candidate.config_source),
     canEdit: candidate.can_edit === true,
   };
 };
@@ -273,7 +365,55 @@ export const saveChatSettings = async (
 
   return {
     config: normalizeRagConfig(candidate.config),
-    configSource: (asNullableString(candidate.config_source) as ChatConfigSource) || "self",
+    configSource: normalizeConfigSource(candidate.config_source) || "self",
     canEdit: candidate.can_edit === true,
+  };
+};
+
+export const generateCompanyRecommendations = async (
+  companyId: string,
+  payload: { company_id?: string; language?: string } = {}
+): Promise<AiCompanyRecommendationResult> => {
+  const response = await api.post<unknown>(
+    `/chat/recommendations/company/${encodeURIComponent(companyId)}`,
+    {
+      company_id: payload.company_id || companyId,
+      language: payload.language || "vi",
+    }
+  );
+  const candidate = isObject(response) ? response : {};
+  const recommendations = Array.isArray(candidate.recommendations)
+    ? candidate.recommendations.map((item, index) =>
+        normalizeCompanyRecommendation(item, index)
+      )
+    : [];
+
+  return {
+    companyId: asString(candidate.company_id, companyId),
+    recommendations,
+    configSource: normalizeConfigSource(candidate.config_source),
+  };
+};
+
+export const generateProductSuggestions = async (
+  productId: string,
+  payload: { product_id?: string; language?: string } = {}
+): Promise<AiProductSuggestionResult> => {
+  const response = await api.post<unknown>(
+    `/chat/recommendations/product/${encodeURIComponent(productId)}`,
+    {
+      product_id: payload.product_id || productId,
+      language: payload.language || "vi",
+    }
+  );
+  const candidate = isObject(response) ? response : {};
+  const suggestions = Array.isArray(candidate.suggestions)
+    ? candidate.suggestions.map((item, index) => normalizeProductSuggestion(item, index))
+    : [];
+
+  return {
+    productId: asString(candidate.product_id, productId),
+    suggestions,
+    configSource: normalizeConfigSource(candidate.config_source),
   };
 };

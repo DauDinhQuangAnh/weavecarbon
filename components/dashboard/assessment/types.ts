@@ -197,7 +197,7 @@ export const PRODUCTION_PROCESSES = [
 
 
 export const ENERGY_SOURCES = [
-{ value: "grid", label: "Điện lưới", co2Factor: 1.0 },
+{ value: "grid", label: "Điện lưới", co2Factor: 0.6592 },
 { value: "solar", label: "Điện mặt trời", co2Factor: 0.05 },
 { value: "wind", label: "Điện gió", co2Factor: 0.03 },
 { value: "coal", label: "Than đá", co2Factor: 2.2 },
@@ -216,10 +216,10 @@ export const DESTINATION_MARKETS = [
 
 
 export const TRANSPORT_MODES = [
-{ value: "road", label: "Đường bộ", co2Factor: 0.089 },
-{ value: "sea", label: "Đường biển", co2Factor: 0.016 },
-{ value: "air", label: "Hàng không", co2Factor: 0.602 },
-{ value: "rail", label: "Đường sắt", co2Factor: 0.028 }];
+{ value: "road", label: "Đường bộ", co2Factor: 0.12226 },
+{ value: "sea", label: "Đường biển", co2Factor: 0.01612 },
+{ value: "air", label: "Hàng không", co2Factor: 0.89939 },
+{ value: "rail", label: "Đường sắt", co2Factor: 0.02779 }];
 
 
 export const CERTIFICATIONS = MATERIAL_CERTIFICATION_OPTIONS;

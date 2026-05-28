@@ -5,11 +5,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
+import { generateCompanyRecommendations } from "@/lib/chatApi";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
-import { showNoPermissionToast } from "@/lib/noPermissionToast";import {
-  generateCompanyRecommendations,
-  readRagRuntimeConfig,
-} from "@/lib/ragApi";
+import { showNoPermissionToast } from "@/lib/noPermissionToast";
 import {
   Card,
   CardContent,
@@ -441,20 +439,17 @@ const OverviewPage: React.FC = () => {
 
     const requestId = recommendationsRequestSeqRef.current + 1;
     recommendationsRequestSeqRef.current = requestId;
-    const runtimeConfig = readRagRuntimeConfig();
 
     setRecommendationsLoading(true);
     setRecommendationsError(null);
 
     try {
       const response = await generateCompanyRecommendations(
-        runtimeConfig.baseUrl,
         companyId,
         {
           company_id: companyId,
           language: locale === "vi" ? "vi" : "en",
-        },
-        runtimeConfig.timeoutMs
+        }
       );
 
       if (recommendationsRequestSeqRef.current !== requestId) return;
