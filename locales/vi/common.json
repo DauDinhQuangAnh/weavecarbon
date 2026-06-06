@@ -28,7 +28,7 @@
     "orTry": "hoặc dùng thử",
     "demoB2B": "Demo B2B",
     "demoB2C": "Demo B2C",
-    "demoComingSoon": "Nút demo B2C hiện mới là placeholder, chưa có sự kiện xử lý."
+    "demoComingSoon": "Mở demo B2C."
   },
   "features": {
     "badge": "Tính năng",
@@ -207,7 +207,8 @@
     "demoSectionTitle": "Khám phá các không gian demo",
     "demoSectionDescription": "Mở ngay workspace mẫu để xem trước trải nghiệm mà không ảnh hưởng tới tài khoản thật.",
     "demoB2CLabel": "Demo B2C",
-    "demoB2CComingSoon": "Nút demo B2C hiện mới là placeholder, chưa có sự kiện xử lý.",
+    "openDemoB2C": "Mở demo B2C",
+    "demoB2CComingSoon": "Mở demo B2C.",
     "login": "Đăng nhập",
     "signup": "Đăng ký",
     "email": "Email",

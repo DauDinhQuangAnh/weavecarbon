@@ -28,7 +28,7 @@
     "orTry": "Or try",
     "demoB2B": "Demo B2B",
     "demoB2C": "Demo B2C",
-    "demoComingSoon": "B2C demo is shown as a placeholder for now and has no action yet."
+    "demoComingSoon": "Open Demo B2C."
   },
   "features": {
     "badge": "Features",
@@ -207,7 +207,8 @@
     "demoSectionTitle": "Explore demo workspaces",
     "demoSectionDescription": "Open a sample workspace to preview the experience without affecting your real account.",
     "demoB2CLabel": "Demo B2C",
-    "demoB2CComingSoon": "B2C demo is shown as a placeholder for now and has no action yet.",
+    "openDemoB2C": "Open Demo B2C",
+    "demoB2CComingSoon": "Open Demo B2C.",
     "login": "Sign In",
     "signup": "Sign Up",
     "email": "Email",

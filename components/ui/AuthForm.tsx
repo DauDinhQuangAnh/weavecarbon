@@ -48,7 +48,7 @@ const AuthForm: React.FC = () => {
   const locale = useLocale();
   const t = useTranslations("auth");
   const tUserType = useTranslations("userType");
-  const { signUp, signIn, signInWithGoogle, startLocalDemo, signOut, user, loading } =
+  const { signUp, signIn, signInWithGoogle, signInDemo, startLocalDemo, signOut, user, loading } =
   useAuth();
   const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "1";
   const router = useRouter();
@@ -63,6 +63,7 @@ const AuthForm: React.FC = () => {
   const handledAuthErrorRef = useRef<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<"b2b" | "b2c" | null>(null);
   const [activeTab, setActiveTab] = useState("login");
 
   const [email, setEmail] = useState("");
@@ -98,14 +99,10 @@ const AuthForm: React.FC = () => {
       tUserType.has("demoB2C") ?
         tUserType("demoB2C") :
         "Demo B2C";
-  const demoB2CComingSoon =
-    t.has("demoB2CComingSoon") ?
-      t("demoB2CComingSoon") :
-      tUserType.has("demoComingSoon") ?
-        tUserType("demoComingSoon") :
-        isVi ?
-          "Nút demo B2C hiện mới là placeholder, chưa có sự kiện xử lý." :
-          "B2C demo is shown as a placeholder for now and has no action yet.";
+  const openDemoB2CLabel =
+    t.has("openDemoB2C") ?
+      t("openDemoB2C") :
+      demoB2CLabel;
 
   const getAccountTypeLabel = useCallback(
     (type?: AccountType | null) => {
@@ -407,10 +404,12 @@ const AuthForm: React.FC = () => {
 
   const handleDemoLogin = async () => {
     setIsLoading(true);
+    setDemoLoading("b2b");
     const { error } = await startLocalDemo("b2b_standard_20");
 
     if (error) {
       setIsLoading(false);
+      setDemoLoading(null);
       toast({
         title: t("error"),
         description: error.message,
@@ -420,7 +419,29 @@ const AuthForm: React.FC = () => {
     }
 
     setIsLoading(false);
+    setDemoLoading(null);
     router.push("/demo/overview");
+  };
+
+  const handleB2CDemoLogin = async () => {
+    setIsLoading(true);
+    setDemoLoading("b2c");
+    const { error } = await signInDemo("b2c");
+
+    if (error) {
+      setIsLoading(false);
+      setDemoLoading(null);
+      toast({
+        title: t("error"),
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(false);
+    setDemoLoading(null);
+    router.push("/b2c");
   };
 
   if (loading) {
@@ -486,24 +507,22 @@ const AuthForm: React.FC = () => {
                 disabled={isLoading}
                 onClick={handleDemoLogin}
               >
-                {isLoading ? t("loading") : tUserType("demoB2B")}
-                {!isLoading && <ArrowRight className="h-4 w-4" />}
+                {demoLoading === "b2b" ? t("loading") : tUserType("demoB2B")}
+                {demoLoading !== "b2b" && <ArrowRight className="h-4 w-4" />}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full border-dashed border-border bg-background/70 text-muted-foreground"
-                disabled
-                title={demoB2CComingSoon}
+                className="h-11 w-full border-primary/20 bg-background/90 hover:bg-background"
+                disabled={isLoading}
+                onClick={handleB2CDemoLogin}
               >
                 <User className="h-4 w-4" />
-                <span>{demoB2CLabel}</span>
+                <span>{demoLoading === "b2c" ? t("loading") : openDemoB2CLabel}</span>
+                {demoLoading !== "b2c" && <ArrowRight className="h-4 w-4" />}
               </Button>
             </div>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {demoB2CComingSoon}
-          </p>
         </div>
 
       </CardContent>

@@ -94,7 +94,7 @@ interface AuthContextType {
   options?: SignInOptions)
   => Promise<{error: Error | null;}>;
   signInDemo: (
-  userType?: "b2b")
+  userType?: "b2b" | "b2c")
   => Promise<{error: Error | null;}>;
   startLocalDemo: (
   scenario?: "b2b_standard_20")
@@ -308,7 +308,7 @@ const buildUserFromSignIn = (payload: SignInPayload): User => {
 
 const buildUserFromDemo = (
   payload: DemoPayload,
-  fallbackRole: "b2b")
+  fallbackRole: "b2b" | "b2c")
 : User => {
   const normalizedUserType = normalizeAuthUserType(payload.roles?.[0]) || fallbackRole;
   const membership = normalizeCompanyMembership(
@@ -1044,7 +1044,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   };
 
   const signInDemo = async (
-  userType: "b2b" = "b2b")
+  userType: "b2b" | "b2c" = "b2b")
   : Promise<{error: Error | null;}> => {
     if (AUTH_DISABLED) {
       return { error: new Error("Authentication is disabled.") };

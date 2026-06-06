@@ -36,12 +36,37 @@ const IDENTICAL_ALLOWED_PATTERNS = [
   /^(?:CBAM|GHG|CO2|CO₂|CO2e|CO₂e)$/,
   /^(?:GOTS|RCS|GRS|OEKO-TEX|OEKO TEX).*$/
 ];
+const mojibake = (...codes) => String.fromCodePoint(...codes);
 const CRITICAL_MOJIBAKE_PATTERNS = [
-  { label: 'mojibake token "ï¿½"', regex: /ï¿½/u },
-  { label: 'mojibake sequence "Ã…"', regex: /Ã[\u00A0-\u024F]/u },
-  { label: 'mojibake sequence "Â "', regex: /Â[\s.,;:!?)/\\-]/u },
-  { label: 'mojibake sequence "â€¦"', regex: /â(?:€™|€œ|€�|€¢|€¦|€”|†’)/u }
-];
+  {
+    label: 'mojibake token "\\u00C3\\u00AF\\u00C2\\u00BF\\u00C2\\u00BD"',
+    regex: new RegExp(mojibake(0x00C3, 0x00AF, 0x00C2, 0x00BF, 0x00C2, 0x00BD), "u")
+  },
+  {
+    label: 'mojibake sequence "\\u00C3\\u0192..."',
+    regex: new RegExp(`${mojibake(0x00C3, 0x0192)}[\\u00A0-\\u024F]`, "u")
+  },
+  {
+    label: 'mojibake sequence "\\u00C3\\u0082 "',
+    regex: new RegExp(`${mojibake(0x00C3, 0x0082)}[\\s.,;:!?)\\/\\\\-]`, "u")
+  },
+  {
+    label: 'mojibake sequence "\\u00C3\\u00A2..."',
+    regex: new RegExp(
+      `${mojibake(0x00C3, 0x00A2)}(?:` +
+        [
+          mojibake(0x00E2, 0x201A, 0x00AC, 0x00E2, 0x201E, 0x00A2),
+          mojibake(0x00E2, 0x201A, 0x00AC, 0x00C5, 0x201C),
+          mojibake(0x00E2, 0x201A, 0x00AC, 0x00C2, 0x00A2),
+          mojibake(0x00E2, 0x201A, 0x00AC, 0x00C2, 0x00A6),
+          mojibake(0x00E2, 0x201A, 0x00AC, 0x00E2, 0x20AC, 0x009D),
+          mojibake(0x00E2, 0x20AC, 0x00A0, 0x00E2, 0x20AC, 0x2122)
+        ].join("|") +
+        ")",
+      "u"
+    )
+  }
+]
 
 const criticals = [];
 const warnings = [];

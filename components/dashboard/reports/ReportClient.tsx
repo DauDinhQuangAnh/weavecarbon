@@ -7,13 +7,10 @@ import { usePathname } from "next/navigation";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  API_BASE_URL,
   api,
   authTokenStore,
-  ensureAccessToken,
-  isApiError,
-  resolveApiUrl } from
-"@/lib/apiClient";
+  isApiError
+} from "@/lib/apiClient";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
 import {
   Card,
@@ -49,22 +46,14 @@ import {
   AlertDialogTitle } from
 "@/components/ui/alert-dialog";
 import {
-  FileText,
   FileSpreadsheet,
   Download,
-  Search,
   Package,
   Activity,
-  Building2,
   Users,
   Shield,
-  BarChart3,
-  CheckCircle2,
-  Clock,
   History,
-  Plus,
   Loader2,
-  Trash2,
   Eye } from
 "lucide-react";
 
@@ -78,11 +67,6 @@ import {
   type ExportFileFormat,
   type ReportDatasetType } from
 "../../../lib/reportsApi";
-import {
-  downloadDemoReportFromPath,
-  isDemoReportDownloadPath
-} from "@/lib/demo/domain/reports";
-import { useIsMobile } from "@/hooks/useIsMobile";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { isStandardPlan, normalizeSubscriptionPlan } from "@/lib/subscriptionPlans";
@@ -256,22 +240,7 @@ const normalizeNumber = (value: unknown, fallback = 0) => {
   return fallback;
 };
 
-const REPORT_NOT_READY_CODE = "REPORT_NOT_READY";
 const PLACEHOLDER_EXPORT_CODE = "PLACEHOLDER_EXPORT";
-
-type ParsedApiError = {
-  message: string;
-  code?: string;
-};
-
-class ReportNotReadyError extends Error {
-  readonly code = REPORT_NOT_READY_CODE;
-
-  constructor(message: string) {
-    super(message);
-    this.name = "ReportNotReadyError";
-  }
-}
 
 class PlaceholderExportError extends Error {
   readonly code = PLACEHOLDER_EXPORT_CODE;
@@ -281,28 +250,6 @@ class PlaceholderExportError extends Error {
     this.name = "PlaceholderExportError";
   }
 }
-
-const isReportNotReadyError = (error: unknown) => {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  if (error instanceof ReportNotReadyError) {
-    return true;
-  }
-
-  const errorWithCode = error as Error & { code?: string };
-  if (errorWithCode.code === REPORT_NOT_READY_CODE) {
-    return true;
-  }
-
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("report_not_ready") ||
-    (message.includes("not ready") && message.includes("report")) ||
-    message.includes("current status: processing")
-  );
-};
 
 const isPlaceholderExportError = (error: unknown) => {
   if (!(error instanceof Error)) {
@@ -316,263 +263,6 @@ const isPlaceholderExportError = (error: unknown) => {
   const errorWithCode = error as Error & { code?: string };
   return errorWithCode.code === PLACEHOLDER_EXPORT_CODE;
 };
-
-const parseErrorPayloadObject = (
-payload: Record<string, unknown>,
-fallbackMessage = "Request failed."
-): ParsedApiError | null => {
-  const message =
-    typeof payload.message === "string" && payload.message.trim().length > 0 ?
-    payload.message :
-    null;
-  const code =
-    typeof payload.code === "string" && payload.code.trim().length > 0 ?
-    payload.code :
-    undefined;
-  if (message || code) {
-    return { message: message || fallbackMessage, code };
-  }
-
-  if (typeof payload.error === "string" && payload.error.trim().length > 0) {
-    return { message: payload.error };
-  }
-  if (isObject(payload.error)) {
-    const nestedMessage =
-      typeof payload.error.message === "string" &&
-      payload.error.message.trim().length > 0 ?
-      payload.error.message :
-      null;
-    const nestedCode =
-      typeof payload.error.code === "string" &&
-      payload.error.code.trim().length > 0 ?
-      payload.error.code :
-      undefined;
-    if (nestedMessage || nestedCode) {
-      return { message: nestedMessage || fallbackMessage, code: nestedCode };
-    }
-  }
-
-  return null;
-};
-
-const parseApiErrorFromText = (value: string): ParsedApiError | null => {
-  const raw = value.trim();
-  if (!raw) {
-    return null;
-  }
-  if (!(raw.startsWith("{") || raw.startsWith("["))) {
-    return null;
-  }
-
-  try {
-    const payload = JSON.parse(raw) as unknown;
-    if (typeof payload === "string" && payload.trim().length > 0) {
-      return { message: payload };
-    }
-    if (isObject(payload)) {
-      return parseErrorPayloadObject(payload);
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-};
-
-const isLikelyCsvText = (value: string) => {
-  const text = value.trim();
-  if (!text) {
-    return false;
-  }
-
-  const lower = text.toLowerCase();
-  if (
-    lower.startsWith("<!doctype html") ||
-    lower.startsWith("<html") ||
-    lower.startsWith("{") ||
-    lower.startsWith("[")
-  ) {
-    return false;
-  }
-
-  if (text.includes("\0")) {
-    return false;
-  }
-
-  const firstLine = text.split(/\r?\n/, 1)[0] || "";
-  const hasDelimiter = [",", ";", "\t"].some((delimiter) => firstLine.includes(delimiter));
-  if (hasDelimiter) {
-    return true;
-  }
-
-  return /\r?\n/.test(text);
-};
-
-const isAbsoluteHttpUrl = (value: string) => /^https?:\/\//i.test(value.trim());
-
-const isApiOriginUrl = (value: string) => {
-  try {
-    return new URL(value).origin === new URL(API_BASE_URL).origin;
-  } catch {
-    return false;
-  }
-};
-
-const isExternalDownloadUrl = (value: string) =>
-isAbsoluteHttpUrl(value) && !isApiOriginUrl(value);
-
-const isDemoAssetsPath = (value: string) => {
-  const trimmed = value.trim();
-  if (trimmed.startsWith("/demo-assets/")) {
-    return true;
-  }
-
-  if (!isAbsoluteHttpUrl(trimmed)) {
-    return false;
-  }
-
-  try {
-    return new URL(trimmed).pathname.startsWith("/demo-assets/");
-  } catch {
-    return false;
-  }
-};
-
-const isDirectDownloadUrl = (value: string) =>
-  isExternalDownloadUrl(value) ||
-  value.startsWith("data:") ||
-  value.startsWith("blob:") ||
-  isDemoAssetsPath(value);
-
-const triggerExternalDownload = (url: string) => {
-  const link = document.createElement("a");
-  link.href = url;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-};
-
-const parseApiErrorResponse = async (response: Response): Promise<ParsedApiError> => {
-  const fallbackMessage = "Request failed.";
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    try {
-      const payload = (await response.json()) as unknown;
-      if (typeof payload === "string" && payload.trim().length > 0) {
-        return { message: payload };
-      }
-      if (isObject(payload)) {
-        const parsed = parseErrorPayloadObject(payload, fallbackMessage);
-        if (parsed) {
-          return parsed;
-        }
-      }
-    } catch {
-      return { message: fallbackMessage };
-    }
-  }
-
-  try {
-    const text = await response.text();
-    return { message: text.trim().length > 0 ? text : fallbackMessage };
-  } catch {
-    return { message: fallbackMessage };
-  }
-};
-
-const parseFilenameFromDisposition = (disposition: string | null) => {
-  if (!disposition) return null;
-  const match = disposition.match(
-    /filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i
-  );
-  const raw = match?.[1] || match?.[2];
-  if (!raw) return null;
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    return raw;
-  }
-};
-
-const sanitizeFilename = (value: string) =>
-value.
-replace(/[^\w.-]+/g, "_").
-replace(/^_+|_+$/g, "") ||
-"report";
-
-const withXlsxExtension = (filename: string) => {
-  const safeName = sanitizeFilename(filename);
-  if (safeName.toLowerCase().endsWith(".xlsx")) {
-    return safeName;
-  }
-  return safeName.replace(/\.[^./\\]+$/, "") + ".xlsx";
-};
-
-const hasZipSignature = async (blob: Blob) => {
-  const bytes = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
-  return bytes[0] === 0x50 && bytes[1] === 0x4b;
-};
-
-const hasPdfSignature = async (blob: Blob) => {
-  const bytes = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-  return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-};
-
-const isPlaceholderCsvExport = (csvText: string) =>
-csvText.toLowerCase().includes("placeholder-generated-in-dev");
-
-const convertCsvBlobToXlsx = async (blob: Blob) => {
-  const csvText = await blob.text();
-  if (isPlaceholderCsvExport(csvText)) {
-    throw new PlaceholderExportError();
-  }
-  const XLSX = await import("@e965/xlsx");
-  const workbook = XLSX.read(csvText, {
-    type: "string",
-    raw: false,
-    codepage: 65001
-  });
-  const binary = XLSX.write(workbook, {
-    type: "array",
-    bookType: "xlsx"
-  });
-  return new Blob([binary], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  });
-};
-
-const extractDownloadPathFromPayload = (payload: unknown): string | null => {
-  if (!isObject(payload)) return null;
-
-  const directPathCandidate =
-    payload.download_url ??
-    payload.downloadUrl ??
-    payload.file_url ??
-    payload.fileUrl ??
-    payload.url;
-  if (typeof directPathCandidate === "string" && directPathCandidate.trim().length > 0) {
-    return directPathCandidate;
-  }
-
-  const dataPayload = isObject(payload.data) ? payload.data : null;
-  if (!dataPayload) return null;
-
-  const nestedPathCandidate =
-    dataPayload.download_url ??
-    dataPayload.downloadUrl ??
-    dataPayload.file_url ??
-    dataPayload.fileUrl ??
-    dataPayload.url;
-
-  if (typeof nestedPathCandidate === "string" && nestedPathCandidate.trim().length > 0) {
-    return nestedPathCandidate;
-  }
-
-  return null;
-};
-
 const getTypeLabel = (type: ReportType, t: ReturnType<typeof useTranslations>) => {
   switch (type) {
     case "carbon_footprint":
@@ -715,41 +405,6 @@ const EXPORT_DATASET_TYPES = new Set<ReportType>([
 "analytics",
 "company"]);
 
-const getQuickExportCardTone = (type: ReportDatasetType) => {
-  switch (type) {
-    case "products":
-      return {
-        cardClassName: "border-slate-200 bg-white",
-        iconClassName: "bg-slate-100 text-slate-700",
-        countClassName: "text-slate-700"
-      };
-    case "users":
-      return {
-        cardClassName: "border-slate-200 bg-white",
-        iconClassName: "bg-slate-100 text-slate-700",
-        countClassName: "text-slate-700"
-      };
-    case "analytics":
-      return {
-        cardClassName: "border-slate-200 bg-white",
-        iconClassName: "bg-slate-100 text-slate-700",
-        countClassName: "text-slate-700"
-      };
-    case "history":
-      return {
-        cardClassName: "border-slate-200 bg-white",
-        iconClassName: "bg-slate-100 text-slate-700",
-        countClassName: "text-slate-700"
-      };
-    default:
-      return {
-        cardClassName: "border-slate-200 bg-white",
-        iconClassName: "bg-slate-100 text-slate-700",
-        countClassName: "text-slate-700"
-      };
-  }
-};
-
 const ReportsPage: React.FC = () => {
   const t = useTranslations("reports");
   const locale = useLocale();
@@ -762,56 +417,15 @@ const ReportsPage: React.FC = () => {
   const hasStandardReportingAccess = isStandardPlan(effectivePlan);
   const standardPlanLabel = normalizedPlan.replace(/_/g, " ").toUpperCase();
 
-
-  const REPORT_TYPES = useMemo(
-    () => [
-      {
-        id: "products" as ReportDatasetType,
-        label: t("types.product.label"),
-        icon: Package,
-        description: t("types.product.description"),
-        countKey: "products" as keyof typeof exportSourceCounts
-      },
-      {
-        id: "users" as ReportDatasetType,
-        label: t("types.users.label"),
-        icon: Users,
-        description: t("types.users.description"),
-        countKey: "users" as keyof typeof exportSourceCounts
-      },
-      {
-        id: "analytics" as ReportDatasetType,
-        label: t("types.analytics.label"),
-        icon: BarChart3,
-        description: t("types.analytics.description"),
-        countKey: "products" as keyof typeof exportSourceCounts
-      },
-      {
-        id: "history" as ReportDatasetType,
-        label: t("types.history.label"),
-        icon: History,
-        description: t("types.history.description"),
-        countKey: "history" as keyof typeof exportSourceCounts
-      }
-    ],
-    [t]
-  );
-
-  const isMobile = useIsMobile();
   const pathname = usePathname();
   const isDemoRuntime = isDemoPath(pathname);
   const { user, loading: authLoading, isDemoSession } = useAuth();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<"reports" | "export">("reports");
   const [previewOpen, setPreviewOpen] = useState(false);
-  const ITEMS_PER_PAGE = 4;
 
   const [reports, setReports] = useState<ReportItem[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
-  const [reportsError, setReportsError] = useState<string | null>(null);
+  const [, setReportsLoading] = useState(true);
+  const [, setReportsError] = useState<string | null>(null);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
@@ -826,9 +440,6 @@ const ReportsPage: React.FC = () => {
     format: "xlsx"
   });
 
-  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(
-    null
-  );
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [pendingDeleteReport, setPendingDeleteReport] = useState<Pick<
     ReportItem,
@@ -847,7 +458,6 @@ const ReportsPage: React.FC = () => {
     analytics: 0,
     company: null
   });
-  const [showExportHistory, setShowExportHistory] = useState(false);
 
   useEffect(() => {
     setHasHydrated(true);
@@ -1090,173 +700,6 @@ const ReportsPage: React.FC = () => {
     };
   }, [reports, loadReports]);
 
-  const downloadFileFromPath = useCallback(
-    async (targetPath: string, fallbackFileName: string) => {
-      const fetchFileFromPath = async (
-        path: string,
-        visitedPaths = new Set<string>()
-      ): Promise<void> => {
-        const normalizedPath = path.trim();
-        if (!normalizedPath) {
-          throw new Error(t("errors.downloadPathEmpty"));
-        }
-
-        if (visitedPaths.has(normalizedPath)) {
-          throw new Error(t("errors.downloadMetadataLoop"));
-        }
-        visitedPaths.add(normalizedPath);
-
-        if (isDemoReportDownloadPath(normalizedPath)) {
-          await downloadDemoReportFromPath(normalizedPath, {
-            locale
-          });
-          return;
-        }
-
-        if (isDirectDownloadUrl(normalizedPath)) {
-          triggerExternalDownload(normalizedPath);
-          return;
-        }
-
-        if (isDemoRuntime) {
-          throw new Error(t("errors.reportFileUnavailable"));
-        }
-
-        const accessToken = (await ensureAccessToken()) || authTokenStore.getAccessToken();
-        const response = await fetch(resolveApiUrl(normalizedPath), {
-          method: "GET",
-          credentials: "include",
-          headers: accessToken ?
-          {
-            Authorization: `Bearer ${accessToken}`
-          } :
-          undefined
-        });
-
-        if (!response.ok) {
-          const parsedError = await parseApiErrorResponse(response);
-          if (
-            response.status === 409 &&
-            (
-              parsedError.code === REPORT_NOT_READY_CODE ||
-              parsedError.message.toLowerCase().includes("not ready"))
-          )
-          {
-            throw new ReportNotReadyError(parsedError.message);
-          }
-          throw new Error(parsedError.message);
-        }
-
-        const contentType = response.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          let payload: unknown = null;
-          try {
-            payload = await response.json();
-          } catch {
-            throw new Error(t("errors.downloadInvalidJson"));
-          }
-
-          const nestedPath = extractDownloadPathFromPayload(payload);
-          if (nestedPath && nestedPath.trim() !== normalizedPath) {
-            if (isDemoReportDownloadPath(nestedPath)) {
-              await downloadDemoReportFromPath(nestedPath, {
-                locale
-              });
-              return;
-            }
-            if (isDirectDownloadUrl(nestedPath)) {
-              triggerExternalDownload(nestedPath);
-              return;
-            }
-            await fetchFileFromPath(nestedPath, visitedPaths);
-            return;
-          }
-
-          const payloadMessage =
-            isObject(payload) && typeof payload.message === "string" && payload.message.trim().length > 0 ?
-            payload.message :
-            isObject(payload) &&
-            isObject(payload.error) &&
-            typeof payload.error.message === "string" &&
-            payload.error.message.trim().length > 0 ?
-            payload.error.message :
-            t("errors.downloadMetadataAsJson");
-          throw new Error(payloadMessage);
-        }
-
-        const blob = await response.blob();
-        if (blob.size <= 0) {
-          throw new Error(t("errors.downloadedEmptyReport"));
-        }
-
-        let filename =
-        parseFilenameFromDisposition(response.headers.get("content-disposition")) ||
-        fallbackFileName;
-        let downloadBlob = blob;
-        const normalizedContentType = contentType.toLowerCase();
-        const lowerFilename = filename.toLowerCase();
-        const isCsvResponse =
-        lowerFilename.endsWith(".csv") ||
-        normalizedContentType.includes("text/csv") ||
-        normalizedContentType.includes("application/csv");
-
-        if (isCsvResponse) {
-          downloadBlob = await convertCsvBlobToXlsx(blob);
-          filename = withXlsxExtension(filename);
-        }
-
-        const lowerDownloadFilename = filename.toLowerCase();
-        const expectXlsx =
-        lowerDownloadFilename.endsWith(".xlsx") ||
-        contentType.includes(
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        );
-        const expectPdf = lowerDownloadFilename.endsWith(".pdf") || contentType.includes("application/pdf");
-
-        if (expectXlsx && !(await hasZipSignature(downloadBlob))) {
-          const rawText = await downloadBlob.text();
-          const inlineApiError = parseApiErrorFromText(rawText);
-          if (inlineApiError) {
-            if (
-              inlineApiError.code === REPORT_NOT_READY_CODE ||
-              inlineApiError.message.toLowerCase().includes("not ready")
-            ) {
-              throw new ReportNotReadyError(inlineApiError.message);
-            }
-            throw new Error(inlineApiError.message);
-          }
-
-          if (isLikelyCsvText(rawText)) {
-            downloadBlob = await convertCsvBlobToXlsx(
-              new Blob([rawText], { type: "text/csv;charset=utf-8" })
-            );
-            filename = withXlsxExtension(filename);
-          } else {
-            throw new Error(t("errors.invalidXlsxFile"));
-          }
-        }
-
-        if (expectPdf && !(await hasPdfSignature(downloadBlob))) {
-          throw new Error(t("errors.invalidPdfFile"));
-        }
-
-        const href = URL.createObjectURL(downloadBlob);
-        const link = document.createElement("a");
-        link.href = href;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.setTimeout(() => {
-          URL.revokeObjectURL(href);
-        }, 60_000);
-      };
-
-      await fetchFileFromPath(targetPath);
-    },
-    [isDemoRuntime, locale, t]
-  );
-
   const runDatasetExport = useCallback(
     async (
     dataset: ReportDatasetType,
@@ -1374,16 +817,6 @@ const ReportsPage: React.FC = () => {
     }
   };
 
-  const handleRequestDeleteReport = useCallback(
-    (report: Pick<ReportItem, "id" | "title">) => {
-      if (!ensureReportActionAllowed()) {
-        return;
-      }
-      setPendingDeleteReport(report);
-    },
-    [ensureReportActionAllowed]
-  );
-
   const handleConfirmDeleteReport = useCallback(
     async (report: Pick<ReportItem, "id" | "title">) => {
       const reportTitle = report.title?.trim() || t("deleteFallbackTitle");
@@ -1404,94 +837,6 @@ const ReportsPage: React.FC = () => {
     [t]
   );
 
-  const handleDownloadReport = async (report: ReportItem) => {
-    if (!ensureReportActionAllowed()) {
-      return;
-    }
-    if (report.status !== "completed") {
-      const statusLabel =
-        report.status === "processing" ? t("status.processing") : t("status.failed");
-      toast.info(t("errors.reportFileNotReady", { status: statusLabel }));
-      await loadReports(false);
-      return;
-    }
-
-    const candidatePaths = Array.from(
-      new Set(
-        [report.downloadUrl, `${REPORTS_ENDPOINT}/${report.id}/download`].filter(
-          (path): path is string => typeof path === "string" && path.trim().length > 0
-        )
-      )
-    );
-    if (candidatePaths.length === 0) {
-      toast.error(t("errors.reportFileUnavailable"));
-      return;
-    }
-    setDownloadingReportId(report.id);
-    try {
-      const normalizedFormat = report.format.trim().toLowerCase();
-      const extension =
-        normalizedFormat === "csv" || normalizedFormat === "pdf" ?
-          normalizedFormat :
-          "xlsx";
-      const fallbackName = `${sanitizeFilename(report.title)}.${extension}`;
-      let lastError: unknown = null;
-
-      for (const path of candidatePaths) {
-        try {
-          await downloadFileFromPath(path, fallbackName);
-          return;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-
-      if (lastError instanceof Error) {
-        throw lastError;
-      }
-      throw new Error(t("errors.downloadReportFailed"));
-    } catch (error) {
-      if (isReportNotReadyError(error)) {
-        toast.info((error as Error).message);
-        await loadReports(false);
-        return;
-      }
-      const message =
-        isPlaceholderExportError(error) ?
-          t("errors.placeholderExport") :
-          error instanceof Error ? error.message : t("errors.downloadReportFailed");
-      toast.error(message);
-    } finally {
-      setDownloadingReportId(null);
-    }
-  };
-
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch = report.title.
-    toLowerCase().
-    includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === "all" || report.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredReports.length / ITEMS_PER_PAGE)
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, typeFilter, reports.length]);
-
-  useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  const paginatedReports = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredReports.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredReports, currentPage]);
-
 const exportHistory = useMemo(
     () =>
     reports.
@@ -1499,63 +844,6 @@ const exportHistory = useMemo(
     slice(0, 10),
     [reports]
   );
-
-  const processingLabel = t("status.processing");
-  const failedLabel = t("status.failed");
-
-  const getStatusLabel = (status: ReportStatus) => {
-    switch (status) {
-      case "completed":
-        return t("ready");
-      case "processing":
-        return processingLabel;
-      default:
-        return failedLabel;
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "carbon_footprint":
-        return <Shield className="w-4 h-4" />;
-      case "market_analysis":
-        return <BarChart3 className="w-4 h-4" />;
-      case "carbon_audit":
-        return <Shield className="w-4 h-4" />;
-      case "compliance":
-        return <FileText className="w-4 h-4" />;
-      case "sustainability":
-        return <BarChart3 className="w-4 h-4" />;
-      case "product":
-      case "products":
-        return <Package className="w-4 h-4" />;
-      case "audit":
-        return <Shield className="w-4 h-4" />;
-      case "users":
-        return <Users className="w-4 h-4" />;
-      case "analytics":
-        return <BarChart3 className="w-4 h-4" />;
-      case "history":
-        return <History className="w-4 h-4" />;
-      case "company":
-        return <Building2 className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const reportTypeFilterOptions: Array<{value: string;label: string;}> = [
-  { value: "all", label: t("filterOptions.all") },
-  { value: "carbon_footprint", label: getTypeLabel("carbon_footprint", t) },
-  { value: "market_analysis", label: getTypeLabel("market_analysis", t) },
-  { value: "carbon_audit", label: getTypeLabel("carbon_audit", t) },
-  { value: "compliance", label: getTypeLabel("compliance", t) },
-  { value: "sustainability", label: getTypeLabel("sustainability", t) },
-  { value: "product", label: t("filterOptions.product") },
-  { value: "users", label: t("filterOptions.users") },
-  { value: "analytics", label: t("filterOptions.analytics") },
-  { value: "history", label: t("filterOptions.history") },
-  { value: "company", label: t("filterOptions.company") }];
 
   const reportSummaryCards = [
     {
