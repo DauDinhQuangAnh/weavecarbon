@@ -26,6 +26,36 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { useAppRuntime } from "@/lib/demo/routes";
 
+const normalizePublicBaseUrl = (value?: string | null) => {
+  const trimmed = String(value || "").trim();
+  return trimmed ? trimmed.replace(/\/+$/, "") : "";
+};
+
+const resolvePublicOrigin = () => {
+  const configuredOrigin =
+    normalizePublicBaseUrl(process.env.NEXT_PUBLIC_APP_PUBLIC_URL) ||
+    normalizePublicBaseUrl(process.env.NEXT_PUBLIC_SITE_URL);
+
+  if (configuredOrigin) {
+    return configuredOrigin;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.location.origin;
+};
+
+const isLocalhostUrl = (value: string) => {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+};
+
 export interface ProductQRCodeProps {
   productId: string;
   productName: string;
@@ -57,16 +87,20 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
   // Generate public passport URL - accessible without authentication
   // This allows customers to scan QR and view product info without logging in
   const passportUrl = useMemo(() => {
-    if (typeof window === "undefined") return "";
+    const publicOrigin = resolvePublicOrigin();
+    if (!publicOrigin) return "";
+
     if (runtime === "demo") {
-      return `${window.location.origin}/demo/summary/${encodeURIComponent(productId)}`;
+      return `${publicOrigin}/demo/summary/${encodeURIComponent(productId)}`;
     }
     const params = new URLSearchParams({ id: productId });
     if (shipmentId && shipmentId.trim().length > 0) {
       params.set("shipmentId", shipmentId.trim());
     }
-    return `${window.location.origin}/passport?${params.toString()}`;
+    return `${publicOrigin}/passport?${params.toString()}`;
   }, [productId, runtime, shipmentId]);
+
+  const usesLocalhostUrl = passportUrl ? isLocalhostUrl(passportUrl) : false;
 
   const handleCopyLink = async () => {
     if (!passportUrl) return;
@@ -255,16 +289,11 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
                 <QRCodeSVG
                   id="product-qr-code"
                   value={passportUrl}
-                  size={200}
+                  size={224}
                   level="H"
                   includeMargin={true}
-                  fgColor="#166534"
-                  imageSettings={{
-                    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'%3E%3Cpath d='M17,8C8,10,5.9,16.17,3.82,21.34L5.71,22l1-2.3A4.49,4.49,0,0,0,8,20c4,0,8.35-5.65,9-8,1-5-2-8-2-8Z'/%3E%3C/svg%3E",
-                    height: 30,
-                    width: 30,
-                    excavate: true
-                  }} />
+                  bgColor="#ffffff"
+                  fgColor="#000000" />
 
               </div>
 
@@ -278,6 +307,19 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          {usesLocalhostUrl && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              QR đang trỏ tới localhost. Điện thoại quét sẽ không mở được trừ khi bạn cấu hình
+              `NEXT_PUBLIC_APP_PUBLIC_URL` bằng domain hoặc IP LAN của máy đang chạy FE.
+            </div>
+          )}
+
+          {passportUrl && (
+            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground break-all">
+              {passportUrl}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" onClick={handleDownload}>
