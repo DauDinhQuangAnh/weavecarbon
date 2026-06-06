@@ -167,9 +167,15 @@ const B2CDonationClient: React.FC = () => {
 
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const captureInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
   const [step, setStep] = useState(0);
   const [draftImage, setDraftImage] = useState<DonationDraftImage | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [category, setCategory] = useState<DonationCategory>("charity");
   const [items, setItems] = useState<DonationItemFormState[]>([
     createEmptyDonationItem()
@@ -433,11 +439,10 @@ const B2CDonationClient: React.FC = () => {
     setSubmitError(null);
   }, []);
 
-  const handleDraftImageChange = (
-    fileList: FileList | null,
+  const handleDraftImageFile = useCallback((
+    file: File | null | undefined,
     source: DonationDraftImage["source"]
   ) => {
-    const file = fileList?.[0];
     if (!file) {
       return;
     }
@@ -485,7 +490,126 @@ const B2CDonationClient: React.FC = () => {
         // Error is handled in hook state, show user-friendly message
       }
     })();
-  };
+  }, [analyzeImage, category, draftImage?.previewUrl, resetAnalysis, t]);
+
+  const handleDraftImageChange = useCallback((
+    fileList: FileList | null,
+    source: DonationDraftImage["source"]
+  ) => {
+    handleDraftImageFile(fileList?.[0], source);
+  }, [handleDraftImageFile]);
+
+  const stopCameraStream = useCallback(() => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const closeCamera = useCallback(() => {
+    stopCameraStream();
+    setCameraOpen(false);
+    setCameraStarting(false);
+  }, [stopCameraStream]);
+
+  const openCamera = useCallback(async () => {
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
+      captureInputRef.current?.click();
+      return;
+    }
+
+    setCameraOpen(true);
+    setCameraStarting(true);
+    setCameraError(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" }
+        },
+        audio: false
+      });
+
+      cameraStreamRef.current = stream;
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        await cameraVideoRef.current.play();
+      }
+    } catch (error) {
+      stopCameraStream();
+      setCameraOpen(false);
+      const message =
+        error instanceof Error
+          ? error.message
+          : t.has("donationWizard.cameraUnavailable")
+            ? t("donationWizard.cameraUnavailable")
+            : "Camera is unavailable. Please choose a photo from your device.";
+      setCameraError(message);
+      toast.error(message);
+      captureInputRef.current?.click();
+    } finally {
+      setCameraStarting(false);
+    }
+  }, [stopCameraStream, t]);
+
+  const captureCameraPhoto = useCallback(async () => {
+    const video = cameraVideoRef.current;
+    const canvas = cameraCanvasRef.current;
+
+    if (!video || !canvas || video.videoWidth <= 0 || video.videoHeight <= 0) {
+      const message = t.has("donationWizard.cameraNotReady")
+        ? t("donationWizard.cameraNotReady")
+        : "Camera is not ready yet.";
+      setCameraError(message);
+      toast.error(message);
+      return;
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      const message = t.has("donationWizard.cameraCaptureFailed")
+        ? t("donationWizard.cameraCaptureFailed")
+        : "Unable to capture photo.";
+      setCameraError(message);
+      toast.error(message);
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.92)
+    );
+
+    if (!blob) {
+      const message = t.has("donationWizard.cameraCaptureFailed")
+        ? t("donationWizard.cameraCaptureFailed")
+        : "Unable to capture photo.";
+      setCameraError(message);
+      toast.error(message);
+      return;
+    }
+
+    const file = new File([blob], `b2c-capture-${Date.now()}.jpg`, {
+      type: "image/jpeg"
+    });
+    handleDraftImageFile(file, "capture");
+    closeCamera();
+  }, [closeCamera, handleDraftImageFile, t]);
+
+  useEffect(() => {
+    return () => {
+      stopCameraStream();
+    };
+  }, [stopCameraStream]);
 
   const loadRecommendedCollectionPoints = useCallback(
     async (location: B2CCollectionPointLocation) => {
@@ -1115,7 +1239,7 @@ const B2CDonationClient: React.FC = () => {
                   type="button"
                   variant="outline"
                   className="h-auto justify-start gap-3 p-5"
-                  onClick={() => captureInputRef.current?.click()}
+                  onClick={() => void openCamera()}
                 >
                   <Camera className="h-5 w-5" />
                   <div className="text-left">
@@ -1152,6 +1276,71 @@ const B2CDonationClient: React.FC = () => {
                   handleDraftImageChange(event.target.files, "capture")
                 }
               />
+              <canvas ref={cameraCanvasRef} className="hidden" />
+
+              {cameraOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                  <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                      <div>
+                        <p className="font-semibold">
+                          {t.has("donationWizard.cameraTitle")
+                            ? t("donationWizard.cameraTitle")
+                            : "Capture donation photo"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t.has("donationWizard.cameraHelp")
+                            ? t("donationWizard.cameraHelp")
+                            : "Point your camera at the item, then capture."}
+                        </p>
+                      </div>
+                      <Button type="button" variant="ghost" onClick={closeCamera}>
+                        {t.has("cancel") ? t("cancel") : "Cancel"}
+                      </Button>
+                    </div>
+
+                    <div className="relative aspect-[4/3] bg-black">
+                      {cameraStarting && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center text-white">
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          {t.has("donationWizard.cameraStarting")
+                            ? t("donationWizard.cameraStarting")
+                            : "Opening camera..."}
+                        </div>
+                      )}
+                      <video
+                        ref={cameraVideoRef}
+                        className="h-full w-full object-cover"
+                        playsInline
+                        muted
+                        autoPlay
+                      />
+                    </div>
+
+                    {cameraError && (
+                      <p className="px-4 pt-3 text-sm text-destructive">
+                        {cameraError}
+                      </p>
+                    )}
+
+                    <div className="flex flex-col gap-2 p-4 sm:flex-row sm:justify-end">
+                      <Button type="button" variant="outline" onClick={closeCamera}>
+                        {t.has("cancel") ? t("cancel") : "Cancel"}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => void captureCameraPhoto()}
+                        disabled={cameraStarting}
+                      >
+                        <Camera className="h-4 w-4" />
+                        {t.has("donationWizard.captureImage")
+                          ? t("donationWizard.captureImage")
+                          : "Capture photo"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {draftImage && (
                 <div className="space-y-3">

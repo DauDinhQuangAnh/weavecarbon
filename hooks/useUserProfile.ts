@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchB2CDashboard } from "@/lib/b2cApi";
+import { ensureAccessToken, isApiError } from "@/lib/apiClient";
 
 export interface UserProfile {
   id: string;
@@ -30,6 +31,12 @@ export const useUserProfile = (userEmail?: string) => {
     setIsLoaded(false);
 
     try {
+      const token = await ensureAccessToken();
+      if (!token) {
+        setProfile(null);
+        return;
+      }
+
       const payload = await fetchB2CDashboard();
       setProfile({
         id: payload.profile.id,
@@ -47,7 +54,17 @@ export const useUserProfile = (userEmail?: string) => {
         currentLevel: payload.rewards_summary.current_level
       });
     } catch (error) {
-      console.error("Error loading B2C profile:", error);
+      const isMissingToken =
+        isApiError(error) &&
+        (error.status === 401 ||
+          String(error.message || "").toLowerCase().includes("no token provided"));
+
+      if (!isMissingToken) {
+        console.warn(
+          "Unable to load B2C profile:",
+          error instanceof Error ? error.message : String(error)
+        );
+      }
       setProfile(null);
     } finally {
       setIsLoaded(true);
