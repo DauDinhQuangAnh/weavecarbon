@@ -131,6 +131,79 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
             {t("weightPerUnitHelp")}
           </p>
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="hsCode">HS/CN code</Label>
+          <Input
+            id="hsCode"
+            value={data.hsCode || data.cnCode || ""}
+            onChange={(e) => onChange({ hsCode: e.target.value.trim(), cnCode: e.target.value.trim() })}
+            placeholder="VD: 62052000" />
+          <p className="text-xs text-muted-foreground">
+            Dùng để đồng bộ CBAM, Commercial Invoice và DPP QR.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="facility">Cơ sở sản xuất / Facility</Label>
+          <Input
+            id="facility"
+            value={data.facility || ""}
+            onChange={(e) => onChange({ facility: e.target.value })}
+            placeholder="Weave Demo Garment Factory - Hà Nội" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="evidenceLookupCode">Mã tra cứu evidence</Label>
+          <Input
+            id="evidenceLookupCode"
+            value={data.evidenceLookupCode || ""}
+            onChange={(e) => onChange({ evidenceLookupCode: e.target.value })}
+            placeholder="EVN-HN-009412" />
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="supplierCountry">Quốc gia nhà cung ứng Scope 3</Label>
+          <Input
+            id="supplierCountry"
+            value={data.supplierCountry || ""}
+            onChange={(e) => onChange({ supplierCountry: e.target.value })}
+            placeholder="Vietnam / China / EU" />
+        </div>
+        <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-3">
+          <Label className="flex items-center gap-2 text-red-800">
+            <input
+              type="checkbox"
+              checked={Boolean(data.supplyGap)}
+              onChange={(e) => onChange({ supplyGap: e.target.checked })}
+              className="h-4 w-4 rounded border-red-300" />
+            Thiếu dữ liệu gốc Scope 3
+          </Label>
+          <p className="text-xs text-red-700">
+            Khi bật, báo cáo sẽ đánh dấu red-flag và áp default value để kiểm toán thấy rõ rủi ro.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="poContractId">PO/Contract ID</Label>
+          <Input
+            id="poContractId"
+            value={data.poContractId || ""}
+            onChange={(e) => onChange({ poContractId: e.target.value })}
+            placeholder="PO-2026-TXT-099" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="billOfLadingNo">Bill of Lading</Label>
+          <Input
+            id="billOfLadingNo"
+            value={data.billOfLadingNo || ""}
+            onChange={(e) => onChange({ billOfLadingNo: e.target.value })}
+            placeholder="ONEVNHAN260411" />
+        </div>
       </div>
 
       

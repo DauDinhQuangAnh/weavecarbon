@@ -8,6 +8,16 @@ export interface BulkProductRow {
   sku: string;
   productName: string;
   productType: string;
+  hsCode?: string;
+  cnCode?: string;
+  facility?: string;
+  evidenceLookupCode?: string;
+  supplierCountry?: string;
+  supplyGap?: boolean;
+  customsDeclarationNo?: string;
+  poContractId?: string;
+  billOfLadingNo?: string;
+  containerNo?: string;
   quantity: number;
   weightPerUnit: number;
 

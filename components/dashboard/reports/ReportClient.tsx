@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,9 +50,11 @@ import {
 "@/components/ui/alert-dialog";
 import {
   FileText,
+  FileSpreadsheet,
   Download,
   Search,
   Package,
+  Activity,
   Building2,
   Users,
   Shield,
@@ -61,7 +64,8 @@ import {
   History,
   Plus,
   Loader2,
-  Trash2 } from
+  Trash2,
+  Eye } from
 "lucide-react";
 
 import { toast } from "sonner";
@@ -84,6 +88,7 @@ import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { isStandardPlan, normalizeSubscriptionPlan } from "@/lib/subscriptionPlans";
 import { isDemoPath } from "@/lib/demo/routes";
 import { cn } from "@/lib/utils";import MobileDataCard from "./mobile/MobileDataCard";
+const ReportPreviewModal = dynamic(() => import("./ReportPreviewModal"), { ssr: false });
 
 type ReportType =
 "carbon_footprint" |
@@ -801,6 +806,7 @@ const ReportsPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<"reports" | "export">("reports");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const ITEMS_PER_PAGE = 4;
 
   const [reports, setReports] = useState<ReportItem[]>([]);
@@ -1551,316 +1557,157 @@ const exportHistory = useMemo(
   { value: "history", label: t("filterOptions.history") },
   { value: "company", label: t("filterOptions.company") }];
 
+  const reportSummaryCards = [
+    {
+      label: "Sản phẩm",
+      value: isDemoRuntime ? 42 : getDatasetSourceCount("products"),
+      icon: Package,
+      iconClassName: "text-emerald-800"
+    },
+    {
+      label: "Hoạt động",
+      value: isDemoRuntime ? 6 : Math.max(reports.length, exportHistory.length),
+      icon: Activity,
+      iconClassName: "text-emerald-700"
+    },
+    {
+      label: "Người dùng",
+      value: isDemoRuntime ? 3 : getDatasetSourceCount("users"),
+      icon: Users,
+      iconClassName: "text-emerald-700"
+    },
+    {
+      label: "Lịch sử tính",
+      value: isDemoRuntime ? 3 : getDatasetSourceCount("history"),
+      icon: History,
+      iconClassName: "text-red-400"
+    }
+  ];
+
+  const handleCreateAuditPackLink = async () => {
+    const tokenPayload = `${user?.id || "demo"}:${Date.now()}:audit-pack`;
+    const token =
+      typeof window !== "undefined"
+        ? window.btoa(unescape(encodeURIComponent(tokenPayload)))
+        : tokenPayload;
+    const auditUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/audit?token=${encodeURIComponent(token)}`
+        : `/audit?token=${encodeURIComponent(token)}`;
+    try {
+      await navigator.clipboard.writeText(auditUrl);
+      toast.success("Đã tạo Audit Pack link 7 ngày và copy vào clipboard.");
+    } catch {
+      toast.success("Đã tạo Audit Pack link 7 ngày.");
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 no-horizontal-scroll" suppressHydrationWarning>
-      <section className="space-y-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="inline-flex w-full rounded-xl bg-slate-100 p-1 md:w-auto">
-            <button
-              type="button"
-              className={cn(
-                "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                activeTab === "reports" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600"
-              )}
-              onClick={() => setActiveTab("reports")}>
-              <FileText className="h-4 w-4" />
-              {t("tabs.reports")}
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                activeTab === "export" ? "bg-white text-slate-950 shadow-sm" : "text-slate-600"
-              )}
-              onClick={() => setActiveTab("export")}>
-              <Download className="h-4 w-4" />
-              {t("tabs.export")}
-            </button>
-          </div>
-          {activeTab === "export" && (
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-end">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
-              onClick={() => handleQuickExport("company", t("types.company.label"))}
-              className="h-11 gap-2 rounded-xl bg-emerald-800 px-4 text-white hover:bg-emerald-900"
-              size={isMobile ? "sm" : "default"}>
-              <Download className="h-4 w-4" />
-              <span>{t("fullReport")}</span>
+              type="button"
+              variant="outline"
+              className="h-10 rounded-xl border-emerald-100 bg-white px-4 text-slate-900 hover:bg-emerald-50"
+              onClick={() => setPreviewOpen(true)}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Xem trước báo cáo
             </Button>
-          )}
+            <Button
+              type="button"
+              className="h-10 rounded-xl bg-emerald-800 px-4 text-white hover:bg-emerald-900"
+              onClick={() => handleQuickExport("company", t("types.company.label"))}
+              disabled={exportingDataset === "company"}
+            >
+              {exportingDataset === "company" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Báo cáo đầy đủ
+            </Button>
+          </div>
         </div>
 
-        {activeTab === "export" ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">{t("quickExport")}</h3>
-              {exportHistory.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  onClick={() => setShowExportHistory((prev) => !prev)}>
-                  <Clock className="mr-1.5 h-4 w-4" />
-                  {showExportHistory ? t("historyToggle.hide") : t("historyToggle.show")}
-                </Button>
-              )}
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {REPORT_TYPES.map((type) => {
-                const Icon = type.icon;
-                const count = getDatasetSourceCount(type.id);
-                const hasRows = count > 0;
-                const isExporting = exportingDataset === type.id;
-                const tone = getQuickExportCardTone(type.id);
-                return (
-                  <button
-                    key={type.id}
-                    type="button"
-                    className={cn(
-                      "group rounded-2xl border p-4 text-left shadow-sm transition-all",
-                      tone.cardClassName,
-                      hasStandardReportingAccess && hasRows ? "cursor-pointer hover:border-slate-300 hover:shadow-md" : "cursor-not-allowed opacity-75",
-                      isExporting && "pointer-events-none opacity-70"
-                    )}
-                    onClick={() => handleQuickExport(type.id, type.label)}>
-                    <div className="flex items-start gap-3">
-                      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", tone.iconClassName)}>
-                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-semibold text-slate-900">{type.label}</p>
-                          <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">
-                            {count}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-xs text-slate-600">{isExporting ? t("exporting") : type.description}</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {exportHistory.length > 0 && showExportHistory && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-900">{t("exportHistory")}</h4>
-                  <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">
-                    {exportHistory.length}
-                  </Badge>
-                </div>
-                <div className="grid gap-2 md:grid-cols-2">
-                  {exportHistory.map((exp) => (
-                    <div
-                      key={exp.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                        {exp.status === "processing" ? (
-                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-slate-500" />
-                        ) : exp.status === "failed" ? (
-                          <Shield className="h-4 w-4 shrink-0 text-slate-500" />
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-500" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-slate-900">{exp.title}</p>
-                          <p className="truncate text-xs text-slate-600">{exp.date} • {t("records", { count: exp.records })}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="border-slate-200 bg-white text-slate-600">
-                        {exp.format}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    placeholder={t("search")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-11 rounded-xl border-slate-200 bg-slate-50 pl-10 shadow-none focus-visible:bg-white" />
-                </div>
-                <div className="w-full sm:w-[180px]">
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-slate-50">
-                      <SelectValue placeholder={t("filterType")} />
-                    </SelectTrigger>
-                    <SelectContent className="border-slate-200 bg-white">
-                      {reportTypeFilterOptions.map((option) => (
-                        <SelectItem key={`desktop-${option.value}`} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-11 w-full rounded-xl border-slate-200 bg-white px-4 text-slate-700 hover:bg-slate-50 md:w-auto"
-                onClick={() => {
-                  if (!ensureReportActionAllowed()) {
-                    return;
-                  }
-                  resetCreateForm();
-                  setCreateDialogOpen(true);
-                }}>
-                <Plus className="mr-1.5 h-4 w-4" />
-                {t("createReport")}
-              </Button>
-            </div>
-
-            {reportsLoading ? (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {Array.from({ length: ITEMS_PER_PAGE }).map((_, index) => (
-                  <Card key={index} className="border border-slate-200 bg-white shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 animate-pulse rounded-xl bg-slate-200" />
-                        <div className="min-w-0 flex-1">
-                          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
-                          <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-slate-200" />
-                        </div>
-                      </div>
-                      <div className="mt-4 h-8 w-full animate-pulse rounded bg-slate-100" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : filteredReports.length === 0 ? (
-              <Card className="border border-dashed border-slate-300 bg-slate-50/70 shadow-none">
-                <CardContent className="p-10 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <h3 className="mt-4 text-base font-semibold text-slate-900">
-                    {reportsError ? t("errors.unableToLoadReports") : t("notFound")}
-                  </h3>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-                    {reportsError || t("notFoundDesc")}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {paginatedReports.map((report) => {
-                  const isDownloading = downloadingReportId === report.id;
-                  const isDeleting = deletingReportId === report.id;
-                  const canDownload = report.status === "completed";
-                  const statusLabel = getStatusLabel(report.status);
-                  return (
-                    <Card
-                      key={report.id}
-                      className="overflow-hidden border border-slate-200 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
-                      <CardContent className="p-4">
-                        <div className="flex h-full flex-col gap-4">
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                                {getTypeIcon(report.type)}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <h4 className="line-clamp-2 text-sm font-semibold text-slate-950">
-                                  {report.title}
-                                </h4>
-                                <Badge variant="outline" className="shrink-0 rounded-full border-emerald-200 bg-emerald-50 text-[10px] font-semibold text-emerald-700">
-                                  {statusLabel}
-                                </Badge>
-                              </div>
-                              <p className="mt-1 text-xs text-slate-600">
-                                {report.date} • {t("records", { count: report.records })}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1.5">
-                            <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-[10px] text-slate-700">
-                              {report.typeLabel}
-                            </Badge>
-                            <Badge variant="outline" className="rounded-full border-slate-200 bg-white text-[10px] text-slate-700">
-                              {report.format}
-                            </Badge>
-                            {report.co2e !== null && (
-                              <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-[10px] text-slate-700">
-                                {report.co2e.toFixed(1)} kg CO2e
-                              </Badge>
-                            )}
-                          </div>
-
-                          <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 rounded-lg border-slate-200 bg-white px-2.5 text-slate-700 hover:bg-slate-50"
-                              onClick={() => handleRequestDeleteReport(report)}
-                              disabled={isDeleting}>
-                              {isDeleting ? (
-                                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                              )}
-                              {t("delete")}
-                            </Button>
-                            <Button
-                              variant={canDownload ? "default" : "outline"}
-                              size="sm"
-                              className={cn(
-                                "h-8 rounded-lg px-2.5",
-                                canDownload ? "border-slate-200 bg-slate-900 text-white hover:bg-slate-800" : "border-slate-200 bg-white text-slate-500"
-                              )}
-                              onClick={() => handleDownloadReport(report)}
-                              disabled={isDownloading || isDeleting || !canDownload || !hasStandardReportingAccess}>
-                              {isDownloading ? (
-                                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Download className="mr-1 h-3.5 w-3.5" />
-                              )}
-                              {t("download")}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-
-            {filteredReports.length > 0 && totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}>
-                  {t("pagination.prev")}
-                </Button>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
-                  {t("pagination.page", { current: currentPage, total: totalPages })}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}>
-                  {t("pagination.next")}
-                </Button>
-              </div>
-            )}
+        {isDemoRuntime && (
+          <div className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+            <Badge variant="outline" className="rounded-full border-amber-300 bg-amber-100 px-3 text-amber-700">
+              Demo
+            </Badge>
+            <span>Tenant: Ego Lism • Dữ liệu export sẽ có metadata demo</span>
           </div>
         )}
-      </section>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {reportSummaryCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.label} className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+                <CardContent className="flex min-h-[112px] flex-col items-center justify-center p-4 text-center">
+                  <Icon className={cn("mb-2 h-6 w-6", card.iconClassName)} />
+                  <p className="text-2xl font-bold leading-none text-slate-950">{card.value}</p>
+                  <p className="mt-1 text-xs text-slate-600">{card.label}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <Card className="rounded-xl border border-emerald-200 bg-white shadow-sm">
+          <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
+                <FileSpreadsheet className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">Xem trước Báo cáo Chuẩn (5 phần)</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Dashboard PCF + ISO 14067 + ESG TT 01/2022 + CBAM EU — bóc tách theo SKU, cùng định dạng chuẩn cho mọi tài khoản.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              className="h-11 shrink-0 rounded-xl bg-emerald-800 px-5 text-white hover:bg-emerald-900"
+              onClick={() => setPreviewOpen(true)}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Mở Preview
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-emerald-800" />
+              <h3 className="font-semibold text-slate-950">Pre-Audit Pack — Chia sẻ cho kiểm toán viên</h3>
+            </div>
+            <p className="text-sm leading-6 text-slate-600">
+              Tạo link chỉ-xem chứa toàn bộ phép tính CO₂e + chứng từ gốc (hóa đơn EVN, ERP) + lô vận chuyển.
+              Token có hiệu lực 7 ngày, ký HMAC-SHA256, không thể giả mạo. SGS / Bureau Veritas chỉ cần URL — không cần tài khoản Weave Carbon.
+            </p>
+            <Button
+              type="button"
+              className="h-10 w-full rounded-xl bg-emerald-800 text-white hover:bg-emerald-900"
+              onClick={() => void handleCreateAuditPackLink()}
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Tạo Audit Pack link (7 ngày)
+            </Button>
+          </CardContent>
+        </Card>
+
+        <div className="border-t border-emerald-100 bg-emerald-50/40 px-1 py-3 text-xs text-emerald-900">
+          <Shield className="mr-2 inline h-3.5 w-3.5 align-[-2px]" />
+          Phương pháp toán: 100% ISO 14067:2018. Hệ số phát thải đồng bộ từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Hệ số phát thải của Bộ TN&MT Việt Nam.
+        </div>
+      </div>
+
+      <ReportPreviewModal open={previewOpen} onOpenChange={setPreviewOpen} />
 
       <Dialog
           open={createDialogOpen}

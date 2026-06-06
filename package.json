@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck",
+    "clean:local": "node scripts/clean-local.mjs",
     "audit:i18n": "node scripts/i18n/audit.mjs",
     "test": "vitest run",
     "test:carbon": "vitest run"

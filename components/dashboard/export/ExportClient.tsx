@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { isApiError } from "@/lib/apiClient";import {
+import { isApiError, isUnauthorizedApiError } from "@/lib/apiClient";import {
   approveComplianceDocument,
   fetchComplianceMarkets,
   getComplianceDocumentObjectUrl,
@@ -53,6 +53,7 @@ import { useBreakpoint } from "@/hooks/useBreakpoint";
 import type { DocumentStatus, MarketCode, MarketCompliance } from "./types";
 import { computeMarketDocumentReadinessScore } from "./readiness";
 import ComplianceDetailModal from "./ComplianceDetailModal";
+import ExportConfigurationPortalV2 from "./ExportConfigurationPortalV2";
 
 interface SummaryDocument {
   id: string;
@@ -274,6 +275,12 @@ const ExportPage: React.FC = () => {
       const payload = await fetchComplianceMarkets();
       setComplianceData(payload);
     } catch (loadError) {
+      if (isUnauthorizedApiError(loadError)) {
+        setComplianceData(null);
+        setError(null);
+        return;
+      }
+
       const planRestricted = isPlanRestrictionError(loadError);
       if (!planRestricted) {
         console.error("Failed to load export compliance data:", loadError);
@@ -1004,6 +1011,14 @@ const ExportPage: React.FC = () => {
   return (
     <>
       <div className="space-y-4 md:space-y-6 no-horizontal-scroll">
+        <ExportConfigurationPortalV2 />
+
+        <div className="border-t border-slate-200 pt-5">
+          <h3 className="mb-3 text-base font-semibold text-slate-950">
+            Mức độ sẵn sàng theo thị trường
+          </h3>
+        </div>
+
         <div>
           <div className="mb-3 flex justify-start md:justify-end">
             <div className="flex flex-wrap gap-2 text-xs">

@@ -39,6 +39,20 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
     options: "tshirt, pants, dress, jacket, shoes, bag, accessories, other"
   },
   {
+    key: "hsCode",
+    header: "HS/CN Code",
+    width: 18,
+    required: false,
+    example: "62052000"
+  },
+  {
+    key: "facility",
+    header: "Facility / Factory",
+    width: 34,
+    required: false,
+    example: "Weave Demo Garment Factory - Hanoi"
+  },
+  {
     key: "quantity",
     header: "Quantity *",
     width: 12,
@@ -113,6 +127,28 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
     options: "domestic, imported, unknown"
   },
   {
+    key: "supplierCountry",
+    header: "Supplier Country",
+    width: 20,
+    required: false,
+    example: "Vietnam"
+  },
+  {
+    key: "supplyGap",
+    header: "Supply Gap / Scope 3 Missing",
+    width: 28,
+    required: false,
+    example: "false",
+    options: "true, false"
+  },
+  {
+    key: "evidenceLookupCode",
+    header: "Evidence Lookup Code",
+    width: 24,
+    required: false,
+    example: "EVN-HN-009412"
+  },
+  {
     key: "processes",
     header: "Production Processes *",
     width: 34,
@@ -167,6 +203,34 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
     example:
       "textile_fibre_composition_labeling,reach_market_access_compliance_declaration",
     options: "comma-separated document code/name already uploaded in /export for selected market"
+  },
+  {
+    key: "customsDeclarationNo",
+    header: "Customs Declaration No",
+    width: 24,
+    required: false,
+    example: "106429381040"
+  },
+  {
+    key: "poContractId",
+    header: "PO/Contract ID",
+    width: 24,
+    required: false,
+    example: "PO-2026-TXT-099"
+  },
+  {
+    key: "billOfLadingNo",
+    header: "Bill of Lading No",
+    width: 24,
+    required: false,
+    example: "ONEVNHAN260411"
+  },
+  {
+    key: "containerNo",
+    header: "Container No",
+    width: 20,
+    required: false,
+    example: "ONEU1234567"
   },
   {
     key: "transportMode",

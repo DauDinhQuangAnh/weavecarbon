@@ -21,6 +21,16 @@ export type ProductStatus = "draft" | "published";
 export interface ProductRecord extends Omit<ProductAssessmentData, "status"> {
   id: string;
   status: ProductStatus;
+  hsCode?: string;
+  cnCode?: string;
+  facility?: string;
+  evidenceLookupCode?: string;
+  supplierCountry?: string;
+  supplyGap?: boolean;
+  customsDeclarationNo?: string;
+  poContractId?: string;
+  billOfLadingNo?: string;
+  containerNo?: string;
   shipmentId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -1591,6 +1601,61 @@ const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
     productCode: asString(source.productCode ?? source.product_code ?? source.sku),
     productName: asString(source.productName ?? source.product_name ?? source.name),
     productType: asString(source.productType ?? source.product_type ?? source.category),
+    hsCode: asString(payload.hsCode ?? payload.hs_code ?? source.hsCode ?? source.hs_code),
+    cnCode: asString(
+      payload.cnCode ??
+      payload.cn_code ??
+      payload.hsCode ??
+      payload.hs_code ??
+      source.cnCode ??
+      source.cn_code ??
+      source.hsCode ??
+      source.hs_code
+    ),
+    facility: asString(payload.facility ?? source.facility),
+    evidenceLookupCode: asString(
+      payload.evidenceLookupCode ??
+      payload.evidence_lookup_code ??
+      source.evidenceLookupCode ??
+      source.evidence_lookup_code
+    ),
+    supplierCountry: asString(
+      payload.supplierCountry ??
+      payload.supplier_country ??
+      source.supplierCountry ??
+      source.supplier_country
+    ),
+    supplyGap: Boolean(
+      payload.supplyGap ??
+      payload.supply_gap ??
+      source.supplyGap ??
+      source.supply_gap ??
+      false
+    ),
+    customsDeclarationNo: asString(
+      payload.customsDeclarationNo ??
+      payload.customs_declaration_no ??
+      source.customsDeclarationNo ??
+      source.customs_declaration_no
+    ),
+    poContractId: asString(
+      payload.poContractId ??
+      payload.po_contract_id ??
+      source.poContractId ??
+      source.po_contract_id
+    ),
+    billOfLadingNo: asString(
+      payload.billOfLadingNo ??
+      payload.bill_of_lading_no ??
+      source.billOfLadingNo ??
+      source.bill_of_lading_no
+    ),
+    containerNo: asString(
+      payload.containerNo ??
+      payload.container_no ??
+      source.containerNo ??
+      source.container_no
+    ),
     weightPerUnit,
     quantity: asNumber(source.quantity),
     materials: normalizeMaterials(payload.materials ?? source.materials),

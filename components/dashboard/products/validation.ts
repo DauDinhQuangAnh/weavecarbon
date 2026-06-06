@@ -512,6 +512,12 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
     const accessories = normalizeString(mappedRow.accessories);
     const accessoriesWeightGram = normalizeString(mappedRow.accessoriesWeightGram);
     const certifications = normalizeString(mappedRow.certifications);
+    const hsCode = normalizeString(mappedRow.hsCode || mappedRow.cnCode);
+    const facility = normalizeString(mappedRow.facility);
+    const evidenceLookupCode = normalizeString(mappedRow.evidenceLookupCode);
+    const supplierCountry = normalizeString(mappedRow.supplierCountry);
+    const supplyGapToken = normalizeToken(normalizeString(mappedRow.supplyGap));
+    const supplyGap = ["true", "yes", "y", "1", "missing", "gap"].includes(supplyGapToken);
     const materialSource = mapValue(mappedRow.materialSource, MATERIAL_SOURCE_MAP, "unknown") as
       | "domestic"
       | "imported"
@@ -529,6 +535,10 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       | "export";
     const exportCountry = mapValue(mappedRow.exportCountry, EXPORT_COUNTRY_MAP, "");
     const exportComplianceDocuments = normalizeString(mappedRow.exportComplianceDocuments);
+    const customsDeclarationNo = normalizeString(mappedRow.customsDeclarationNo);
+    const poContractId = normalizeString(mappedRow.poContractId);
+    const billOfLadingNo = normalizeString(mappedRow.billOfLadingNo);
+    const containerNo = normalizeString(mappedRow.containerNo);
     const rawTransportMode = normalizeString(mappedRow.transportMode);
     const transportMode = rawTransportMode
       ? ((TRANSPORT_MODE_MAP[normalizeToken(rawTransportMode)] as
@@ -649,6 +659,16 @@ export function validateAndTransformData(rawData: Record<string, unknown>[]): Va
       sku,
       productName,
       productType,
+      hsCode: hsCode || undefined,
+      cnCode: hsCode || undefined,
+      facility: facility || undefined,
+      evidenceLookupCode: evidenceLookupCode || undefined,
+      supplierCountry: supplierCountry || undefined,
+      supplyGap,
+      customsDeclarationNo: customsDeclarationNo || undefined,
+      poContractId: poContractId || undefined,
+      billOfLadingNo: billOfLadingNo || undefined,
+      containerNo: containerNo || undefined,
       quantity,
       weightPerUnit,
       primaryMaterial,
