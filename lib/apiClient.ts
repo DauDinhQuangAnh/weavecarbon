@@ -53,6 +53,7 @@ export interface AuthTokens {
 let inMemoryAccessToken: string | null = null;
 let inMemoryRefreshToken: string | null = null;
 let authUserSnapshot: Record<string, unknown> | null = null;
+let apiSessionEpoch = "anonymous";
 
 const readFromStorage = (storage: Storage, key: string) => {
   try {
@@ -174,12 +175,11 @@ const getStoredCompanyRole = () => {
   }
 
   if (typeof window === "undefined") return null;
-  const rawUser = readFromStorage(localStorage, USER_STORAGE_KEY);
-  if (!rawUser) return null;
+  const snapshot = readAuthUserSnapshot();
+  if (!snapshot) return null;
 
   try {
-    const parsedUser = JSON.parse(rawUser) as Record<string, unknown>;
-    return resolveCompanyRoleFromSnapshot(parsedUser);
+    return resolveCompanyRoleFromSnapshot(snapshot);
   } catch {
     return null;
   }
@@ -214,6 +214,11 @@ const shouldBlockPlanLockedMutation = (path: string, method: string) => {
 
 const readStorage = (key: string) => {
   if (typeof window === "undefined") return null;
+  const isDemoRoute = window.location.pathname.toLowerCase().startsWith("/demo");
+  if (!isDemoRoute) {
+    return normalizeToken(readFromStorage(sessionStorage, key));
+  }
+
   const mode = getTokenStorageMode();
   const primaryStorage = mode === "local" ? localStorage : sessionStorage;
   const secondaryStorage = mode === "local" ? sessionStorage : localStorage;
@@ -229,7 +234,7 @@ const shouldReadPersistedTokens = () => {
     return false;
   }
 
-  return window.location.pathname.toLowerCase().startsWith("/demo");
+  return true;
 };
 
 const readAccessTokenStorage = () => {
@@ -237,16 +242,21 @@ const readAccessTokenStorage = () => {
 
   return (
     normalizeToken(readFromStorage(sessionStorage, ACCESS_TOKEN_STORAGE_KEY)) ||
-    normalizeToken(readFromStorage(localStorage, ACCESS_TOKEN_STORAGE_KEY))
+    (window.location.pathname.toLowerCase().startsWith("/demo") ?
+      normalizeToken(readFromStorage(localStorage, ACCESS_TOKEN_STORAGE_KEY)) :
+      null)
   );
 };
 
 const readLegacyStorage = (keys: string[]) => {
   if (typeof window === "undefined") return null;
+  const isDemoRoute = window.location.pathname.toLowerCase().startsWith("/demo");
   for (const key of keys) {
-    const localValue = normalizeToken(readFromStorage(localStorage, key));
-    if (localValue) {
-      return localValue;
+    if (isDemoRoute) {
+      const localValue = normalizeToken(readFromStorage(localStorage, key));
+      if (localValue) {
+        return localValue;
+      }
     }
     const sessionValue = normalizeToken(readFromStorage(sessionStorage, key));
     if (sessionValue) {
@@ -300,8 +310,9 @@ export const readAuthUserSnapshot = (): Record<string, unknown> | null => {
     return null;
   }
 
-  const rawUser = readFromStorage(localStorage, USER_STORAGE_KEY);
+  const rawUser = readFromStorage(sessionStorage, USER_STORAGE_KEY);
   if (!rawUser) {
+    writeToStorage(localStorage, USER_STORAGE_KEY, null);
     return null;
   }
 
@@ -311,6 +322,7 @@ export const readAuthUserSnapshot = (): Record<string, unknown> | null => {
       return parsedUser as Record<string, unknown>;
     }
   } catch {
+    writeToStorage(sessionStorage, USER_STORAGE_KEY, null);
     writeToStorage(localStorage, USER_STORAGE_KEY, null);
   }
 
@@ -330,22 +342,164 @@ export const setAuthUserSnapshot = (snapshot: object | null) => {
   const isDemoSnapshot = Boolean(authUserSnapshot?.is_demo);
   if (authUserSnapshot && !isDemoSnapshot) {
     try {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUserSnapshot));
+      sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authUserSnapshot));
     } catch {
 
     }
+    writeToStorage(localStorage, USER_STORAGE_KEY, null);
     return;
   }
 
+  writeToStorage(sessionStorage, USER_STORAGE_KEY, null);
   writeToStorage(localStorage, USER_STORAGE_KEY, null);
 };
 
-const writeAccessTokenStorage = (value: string | null) => {
+const buildAuthSnapshotEpoch = (snapshot: Record<string, unknown> | null) => {
+  if (!snapshot) return "anonymous:no-company";
+  const userId = typeof snapshot.id === "string" && snapshot.id.trim() ? snapshot.id.trim() : "anonymous";
+  const companyId =
+    typeof snapshot.company_id === "string" && snapshot.company_id.trim() ?
+      snapshot.company_id.trim() :
+      "no-company";
+  return `${userId}:${companyId}`;
+};
+
+export const invalidateApiResponseCache = (reason?: string) => {
+  void reason;
+  recentGetResponses.clear();
+  inflightGetRequests.clear();
+};
+
+export const setApiSessionEpoch = (epoch: {
+  authStatus?: string | null;
+  companyId?: string | null;
+  userId?: string | null;
+}) => {
+  const nextEpoch = [
+    epoch.authStatus || "unknown",
+    epoch.userId || "anonymous",
+    epoch.companyId || "no-company"
+  ].join(":");
+
+  if (nextEpoch === apiSessionEpoch) {
+    return;
+  }
+
+  apiSessionEpoch = nextEpoch;
+  invalidateApiResponseCache("session-epoch-changed");
+};
+
+const getApiSessionEpoch = () => (
+  apiSessionEpoch === "anonymous" ?
+    buildAuthSnapshotEpoch(readAuthUserSnapshot()) :
+    apiSessionEpoch
+);
+
+const pickString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
+const pickBoolean = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "boolean") {
+      return value;
+    }
+  }
+
+  return false;
+};
+
+const pickObject = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value) ?
+    value as Record<string, unknown> :
+    null;
+
+const pickStringArray = (value: unknown) =>
+  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+
+const normalizeSnapshotUserType = (value: unknown) =>
+  value === "b2b" || value === "b2c" || value === "admin" ? value : null;
+
+export const syncAuthUserSnapshotFromPayload = (payload: unknown) => {
+  const source = pickObject(payload);
+  if (!source) return null;
+
+  const user = pickObject(source.user);
+  const profile = pickObject(source.profile);
+  const company = pickObject(source.company);
+  const membership = pickObject(source.company_membership);
+  if (!user && !profile && !company && !membership) return null;
+
+  const previous = readAuthUserSnapshot();
+  const resolvedCompanyId = pickString(
+    company?.id,
+    profile?.company_id,
+    membership?.company_id
+  );
+  const roles = pickStringArray(source.roles);
+  const userType =
+    normalizeSnapshotUserType(roles[0]) ||
+    normalizeSnapshotUserType(previous?.user_type) ||
+    normalizeSnapshotUserType(previous?.userType);
+  const isRoot = pickBoolean(
+    membership?.is_root,
+    membership?.isRoot,
+    previous?.is_root,
+    previous?.isRoot
+  );
+  const companyRole = resolveCompanyRole(
+    {
+      role:
+        membership?.role ??
+        previous?.company_role ??
+        previous?.companyRole ??
+        previous?.role,
+      isRoot
+    },
+    userType === "admin" ? "root" : "member"
+  );
+  const nextSnapshot = {
+    ...(previous || {}),
+    id: pickString(user?.id, profile?.user_id, previous?.id),
+    analytics_company_key: resolvedCompanyId ?
+      pickString(company?.analytics_company_key, source.analytics_company_key) :
+      null,
+    analytics_user_key: pickString(
+      user?.analytics_user_key,
+      source.analytics_user_key,
+      previous?.analytics_user_key
+    ),
+    business_type: resolvedCompanyId ? pickString(company?.business_type) : null,
+    current_plan: resolvedCompanyId ? pickString(company?.current_plan) : null,
+    domestic_market: resolvedCompanyId ? pickString(company?.domestic_market) : null,
+    email: pickString(user?.email, profile?.email, previous?.email),
+    full_name: pickString(user?.full_name, profile?.full_name, previous?.full_name),
+    company_id: resolvedCompanyId,
+    user_type: userType || previous?.user_type || previous?.userType,
+    company_role: companyRole,
+    is_root: isRoot || companyRole === "root",
+    avatar_url: pickString(user?.avatar_url, previous?.avatar_url)
+  };
+
+  if (!nextSnapshot.id || !nextSnapshot.email) {
+    return null;
+  }
+
+  setAuthUserSnapshot(nextSnapshot);
+  return nextSnapshot;
+};
+
+const writeAccessTokenStorage = (value: string | null, mode: TokenStorageMode = "session") => {
   if (typeof window === "undefined") return;
 
   const normalized = normalizeToken(value);
-  writeToStorage(sessionStorage, ACCESS_TOKEN_STORAGE_KEY, normalized);
-  writeToStorage(localStorage, ACCESS_TOKEN_STORAGE_KEY, null);
+  writeStorage(ACCESS_TOKEN_STORAGE_KEY, normalized, mode);
 };
 
 const writeStorage = (key: string, value: string | null, mode: TokenStorageMode) => {
@@ -396,6 +550,8 @@ const clearRuntimeTokens = ({
   inMemoryAccessToken = null;
   inMemoryRefreshToken = null;
   authUserSnapshot = null;
+  apiSessionEpoch = "anonymous";
+  invalidateApiResponseCache("auth-cleared");
 
   if (clearPersistentTokens) {
     clearPersistedAuthState();
@@ -440,7 +596,7 @@ export const authTokenStore = {
       return null;
     }
 
-    writeAccessTokenStorage(legacyAccessToken);
+    writeAccessTokenStorage(legacyAccessToken, "session");
     clearFromAllStorages(LEGACY_ACCESS_TOKEN_STORAGE_KEYS);
     return legacyAccessToken;
   },
@@ -513,21 +669,31 @@ export const authTokenStore = {
     getTokenStorageMode();
 
     setTokenStorageMode(mode);
-    setCookieSessionMode(null);
-    writeAccessTokenStorage(tokens.access_token || null);
+    writeAccessTokenStorage(tokens.access_token || null, mode);
 
     const shouldStoreRefreshToken = options?.storeRefreshToken ?? true;
+    const normalizedRefreshToken = normalizeToken(tokens.refresh_token);
 
     writeStorage(
       REFRESH_TOKEN_STORAGE_KEY,
-      shouldStoreRefreshToken ? tokens.refresh_token || null : null,
+      shouldStoreRefreshToken ? normalizedRefreshToken : null,
       mode
+    );
+    setCookieSessionMode(
+      shouldStoreRefreshToken && !normalizedRefreshToken ? mode : null
     );
     clearFromAllStorages(ALL_LEGACY_TOKEN_STORAGE_KEYS);
   },
   getSessionMode: () => getCookieSessionMode() || getTokenStorageMode(),
-  hasSessionMarker: () => true,
-  hasRefreshCapability: () => true,
+  hasSessionMarker: () =>
+    Boolean(
+      authTokenStore.getAccessToken() ||
+      authTokenStore.getRefreshToken() ||
+      getCookieSessionMode() ||
+      readAuthUserSnapshot()
+    ),
+  hasRefreshCapability: () =>
+    Boolean(authTokenStore.getRefreshToken() || getCookieSessionMode()),
   clearAccessToken: () => {
     inMemoryAccessToken = null;
     clearFromAllStorages([ACCESS_TOKEN_STORAGE_KEY]);
@@ -616,7 +782,6 @@ const NON_INVALIDATING_AUTH_PATHS = [
 "/auth/signup",
 "/auth/sign-up",
 "/auth/refresh",
-"/auth/session",
 "/auth/google",
 "/auth/google/callback",
 "/auth/verify-email",
@@ -629,6 +794,24 @@ const isNonInvalidatingAuthPath = (path: string) => {
   normalizedPath.includes(segment)
   );
 };
+
+const isAuthSessionPath = (path: string) =>
+  path.toLowerCase().includes("/auth/session");
+
+const shouldRetryWithForcedRefresh = ({
+  hasExplicitAuthorization,
+  path,
+  status
+}: {
+  hasExplicitAuthorization: boolean;
+  path: string;
+  status: number;
+}) =>
+  status === 401 &&
+  !hasExplicitAuthorization &&
+  !isNonInvalidatingAuthPath(path) &&
+  !isAuthSessionPath(path);
+
 let apiRequestAdapter: ApiRequestAdapter | null = null;
 let inflightAccessTokenRefresh: Promise<string | null> | null = null;
 const inflightGetRequests = new Map<string, Promise<unknown>>();
@@ -663,12 +846,13 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
     return accessToken;
   }
 
-  if (accessToken) {
-    authTokenStore.clearAccessToken();
-  }
-
   if (inflightAccessTokenRefresh) {
     return inflightAccessTokenRefresh;
+  }
+
+  const refreshToken = authTokenStore.getRefreshToken();
+  if (!refreshToken && !authTokenStore.hasSessionMarker()) {
+    return null;
   }
 
   inflightAccessTokenRefresh = (async () => {
@@ -678,7 +862,7 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
         headers: {
           "Content-Type": "application/json; charset=utf-8"
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
         credentials: "include",
         cache: "no-store"
       });
@@ -686,8 +870,9 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
 
       if (!response.ok) {
         const errorCode = getErrorCode(payload);
-        if (response.status === 401 && isDefinitiveAuthExpiredCode(errorCode)) {
+        if (isDefinitiveAuthExpiredCode(errorCode)) {
           authTokenStore.clear({ notify: true });
+          invalidateApiResponseCache("refresh-expired");
         }
         return null;
       }
@@ -701,9 +886,13 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
       }
 
       authTokenStore.setTokens(
-        { access_token: nextAccessToken },
-        { storeRefreshToken: false }
+        {
+          access_token: nextAccessToken,
+          refresh_token: normalizeToken(sessionPayload?.tokens?.refresh_token) || refreshToken || undefined
+        },
+        { persist: false, storageScope: "storage", storeRefreshToken: true }
       );
+      syncAuthUserSnapshotFromPayload(sessionPayload);
       return nextAccessToken;
     } catch {
       return null;
@@ -717,6 +906,7 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
 
 export const setApiRequestAdapter = (adapter: ApiRequestAdapter | null) => {
   apiRequestAdapter = adapter;
+  invalidateApiResponseCache("adapter-changed");
 };
 
 const parseResponse = async (response: Response) => {
@@ -766,11 +956,34 @@ const DEFINITIVE_AUTH_EXPIRED_CODES = new Set([
   "SESSION_EXPIRED",
   "INVALID_REFRESH_TOKEN",
   "REFRESH_TOKEN_REUSED_OR_REVOKED",
-  "SESSION_USER_NOT_FOUND"
+  "SESSION_USER_NOT_FOUND",
+  "INVALID_TOKEN"
 ]);
+
+const COOKIE_SESSION_MISSING_CODES = new Set(["NO_ACTIVE_SESSION"]);
 
 export const isDefinitiveAuthExpiredCode = (code?: string) =>
   typeof code === "string" && DEFINITIVE_AUTH_EXPIRED_CODES.has(code);
+
+export const isCookieSessionMissingCode = (code?: string) =>
+  typeof code === "string" && COOKIE_SESSION_MISSING_CODES.has(code);
+
+const shouldClearAuthForRequestFailure = ({
+  errorCode,
+  hasExplicitAuthorization,
+  path,
+  status
+}: {
+  errorCode?: string;
+  hasExplicitAuthorization: boolean;
+  path: string;
+  status: number;
+}) =>
+  status === 401 &&
+  !hasExplicitAuthorization &&
+  !isNonInvalidatingAuthPath(path) &&
+  isDefinitiveAuthExpiredCode(errorCode) &&
+  !isCookieSessionMissingCode(errorCode);
 
 const getErrorDetails = (payload: unknown) => {
   if (!isObject(payload)) return undefined;
@@ -853,15 +1066,15 @@ options: ApiOptions = {})
       hasExplicitAuthorization
     });
 
-    if (adapterResult.handled) {
-      if (adapterResult.error) {
-        throw adapterResult.error;
+      if (adapterResult.handled) {
+        if (adapterResult.error) {
+          throw adapterResult.error;
+        }
+        if (method !== "GET") {
+          invalidateApiResponseCache("adapter-mutation");
+        }
+        return adapterResult.value as T;
       }
-      if (method !== "GET") {
-        recentGetResponses.clear();
-      }
-      return adapterResult.value as T;
-    }
   }
 
   if (shouldBlockViewerMutation(path, method)) {
@@ -891,7 +1104,7 @@ options: ApiOptions = {})
   const body = serializeRequestBody(options.body, headers);
   const dedupeKey =
   method === "GET" && !options.disableResponseCache ?
-  `${url}|auth=${headers.get("Authorization") || ""}` :
+  `${url}|epoch=${getApiSessionEpoch()}|auth=${headers.get("Authorization") || ""}` :
   null;
 
   const executeRequest = async (): Promise<T> => {
@@ -909,11 +1122,11 @@ options: ApiOptions = {})
 
     let { response, payload } = await doFetch(headers);
 
-    if (
-      response.status === 401 &&
-      !hasExplicitAuthorization &&
-      !isNonInvalidatingAuthPath(path)
-    ) {
+    if (shouldRetryWithForcedRefresh({
+      hasExplicitAuthorization,
+      path,
+      status: response.status
+    })) {
       const refreshedAccessToken = await ensureAccessToken({ forceRefresh: true });
       if (refreshedAccessToken) {
         const retryHeaders = new Headers(headers);
@@ -926,13 +1139,14 @@ options: ApiOptions = {})
 
     if (!response.ok) {
       const errorCode = getErrorCode(payload);
-      if (
-        response.status === 401 &&
-        !hasExplicitAuthorization &&
-        !isNonInvalidatingAuthPath(path) &&
-        isDefinitiveAuthExpiredCode(errorCode))
-      {
+      if (shouldClearAuthForRequestFailure({
+        errorCode,
+        hasExplicitAuthorization,
+        path,
+        status: response.status
+      })) {
         authTokenStore.clear({ notify: true });
+        invalidateApiResponseCache("request-auth-expired");
       }
 
       throw new ApiError(getErrorMessage(payload, response.statusText), {
@@ -949,7 +1163,7 @@ options: ApiOptions = {})
     const response = await executeRequest();
 
     if (method !== "GET") {
-      recentGetResponses.clear();
+      invalidateApiResponseCache("mutation");
     }
     return response;
   }

@@ -3,11 +3,17 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useState,
   useCallback,
   ReactNode } from
 "react";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  fetchAllLogisticsShipments,
+  type LogisticsShipmentSummary
+} from "@/lib/logisticsApi";
 import {
   ProductAssessmentData,
   AddressInput } from
@@ -319,6 +325,9 @@ const EMISSION_FACTORS: Record<string, number> = {
 interface ShipmentContextType {
   shipments: Shipment[];
   statusLogs: ShipmentStatusLog[];
+  hydrationStatus: "idle" | "hydrating" | "ready" | "error";
+  lastHydratedAt: string | null;
+  refresh: () => Promise<void>;
 
 
   createShipmentFromProduct: (
@@ -367,13 +376,165 @@ export interface ShipmentFilters {
 const ShipmentContext = createContext<ShipmentContextType | undefined>(
   undefined
 );
+const SHIPMENT_SNAPSHOT_KEY_PREFIX = "weavecarbon_shipments_snapshot_v1";
+
+const buildSnapshotKey = (userId?: string | null, companyId?: string | null) =>
+  `${SHIPMENT_SNAPSHOT_KEY_PREFIX}:${userId || "anonymous"}:${companyId || "no-company"}`;
+
+const mapApiStatus = (status: LogisticsShipmentSummary["status"]): ShipmentStatus => {
+  if (status === "in_transit") return "in_transit";
+  if (status === "delivered") return "delivered";
+  if (status === "cancelled") return "archived";
+  return "planned";
+};
+
+const mapLocation = (
+  location: LogisticsShipmentSummary["origin"],
+  fallbackName: string
+): ShipmentLocation => ({
+  name: location.city || location.address || location.country || fallbackName,
+  lat: location.lat || 0,
+  lng: location.lng || 0,
+  type: "address"
+});
+
+const mapShipmentSummary = (
+  shipment: LogisticsShipmentSummary,
+  fallbackOrigin: string,
+  fallbackDestination: string
+): Shipment => {
+  const origin = mapLocation(shipment.origin, fallbackOrigin);
+  const destination = mapLocation(shipment.destination, fallbackDestination);
+  return {
+    id: shipment.id,
+    referenceNumber: shipment.reference_number,
+    productName: "",
+    sku: "",
+    quantity: shipment.products_count || 0,
+    origin,
+    destination,
+    originAddress: {
+      aptSuite: "",
+      streetNumber: "",
+      street: shipment.origin.address || "",
+      ward: "",
+      district: "",
+      city: shipment.origin.city || "",
+      stateRegion: "",
+      country: shipment.origin.country || "",
+      postalCode: ""
+    },
+    destinationAddress: {
+      aptSuite: "",
+      streetNumber: "",
+      street: shipment.destination.address || "",
+      ward: "",
+      district: "",
+      city: shipment.destination.city || "",
+      stateRegion: "",
+      country: shipment.destination.country || "",
+      postalCode: ""
+    },
+    legs: [],
+    totalDistanceKm: shipment.total_distance_km,
+    totalCO2: shipment.total_co2e,
+    createdAt: shipment.created_at,
+    updatedAt: shipment.updated_at,
+    etaPlanned: shipment.estimated_arrival_at || shipment.estimated_arrival || shipment.updated_at,
+    etaSource: "default_sla",
+    deliveredAt: shipment.actual_arrival_at || shipment.actual_arrival || undefined,
+    status: mapApiStatus(shipment.status),
+    statusSource: "sla_estimate",
+    progress: shipment.status === "delivered" ? 100 : shipment.status === "in_transit" ? 50 : 0,
+    destinationMarket: shipment.destination.country || ""
+  };
+};
+
+const readSnapshot = (key: string): Shipment[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(key) || "null") as {
+      shipments?: Shipment[];
+    } | null;
+    return Array.isArray(parsed?.shipments) ? parsed.shipments : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeSnapshot = (key: string, shipments: Shipment[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        cachedAt: Date.now(),
+        shipments
+      })
+    );
+  } catch {
+
+  }
+};
 
 export const ShipmentProvider: React.FC<{children: ReactNode;}> = ({
   children
 }) => {
+  const { authStatus, isDemoSession, user } = useAuth();
+  const userId = user?.id || null;
+  const companyId = user?.company_id || null;
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [statusLogs, setStatusLogs] = useState<ShipmentStatusLog[]>([]);
+  const [hydrationStatus, setHydrationStatus] =
+    useState<"idle" | "hydrating" | "ready" | "error">("idle");
+  const [lastHydratedAt, setLastHydratedAt] = useState<string | null>(null);
   const t = useTranslations("logistics.shipmentContext");
+
+  const refresh = useCallback(async () => {
+    if (!userId || (!companyId && !isDemoSession)) {
+      setShipments([]);
+      setHydrationStatus(authStatus === "authenticated" ? "ready" : "idle");
+      return;
+    }
+
+    const snapshotKey = buildSnapshotKey(userId, companyId);
+    const staleShipments = readSnapshot(snapshotKey);
+    if (staleShipments.length > 0) {
+      setShipments(staleShipments);
+    }
+
+    setHydrationStatus("hydrating");
+    try {
+      const summaries = await fetchAllLogisticsShipments({
+        sort_by: "updated_at",
+        sort_order: "desc"
+      });
+      const nextShipments = summaries.map((shipment) =>
+        mapShipmentSummary(shipment, t("defaults.origin"), t("defaults.destination"))
+      );
+      setShipments(nextShipments);
+      writeSnapshot(snapshotKey, nextShipments);
+      setLastHydratedAt(new Date().toISOString());
+      setHydrationStatus("ready");
+    } catch {
+      setHydrationStatus(staleShipments.length > 0 ? "ready" : "error");
+    }
+  }, [authStatus, companyId, isDemoSession, t, userId]);
+
+  useEffect(() => {
+    if (authStatus === "checking" || authStatus === "recovering") {
+      setHydrationStatus("hydrating");
+      return;
+    }
+
+    if (authStatus !== "authenticated") {
+      setShipments([]);
+      setHydrationStatus("idle");
+      return;
+    }
+
+    void refresh();
+  }, [authStatus, refresh]);
 
 
   const createShipmentFromProduct = useCallback(
@@ -804,6 +965,9 @@ export const ShipmentProvider: React.FC<{children: ReactNode;}> = ({
       value={{
         shipments,
         statusLogs,
+        hydrationStatus,
+        lastHydratedAt,
+        refresh,
         createShipmentFromProduct,
         createShipmentFromBatch,
         updateShipment,

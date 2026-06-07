@@ -3,11 +3,14 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useState,
   useCallback,
   ReactNode } from
 "react";
 import { AddressInput } from "@/components/dashboard/assessment/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { listProductBatches, type ProductBatchSummary } from "@/lib/productsApi";
 
 export type BatchStatus = "draft" | "published";
 
@@ -50,6 +53,9 @@ export interface Batch {
 
 interface BatchContextType {
   batches: Batch[];
+  status: "idle" | "hydrating" | "ready" | "error";
+  lastHydratedAt: string | null;
+  refresh: () => Promise<void>;
 
 
   createBatch: (name: string, description?: string) => Batch;
@@ -70,11 +76,108 @@ interface BatchContextType {
 }
 
 const BatchContext = createContext<BatchContextType | undefined>(undefined);
+const BATCH_SNAPSHOT_KEY_PREFIX = "weavecarbon_batches_snapshot_v1";
+
+const buildSnapshotKey = (userId?: string | null, companyId?: string | null) =>
+  `${BATCH_SNAPSHOT_KEY_PREFIX}:${userId || "anonymous"}:${companyId || "no-company"}`;
+
+const mapBatchSummary = (batch: ProductBatchSummary): Batch => ({
+  id: batch.id,
+  name: batch.name,
+  description: batch.description,
+  status: batch.status === "published" ? "published" : "draft",
+  products: [],
+  totalProducts: batch.totalProducts,
+  totalQuantity: batch.totalQuantity,
+  totalCO2: batch.totalCO2,
+  totalWeight: batch.totalWeight,
+  originAddress: batch.originAddress,
+  destinationAddress: batch.destinationAddress,
+  destinationMarket: batch.destinationMarket,
+  transportModes: batch.transportModes,
+  createdAt: batch.createdAt,
+  updatedAt: batch.updatedAt,
+  publishedAt: batch.publishedAt,
+  shipmentId: batch.shipmentId || undefined
+});
+
+const readSnapshot = (key: string): Batch[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(key) || "null") as {
+      batches?: Batch[];
+    } | null;
+    return Array.isArray(parsed?.batches) ? parsed.batches : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeSnapshot = (key: string, batches: Batch[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        batches,
+        cachedAt: Date.now()
+      })
+    );
+  } catch {
+
+  }
+};
 
 export const BatchProvider: React.FC<{children: ReactNode;}> = ({
   children
 }) => {
+  const { authStatus, isDemoSession, user } = useAuth();
+  const userId = user?.id || null;
+  const companyId = user?.company_id || null;
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [status, setStatus] = useState<"idle" | "hydrating" | "ready" | "error">("idle");
+  const [lastHydratedAt, setLastHydratedAt] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!userId || (!companyId && !isDemoSession)) {
+      setBatches([]);
+      setStatus(authStatus === "authenticated" ? "ready" : "idle");
+      return;
+    }
+
+    const snapshotKey = buildSnapshotKey(userId, companyId);
+    const staleBatches = readSnapshot(snapshotKey);
+    if (staleBatches.length > 0) {
+      setBatches(staleBatches);
+    }
+
+    setStatus("hydrating");
+    try {
+      const result = await listProductBatches();
+      const nextBatches = result.items.map(mapBatchSummary);
+      setBatches(nextBatches);
+      writeSnapshot(snapshotKey, nextBatches);
+      setLastHydratedAt(new Date().toISOString());
+      setStatus("ready");
+    } catch {
+      setStatus(staleBatches.length > 0 ? "ready" : "error");
+    }
+  }, [authStatus, companyId, isDemoSession, userId]);
+
+  useEffect(() => {
+    if (authStatus === "checking" || authStatus === "recovering") {
+      setStatus("hydrating");
+      return;
+    }
+
+    if (authStatus !== "authenticated") {
+      setBatches([]);
+      setStatus("idle");
+      return;
+    }
+
+    void refresh();
+  }, [authStatus, refresh]);
 
   const createBatch = useCallback(
     (name: string, description?: string): Batch => {
@@ -220,6 +323,9 @@ export const BatchProvider: React.FC<{children: ReactNode;}> = ({
     <BatchContext.Provider
       value={{
         batches,
+        status,
+        lastHydratedAt,
+        refresh,
         createBatch,
         updateBatch,
         deleteBatch,

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import {
@@ -53,6 +54,12 @@ import {
 "@/lib/logisticsApi";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import { api } from "@/lib/apiClient";
+import {
+  clearAssessmentDraft,
+  readAssessmentDraft,
+  writeAssessmentDraft,
+  type AssessmentDraftScope
+} from "@/lib/assessmentDraftCache";
 import { normalizeDomesticMarketCode } from "@/lib/targetMarkets";
 import { useAppRoutes } from "@/lib/demo/routes";
 import {
@@ -551,6 +558,58 @@ initialData?: ProductAssessmentData | null)
   };
 };
 
+const hasNonEmptyText = (value: unknown) =>
+  typeof value === "string" && value.trim().length > 0;
+
+const hasUsefulAddressContent = (address: AddressInput) =>
+  [
+    address.aptSuite,
+    address.streetNumber,
+    address.street,
+    address.ward,
+    address.district,
+    address.city,
+    address.stateRegion,
+    address.postalCode
+  ].some(hasNonEmptyText) ||
+  (hasNonEmptyText(address.country) && address.country.trim() !== "Vietnam") ||
+  typeof address.lat === "number" ||
+  typeof address.lng === "number";
+
+const hasAssessmentDraftContent = (draft: ProductAssessmentSessionDraft) => {
+  const data = draft.data;
+  return (
+    draft.currentStep > 1 ||
+    [
+      data.productCode,
+      data.productName,
+      data.productType,
+      data.hsCode,
+      data.cnCode,
+      data.facility,
+      data.evidenceLookupCode,
+      data.supplierCountry,
+      data.customsDeclarationNo,
+      data.poContractId,
+      data.billOfLadingNo,
+      data.containerNo,
+      data.manufacturingLocation,
+      data.wasteRecovery,
+      data.destinationMarket
+    ].some(hasNonEmptyText) ||
+    data.weightPerUnit > 0 ||
+    data.quantity > 0 ||
+    data.materials.length > 0 ||
+    data.accessories.length > 0 ||
+    data.productionProcesses.length > 0 ||
+    data.energySources.length > 0 ||
+    data.transportLegs.length > 0 ||
+    data.estimatedTotalDistance > 0 ||
+    hasUsefulAddressContent(data.originAddress) ||
+    hasUsefulAddressContent(data.destinationAddress)
+  );
+};
+
 const readModalCreateDraft = (): ProductAssessmentData | null => {
   if (typeof window === "undefined") return null;
 
@@ -645,6 +704,7 @@ export default function AssessmentClient({
   const unknownLocationLabel = t("unknownLocation");
   const router = useRouter();
   const appRoutes = useAppRoutes();
+  const { authStatus, user } = useAuth();
   const { canMutate } = usePermissions();
   const { currentPlan } = useSubscriptionLock();
   const [accountPlan, setAccountPlan] = useState<string | null>(null);
@@ -659,6 +719,7 @@ export default function AssessmentClient({
   const isModalMode = mode === "modal";
   const isEditing = Boolean(productId);
   const skipCreateDraftPersistenceRef = useRef(false);
+  const scopedDraftRestoredRef = useRef(false);
   const steps = STEP_CONFIG.map((step) => ({
     ...step,
     title: t(step.titleKey)
@@ -682,6 +743,12 @@ export default function AssessmentClient({
     useState(true);
   const [editingShipmentStatus, setEditingShipmentStatus] =
     useState<LogisticsShipmentStatus | null>(null);
+  const draftScope: AssessmentDraftScope = useMemo(() => ({
+    companyId: user?.company_id || null,
+    mode,
+    productId: productId || null,
+    userId: user?.id || null
+  }), [mode, productId, user?.company_id, user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -854,12 +921,35 @@ export default function AssessmentClient({
 
   useEffect(() => {
     skipCreateDraftPersistenceRef.current = false;
+    scopedDraftRestoredRef.current = false;
     setCurrentStep(normalizeInitialStep(initialStep));
     setDraftHistory([]);
     setIsSubmitting(false);
     setSubmissionMode(null);
     setProductData(resolveInitialProductData({ mode, isEditing, initialData, disableModalDraftRestore }));
   }, [disableModalDraftRestore, initialData, initialStep, isEditing, mode, productId]);
+
+  useEffect(() => {
+    if (authStatus === "checking" || authStatus === "recovering") return;
+    if (scopedDraftRestoredRef.current) return;
+    if (skipCreateDraftPersistenceRef.current) return;
+    if (isEditing || initialData) {
+      scopedDraftRestoredRef.current = true;
+      return;
+    }
+
+    const scopedDraft = readAssessmentDraft(draftScope);
+    scopedDraftRestoredRef.current = true;
+    if (!scopedDraft) return;
+
+    setCurrentStep(normalizeInitialStep(scopedDraft.currentStep));
+    setProductData(cloneInitialData(scopedDraft.data));
+  }, [
+    authStatus,
+    draftScope,
+    initialData,
+    isEditing
+  ]);
 
   useEffect(() => {
     if (!isStarterPlan) return;
@@ -946,16 +1036,37 @@ export default function AssessmentClient({
 
   useEffect(() => {
     if (
-    !isModalMode ||
-    disableModalDraftRestore ||
-    isEditing ||
-    skipCreateDraftPersistenceRef.current)
-    {
+      authStatus === "checking" ||
+      authStatus === "recovering" ||
+      isEditing ||
+      skipCreateDraftPersistenceRef.current
+    ) {
       return;
     }
 
+    const draft = {
+      currentStep: normalizeInitialStep(currentStep),
+      data: productData,
+      updatedAt: productData.updatedAt || new Date().toISOString()
+    };
+
+    if (!hasAssessmentDraftContent(draft)) {
+      return;
+    }
+
+    writeAssessmentDraft(draftScope, draft);
+
+    if (!isModalMode || disableModalDraftRestore) return;
     saveModalCreateDraft(productData);
-  }, [disableModalDraftRestore, isModalMode, isEditing, productData]);
+  }, [
+    currentStep,
+    authStatus,
+    disableModalDraftRestore,
+    draftScope,
+    isEditing,
+    isModalMode,
+    productData
+  ]);
 
   useEffect(() => {
     if (!isModalMode || isEditing || skipCreateDraftPersistenceRef.current) {
@@ -1418,6 +1529,7 @@ export default function AssessmentClient({
         createdAt: prev.createdAt || timestamp,
         updatedAt: timestamp
       }));
+      clearAssessmentDraft(draftScope);
 
       toast.success(
         isEditing ?
@@ -1428,6 +1540,7 @@ export default function AssessmentClient({
       if (isModalMode) {
         if (!isEditing) {
           skipCreateDraftPersistenceRef.current = true;
+          clearAssessmentDraft(draftScope);
           clearModalCreateDraft();
         }
         onCompleted?.({
@@ -1527,6 +1640,7 @@ export default function AssessmentClient({
         createdAt: prev.createdAt || timestamp,
         updatedAt: timestamp
       }));
+      clearAssessmentDraft(draftScope);
 
       if (publishedSuccessfully) {
         toast.success(
@@ -1554,6 +1668,7 @@ export default function AssessmentClient({
       if (isModalMode) {
         if (!isEditing) {
           skipCreateDraftPersistenceRef.current = true;
+          clearAssessmentDraft(draftScope);
           clearModalCreateDraft();
         }
         onCompleted?.({

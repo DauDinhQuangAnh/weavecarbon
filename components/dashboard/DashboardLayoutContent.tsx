@@ -31,6 +31,7 @@ export default function DashboardLayoutContent({
   const isProductsPage = pathname === "/products" || pathname === "/demo/products";
   const isLogisticsPage = pathname === "/logistics" || pathname === "/demo/logistics";
   const isExportPage = pathname === "/export" || pathname === "/demo/export";
+  const isDemoPage = pathname?.startsWith("/demo");
   const isAiSettingsPage =
     pathname === "/settings/ai" || pathname?.startsWith("/settings/ai/");
   const isOverviewPage = pathname === "/overview" || pathname === "/demo/overview";
@@ -45,6 +46,19 @@ export default function DashboardLayoutContent({
           : isAiSettingsPage
             ? "pt-[4.5rem]"
           : "pt-[4.4rem]";
+
+  useEffect(() => {
+    if (
+      isDemoPage ||
+      loading ||
+      authStatus === "checking" ||
+      authStatus === "recovering"
+    ) return;
+
+    if (!user || authStatus === "expired" || authStatus === "anonymous") {
+      router.replace("/auth?forceLogin=1");
+    }
+  }, [authStatus, isDemoPage, loading, router, user]);
 
   useEffect(() => {
     if (

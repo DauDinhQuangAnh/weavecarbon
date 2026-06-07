@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useAuth } from "@/contexts/AuthContext";
 import {
+  api,
   authTokenStore,
   clearPersistedAuthState,
   isApiError,
-  isUnauthorizedApiError
+  isUnauthorizedApiError,
+  syncAuthUserSnapshotFromPayload
 } from "@/lib/apiClient";
 import {
   buildAuthErrorUrl,
@@ -63,10 +64,156 @@ fallback?: string) =>
 const isTruthyFlag = (value: string | null) =>
 ["1", "true"].includes((value || "").toLowerCase());
 
+type AuthIntent = "signin" | "signup";
+
+interface CallbackSessionPayload {
+  roles?: AuthUserType[];
+  company?: {
+    id?: string | null;
+  } | null;
+  profile?: {
+    company_id?: string | null;
+  } | null;
+  company_membership?: {
+    company_id?: string | null;
+  } | null;
+}
+
+const getSessionCompanyId = (session: CallbackSessionPayload | null) =>
+  session?.company?.id ||
+  session?.profile?.company_id ||
+  session?.company_membership?.company_id ||
+  null;
+
+const parseCallbackParams = () => {
+  const url = new URL(window.location.href);
+  const query = url.searchParams;
+  const hash = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
+  const readParam = (key: string) => hash.get(key) || query.get(key);
+  const authIntent: AuthIntent = readParam("auth_intent") === "signup" ? "signup" : "signin";
+  const nextStep = (readParam("next_step") || "").toLowerCase();
+  const requiresEmailVerification =
+    isTruthyFlag(readParam("requires_email_verification")) ||
+    isTruthyFlag(readParam("email_verification_required"));
+
+  return {
+    accessToken: readParam("access_token"),
+    authIntent,
+    callbackEmail: readParam("email"),
+    errorCode: readParam("error"),
+    errorDescription: readParam("error_description"),
+    refreshToken: readParam("refresh_token"),
+    requiresCompanySetup: isTruthyFlag(readParam("requires_company_setup")),
+    requestedRole: normalizeAuthUserType(
+      readParam("type") ||
+      readParam("role")
+    ),
+    shouldGoToCheckEmail:
+      requiresEmailVerification ||
+      nextStep === "verify_email" ||
+      nextStep === "email_verification" ||
+      nextStep === "check_email"
+  };
+};
+
+const storeCallbackTokens = (accessToken: string, refreshToken: string | null) => {
+  authTokenStore.setTokens({
+    access_token: accessToken,
+    refresh_token: refreshToken || undefined
+  }, {
+    persist: false,
+    storageScope: "storage",
+    storeRefreshToken: true
+  });
+};
+
+const hydrateCallbackSession = async () => {
+  try {
+    const sessionPayload = await api.get<CallbackSessionPayload>("/auth/session", {
+      disableResponseCache: true
+    });
+    syncAuthUserSnapshotFromPayload(sessionPayload);
+    return sessionPayload;
+  } catch (error) {
+    console.error("[auth] Google callback session bootstrap failed:", error);
+    return null;
+  }
+};
+
+const resolveCallbackRole = async (
+  sessionPayload: CallbackSessionPayload | null,
+  effectiveRequestedRole?: AuthUserType
+) => {
+  const sessionRole = normalizeAuthUserType(sessionPayload?.roles?.[0]);
+  if (sessionRole || effectiveRequestedRole) {
+    return sessionRole || effectiveRequestedRole;
+  }
+
+  try {
+    return await resolveAuthenticatedUserType({
+      fallbackRole: effectiveRequestedRole,
+      shouldIgnoreAccountError: (error) => !isUnauthorizedApiError(error),
+      shouldIgnoreCompanyCheckError: (error) => !isUnauthorizedApiError(error)
+    });
+  } catch {
+    return effectiveRequestedRole;
+  }
+};
+
+const resolveCallbackDestination = async ({
+  actualRole,
+  effectiveRequestedRole,
+  requiresCompanySetup,
+  sessionPayload
+}: {
+  actualRole?: AuthUserType;
+  effectiveRequestedRole?: AuthUserType;
+  requiresCompanySetup: boolean;
+  sessionPayload: CallbackSessionPayload | null;
+}) => {
+  const sessionCompanyId = getSessionCompanyId(sessionPayload);
+  const shouldRouteToCompanySetup =
+    actualRole === "b2b" ?
+      requiresCompanySetup || (sessionPayload ? !sessionCompanyId : false) :
+      false;
+
+  return resolvePostLoginPath({
+    accountType: actualRole,
+    companyCheckPayload: actualRole ? {
+      has_company: actualRole === "b2b" ? !shouldRouteToCompanySetup : false,
+      is_b2b: actualRole === "b2b",
+      user_type: actualRole
+    } : undefined,
+    onboardingPath: "/onboarding?source=google",
+    requestedType: effectiveRequestedRole,
+    onCompanyCheckError: (error, context) => {
+      if (isApiError(error) && error.code === "EMAIL_NOT_VERIFIED") {
+        authTokenStore.clear();
+        clearStoredAuthUser();
+        return buildCheckEmailUrl({
+          source: "google",
+          intent: "signin",
+          type: context.requestedType
+        });
+      }
+
+      if (isUnauthorizedApiError(error)) {
+        authTokenStore.clear();
+        clearStoredAuthUser();
+        return buildAuthErrorUrl({
+          type: context.requestedType,
+          error: "GOOGLE_AUTH_FAILED"
+        });
+      }
+
+      return null;
+    }
+  });
+};
+
 export default function AuthCallbackPage() {
   const t = useTranslations("authCallback");
   const router = useRouter();
-  const { refreshUser } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasHandledCallback = useRef(false);
 
@@ -81,36 +228,20 @@ export default function AuthCallbackPage() {
         getGoogleRequestedRole();
 
       try {
-        const url = new URL(window.location.href);
-        const query = url.searchParams;
-        const hash = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
+        const callbackParams = parseCallbackParams();
+        callbackRequestedRole = callbackParams.requestedRole || callbackRequestedRole;
 
-        const errorCode = query.get("error") || hash.get("error");
-        const errorDescription =
-        query.get("error_description") || hash.get("error_description");
-        const authIntentRaw = hash.get("auth_intent") || query.get("auth_intent");
-        const authIntent =
-        authIntentRaw === "signup" ? "signup" as const : "signin" as const;
-        const callbackEmail = hash.get("email") || query.get("email");
-        callbackRequestedRole =
-          normalizeAuthUserType(
-            hash.get("type") ||
-            query.get("type") ||
-            hash.get("role") ||
-            query.get("role")
-          ) || callbackRequestedRole;
-
-        if (errorCode) {
-          if (errorCode === "EMAIL_NOT_VERIFIED") {
+        if (callbackParams.errorCode) {
+          if (callbackParams.errorCode === "EMAIL_NOT_VERIFIED") {
             clearGoogleOAuthInflightState();
             clearCallbackHash();
             authTokenStore.clear();
             clearStoredAuthUser();
             router.replace(
               buildCheckEmailUrl({
-                email: callbackEmail || errorDescription,
+                email: callbackParams.callbackEmail || callbackParams.errorDescription,
                 source: "google",
-                intent: authIntent,
+                intent: callbackParams.authIntent,
                 type: callbackRequestedRole
               })
             );
@@ -120,9 +251,9 @@ export default function AuthCallbackPage() {
           clearGoogleOAuthInflightState();
           clearCallbackHash();
           const mappedMessage = mapGoogleErrorMessage(
-            errorCode,
+            callbackParams.errorCode,
             t,
-            errorDescription || undefined
+            callbackParams.errorDescription || undefined
           );
           if (!cancelled) {
             setErrorMessage(mappedMessage);
@@ -130,38 +261,23 @@ export default function AuthCallbackPage() {
           router.replace(
             buildAuthErrorUrl({
               type: callbackRequestedRole,
-              error: errorCode,
-              errorDescription
+              error: callbackParams.errorCode,
+              errorDescription: callbackParams.errorDescription
             })
           );
           return;
         }
 
-        const accessToken = hash.get("access_token") || query.get("access_token");
-        const requiresEmailVerification = isTruthyFlag(
-          hash.get("requires_email_verification") || query.get("requires_email_verification")
-        ) || isTruthyFlag(
-          hash.get("email_verification_required") || query.get("email_verification_required")
-        );
-        const nextStep = hash.get("next_step") || query.get("next_step");
-        const normalizedNextStep = (nextStep || "").toLowerCase();
-
-        const shouldGoToCheckEmail =
-        requiresEmailVerification ||
-        normalizedNextStep === "verify_email" ||
-        normalizedNextStep === "email_verification" ||
-        normalizedNextStep === "check_email";
-
-        if (shouldGoToCheckEmail) {
+        if (callbackParams.shouldGoToCheckEmail) {
           clearGoogleOAuthInflightState();
           clearCallbackHash();
           authTokenStore.clear();
           clearStoredAuthUser();
           router.replace(
             buildCheckEmailUrl({
-              email: callbackEmail || errorDescription,
+              email: callbackParams.callbackEmail || callbackParams.errorDescription,
               source: "google",
-              intent: authIntent,
+              intent: callbackParams.authIntent,
               type: callbackRequestedRole
             })
           );
@@ -169,42 +285,34 @@ export default function AuthCallbackPage() {
         }
 
         const requestedRole = getGoogleRequestedRole();
+        const effectiveRequestedRole = callbackRequestedRole || requestedRole || undefined;
 
-        if (accessToken) {
-          authTokenStore.setTokens({
-            access_token: accessToken
-          }, {
-            storeRefreshToken: false
-          });
+        if (callbackParams.accessToken) {
+          storeCallbackTokens(callbackParams.accessToken, callbackParams.refreshToken);
         }
         sessionStorage.setItem(PRICING_PROMPT_ON_LOGIN_KEY, "1");
         clearGoogleOAuthInflightState();
         clearCallbackHash();
 
-        try {
-          await refreshUser();
-        } catch {
-          if (!accessToken) {
-            throw new Error("GOOGLE_SESSION_BOOTSTRAP_FAILED");
-          }
+        if (!callbackParams.accessToken) {
+          throw new Error("GOOGLE_SESSION_BOOTSTRAP_FAILED");
         }
 
-        let actualRole = await resolveAuthenticatedUserType({
-          fallbackRole: callbackRequestedRole || requestedRole || undefined,
-          shouldIgnoreAccountError: (error) => !isUnauthorizedApiError(error),
-          shouldIgnoreCompanyCheckError: (error) => !isUnauthorizedApiError(error)
-        });
-        actualRole = actualRole || callbackRequestedRole || requestedRole || undefined;
+        const sessionPayload = await hydrateCallbackSession();
+        const actualRole =
+          await resolveCallbackRole(sessionPayload, effectiveRequestedRole) ||
+          effectiveRequestedRole;
+
         if (
-          requestedRole &&
+          effectiveRequestedRole &&
           actualRole &&
-          requestedRole !== actualRole
+          effectiveRequestedRole !== actualRole
         ) {
           authTokenStore.clear();
           clearStoredAuthUser();
           router.replace(
             buildAuthErrorUrl({
-              type: requestedRole,
+              type: effectiveRequestedRole,
               error: "ACCOUNT_TYPE_MISMATCH",
               errorDescription: actualRole
             })
@@ -212,32 +320,11 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        const destination = await resolvePostLoginPath({
-          accountType: actualRole,
-          onboardingPath: "/onboarding?source=google",
-          requestedType: callbackRequestedRole || requestedRole,
-          onCompanyCheckError: (error, context) => {
-            if (isApiError(error) && error.code === "EMAIL_NOT_VERIFIED") {
-              authTokenStore.clear();
-              clearStoredAuthUser();
-              return buildCheckEmailUrl({
-                source: "google",
-                intent: "signin",
-                type: context.requestedType
-              });
-            }
-
-            if (isUnauthorizedApiError(error)) {
-              authTokenStore.clear();
-              clearStoredAuthUser();
-              return buildAuthErrorUrl({
-                type: context.requestedType,
-                error: "UNAUTHORIZED"
-              });
-            }
-
-            return null;
-          }
+        const destination = await resolveCallbackDestination({
+          actualRole,
+          effectiveRequestedRole,
+          requiresCompanySetup: callbackParams.requiresCompanySetup,
+          sessionPayload
         });
         router.replace(destination);
       } catch {
@@ -262,7 +349,7 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshUser, router, t]);
+  }, [router, t]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

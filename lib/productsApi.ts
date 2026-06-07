@@ -2,6 +2,7 @@ import {
   api,
   apiRequest,
   authTokenStore,
+  invalidateApiResponseCache,
   resolveApiUrl,
   isApiError,
   type ApiError } from
@@ -196,6 +197,11 @@ export interface PublishBatchResult {
 }
 
 const inflightProductListRequests = new Map<string, Promise<ProductListResult>>();
+
+const invalidateProductCaches = (reason: string) => {
+  inflightProductListRequests.clear();
+  invalidateApiResponseCache(reason);
+};
 const PRODUCT_ID_REGEX =
 /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type PublishStatusApiMode = "unknown" | "published";
@@ -1977,6 +1983,7 @@ saveMode: ProductSaveMode)
     "/products",
     buildProductRequestBody(product, saveMode)
   );
+  invalidateProductCaches("product-created");
   return normalizeMutationPayload(payload);
 };
 
@@ -1988,6 +1995,7 @@ product: ProductAssessmentData)
     `/products/${productId}`,
     buildProductRequestBody(product)
   );
+  invalidateProductCaches("product-updated");
   return normalizeMutationPayload(payload);
 };
 
@@ -2004,11 +2012,13 @@ status: ProductStatus)
   if (status === "published") {
     writePublishStatusApiMode("published");
   }
+  invalidateProductCaches("product-status-updated");
   return normalizeMutationPayload(payload);
 };
 
 export const deleteProduct = async (productId: string) => {
   await api.delete<unknown>(`/products/${productId}`);
+  invalidateProductCaches("product-deleted");
 };
 
 const normalizeValidationErrors = (
@@ -2154,6 +2164,7 @@ saveMode: ProductSaveMode = "draft")
     rows,
     save_mode: saveMode
   });
+  invalidateProductCaches("products-bulk-imported");
   return normalizeBulkImportPayload(payload);
 };
 
@@ -2170,6 +2181,7 @@ saveMode: ProductSaveMode = "draft")
     body
   });
 
+  invalidateProductCaches("products-bulk-file-imported");
   return normalizeBulkImportPayload(payload);
 };
 
@@ -2403,6 +2415,7 @@ input: CreateBatchPayload)
     payload = await tryCreate(snakePayload);
   }
 
+  invalidateProductCaches("batch-created");
   if (isObject(payload) && typeof payload.id === "string") {
     try {
       return await getProductBatchById(payload.id);
@@ -2453,11 +2466,13 @@ input: UpdateBatchPayload)
     }
     await api.patch<unknown>(`/product-batches/${batchId}`, snakePayload);
   }
+  invalidateProductCaches("batch-updated");
   return getProductBatchById(batchId);
 };
 
 export const deleteProductBatch = async (batchId: string) => {
   await api.delete<unknown>(`/product-batches/${batchId}`);
+  invalidateProductCaches("batch-deleted");
 };
 
 export const addProductToBatch = async (
@@ -2465,6 +2480,7 @@ batchId: string,
 payload: AddBatchItemPayload) =>
 {
   await api.post<unknown>(`/product-batches/${batchId}/items`, payload);
+  invalidateProductCaches("batch-item-added");
 };
 
 export const updateProductBatchItem = async (
@@ -2473,6 +2489,7 @@ productId: string,
 payload: UpdateBatchItemPayload) =>
 {
   await api.patch<unknown>(`/product-batches/${batchId}/items/${productId}`, payload);
+  invalidateProductCaches("batch-item-updated");
 };
 
 export const removeProductBatchItem = async (
@@ -2480,12 +2497,14 @@ batchId: string,
 productId: string) =>
 {
   await api.delete<unknown>(`/product-batches/${batchId}/items/${productId}`);
+  invalidateProductCaches("batch-item-removed");
 };
 
 export const publishProductBatch = async (
 batchId: string)
 : Promise<PublishBatchResult> => {
   const payload = await api.patch<unknown>(`/product-batches/${batchId}/publish`);
+  invalidateProductCaches("batch-published");
 
   if (!isObject(payload)) {
     throw new Error("Invalid publish response from server.");

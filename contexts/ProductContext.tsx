@@ -3,11 +3,14 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useState,
   useCallback,
   ReactNode } from
 "react";
 
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import type { ProductStatus } from "@/types/product";
 
 export interface DashboardProduct {
@@ -59,6 +62,9 @@ export interface PendingProductData {
 
 interface ProductContextType {
   products: DashboardProduct[];
+  status: "idle" | "hydrating" | "ready" | "error";
+  lastHydratedAt: string | null;
+  refresh: () => Promise<void>;
   addProduct: (
   product: Omit<DashboardProduct, "id" | "createdAt">)
   => DashboardProduct;
@@ -74,11 +80,62 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
+const PRODUCT_SNAPSHOT_KEY_PREFIX = "weavecarbon_products_snapshot_v1";
+
+const buildSnapshotKey = (userId?: string | null, companyId?: string | null) =>
+  `${PRODUCT_SNAPSHOT_KEY_PREFIX}:${userId || "anonymous"}:${companyId || "no-company"}`;
+
+const mapProductRecordToDashboardProduct = (product: ProductRecord): DashboardProduct => ({
+  id: product.id,
+  name: product.productName || product.productCode || "Untitled product",
+  sku: product.productCode || product.id,
+  category: product.productType || "other",
+  co2: product.carbonResults?.perProduct?.total || product.carbonResults?.totalBatch?.total || 0,
+  status: product.status as ProductStatus,
+  materials: (product.materials || []).map((material) => material.materialType).filter(Boolean),
+  weight: product.weightPerUnit || 0,
+  unit: "g",
+  createdAt: product.createdAt,
+  scope: "scope1_2_3",
+  confidenceScore: product.carbonResults?.confidenceScore || 0
+});
+
+const readSnapshot = (key: string): DashboardProduct[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(key) || "null") as {
+      products?: DashboardProduct[];
+    } | null;
+    return Array.isArray(parsed?.products) ? parsed.products : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeSnapshot = (key: string, products: DashboardProduct[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        cachedAt: Date.now(),
+        products
+      })
+    );
+  } catch {
+
+  }
+};
 
 export const ProductProvider: React.FC<{children: ReactNode;}> = ({
   children
 }) => {
+  const { authStatus, isDemoSession, user } = useAuth();
+  const userId = user?.id || null;
+  const companyId = user?.company_id || null;
   const [products, setProducts] = useState<DashboardProduct[]>([]);
+  const [status, setStatus] = useState<"idle" | "hydrating" | "ready" | "error">("idle");
+  const [lastHydratedAt, setLastHydratedAt] = useState<string | null>(null);
   const [lastCreatedProduct, setLastCreatedProduct] =
   useState<DashboardProduct | null>(null);
   const [pendingProductData, setPendingProductData] =
@@ -87,6 +144,50 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
   const clearPendingProduct = useCallback(() => {
     setPendingProductData(null);
   }, []);
+
+  const refresh = useCallback(async () => {
+    if (!userId || (!companyId && !isDemoSession)) {
+      setProducts([]);
+      setStatus(authStatus === "authenticated" ? "ready" : "idle");
+      return;
+    }
+
+    const snapshotKey = buildSnapshotKey(userId, companyId);
+    const staleProducts = readSnapshot(snapshotKey);
+    if (staleProducts.length > 0) {
+      setProducts(staleProducts);
+    }
+
+    setStatus("hydrating");
+    try {
+      const records = await fetchAllProducts({
+        sort_by: "updated_at",
+        sort_order: "desc"
+      });
+      const nextProducts = records.map(mapProductRecordToDashboardProduct);
+      setProducts(nextProducts);
+      writeSnapshot(snapshotKey, nextProducts);
+      setLastHydratedAt(new Date().toISOString());
+      setStatus("ready");
+    } catch {
+      setStatus(staleProducts.length > 0 ? "ready" : "error");
+    }
+  }, [authStatus, companyId, isDemoSession, userId]);
+
+  useEffect(() => {
+    if (authStatus === "checking" || authStatus === "recovering") {
+      setStatus("hydrating");
+      return;
+    }
+
+    if (authStatus !== "authenticated") {
+      setProducts([]);
+      setStatus("idle");
+      return;
+    }
+
+    void refresh();
+  }, [authStatus, refresh]);
 
   const addProduct = useCallback(
     (
@@ -142,6 +243,9 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     <ProductContext.Provider
       value={{
         products,
+        status,
+        lastHydratedAt,
+        refresh,
         addProduct,
         updateProduct,
         getProduct,

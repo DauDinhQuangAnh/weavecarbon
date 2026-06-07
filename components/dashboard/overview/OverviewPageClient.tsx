@@ -306,8 +306,13 @@ const OverviewPage: React.FC = () => {
   const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
   const { canMutate } = usePermissions();
   const { currentPlan } = useSubscriptionLock();
-  const { user } = useAuth();
-  const { products, pendingProductData, clearPendingProduct } = useProducts();
+  const { user, loading: authLoading, authStatus } = useAuth();
+  const {
+    products,
+    status: productHydrationStatus,
+    pendingProductData,
+    clearPendingProduct
+  } = useProducts();
   const navigate = useRouter();
   const appRoutes = useAppRoutes();
   const [, setCompany] = useState<Company | null>(null);
@@ -339,6 +344,8 @@ const OverviewPage: React.FC = () => {
     []);
   const { setPageTitle } = useDashboardTitle();
   const isTrialPlan = String(currentPlan || "").trim().toLowerCase().includes("trial");
+  const isAuthHydrating =
+    authLoading || authStatus === "checking" || authStatus === "recovering";
   const recommendationsRequestSeqRef = useRef(0);
 
   const handleOpenPricingModal = () => {
@@ -511,6 +518,8 @@ const OverviewPage: React.FC = () => {
   }, [products]);
 
   const stats = apiStats || localStats;
+  const isStatsHydrating =
+    isAuthHydrating || (!apiStats && productHydrationStatus === "hydrating");
   const marketReadinessPreview = useMemo(
     () => marketReadiness.slice(0, MARKET_READINESS_PREVIEW_LIMIT),
     [marketReadiness]
@@ -539,7 +548,14 @@ const OverviewPage: React.FC = () => {
     let cancelled = false;
 
     const fetchOverviewData = async () => {
-      if (!user) {
+      if (isAuthHydrating) {
+        if (!cancelled) {
+          setInsightsLoading(true);
+        }
+        return;
+      }
+
+      if (authStatus !== "authenticated" || !user) {
         if (!cancelled) {
           setApiStats(null);
           setMarketReadiness([]);
@@ -636,7 +652,7 @@ const OverviewPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, overviewReloadKey]);
+  }, [authStatus, isAuthHydrating, user, overviewReloadKey]);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -648,7 +664,11 @@ const OverviewPage: React.FC = () => {
                 {t("stats.totalCO2")}
               </CardDescription>
               <CardTitle className={OVERVIEW_STAT_VALUE_CLASS}>
-                {stats.totalCO2.toLocaleString(displayLocale)}
+                {isStatsHydrating ? (
+                  <span className="block h-8 w-24 animate-pulse rounded bg-slate-200" />
+                ) : (
+                  stats.totalCO2.toLocaleString(displayLocale)
+                )}
               </CardTitle>
             </div>
           </CardHeader>
@@ -666,7 +686,11 @@ const OverviewPage: React.FC = () => {
                 {t("stats.skuTracking")}
               </CardDescription>
               <CardTitle className={OVERVIEW_STAT_VALUE_CLASS}>
-                {stats.skuCount}
+                {isStatsHydrating ? (
+                  <span className="block h-8 w-12 animate-pulse rounded bg-slate-200" />
+                ) : (
+                  stats.skuCount
+                )}
               </CardTitle>
             </div>
           </CardHeader>
@@ -690,7 +714,11 @@ const OverviewPage: React.FC = () => {
               ) : (
                 <CardTitle
                   className={`${OVERVIEW_STAT_ACCENT_VALUE_CLASS} text-primary`}>
-                  {stats.exportReadiness}%
+                  {isStatsHydrating ? (
+                    <span className="block h-8 w-14 animate-pulse rounded bg-slate-200" />
+                  ) : (
+                    `${stats.exportReadiness}%`
+                  )}
                 </CardTitle>
               )}
             </div>
@@ -712,7 +740,7 @@ const OverviewPage: React.FC = () => {
               </div>
             ) : (
               <Progress
-                value={stats.exportReadiness}
+                value={isStatsHydrating ? 0 : stats.exportReadiness}
                 className="h-2 bg-slate-300" />
             )}
           </CardContent>
@@ -726,14 +754,22 @@ const OverviewPage: React.FC = () => {
               </CardDescription>
               <CardTitle
                 className={`${OVERVIEW_STAT_ACCENT_VALUE_CLASS} text-amber-700`}>
-                {stats.confidenceScore}%
+                {isStatsHydrating ? (
+                  <span className="block h-8 w-14 animate-pulse rounded bg-slate-200" />
+                ) : (
+                  `${stats.confidenceScore}%`
+                )}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="flex min-h-[3.5rem] items-center p-3 pt-2 md:min-h-[4rem] md:pt-4">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-700 md:text-[15px]">
               <Gauge className="w-4 h-4" />
-              <span>{t("stats.basedOnSKUs", { count: stats.skuCount })}</span>
+              {isStatsHydrating ? (
+                <span className="block h-4 w-32 animate-pulse rounded bg-slate-200" />
+              ) : (
+                <span>{t("stats.basedOnSKUs", { count: stats.skuCount })}</span>
+              )}
             </div>
           </CardContent>
         </Card>

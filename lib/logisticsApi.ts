@@ -1,4 +1,4 @@
-import { api, isApiError } from "@/lib/apiClient";
+import { api, invalidateApiResponseCache, isApiError } from "@/lib/apiClient";
 import { buildTransportRouteGeometry } from "@/lib/transportRouteGeometry";
 import type { TransportLeg } from "@/types/transport";
 import {
@@ -1402,6 +1402,7 @@ export const createLogisticsShipment = async (
 payload: CreateShipmentPayload)
 : Promise<ShipmentMutationResult> => {
   const response = await api.post<unknown>("/logistics/shipments", payload);
+  invalidateApiResponseCache("shipment-created");
   return normalizeMutationPayload(response);
 };
 
@@ -1410,6 +1411,7 @@ shipmentId: string,
 payload: UpdateShipmentPayload)
 : Promise<ShipmentMutationResult> => {
   const response = await api.patch<unknown>(`/logistics/shipments/${shipmentId}`, payload);
+  invalidateApiResponseCache("shipment-updated");
   return normalizeMutationPayload(response);
 };
 
@@ -1425,6 +1427,7 @@ actualArrival?: string)
       actual_arrival: actualArrival
     }
   );
+  invalidateApiResponseCache("shipment-status-updated");
   return normalizeMutationPayload(response);
 };
 
@@ -1436,6 +1439,7 @@ legs: ShipmentLegInput[])
     `/logistics/shipments/${shipmentId}/legs`,
     { legs }
   );
+  invalidateApiResponseCache("shipment-legs-replaced");
   return normalizeMutationPayload(response);
 };
 
@@ -1447,6 +1451,7 @@ products: ShipmentProductInput[])
     `/logistics/shipments/${shipmentId}/products`,
     { products }
   );
+  invalidateApiResponseCache("shipment-products-replaced");
   return normalizeMutationPayload(response);
 };
 

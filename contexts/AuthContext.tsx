@@ -17,16 +17,21 @@ import {
   authTokenStore,
   AuthTokens,
   ensureAccessToken,
+  invalidateApiResponseCache,
   isDefinitiveAuthExpiredCode,
   isApiError,
+  isUnauthorizedApiError,
   readAuthUserSnapshot,
-  setAuthUserSnapshot } from
+  setApiSessionEpoch,
+  setAuthUserSnapshot,
+  syncAuthUserSnapshotFromPayload } from
 "@/lib/apiClient";
 import { resolveCompanyRole, type CompanyRole } from "@/lib/permissions";
 import {
   clearSubscriptionLockStateCache,
   writeSubscriptionLockState } from
 "@/lib/subscriptionLockState";
+import { invalidateSubscriptionApiCache } from "@/lib/subscriptionApi";
 import { isDemoPath } from "@/lib/demo/routes";
 import { ensureDemoDataset } from "@/lib/demo/storage";
 import {
@@ -73,6 +78,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   authStatus: AuthSessionStatus;
+  sessionEpoch: string;
   isDemoSession: boolean;
   hasRealSession: boolean;
   signUp: (
@@ -220,6 +226,8 @@ const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
 const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED === "1";
 const ACCOUNT_ENDPOINT_ENABLED =
 process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
+const isAuthCallbackPath = (path?: string | null) =>
+  (path || "").toLowerCase().startsWith("/auth/callback");
 
 const getDefaultCompanyRole = (
 userType?: User["user_type"])
@@ -446,6 +454,19 @@ const isConfirmedSessionExpiredError = (error: unknown) =>
   error.status === 401 &&
   isDefinitiveAuthExpiredCode(error.code);
 
+const isNoActiveSessionError = (error: unknown) =>
+  isApiError(error) &&
+  error.status === 401 &&
+  error.code === "NO_ACTIVE_SESSION";
+
+const isAuthFailureError = (error: unknown) =>
+  !isNoActiveSessionError(error) &&
+  (
+    isConfirmedSessionExpiredError(error) ||
+    isUnauthorizedApiError(error) ||
+    isUnauthorizedError(error)
+  );
+
 const loadStoredAuthUser = (): User | null => {
   const snapshot = readAuthUserSnapshot();
   if (!snapshot) {
@@ -472,6 +493,24 @@ const getAccountSafely = async (): Promise<AccountPayload | null> => {
       return null;
     }
     throw error;
+  }
+};
+
+const getSessionSafely = async (): Promise<SignInPayload | null> => {
+  try {
+    return await api.get<SignInPayload>("/auth/session", {
+      disableResponseCache: true
+    });
+  } catch (error) {
+    if (isAuthFailureError(error)) {
+      throw error;
+    }
+
+    if (isNotFoundError(error)) {
+      return null;
+    }
+
+    return null;
   }
 };
 
@@ -601,6 +640,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   const userRef = useRef<User | null>(null);
   const hasRealSession = Boolean(user?.id || authTokenStore.getAccessToken());
   const effectiveUser = isDemoRuntime ? demoUser || user : user;
+  const sessionEpoch = [
+    authStatus,
+    effectiveUser?.id || "anonymous",
+    effectiveUser?.company_id || "no-company"
+  ].join(":");
 
   const applyRuntimeUser = useCallback((nextUser: User | null) => {
     const normalizedUser = normalizeStoredUser(nextUser);
@@ -609,9 +653,40 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     setUser(normalizedUser);
   }, []);
 
+  const applySessionPayload = useCallback(async (session: SignInPayload) => {
+    if (session.tokens) {
+      authTokenStore.setTokens(session.tokens, {
+        persist: false,
+        storageScope: "storage",
+        storeRefreshToken: true
+      });
+    }
+    syncAuthUserSnapshotFromPayload(session);
+    const nextUser = await syncUserCompanyRole(buildUserFromSignIn(session));
+    applyRuntimeUser(nextUser);
+    return nextUser;
+  }, [applyRuntimeUser]);
+
+  const applyAccountPayload = useCallback(async (account: AccountPayload) => {
+    syncAuthUserSnapshotFromPayload(account);
+    const nextUser = await syncUserCompanyRole(
+      buildUserFromAccount(account, userRef.current)
+    );
+    applyRuntimeUser(nextUser);
+    return nextUser;
+  }, [applyRuntimeUser]);
+
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  useEffect(() => {
+    setApiSessionEpoch({
+      authStatus,
+      companyId: effectiveUser?.company_id || null,
+      userId: effectiveUser?.id || null
+    });
+  }, [authStatus, effectiveUser?.company_id, effectiveUser?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -633,6 +708,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
             setAuthStatus("anonymous");
             setLoading(false);
           }
+        }
+        return;
+      }
+
+      if (isAuthCallbackPath(pathname)) {
+        if (!cancelled) {
+          setDemoUser(null);
+          setAuthStatus("checking");
+          setLoading(false);
         }
         return;
       }
@@ -659,30 +743,45 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
 
       try {
-        const session = await api.get<SignInPayload>("/auth/session", {
-          disableResponseCache: true
-        });
-        authTokenStore.setTokens(session.tokens, {
-          storeRefreshToken: false
-        });
-        const nextUser = await syncUserCompanyRole(buildUserFromSignIn(session));
+        const accessToken = await ensureAccessToken();
+        if (!accessToken) {
+          clearSubscriptionLockStateCache();
+          invalidateSubscriptionApiCache();
+          invalidateApiResponseCache("bootstrap-no-token");
+          if (!cancelled) {
+            applyRuntimeUser(null);
+            setAuthStatus(storedUser ? "expired" : "anonymous");
+          }
+          return;
+        }
+
+        const session = await getSessionSafely();
+        if (!session) {
+          throw new Error("Session bootstrap failed.");
+        }
+        if (cancelled) return;
+        await applySessionPayload(session);
         if (!cancelled) {
-          applyRuntimeUser(nextUser);
           setAuthStatus("authenticated");
         }
       } catch (error) {
         const fallbackBaseUser = userRef.current || storedUser;
-        const fallbackUser = await syncUserCompanyRole(fallbackBaseUser);
+        const fallbackUser = isAuthFailureError(error) ?
+          null :
+          await syncUserCompanyRole(fallbackBaseUser);
+        const hasAuthToken = Boolean(authTokenStore.getAccessToken());
         if (!fallbackUser) {
           clearSubscriptionLockStateCache();
+          invalidateSubscriptionApiCache();
+          invalidateApiResponseCache("bootstrap-no-fallback-user");
         }
         if (!cancelled) {
-          if (fallbackUser && !isConfirmedSessionExpiredError(error)) {
+          if (fallbackUser && hasAuthToken && !isAuthFailureError(error)) {
             applyRuntimeUser(fallbackUser);
-            setAuthStatus("recovering");
+            setAuthStatus("authenticated");
           } else {
             applyRuntimeUser(null);
-            setAuthStatus(isConfirmedSessionExpiredError(error) ? "expired" : "anonymous");
+            setAuthStatus(isAuthFailureError(error) ? "expired" : "anonymous");
           }
         }
       } finally {
@@ -697,7 +796,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     return () => {
       cancelled = true;
     };
-  }, [applyRuntimeUser, isDemoRuntime]);
+  }, [applyRuntimeUser, applySessionPayload, isDemoRuntime, pathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -708,6 +807,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       if (event.key === AUTH_INVALIDATED_STORAGE_KEY) {
         if (!isDemoRuntime) {
           clearSubscriptionLockStateCache();
+          invalidateSubscriptionApiCache();
+          invalidateApiResponseCache("auth-invalidated-storage");
           applyRuntimeUser(null);
           setAuthStatus("expired");
           setLoading(false);
@@ -730,6 +831,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       }
 
       clearSubscriptionLockStateCache();
+      invalidateSubscriptionApiCache();
+      invalidateApiResponseCache("auth-invalidated-event");
       applyRuntimeUser(null);
       setAuthStatus("expired");
       setLoading(false);
@@ -784,36 +887,50 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 
       const accessToken = await ensureAccessToken();
       if (!accessToken) {
-        if (preserveUserOnFailure && userRef.current) {
-          setAuthStatus("recovering");
-          return;
-        }
         clearSubscriptionLockStateCache();
+        invalidateSubscriptionApiCache();
+        invalidateApiResponseCache("refresh-user-no-token");
         applyRuntimeUser(null);
         setAuthStatus("expired");
         return;
       }
 
-      const account = await getAccountSafely();
-      if (account) {
-        const nextUser = await syncUserCompanyRole(
-          buildUserFromAccount(account, userRef.current)
-        );
-        applyRuntimeUser(nextUser);
-        setAuthStatus(nextUser ? "authenticated" : "anonymous");
-      } else {
-        const nextUser = await syncUserCompanyRole(userRef.current);
-        applyRuntimeUser(nextUser);
-        setAuthStatus(nextUser ? "authenticated" : "anonymous");
+      let nextUser: User | null = null;
+      let account: AccountPayload | null = null;
+      let accountError: unknown = null;
+      try {
+        account = await getAccountSafely();
+      } catch (error) {
+        accountError = error;
       }
+
+      if (account) {
+        nextUser = await applyAccountPayload(account);
+      }
+
+      if (!nextUser) {
+        const session = await getSessionSafely();
+        if (session) {
+          nextUser = await applySessionPayload(session);
+        } else if (accountError) {
+          throw accountError;
+        }
+      }
+
+      if (!nextUser) {
+        nextUser = await syncUserCompanyRole(userRef.current);
+        applyRuntimeUser(nextUser);
+      }
+
+      setAuthStatus(nextUser ? "authenticated" : "anonymous");
     } catch (error) {
       const hasAuthToken = Boolean(authTokenStore.getAccessToken());
-      if (preserveUserOnFailure && userRef.current && !isConfirmedSessionExpiredError(error)) {
-        setAuthStatus("recovering");
-      } else if (!hasAuthToken || isConfirmedSessionExpiredError(error)) {
+      if (!hasAuthToken || isAuthFailureError(error)) {
         clearSubscriptionLockStateCache();
+        invalidateSubscriptionApiCache();
+        invalidateApiResponseCache("refresh-user-expired");
         applyRuntimeUser(null);
-        setAuthStatus(isConfirmedSessionExpiredError(error) ? "expired" : "anonymous");
+        setAuthStatus(isAuthFailureError(error) ? "expired" : "anonymous");
       } else {
         const nextUser = await syncUserCompanyRole(userRef.current);
         applyRuntimeUser(nextUser);
@@ -822,7 +939,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     } finally {
       setLoading(false);
     }
-  }, [applyRuntimeUser, isDemoRuntime]);
+  }, [applyAccountPayload, applyRuntimeUser, applySessionPayload, isDemoRuntime]);
 
   useEffect(() => {
     if (typeof window === "undefined" || isDemoRuntime || AUTH_DISABLED) {
@@ -905,7 +1022,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 
       if (hasAccessToken && payload?.tokens) {
         authTokenStore.setTokens(payload.tokens, {
-          storeRefreshToken: false
+          persist: false,
+          storageScope: "storage",
+          storeRefreshToken: true
         });
         clearSubscriptionLockStateCache();
       }
@@ -941,7 +1060,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       return { error: new Error("Authentication is disabled.") };
     }
 
-    const rememberMe = options?.rememberMe ?? true;
+    void options;
+    const rememberMe = false;
 
     try {
       const payload = await postWithFallback<SignInPayload>(
@@ -954,7 +1074,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       );
 
       authTokenStore.setTokens(payload.tokens, {
-        storeRefreshToken: false
+        persist: false,
+        storageScope: "storage",
+        storeRefreshToken: true
       });
       clearSubscriptionLockStateCache();
 
@@ -967,9 +1089,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       };
 
       if (userType && resolvedUserType && resolvedUserType !== userType) {
-        authTokenStore.clear();
-        clearSubscriptionLockStateCache();
-        applyRuntimeUser(null);
+      authTokenStore.clear();
+      clearSubscriptionLockStateCache();
+      invalidateSubscriptionApiCache();
+      invalidateApiResponseCache("signin-type-mismatch");
+      applyRuntimeUser(null);
         setAuthStatus("anonymous");
         return {
           error: new Error(`ACCOUNT_TYPE_MISMATCH:${resolvedUserType}:${userType}`)
@@ -987,6 +1111,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       if (isEmailNotVerifiedError(error)) {
         authTokenStore.clear();
         clearSubscriptionLockStateCache();
+        invalidateSubscriptionApiCache();
+        invalidateApiResponseCache("signin-email-not-verified");
         applyRuntimeUser(null);
         setAuthStatus("anonymous");
         return { error: null, needsConfirmation: true };
@@ -1127,6 +1253,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     }
     authTokenStore.clear({ notify: true });
     clearSubscriptionLockStateCache();
+    invalidateSubscriptionApiCache();
+    invalidateApiResponseCache("signout");
     applyRuntimeUser(null);
     setAuthStatus("expired");
   };
@@ -1137,6 +1265,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         user: effectiveUser,
         loading,
         authStatus,
+        sessionEpoch,
         isDemoSession: isDemoRuntime,
         hasRealSession,
         signUp,

@@ -25,6 +25,8 @@ import { Company, Profile } from "@/types/app.type";
 
 interface DashboardSidebarProps {
   company: Company | null;
+  companyLoading?: boolean;
+  companyConfirmedMissing?: boolean;
   profile: Profile | null;
   currentPlan: string | null;
   sidebarOpen: boolean;
@@ -62,6 +64,8 @@ const menuItems = [
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   company,
+  companyLoading = false,
+  companyConfirmedMissing = false,
   profile,
   currentPlan,
   sidebarOpen,
@@ -183,7 +187,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 {profile?.full_name || user?.email}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                {company?.name || "No company"}
+                {company?.name || (companyLoading ? "" : companyConfirmedMissing ? "No company" : "")}
               </p>
             </div>
           )}

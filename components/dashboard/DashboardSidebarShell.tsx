@@ -26,7 +26,7 @@ type AccountPayload = {
 export default function DashboardSidebarShell({
   company
 }: DashboardSidebarShellProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading, authStatus } = useAuth();
   const userId = user?.id || null;
   const userType = user?.user_type;
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -37,6 +37,7 @@ export default function DashboardSidebarShell({
   const [resolvedPlan, setResolvedPlan] = useState<string | null>(
     company?.current_plan || null
   );
+  const [accountCompanyChecked, setAccountCompanyChecked] = useState(Boolean(company));
 
   useEffect(() => {
     setMounted(true);
@@ -91,6 +92,7 @@ export default function DashboardSidebarShell({
 
   useEffect(() => {
     setResolvedCompany(company);
+    setAccountCompanyChecked(Boolean(company));
   }, [company]);
 
   useEffect(() => {
@@ -127,7 +129,20 @@ export default function DashboardSidebarShell({
     let cancelled = false;
 
     const loadCompany = async () => {
-      if (company || !user || !ACCOUNT_ENDPOINT_ENABLED) return;
+      if (company) {
+        setAccountCompanyChecked(true);
+        return;
+      }
+
+      if (authLoading || authStatus !== "authenticated" || !user) {
+        setAccountCompanyChecked(true);
+        return;
+      }
+
+      if (!ACCOUNT_ENDPOINT_ENABLED) {
+        setAccountCompanyChecked(false);
+        return;
+      }
 
       try {
         const account = await api.get<AccountPayload>("/account", {
@@ -136,6 +151,7 @@ export default function DashboardSidebarShell({
         const nextCompany = account?.company || null;
         if (!cancelled) {
           setResolvedCompany(nextCompany);
+          setAccountCompanyChecked(true);
           const accountPlan = (nextCompany?.current_plan || "").trim();
           if (accountPlan) {
             setResolvedPlan((prev) => prev || accountPlan);
@@ -144,6 +160,7 @@ export default function DashboardSidebarShell({
       } catch {
         if (!cancelled) {
           setResolvedCompany(null);
+          setAccountCompanyChecked(false);
         }
       }
     };
@@ -153,13 +170,18 @@ export default function DashboardSidebarShell({
     return () => {
       cancelled = true;
     };
-  }, [company, user]);
+  }, [authLoading, authStatus, company, user]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadPlan = async () => {
-      if (!userId || userType === "b2c") return;
+      if (
+        authLoading ||
+        authStatus !== "authenticated" ||
+        !userId ||
+        userType === "b2c"
+      ) return;
 
       try {
         const fallbackPlan =
@@ -191,7 +213,14 @@ export default function DashboardSidebarShell({
     return () => {
       cancelled = true;
     };
-  }, [company?.current_plan, resolvedCompany?.current_plan, userId, userType]);
+  }, [
+    authLoading,
+    authStatus,
+    company?.current_plan,
+    resolvedCompany?.current_plan,
+    userId,
+    userType
+  ]);
 
   const handleToggleSidebar = () => {
     if (window.innerWidth < 1024) {
@@ -204,9 +233,23 @@ export default function DashboardSidebarShell({
     return null;
   }
 
+  const isAuthHydrating =
+    authLoading || authStatus === "checking" || authStatus === "recovering";
+  const companyLoading =
+    Boolean(user) &&
+    !resolvedCompany &&
+    (isAuthHydrating || (ACCOUNT_ENDPOINT_ENABLED && !accountCompanyChecked));
+  const companyConfirmedMissing =
+    Boolean(user) &&
+    !resolvedCompany &&
+    accountCompanyChecked &&
+    !isAuthHydrating;
+
   return (
     <DashboardSidebar
       company={resolvedCompany}
+      companyLoading={companyLoading}
+      companyConfirmedMissing={companyConfirmedMissing}
       profile={user}
       currentPlan={resolvedPlan}
       sidebarOpen={sidebarOpen}

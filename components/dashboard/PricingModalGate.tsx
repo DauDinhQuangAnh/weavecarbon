@@ -115,7 +115,7 @@ export default function PricingModalGate() {
   const paymentStatusInFlightRef = useRef(false);
   const paymentStatusRateLimitedUntilRef = useRef(0);
 
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, authStatus, signOut } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
@@ -188,7 +188,7 @@ export default function PricingModalGate() {
   }, []);
 
   const loadCurrentPlan = useCallback(async (options?: { force?: boolean }) => {
-    if (loading || !user || user.user_type === "b2c") {
+    if (loading || authStatus !== "authenticated" || !user || user.user_type === "b2c") {
       setOpen(false);
       return;
     }
@@ -271,6 +271,7 @@ export default function PricingModalGate() {
     }
   }, [
     loading,
+    authStatus,
     pendingUpgradeDisplayPlan,
     pendingUpgradeExpectedProductsLimit,
     pendingUpgradePlan,
@@ -290,7 +291,7 @@ export default function PricingModalGate() {
       return "pending" as const;
     }
 
-    if (loading || !user || user.user_type === "b2c") {
+    if (loading || authStatus !== "authenticated" || !user || user.user_type === "b2c") {
       return "pending" as const;
     }
 
@@ -351,6 +352,7 @@ export default function PricingModalGate() {
   }, [
     loadCurrentPlan,
     loading,
+    authStatus,
     setPendingUpgrade,
     signOut,
     toast,
@@ -381,7 +383,7 @@ export default function PricingModalGate() {
     if (typeof window === "undefined") return;
 
     const handleOpenPricingModal = () => {
-      if (!loading && user) {
+      if (!loading && authStatus === "authenticated" && user) {
         setOpen(true);
       }
     };
@@ -390,14 +392,16 @@ export default function PricingModalGate() {
     return () => {
       window.removeEventListener(PRICING_MODAL_OPEN_EVENT, handleOpenPricingModal);
     };
-  }, [loading, user]);
+  }, [authStatus, loading, user]);
 
   useEffect(() => {
+    if (loading || authStatus !== "authenticated" || !user) return;
     void loadCurrentPlan();
-  }, [loadCurrentPlan]);
+  }, [authStatus, loadCurrentPlan, loading, user]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (loading || authStatus !== "authenticated" || !user) return;
 
     const handleWindowFocus = () => {
       if (pendingUpgradeSessionId) {
@@ -422,10 +426,16 @@ export default function PricingModalGate() {
       window.removeEventListener("focus", handleWindowFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [loadCurrentPlan, pendingUpgradeSessionId, syncPendingPaymentStatus]);
+  }, [authStatus, loadCurrentPlan, loading, pendingUpgradeSessionId, syncPendingPaymentStatus, user]);
 
   useEffect(() => {
-    if (!pendingUpgradePlan || typeof window === "undefined") return;
+    if (
+      !pendingUpgradePlan ||
+      typeof window === "undefined" ||
+      loading ||
+      authStatus !== "authenticated" ||
+      !user
+    ) return;
 
     let attempts = 0;
     const pollId = window.setInterval(() => {
@@ -446,13 +456,14 @@ export default function PricingModalGate() {
     return () => {
       window.clearInterval(pollId);
     };
-  }, [loadCurrentPlan, pendingUpgradePlan, pendingUpgradeSessionId, syncPendingPaymentStatus]);
+  }, [authStatus, loadCurrentPlan, loading, pendingUpgradePlan, pendingUpgradeSessionId, syncPendingPaymentStatus, user]);
 
   useEffect(() => {
     if (!searchParams) return;
 
     const paymentStatus = searchParams.get("payment_status");
     if (!paymentStatus) return;
+    if (loading || authStatus !== "authenticated" || !user) return;
 
     const paymentPlan = normalizeSubscriptionPlan(searchParams.get("plan"), "free");
     const paymentSessionId = searchParams.get("session_id");
@@ -510,12 +521,15 @@ export default function PricingModalGate() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   }, [
     loadCurrentPlan,
+    authStatus,
+    loading,
     pathname,
     router,
     searchParams,
     setPendingUpgrade,
     syncPendingPaymentStatus,
-    toast
+    toast,
+    user
   ]);
 
   const handleClose = () => {
