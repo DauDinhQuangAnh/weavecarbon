@@ -40,7 +40,7 @@ export const downloadExportDocumentV2 = async (
   const blob = await response.blob();
   const disposition = response.headers.get("content-disposition") || "";
   const match = disposition.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] || `${type}.csv`;
+  const filename = match?.[1] || `${type}.xlsx`;
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

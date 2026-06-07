@@ -17,11 +17,14 @@ import { DEFAULT_EXPORT_CONFIG_V2, buildDppPayloadV2, getAllCarbonBreakdownsV2, 
 import { buildBuyerWebhookPayloadV2, createDppLockV2, downloadExportDocumentV2, fetchExportConfigurationV2, saveExportConfigurationV2 } from "@/lib/weave-v2/exportV2Api";
 import { exportFullStandardReport } from "@/lib/reportsApi";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
+import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import { isDemoPath } from "@/lib/demo/routes";
 import { getProductEmbeddedBreakdownV2, productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { buildAuditPackJsonV2, buildAuditPackPayloadV2, buildAuditRowsCsvV2 } from "@/lib/weave-v2/auditPackV2";
 import CompanyDataExportCardV2 from "./CompanyDataExportCardV2";
+import ComplianceDetailModal from "./ComplianceDetailModal";
+import { MARKET_REGULATIONS, type MarketCode, type MarketCompliance } from "./types";
 
 const downloadText = (filename: string, content: string, mime: string) => {
   const blob = new Blob([content], { type: mime });
@@ -40,9 +43,12 @@ const ExportConfigurationPortalV2: React.FC = () => {
   const [activeSku, setActiveSku] = useState(DEMO_PACK_V2[0]?.sku || "");
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [productEvidence, setProductEvidence] = useState<Record<string, EvidenceDocumentV2[]>>({});
+  const [realComplianceData, setRealComplianceData] = useState<Record<MarketCode, MarketCompliance> | null>(null);
   const [dpp, setDpp] = useState<DppPayloadV2 | null>(null);
   const [saving, setSaving] = useState(false);
   const [locking, setLocking] = useState(false);
+  const [selectedMarketCode, setSelectedMarketCode] = useState<MarketCode | null>(null);
+  const [marketDetailOpen, setMarketDetailOpen] = useState(false);
   const useRealProducts = !isDemoRuntime && products.length > 0;
   const breakdowns = useMemo(
     () => useRealProducts ? products.map((product) => getProductEmbeddedBreakdownV2(product)) : getAllCarbonBreakdownsV2(),
@@ -66,12 +72,182 @@ const ExportConfigurationPortalV2: React.FC = () => {
   const selectedCarbon = auditPayload.totals;
   const auditRows = auditPayload.rows;
   const selectedEvidence = auditPayload.evidence;
-  const marketReadiness = [
+  const marketReadiness = useMemo<Array<{ code: MarketCode; name: string; regulation: string; score: number }>>(() => [
     { code: "EU", name: "Thị trường Châu Âu", regulation: "CBAM, EU Green Deal", score: 85 },
     { code: "US", name: "Thị trường Hoa Kỳ", regulation: "California Climate", score: 65 },
     { code: "JP", name: "Thị trường Nhật Bản", regulation: "JIS Standards", score: 72 },
     { code: "KR", name: "Thị trường Hàn Quốc", regulation: "K-ETS", score: 58 }
-  ];
+  ], []);
+  const marketProductScope = useMemo(
+    () => useRealProducts
+      ? products.slice(0, Math.max(2, Math.min(4, products.length))).map((product) => ({
+        productId: product.id,
+        productName: product.productName,
+        hsCode: product.hsCode || product.cnCode || "-",
+        productionSite: product.facility || product.manufacturingLocation || "Nha may Binh Duong",
+        exportVolume: Number(product.quantity || 0),
+        unit: "units"
+      }))
+      : DEMO_PACK_V2.slice(0, 4).map((sku) => ({
+        productId: sku.sku,
+        productName: sku.name,
+        hsCode: sku.cnCode,
+        productionSite: "Nha may Binh Duong",
+        exportVolume: sku.units,
+        unit: "units"
+      })),
+    [products, useRealProducts]
+  );
+  const marketComplianceData = useMemo(() => {
+    return marketReadiness.reduce((acc, market) => {
+      const status = market.score >= 85 ? "ready" : market.score >= 50 ? "incomplete" : "draft";
+      const uploadedRequired = market.score >= 80 ? 1 : 0;
+      acc[market.code] = {
+        market: market.code,
+        marketName: market.name,
+        regulation: MARKET_REGULATIONS[market.code],
+        score: market.score,
+        status,
+        lastUpdated: "2026-06-07",
+        requiredDocuments: [`${market.code} calculation sheet`],
+        requiredDocumentsCount: 1,
+        requiredDocumentsUploadedCount: uploadedRequired,
+        requiredDocumentsMissingCount: 1 - uploadedRequired,
+        documentsTotalCount: 3,
+        documentsUploadedCount: market.score >= 80 ? 2 : 1,
+        documentsMissingCount: market.score >= 80 ? 1 : 2,
+        documents: [
+          {
+            id: `${market.code.toLowerCase()}-calculation`,
+            name: `${market.code} Carbon Calculation Sheet`,
+            type: "calculation_sheet",
+            required: true,
+            status: market.score >= 80 ? "approved" : "uploaded",
+            uploadedBy: "Nguyen Van A",
+            validTo: "2024-12-31"
+          },
+          {
+            id: `${market.code.toLowerCase()}-ped`,
+            name: "Product Environmental Declaration",
+            type: "environmental_declaration",
+            required: false,
+            status: market.score >= 80 ? "uploaded" : "missing"
+          },
+          {
+            id: `${market.code.toLowerCase()}-verification`,
+            name: "Verification Statement",
+            type: "verification_statement",
+            required: false,
+            status: "uploaded",
+            uploadedBy: "Nguyen Van A",
+            validTo: "2024-12-31"
+          }
+        ],
+        carbonData: [
+          {
+            scope: "scope1",
+            value: 125.5,
+            unit: "kgCO2e",
+            methodology: "GHG Protocol",
+            dataSource: "Internal measurement",
+            reportingPeriod: "Q4 2024",
+            isComplete: true
+          },
+          {
+            scope: "scope2",
+            value: 89.3,
+            unit: "kgCO2e",
+            methodology: "GHG Protocol",
+            dataSource: "Utility bills",
+            reportingPeriod: "Q4 2024",
+            isComplete: true
+          },
+          {
+            scope: "scope3",
+            value: 234.8,
+            unit: "kgCO2e",
+            methodology: "GHG Protocol",
+            dataSource: "Supplier data",
+            reportingPeriod: "Q4 2024",
+            isComplete: true
+          }
+        ],
+        productScope: marketProductScope,
+        emissionFactors: [
+          {
+            name: "Grid Electricity - Vietnam",
+            source: "DEFRA 2024",
+            version: "v2024.1",
+            appliedDate: "2026-06-07"
+          },
+          {
+            name: "Cotton Fiber - Organic",
+            source: "Ecoinvent v3.9",
+            version: "v3.9.1",
+            appliedDate: "2026-06-07"
+          }
+        ],
+        recommendations: market.score >= 80
+          ? []
+          : [
+            {
+              id: `${market.code}-ped`,
+              type: "document",
+              missingItem: "Product Environmental Declaration chua duoc nop",
+              regulatoryReason: "Thi truong yeu cau ho so moi truong san pham de doi chieu khai bao carbon.",
+              businessImpact: "Ho so co the bi brand hoac cong hai quan yeu cau bo sung truoc khi duyet.",
+              recommendedAction: ["Tai Product Environmental Declaration", "Doi chieu ma HS voi SKU xuat khau"],
+              priority: "mandatory",
+              ctaLabel: "Tai len",
+              ctaAction: "upload_document",
+              status: "active",
+              relatedDocumentId: `${market.code.toLowerCase()}-ped`
+            },
+            {
+              id: `${market.code}-hs`,
+              type: "product_scope",
+              missingItem: "Mot so san pham chua co ma HS Code day du",
+              regulatoryReason: "Ma HS/CN la khoa de khop yeu cau ho so thi truong va chung tu thuong mai.",
+              businessImpact: "Bao cao thi truong co the bi lech so voi Commercial Invoice / Packing List / B/L.",
+              recommendedAction: ["Cap nhat HS Code cho SKU con thieu"],
+              priority: "recommended",
+              ctaLabel: "Cap nhat SKU",
+              ctaAction: "edit_product_scope",
+              status: "active"
+            }
+          ],
+        verificationRequired: market.code === "EU" || market.code === "JP",
+        verificationStatus: market.score >= 80 ? "verified" : "pending"
+      };
+      return acc;
+    }, {} as Record<MarketCode, MarketCompliance>);
+  }, [marketProductScope, marketReadiness]);
+
+  const displayComplianceData = realComplianceData || marketComplianceData;
+  const displayMarketCards = useMemo(() => {
+    if (realComplianceData) {
+      return (Object.keys(realComplianceData) as MarketCode[])
+        .map((code) => {
+          const market = realComplianceData[code];
+          if (!market) return null;
+          return {
+            code,
+            name: market.marketName,
+            regulation: market.regulation?.code || MARKET_REGULATIONS[code]?.code || code,
+            score: market.score
+          };
+        })
+        .filter((item): item is { code: MarketCode; name: string; regulation: string; score: number } => Boolean(item));
+    }
+
+    return marketReadiness;
+  }, [marketReadiness, realComplianceData]);
+
+  const openMarketDetail = (market: MarketCode) => {
+    setSelectedMarketCode(market);
+    setMarketDetailOpen(true);
+  };
+
   const skuOptions = useMemo(
     () => useRealProducts
       ? products.map((item) => ({
@@ -122,6 +298,26 @@ const ExportConfigurationPortalV2: React.FC = () => {
       } catch {
         if (!cancelled) {
           setProducts([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemoRuntime]);
+
+  useEffect(() => {
+    if (isDemoRuntime) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const markets = await fetchComplianceMarkets();
+        if (!cancelled) {
+          setRealComplianceData(markets);
+        }
+      } catch {
+        if (!cancelled) {
+          setRealComplianceData(null);
         }
       }
     })();
@@ -425,8 +621,12 @@ const ExportConfigurationPortalV2: React.FC = () => {
           Mức độ sẵn sàng theo thị trường
         </h3>
         <div className="grid gap-3">
-          {marketReadiness.map((market) => (
-            <Card key={market.code} className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+          {displayMarketCards.map((market) => (
+            <Card
+              key={market.code}
+              className="cursor-pointer rounded-xl border border-emerald-100 bg-white shadow-sm transition-shadow hover:shadow-md"
+              onClick={() => openMarketDetail(market.code)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
@@ -448,7 +648,16 @@ const ExportConfigurationPortalV2: React.FC = () => {
                     {market.score >= 80 ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                     <span>{market.score >= 80 ? "Sẵn sàng xuất khẩu" : "2 mục cần bổ sung"}</span>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openMarketDetail(market.code);
+                    }}
+                  >
                     Chi tiết
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
@@ -479,7 +688,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
                   <div className="flex items-center gap-2 font-semibold"><Icon className="h-4 w-4 text-emerald-800" />{item.title}</div>
                   <p className="mt-1 text-xs text-slate-600">{item.copy}</p>
                   <Button size="sm" variant="outline" className="mt-3" onClick={() => void downloadExportDocumentV2(item.type)}>
-                    <Download className="mr-2 h-4 w-4" />Tải CSV
+                    <Download className="mr-2 h-4 w-4" />Tải XLSX
                   </Button>
                 </div>
               );
@@ -595,6 +804,13 @@ const ExportConfigurationPortalV2: React.FC = () => {
           <Button variant="outline" onClick={handleBrandPayload}><Send className="mr-2 h-4 w-4" />Tải Buyer Webhook Payload JSON</Button>
         </CardContent>
       </Card>
+
+      <ComplianceDetailModal
+        open={marketDetailOpen}
+        onOpenChange={setMarketDetailOpen}
+        marketCode={selectedMarketCode}
+        complianceData={displayComplianceData}
+      />
     </div>
   );
 };

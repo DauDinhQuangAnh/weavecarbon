@@ -22,6 +22,7 @@ interface ComplianceDocumentsProps {
   documents: ComplianceDocument[];
   requiredDocumentsCount?: number;
   requiredDocumentsUploadedCount?: number;
+  onUpload?: (docId: string) => void;
   onDownload: (docId: string) => void;
   onRemove: (docId: string) => void;
   onView: (docId: string) => void;
@@ -53,6 +54,7 @@ const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
   documents,
   requiredDocumentsCount,
   requiredDocumentsUploadedCount,
+  onUpload,
   onDownload,
   onRemove,
   onView
@@ -110,6 +112,7 @@ const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
               <DocumentRow
                 key={doc.id}
                 document={doc}
+                onUpload={onUpload}
                 onDownload={onDownload}
                 onRemove={onRemove}
                 onView={onView}
@@ -134,6 +137,7 @@ const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
                 <DocumentRow
                   key={doc.id}
                   document={doc}
+                  onUpload={onUpload}
                   onDownload={onDownload}
                   onRemove={onRemove}
                   onView={onView}
@@ -149,12 +153,19 @@ const ComplianceDocuments: React.FC<ComplianceDocumentsProps> = ({
 
 interface DocumentRowProps {
   document: ComplianceDocument;
+  onUpload?: (docId: string) => void;
   onDownload: (docId: string) => void;
   onRemove: (docId: string) => void;
   onView: (docId: string) => void;
 }
 
-const DocumentRow: React.FC<DocumentRowProps> = ({ document, onDownload, onRemove, onView }) => {
+const DocumentRow: React.FC<DocumentRowProps> = ({
+  document,
+  onUpload,
+  onDownload,
+  onRemove,
+  onView
+}) => {
   const t = useTranslations("export.documents");
   const tStatus = useTranslations("export.documents.status");
   const statusConfig = DOCUMENT_STATUS_CONFIG[document.status];
@@ -216,6 +227,10 @@ const DocumentRow: React.FC<DocumentRowProps> = ({ document, onDownload, onRemov
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </>
+        ) : onUpload ? (
+          <Button size="sm" onClick={() => onUpload(document.id)}>
+            {t("upload")}
+          </Button>
         ) : (
           <Badge variant="secondary">{t("pendingUpload")}</Badge>
         )}

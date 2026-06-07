@@ -61,6 +61,7 @@ interface ComplianceDetailModalProps {
   onOpenChange: (open: boolean) => void;
   marketCode: MarketCode | null;
   complianceData?: Record<MarketCode, MarketCompliance> | null;
+  onRequestDocumentUpload?: (market: MarketCode, documentId: string) => void;
   onDataChanged?: () => Promise<void> | void;
 }
 
@@ -111,10 +112,10 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
   onOpenChange,
   marketCode,
   complianceData,
+  onRequestDocumentUpload,
   onDataChanged
 }) => {
   const t = useTranslations("export.modal");
-  const tDocuments = useTranslations("export.documents");
   const tStatus = useTranslations("export.status");
   const locale = useLocale();
   const appRoutes = useAppRoutes();
@@ -153,10 +154,6 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
   );
   const requiredExportDocumentsCount = requiredExportDocumentSummary.total;
   const requiredExportDocumentsUploadedCount = requiredExportDocumentSummary.uploaded;
-  const recommendedExportDocuments = exportComplianceDocuments.filter((document) => !document.required);
-  const recommendedExportDocumentsUploadedCount = recommendedExportDocuments.filter(
-    (document) => document.status === "uploaded" || document.status === "approved"
-  ).length;
   const readinessScore = computeRequiredDocumentReadinessFromExportDocuments(
     exportComplianceDocuments,
     compliance.requiredDocuments,
@@ -211,6 +208,15 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
           preferredDownloadUrl
         );
       });
+      return;
+    }
+
+    if (action === "upload") {
+      if (!canMutate) {
+        showNoPermissionToast();
+        return;
+      }
+      onRequestDocumentUpload?.(marketCode, documentId);
       return;
     }
 
@@ -455,7 +461,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-screen max-h-dvh max-w-[100vw] gap-0 rounded-none p-0 md:max-h-[90vh] md:max-w-5xl md:rounded-lg">
+        <DialogContent className="w-screen max-h-dvh max-w-[100vw] gap-0 rounded-none p-0 md:max-h-[90vh] md:max-w-4xl md:rounded-lg">
           <DialogHeader className="border-b bg-white p-4 pb-3 md:p-6 md:pb-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
               <div className="flex items-center gap-3 md:gap-4">
@@ -506,50 +512,24 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
               </div>
             </div>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                  {tDocuments("requiredDocs")}
-                </p>
-                <p className="mt-1 text-xl font-semibold text-slate-900">
-                  {requiredExportDocumentsUploadedCount}/{requiredExportDocumentsCount}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                  {tDocuments("recommendedDocs")}
-                </p>
-                <p className="mt-1 text-xl font-semibold text-slate-900">
-                  {recommendedExportDocumentsUploadedCount}/{recommendedExportDocuments.length}
-                </p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                  {t("productsTab")}
-                </p>
-                <p className="mt-1 text-xl font-semibold text-slate-900">
-                  {compliance.productScope.length}
-                </p>
-              </div>
-            </div>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
             <TabsList className="mx-auto mt-3 flex w-[calc(100%-2rem)] flex-nowrap rounded-xl border border-slate-200 bg-slate-100/80 p-1 md:mx-8 md:mt-4 md:w-fit">
               <TabsTrigger value="overview" className="gap-1.5">
-                <Globe className="hidden h-4 w-4 md:static" />
+                <Globe className="h-4 w-4" />
                 {t("overviewTab")}
               </TabsTrigger>
               <TabsTrigger value="products" className="gap-1.5">
-                <Package className="hidden h-4 w-4 md:static" />
+                <Package className="h-4 w-4" />
                 {t("productsTab")}
               </TabsTrigger>
               <TabsTrigger value="carbon" className="gap-1.5">
-                <Leaf className="hidden h-4 w-4 md:static" />
+                <Leaf className="h-4 w-4" />
                 {t("carbonTab")}
               </TabsTrigger>
               <TabsTrigger value="documents" className="gap-1.5">
-                <FileText className="hidden h-4 w-4 md:static" />
+                <FileText className="h-4 w-4" />
                 {t("documentsTab")}
               </TabsTrigger>
             </TabsList>
@@ -654,6 +634,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
                   documents={exportComplianceDocuments}
                   requiredDocumentsCount={requiredExportDocumentsCount}
                   requiredDocumentsUploadedCount={requiredExportDocumentsUploadedCount}
+                  onUpload={handleDocumentAction("upload")}
                   onDownload={handleDocumentAction("download")}
                   onRemove={handleDocumentAction("remove")}
                   onView={handleDocumentAction("view")}

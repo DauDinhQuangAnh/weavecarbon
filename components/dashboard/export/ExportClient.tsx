@@ -529,6 +529,29 @@ const ExportPage: React.FC = () => {
     setUploadModalOpen(true);
   };
 
+  const openUploadModalForTarget = (market: MarketCode, documentId: string) => {
+    if (!canMutate) {
+      showNoPermissionToast();
+      return;
+    }
+
+    const target = uploadTargets.find(
+      (item) => item.market === market && item.documentId === documentId
+    );
+    if (!target) {
+      toast.info(t("documents.noTargetAvailable"));
+      return;
+    }
+
+    setUploadModalMode("create");
+    setUploadModalGroup(target.group);
+    setEditingDocument(null);
+    setUploadFormMarket(market);
+    setUploadFormDocumentId(documentId);
+    setUploadFormFile(null);
+    setUploadModalOpen(true);
+  };
+
   const openUploadModalForEdit = (document: SummaryDocument) => {
     if (!canMutate) {
       showNoPermissionToast();
@@ -1188,10 +1211,19 @@ const ExportPage: React.FC = () => {
                               </>
                             )}
                           </div>
-                          <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-slate-600 transition-colors group-hover:text-slate-900 md:gap-1 md:text-xs">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 shrink-0 gap-0.5 rounded-lg px-2 text-[10px] font-medium md:gap-1 md:text-xs"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenMarketDetail(market);
+                            }}
+                          >
                             {t("details")}
                             <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                          </span>
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -1538,6 +1570,7 @@ const ExportPage: React.FC = () => {
         onOpenChange={setIsDetailOpen}
         marketCode={selectedMarket}
         complianceData={complianceData}
+        onRequestDocumentUpload={openUploadModalForTarget}
         onDataChanged={loadComplianceData}
       />
     </>
