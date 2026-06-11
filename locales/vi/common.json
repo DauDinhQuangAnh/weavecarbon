@@ -1073,6 +1073,10 @@
         "product": {
           "editTitle": "Chỉnh sửa sản phẩm",
           "addTitle": "Thêm sản phẩm",
+          "productSelect": "Sản phẩm",
+          "selectProduct": "Chọn sản phẩm đã có",
+          "loadingProducts": "Đang tải sản phẩm...",
+          "noProducts": "Chưa có sản phẩm. Hãy tạo sản phẩm trước.",
           "productName": "Tên sản phẩm",
           "hsCode": "Mã HS",
           "unit": "Đơn vị",
@@ -1109,6 +1113,7 @@
         "dataSourceRequired": "Nguồn dữ liệu là bắt buộc.",
         "reportingPeriodRequired": "Kỳ báo cáo là bắt buộc.",
         "productNotFound": "Không tìm thấy sản phẩm.",
+        "productRequired": "Vui lòng chọn sản phẩm đã có.",
         "productNameRequired": "Tên sản phẩm là bắt buộc.",
         "hsCodeRequired": "Mã HS là bắt buộc.",
         "productionSiteRequired": "Nơi sản xuất là bắt buộc.",

@@ -30,6 +30,7 @@ import {
   upsertComplianceCarbonData,
   upsertComplianceProduct
 } from "@/lib/exportComplianceApi";
+import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   MARKET_REGULATIONS,
@@ -125,6 +127,8 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [carbonForm, setCarbonForm] = useState<CarbonFormState | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState | null>(null);
+  const [availableProducts, setAvailableProducts] = useState<ProductRecord[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [pendingDocumentRemoveId, setPendingDocumentRemoveId] = useState<string | null>(null);
   const [pendingProductRemoveId, setPendingProductRemoveId] = useState<string | null>(null);
 
@@ -142,6 +146,34 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
       setPendingProductRemoveId(null);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || appRoutes.isDemo) return;
+
+    let cancelled = false;
+    setIsLoadingProducts(true);
+    void fetchAllProducts({ sort_by: "updated_at", sort_order: "desc" })
+      .then((products) => {
+        if (!cancelled) {
+          setAvailableProducts(products);
+        }
+      })
+      .catch((error) => {
+        console.error("Unable to load products for compliance scope", error);
+        if (!cancelled) {
+          setAvailableProducts([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingProducts(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appRoutes.isDemo, open]);
 
   if (!compliance || !marketCode || !regulation) return null;
 
@@ -165,6 +197,25 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
   const refreshComplianceData = async () => {
     if (!onDataChanged) return;
     await onDataChanged();
+  };
+
+  const buildProductFormFromRecord = (
+    product: ProductRecord,
+    mode: ProductFormState["mode"] = "add"
+  ): ProductFormState => ({
+    mode,
+    productId: product.id,
+    productName: product.productName,
+    hsCode: product.hsCode || product.cnCode || "",
+    productionSite: product.facility || product.manufacturingLocation || "",
+    exportVolume: String(Math.max(0, product.quantity || 0)),
+    unit: "pcs"
+  });
+
+  const handleProductSelectionChange = (productId: string) => {
+    const selected = availableProducts.find((product) => product.id === productId);
+    if (!selected) return;
+    setProductForm(buildProductFormFromRecord(selected, "add"));
   };
 
   const runAction = async (key: string, action: () => Promise<void>) => {
@@ -329,6 +380,24 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
       return;
     }
 
+    if (mode === "add" && !appRoutes.isDemo) {
+      const defaultProduct = availableProducts.length === 1 ? availableProducts[0] : null;
+      setProductForm(
+        defaultProduct ?
+          buildProductFormFromRecord(defaultProduct, "add") :
+          {
+            mode,
+            productId: undefined,
+            productName: "",
+            hsCode: "",
+            productionSite: "",
+            exportVolume: "",
+            unit: "pcs"
+          }
+      );
+      return;
+    }
+
     setProductForm({
       mode,
       productId: current?.productId,
@@ -351,6 +420,11 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
       return;
     }
     if (!productForm) return;
+
+    if (!appRoutes.isDemo && !productForm.productId) {
+      toast.error(t("validation.productRequired"));
+      return;
+    }
 
     if (!productForm.productName.trim()) {
       toast.error(t("validation.productNameRequired"));
@@ -761,13 +835,46 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
             </DialogTitle>
           </DialogHeader>
           <form className="space-y-4" onSubmit={submitProductForm}>
+            {!appRoutes.isDemo && (
+              <div className="space-y-2">
+                <Label htmlFor="product-select">{t("forms.product.productSelect")}</Label>
+                <Select
+                  value={productForm?.productId || ""}
+                  onValueChange={handleProductSelectionChange}
+                  disabled={isBusy || isLoadingProducts || productForm?.mode === "edit"}
+                >
+                  <SelectTrigger id="product-select">
+                    <SelectValue
+                      placeholder={
+                        isLoadingProducts ?
+                          t("forms.product.loadingProducts") :
+                          t("forms.product.selectProduct")
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProducts.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.productCode} - {product.productName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!isLoadingProducts && availableProducts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("forms.product.noProducts")}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="product-name">{t("forms.product.productName")}</Label>
               <Input
                 id="product-name"
                 value={productForm?.productName || ""}
                 onChange={(event) => updateProductForm({ productName: event.target.value })}
-                disabled={isBusy}
+                disabled={isBusy || !appRoutes.isDemo}
               />
             </div>
 

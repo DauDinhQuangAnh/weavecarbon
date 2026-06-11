@@ -1369,6 +1369,7 @@ export const runComplianceRecommendationAction = async (
 
 export const upsertComplianceProduct = async (input: UpsertProductInput) => {
   const payload = {
+    product_id: input.productId,
     product_name: input.productName,
     hs_code: input.hsCode,
     production_site: input.productionSite,

@@ -1077,6 +1077,10 @@
         "product": {
           "editTitle": "Edit product",
           "addTitle": "Add product",
+          "productSelect": "Product",
+          "selectProduct": "Select an existing product",
+          "loadingProducts": "Loading products...",
+          "noProducts": "No products available. Create a product first.",
           "productName": "Product name",
           "hsCode": "HS code",
           "unit": "Unit",
@@ -1113,6 +1117,7 @@
         "dataSourceRequired": "Data source is required.",
         "reportingPeriodRequired": "Reporting period is required.",
         "productNotFound": "Product not found.",
+        "productRequired": "Please select an existing product.",
         "productNameRequired": "Product name is required.",
         "hsCodeRequired": "HS code is required.",
         "productionSiteRequired": "Production site is required.",

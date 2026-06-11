@@ -18,6 +18,20 @@ const csvEscape = (value: unknown) => {
 
 const stripHash = (value: string) => value.replace("#", "");
 
+const getPrintableHeadAssets = () => {
+  const assets = Array.from(
+    document.querySelectorAll('link[rel="stylesheet"], style')
+  );
+  return assets.map((node) => node.outerHTML).join("\n");
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
 export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
   const rows: Array<Record<string, unknown>> = [
     ...payload.breakdownRows.map((row) => ({
@@ -171,22 +185,37 @@ export const downloadReportXlsxV2 = async (payload: ReportPayloadV2) => {
 
 export const downloadReportPdfV2 = (element: HTMLElement | null, sku: string) => {
   if (!element) return;
-  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
+  const printWindow = window.open("", "_blank", "width=1200,height=900");
   if (!printWindow) return;
+  const documentTitle = `WEAVE_CARBON_TEMPLATE_v2_${sku}`;
+  const headAssets = getPrintableHeadAssets();
+  try {
+    printWindow.opener = null;
+  } catch {
+
+  }
   printWindow.document.write(`
     <html>
       <head>
-        <title>WEAVE_CARBON_TEMPLATE_v2_${sku}</title>
+        <title>${escapeHtml(documentTitle)}</title>
+        ${headAssets}
         <style>
           body { margin: 0; font-family: Arial, sans-serif; background: #fff; }
           * { box-sizing: border-box; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          @page { size: A4 landscape; margin: 10mm; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            button, [role="button"] { display: none !important; }
+          }
         </style>
       </head>
       <body>${element.outerHTML}</body>
     </html>
   `);
   printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 300);
+  const runPrint = () => {
+    printWindow.focus();
+    printWindow.print();
+  };
+  window.setTimeout(runPrint, 800);
 };
