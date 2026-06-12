@@ -67,6 +67,8 @@ Export API calls confirmed by static contract check:
 
 Recommended next fix phase: Phase Export-2 should start with manual new-account Export page verification, then improve remote-vs-local fallback visibility for DPP lock and buyer webhook payload, then add download error toasts for the three commercial document buttons if manual testing confirms silent failures.
 
+Phase Export-2.0 hotfix applied after manual screenshot evidence: product-scope add now passes `operation: productForm.mode` from `ComplianceDetailModal.tsx` to `upsertComplianceProduct` in `lib/exportComplianceApi.ts`, so add mode uses `POST /api/export/markets/:market/products` and edit mode uses `PATCH /api/export/markets/:market/products/:productId`. Retest `EXP-011` before marking it working.
+
  ## Top 10 Bugs
 
  | Rank | Bug ID | Severity | Summary | First Fix Area |

@@ -29,6 +29,7 @@ type ScopeKey = CarbonDataItem["scope"];
 
 interface UpsertProductInput {
   marketCode: MarketCode;
+  operation?: "add" | "edit";
   productId?: string;
   productName: string;
   hsCode: string;
@@ -1377,7 +1378,7 @@ export const upsertComplianceProduct = async (input: UpsertProductInput) => {
     unit: input.unit
   };
 
-  if (input.productId) {
+  if (input.operation === "edit" && input.productId) {
     await api.patch<unknown>(
       `${withEncodedMarketPath(input.marketCode)}/products/${encodeURIComponent(input.productId)}`,
       payload

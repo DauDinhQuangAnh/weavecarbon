@@ -455,6 +455,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
     void runAction(`product-${productForm.mode}-${productForm.productId || "new"}`, async () => {
       await upsertComplianceProduct({
         marketCode,
+        operation: productForm.mode,
         productId: productForm.productId,
         productName: productForm.productName.trim(),
         hsCode: productForm.hsCode.trim(),
