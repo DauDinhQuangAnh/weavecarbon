@@ -13,26 +13,26 @@
  | Status | Count |
  | ------ | ----- |
  | WORKING | 0 |
- | PARTIAL | 9 |
+ | PARTIAL | 7 |
  | MOCK | 5 |
  | BROKEN | 0 |
  | MISSING_BACKEND | 2 |
- | NEEDS_MANUAL_TEST | 75 |
+ | NEEDS_MANUAL_TEST | 77 |
 
  ## Top 10 Bugs
 
  | Rank | Bug ID | Severity | Summary | First Fix Area |
  | ---- | ------ | -------- | ------- | -------------- |
- | 1 | BUG-001 | Critical | Direct `npm run *` is blocked in PowerShell by `npm.ps1` execution policy. | Runtime/dev docs or scripts |
-| 2 | BUG-002 | High | Password change backend did not verify `current_password` and FE used unnecessary fallback endpoints before `/account/change-password`. | Settings/account contract |
- | 3 | BUG-003 | High | B2C coupon redeem CTA has no discovered backend/API implementation. | B2C coupons |
- | 4 | BUG-004 | High | Evidence backend/wrappers exist, but visible create/lock UI was not found. | Evidence/export UI |
- | 5 | BUG-005 | High | Subscription/payment endpoints use non-baseline response shapes. | Subscription API contract |
- | 6 | BUG-006 | High | DPP lock falls back to local payload when remote lock fails. | Export V2 DPP |
- | 7 | BUG-007 | Medium | Buyer webhook payload falls back to local JSON when backend fails. | Export V2 webhook |
- | 8 | BUG-008 | Medium | Product bulk file import is not verified. | Products bulk import |
- | 9 | BUG-009 | Medium | Batch publish has broad shipment/compliance side effects and is unverified. | Product batches |
- | 10 | BUG-010 | Medium | B2C donation multipart image submit is unverified. | B2C donation |
+ | 1 | BUG-003 | High | B2C coupon redeem CTA has no discovered backend/API implementation. | B2C coupons |
+ | 2 | BUG-004 | High | Evidence backend/wrappers exist, but visible create/lock UI was not found. | Evidence/export UI |
+ | 3 | BUG-005 | High | Subscription/payment endpoints use non-baseline response shapes. | Subscription API contract |
+ | 4 | BUG-006 | High | DPP lock falls back to local payload when remote lock fails. | Export V2 DPP |
+ | 5 | BUG-007 | Medium | Buyer webhook payload falls back to local JSON when backend fails. | Export V2 webhook |
+ | 6 | BUG-008 | Medium | Product bulk file import is not verified. | Products bulk import |
+ | 7 | BUG-009 | Medium | Batch publish has broad shipment/compliance side effects and is unverified. | Product batches |
+ | 8 | BUG-010 | Medium | B2C donation multipart image submit is unverified. | B2C donation |
+ | 9 | BUG-002 | High | Fixed - pending manual verification. Backend now verifies `current_password`; FE uses only `POST /api/account/change-password`. | Settings manual verification |
+ | 10 | BUG-001 | Medium / Dev Environment | PowerShell blocks `npm.ps1`; `npm.cmd` works. This is not an application runtime bug. | Development environment documentation |
 
  ## Phase 2 Fixing Order
 
@@ -63,7 +63,7 @@
 
  ## First Safe Code Change Recommendation
 
-First safe code change: make `POST /api/account/change-password` verify `current_password`, handle password-login-unavailable accounts explicitly, and replace the frontend password-change fallback endpoint list in `components/dashboard/settings/PersonalSettings.tsx` and `components/dashboard/settings/SystemSettings.tsx` with the single documented frontend API path `/account/change-password`. This is narrow, removes hidden 404s, and does not alter UI scope or database schema.
+Completed first safe code change: `POST /api/account/change-password` now verifies `current_password`, handles password-login-unavailable accounts explicitly, and both settings forms use the single correct API endpoint with `current_password`, `new_password`, and `confirm_password`. The remaining action is manual verification of mismatch, wrong-current, correct-current, and old/new login behavior.
 
  ## Runtime Notes
 
