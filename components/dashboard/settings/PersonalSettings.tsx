@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, authTokenStore, isApiError } from "@/lib/apiClient";
+import { api, authTokenStore } from "@/lib/apiClient";
 import {
   Card,
   CardContent,
@@ -42,18 +42,6 @@ const toInitials = (value: string) => {
     return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
   }
   return cleaned.slice(0, 2).toUpperCase();
-};
-
-const isEndpointUnavailableError = (error: unknown) => {
-  if (isApiError(error)) {
-    return error.status === 404 || error.status === 501;
-  }
-  if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("not found") ||
-    message.includes("route") ||
-    message.includes("not implemented"));
 };
 
 const PersonalSettings: React.FC = () => {
@@ -208,41 +196,13 @@ const PersonalSettings: React.FC = () => {
       return;
     }
 
-    const endpoints = [
-    "/account/change-password",
-    "/account/company/password",
-    "/account/password",
-    "/auth/change-password"];
-
     setPasswordSaving(true);
     try {
-      let changed = false;
-      let lastError: unknown = null;
-
-      for (const path of endpoints) {
-        try {
-          await api.post(path, {
-            current_password: passwordForm.current_password,
-            new_password: passwordForm.new_password
-          });
-          changed = true;
-          break;
-        } catch (error) {
-          lastError = error;
-          if (isEndpointUnavailableError(error)) {
-            continue;
-          }
-          throw error;
-        }
-      }
-
-      if (!changed) {
-        throw (
-          lastError instanceof Error ?
-          lastError :
-          new Error(t("changePasswordUnavailable"))
-        );
-      }
+      await api.post("/account/change-password", {
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password,
+        confirm_password: passwordForm.confirm_password
+      });
 
       setPasswordDialogOpen(false);
       setPasswordForm({

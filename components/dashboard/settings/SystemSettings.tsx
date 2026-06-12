@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { api, authTokenStore, isApiError } from "@/lib/apiClient";
+import { api, authTokenStore } from "@/lib/apiClient";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
 import {
   TARGET_MARKET_OPTIONS,
@@ -100,18 +100,6 @@ process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
 const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
 const TRIAL_PRODUCTS_LIMIT = 5;
 const TRIAL_MEMBERS_LIMIT = 1;
-
-const isEndpointUnavailableError = (error: unknown) => {
-  if (isApiError(error)) {
-    return error.status === 404 || error.status === 501;
-  }
-  if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("not found") ||
-    message.includes("route") ||
-    message.includes("not implemented"));
-};
 
 const SystemSettings: React.FC = () => {
   const t = useTranslations("settings.system");
@@ -492,41 +480,13 @@ const SystemSettings: React.FC = () => {
       return;
     }
 
-    const endpoints = [
-    "/account/change-password",
-    "/account/company/password",
-    "/account/password",
-    "/auth/change-password"];
-
     setPasswordSaving(true);
     try {
-      let changed = false;
-      let lastError: unknown = null;
-
-      for (const path of endpoints) {
-        try {
-          await api.post(path, {
-            current_password: passwordForm.current_password,
-            new_password: passwordForm.new_password
-          });
-          changed = true;
-          break;
-        } catch (error) {
-          lastError = error;
-          if (isEndpointUnavailableError(error)) {
-            continue;
-          }
-          throw error;
-        }
-      }
-
-      if (!changed) {
-        throw (
-          lastError instanceof Error ?
-          lastError :
-          new Error(t("changePasswordUnavailable"))
-        );
-      }
+      await api.post("/account/change-password", {
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password,
+        confirm_password: passwordForm.confirm_password
+      });
 
       setPasswordDialogOpen(false);
       setPasswordForm({

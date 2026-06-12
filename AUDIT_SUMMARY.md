@@ -24,7 +24,7 @@
  | Rank | Bug ID | Severity | Summary | First Fix Area |
  | ---- | ------ | -------- | ------- | -------------- |
  | 1 | BUG-001 | Critical | Direct `npm run *` is blocked in PowerShell by `npm.ps1` execution policy. | Runtime/dev docs or scripts |
- | 2 | BUG-002 | High | Password change probes missing endpoints before valid `/account/password`. | Settings/account contract |
+| 2 | BUG-002 | High | Password change backend did not verify `current_password` and FE used unnecessary fallback endpoints before `/account/change-password`. | Settings/account contract |
  | 3 | BUG-003 | High | B2C coupon redeem CTA has no discovered backend/API implementation. | B2C coupons |
  | 4 | BUG-004 | High | Evidence backend/wrappers exist, but visible create/lock UI was not found. | Evidence/export UI |
  | 5 | BUG-005 | High | Subscription/payment endpoints use non-baseline response shapes. | Subscription API contract |
@@ -63,7 +63,7 @@
 
  ## First Safe Code Change Recommendation
 
- First safe code change: replace the password-change fallback endpoint list in `components/dashboard/settings/PersonalSettings.tsx` and `components/dashboard/settings/SystemSettings.tsx` with the single documented backend route `/account/password`, after one manual login/profile test confirms the current backend contract. This is narrow, removes hidden 404s, and does not alter UI scope or database schema.
+First safe code change: make `POST /api/account/change-password` verify `current_password`, handle password-login-unavailable accounts explicitly, and replace the frontend password-change fallback endpoint list in `components/dashboard/settings/PersonalSettings.tsx` and `components/dashboard/settings/SystemSettings.tsx` with the single documented frontend API path `/account/change-password`. This is narrow, removes hidden 404s, and does not alter UI scope or database schema.
 
  ## Runtime Notes
 
