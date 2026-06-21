@@ -30,15 +30,14 @@ const formatNumber = (value: number, digits = 3) =>
 
 const DonutChart: React.FC<{ data: Array<{ name: string; value: number; color: string }> }> = ({ data }) => {
   const total = data.reduce((sum, item) => sum + Math.max(0, item.value), 0) || 1;
-  let offset = 0;
+  const segments = data.map((item) => Math.max(0, item.value) / total * 100);
 
   return (
     <svg viewBox="0 0 160 160" className="h-48 w-48" aria-hidden="true">
       <circle cx="80" cy="80" r="52" fill="none" stroke="#e5eee9" strokeWidth="34" />
-      {data.map((item) => {
-        const segment = Math.max(0, item.value) / total * 100;
-        const strokeDashoffset = -offset;
-        offset += segment;
+      {data.map((item, index) => {
+        const segment = segments[index];
+        const strokeDashoffset = -segments.slice(0, index).reduce((sum, current) => sum + current, 0);
         return (
           <circle
             key={item.name}
