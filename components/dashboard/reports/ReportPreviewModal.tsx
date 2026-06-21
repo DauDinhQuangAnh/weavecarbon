@@ -28,6 +28,38 @@ const formatNumber = (value: number, digits = 3) =>
     maximumFractionDigits: digits
   }).format(value);
 
+const DonutChart: React.FC<{ data: Array<{ name: string; value: number; color: string }> }> = ({ data }) => {
+  const total = data.reduce((sum, item) => sum + Math.max(0, item.value), 0) || 1;
+  let offset = 0;
+
+  return (
+    <svg viewBox="0 0 160 160" className="h-48 w-48" aria-hidden="true">
+      <circle cx="80" cy="80" r="52" fill="none" stroke="#e5eee9" strokeWidth="34" />
+      {data.map((item) => {
+        const segment = Math.max(0, item.value) / total * 100;
+        const strokeDashoffset = -offset;
+        offset += segment;
+        return (
+          <circle
+            key={item.name}
+            cx="80"
+            cy="80"
+            r="52"
+            fill="none"
+            stroke={item.color}
+            strokeWidth="34"
+            pathLength="100"
+            strokeDasharray={`${segment} ${100 - segment}`}
+            strokeDashoffset={strokeDashoffset}
+            transform="rotate(-90 80 80)"
+          />
+        );
+      })}
+      <circle cx="80" cy="80" r="34" fill="#ffffff" />
+    </svg>
+  );
+};
+
 const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenChange }) => {
   const pathname = usePathname();
   const isDemoRuntime = isDemoPath(pathname);
@@ -254,10 +286,8 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                   </div>
                   <div className="rounded-xl border border-slate-200 p-3">
                     <h3 className="mb-2 text-sm font-bold">CẤU TRÚC PHÁT THẢI</h3>
-                    <div className="mx-auto grid h-48 w-48 place-items-center rounded-full" style={{
-                      background: `conic-gradient(${payload.pieData.map((item, index) => `${item.color} ${payload.pieData.slice(0, index).reduce((s, x) => s + x.value, 0)}% ${payload.pieData.slice(0, index + 1).reduce((s, x) => s + x.value, 0)}%`).join(",")})`
-                    }}>
-                      <div className="h-20 w-20 rounded-full bg-white" />
+                    <div className="mx-auto grid h-48 w-48 place-items-center">
+                      <DonutChart data={payload.pieData} />
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                       {payload.pieData.map((item) => (

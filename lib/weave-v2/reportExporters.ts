@@ -18,19 +18,177 @@ const csvEscape = (value: unknown) => {
 
 const stripHash = (value: string) => value.replace("#", "");
 
-const getPrintableHeadAssets = () => {
-  const assets = Array.from(
-    document.querySelectorAll('link[rel="stylesheet"], style')
+const clampByte = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+
+const toSrgbByte = (value: number) => {
+  const normalized = Math.max(0, Math.min(1, value));
+  return clampByte(
+    (normalized <= 0.0031308
+      ? normalized * 12.92
+      : 1.055 * normalized ** (1 / 2.4) - 0.055) * 255
   );
-  return assets.map((node) => node.outerHTML).join("\n");
 };
 
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+const oklchToRgb = (value: string) => {
+  const match = value.match(/oklch\(\s*([0-9.]+%?)\s+([0-9.]+)\s+([0-9.]+)(?:deg)?(?:\s*\/\s*([0-9.]+%?))?\s*\)/i);
+  if (!match) return value;
+
+  const l = match[1].endsWith("%") ? Number.parseFloat(match[1]) / 100 : Number.parseFloat(match[1]);
+  const c = Number.parseFloat(match[2]);
+  const h = Number.parseFloat(match[3]) * Math.PI / 180;
+  const alphaRaw = match[4];
+  const alpha =
+    alphaRaw === undefined
+      ? 1
+      : alphaRaw.endsWith("%")
+        ? Number.parseFloat(alphaRaw) / 100
+        : Number.parseFloat(alphaRaw);
+  const a = c * Math.cos(h);
+  const b = c * Math.sin(h);
+  const lPrime = l + 0.3963377774 * a + 0.2158037573 * b;
+  const mPrime = l - 0.1055613458 * a - 0.0638541728 * b;
+  const sPrime = l - 0.0894841775 * a - 1.291485548 * b;
+  const lCube = lPrime ** 3;
+  const mCube = mPrime ** 3;
+  const sCube = sPrime ** 3;
+  const red = toSrgbByte(4.0767416621 * lCube - 3.3077115913 * mCube + 0.2309699292 * sCube);
+  const green = toSrgbByte(-1.2684380046 * lCube + 2.6097574011 * mCube - 0.3413193965 * sCube);
+  const blue = toSrgbByte(-0.0041960863 * lCube - 0.7034186147 * mCube + 1.707614701 * sCube);
+
+  return alpha >= 1 ? `rgb(${red}, ${green}, ${blue})` : `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
+const oklabToRgb = (value: string) => {
+  const match = value.match(/oklab\(\s*([0-9.]+%?)\s+([-0-9.]+%?)\s+([-0-9.]+%?)(?:\s*\/\s*([0-9.]+%?))?\s*\)/i);
+  if (!match) return value;
+
+  const l = match[1].endsWith("%") ? Number.parseFloat(match[1]) / 100 : Number.parseFloat(match[1]);
+  const a = match[2].endsWith("%") ? Number.parseFloat(match[2]) / 100 * 0.4 : Number.parseFloat(match[2]);
+  const b = match[3].endsWith("%") ? Number.parseFloat(match[3]) / 100 * 0.4 : Number.parseFloat(match[3]);
+  const alphaRaw = match[4];
+  const alpha =
+    alphaRaw === undefined
+      ? 1
+      : alphaRaw.endsWith("%")
+        ? Number.parseFloat(alphaRaw) / 100
+        : Number.parseFloat(alphaRaw);
+  const lPrime = l + 0.3963377774 * a + 0.2158037573 * b;
+  const mPrime = l - 0.1055613458 * a - 0.0638541728 * b;
+  const sPrime = l - 0.0894841775 * a - 1.291485548 * b;
+  const lCube = lPrime ** 3;
+  const mCube = mPrime ** 3;
+  const sCube = sPrime ** 3;
+  const red = toSrgbByte(4.0767416621 * lCube - 3.3077115913 * mCube + 0.2309699292 * sCube);
+  const green = toSrgbByte(-1.2684380046 * lCube + 2.6097574011 * mCube - 0.3413193965 * sCube);
+  const blue = toSrgbByte(-0.0041960863 * lCube - 0.7034186147 * mCube + 1.707614701 * sCube);
+
+  return alpha >= 1 ? `rgb(${red}, ${green}, ${blue})` : `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
+const labToRgbFromChannels = (l: number, a: number, b: number, alpha = 1) => {
+  const fy = (l + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - b / 200;
+  const pivot = (channel: number) => {
+    const cube = channel ** 3;
+    return cube > 0.008856 ? cube : (channel - 16 / 116) / 7.787;
+  };
+
+  const xD50 = 0.96422 * pivot(fx);
+  const yD50 = pivot(fy);
+  const zD50 = 0.82521 * pivot(fz);
+  const x = 0.9555766 * xD50 - 0.0230393 * yD50 + 0.0631636 * zD50;
+  const y = -0.0282895 * xD50 + 1.0099416 * yD50 + 0.0210077 * zD50;
+  const z = 0.0122982 * xD50 - 0.0204830 * yD50 + 1.3299098 * zD50;
+  const red = toSrgbByte(3.2404542 * x - 1.5371385 * y - 0.4985314 * z);
+  const green = toSrgbByte(-0.9692660 * x + 1.8760108 * y + 0.0415560 * z);
+  const blue = toSrgbByte(0.0556434 * x - 0.2040259 * y + 1.0572252 * z);
+
+  return alpha >= 1 ? `rgb(${red}, ${green}, ${blue})` : `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
+const labToRgb = (value: string) => {
+  const match = value.match(/lab\(\s*([0-9.]+%?)\s+([-0-9.]+%?)\s+([-0-9.]+%?)(?:\s*\/\s*([0-9.]+%?))?\s*\)/i);
+  if (!match) return value;
+
+  const l = match[1].endsWith("%") ? Number.parseFloat(match[1]) : Number.parseFloat(match[1]);
+  const a = match[2].endsWith("%") ? Number.parseFloat(match[2]) * 1.25 : Number.parseFloat(match[2]);
+  const b = match[3].endsWith("%") ? Number.parseFloat(match[3]) * 1.25 : Number.parseFloat(match[3]);
+  const alphaRaw = match[4];
+  const alpha =
+    alphaRaw === undefined
+      ? 1
+      : alphaRaw.endsWith("%")
+        ? Number.parseFloat(alphaRaw) / 100
+        : Number.parseFloat(alphaRaw);
+
+  return labToRgbFromChannels(l, a, b, alpha);
+};
+
+const lchToRgb = (value: string) => {
+  const match = value.match(/lch\(\s*([0-9.]+%?)\s+([0-9.]+%?)\s+([-0-9.]+)(?:deg)?(?:\s*\/\s*([0-9.]+%?))?\s*\)/i);
+  if (!match) return value;
+
+  const l = match[1].endsWith("%") ? Number.parseFloat(match[1]) : Number.parseFloat(match[1]);
+  const c = match[2].endsWith("%") ? Number.parseFloat(match[2]) * 1.5 : Number.parseFloat(match[2]);
+  const h = Number.parseFloat(match[3]) * Math.PI / 180;
+  const alphaRaw = match[4];
+  const alpha =
+    alphaRaw === undefined
+      ? 1
+      : alphaRaw.endsWith("%")
+        ? Number.parseFloat(alphaRaw) / 100
+        : Number.parseFloat(alphaRaw);
+  const a = c * Math.cos(h);
+  const b = c * Math.sin(h);
+
+  return labToRgbFromChannels(l, a, b, alpha);
+};
+
+const normalizeCanvasColor = (value: string) =>
+  value.includes("oklch(") ? oklchToRgb(value) :
+  value.includes("oklab(") ? oklabToRgb(value) :
+  value.includes("lch(") ? lchToRgb(value) :
+  value.includes("lab(") ? labToRgb(value) :
+  value;
+
+const copyCanvasSafeStyles = (source: Element, target: Element) => {
+  if (!(target instanceof HTMLElement || target instanceof SVGElement)) return;
+  const computed = window.getComputedStyle(source);
+  const style = (target as HTMLElement | SVGElement).style;
+  style.color = normalizeCanvasColor(computed.color);
+  style.backgroundColor = normalizeCanvasColor(computed.backgroundColor);
+  style.borderTopColor = normalizeCanvasColor(computed.borderTopColor);
+  style.borderRightColor = normalizeCanvasColor(computed.borderRightColor);
+  style.borderBottomColor = normalizeCanvasColor(computed.borderBottomColor);
+  style.borderLeftColor = normalizeCanvasColor(computed.borderLeftColor);
+  style.outlineColor = normalizeCanvasColor(computed.outlineColor);
+  style.textDecorationColor = normalizeCanvasColor(computed.textDecorationColor);
+  style.fill = normalizeCanvasColor(computed.fill);
+  style.stroke = normalizeCanvasColor(computed.stroke);
+  if (
+    computed.backgroundImage.includes("oklab(") ||
+    computed.backgroundImage.includes("oklch(") ||
+    computed.backgroundImage.includes("lab(") ||
+    computed.backgroundImage.includes("lch(")
+  ) {
+    style.backgroundImage = "none";
+  }
+  style.boxShadow = "none";
+  style.textShadow = "none";
+};
+
+const sanitizeCanvasClone = (sourceRoot: HTMLElement, clonedRoot: Element) => {
+  copyCanvasSafeStyles(sourceRoot, clonedRoot);
+  const sourceElements = Array.from(sourceRoot.querySelectorAll("*"));
+  const clonedElements = Array.from(clonedRoot.querySelectorAll("*"));
+  sourceElements.forEach((source, index) => {
+    const cloned = clonedElements[index];
+    if (cloned) {
+      copyCanvasSafeStyles(source, cloned);
+    }
+  });
+};
 
 export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
   const rows: Array<Record<string, unknown>> = [
@@ -183,39 +341,93 @@ export const downloadReportXlsxV2 = async (payload: ReportPayloadV2) => {
   );
 };
 
-export const downloadReportPdfV2 = (element: HTMLElement | null, sku: string) => {
+export const downloadReportPdfV2 = async (element: HTMLElement | null, sku: string) => {
   if (!element) return;
-  const printWindow = window.open("", "_blank", "width=1200,height=900");
-  if (!printWindow) return;
-  const documentTitle = `WEAVE_CARBON_TEMPLATE_v2_${sku}`;
-  const headAssets = getPrintableHeadAssets();
-  try {
-    printWindow.opener = null;
-  } catch {
 
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import("html2canvas"),
+    import("jspdf")
+  ]);
+
+  const canvas = await html2canvas(element, {
+    backgroundColor: "#ffffff",
+    scale: Math.max(2.5, Math.min(4, window.devicePixelRatio * 2 || 3)),
+    useCORS: true,
+    logging: false,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+    onclone: (_document, clonedElement) => {
+      sanitizeCanvasClone(element, clonedElement);
+    }
+  });
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+    compress: true
+  });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 8;
+  const imageWidth = pageWidth - margin * 2;
+  const imageHeight = canvas.height * imageWidth / canvas.width;
+  const pageContentHeight = pageHeight - margin * 2;
+  const sourcePageHeight = Math.floor(canvas.width * pageContentHeight / imageWidth);
+  let sourceY = 0;
+  let pageIndex = 0;
+
+  while (sourceY < canvas.height) {
+    const sliceHeight = Math.min(sourcePageHeight, canvas.height - sourceY);
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = sliceHeight;
+    const context = pageCanvas.getContext("2d");
+    if (!context) break;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+    context.drawImage(
+      canvas,
+      0,
+      sourceY,
+      canvas.width,
+      sliceHeight,
+      0,
+      0,
+      canvas.width,
+      sliceHeight
+    );
+
+    if (pageIndex > 0) {
+      pdf.addPage();
+    }
+    const pageImageHeight = sliceHeight * imageWidth / canvas.width;
+    pdf.addImage(
+      pageCanvas.toDataURL("image/jpeg", 0.98),
+      "JPEG",
+      margin,
+      margin,
+      imageWidth,
+      Math.min(pageImageHeight, pageContentHeight),
+      undefined,
+      "SLOW"
+    );
+    sourceY += sliceHeight;
+    pageIndex += 1;
   }
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>${escapeHtml(documentTitle)}</title>
-        ${headAssets}
-        <style>
-          body { margin: 0; font-family: Arial, sans-serif; background: #fff; }
-          * { box-sizing: border-box; }
-          @page { size: A4 landscape; margin: 10mm; }
-          @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            button, [role="button"] { display: none !important; }
-          }
-        </style>
-      </head>
-      <body>${element.outerHTML}</body>
-    </html>
-  `);
-  printWindow.document.close();
-  const runPrint = () => {
-    printWindow.focus();
-    printWindow.print();
-  };
-  window.setTimeout(runPrint, 800);
+
+  if (pageIndex === 0) {
+    pdf.addImage(
+      canvas.toDataURL("image/jpeg", 0.98),
+      "JPEG",
+      margin,
+      margin,
+      imageWidth,
+      Math.min(imageHeight, pageContentHeight),
+      undefined,
+      "SLOW"
+    );
+  }
+
+  pdf.save(`WEAVE_CARBON_TEMPLATE_v2_${sku}.pdf`);
 };
