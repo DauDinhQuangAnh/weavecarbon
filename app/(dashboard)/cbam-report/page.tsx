@@ -197,12 +197,15 @@ export default function CbamReportPage() {
     Promise.allSettled([
       apiRequest<ElectricityInvoice[]>(`/electricity-invoices?companyId=${companyId}`),
       apiRequest<FuelInvoice[]>(`/fuel-invoices?companyId=${companyId}`),
-      apiRequest<EvidenceDoc[]>(`/evidence?companyId=${companyId}`),
+      apiRequest<{ items?: EvidenceDoc[] } | EvidenceDoc[]>(`/evidence?companyId=${companyId}`),
       apiRequest<CarbonCalc[]>(`/carbon-calculations?companyId=${companyId}`),
     ]).then(([e, f, ev, k]) => {
       if (e.status === 'fulfilled') setElectricity(e.value);
       if (f.status === 'fulfilled') setFuels(f.value);
-      if (ev.status === 'fulfilled') setEvidence(ev.value);
+      if (ev.status === 'fulfilled') {
+        const evData = ev.value;
+        setEvidence(Array.isArray(evData) ? evData : (evData as { items?: EvidenceDoc[] }).items ?? []);
+      }
       if (k.status === 'fulfilled') setCalcs(k.value);
     });
 

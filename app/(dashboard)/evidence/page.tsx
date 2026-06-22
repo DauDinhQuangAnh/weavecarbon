@@ -115,10 +115,13 @@ export default function EvidencePage() {
     if (!companyId) return;
     setLoading(true);
     try {
-      const data = await apiRequest<EvDoc[]>(
+      const result = await apiRequest<{ items?: EvDoc[] } | EvDoc[]>(
         `/evidence?companyId=${companyId}&limit=200`
       );
-      setRows(data);
+      const items = Array.isArray(result)
+        ? result
+        : (result as { items?: EvDoc[] }).items ?? [];
+      setRows(items);
     } catch {
       setRows([]);
     } finally {
@@ -189,8 +192,8 @@ export default function EvidencePage() {
       toast({ title: 'Chứng từ đã được xác nhận.' });
       setReviewOpen(false);
       await load();
-    } catch (e: any) {
-      toast({ title: e.message || 'Lỗi xác nhận', variant: 'destructive' });
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi xác nhận', variant: 'destructive' });
     }
   };
 
