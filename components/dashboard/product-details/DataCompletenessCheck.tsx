@@ -179,7 +179,7 @@ const DataCompletenessCheck: React.FC<Props> = ({ product }) => {
         })}
         {pct < 100 && (
           <p className="pt-1 text-center text-[11px] text-muted-foreground">
-            Nhấn "Bổ sung" để hoàn thiện dữ liệu cho kết quả carbon chính xác hơn
+            Nhấn &quot;Bổ sung&quot; để hoàn thiện dữ liệu cho kết quả carbon chính xác hơn
           </p>
         )}
       </CardContent>

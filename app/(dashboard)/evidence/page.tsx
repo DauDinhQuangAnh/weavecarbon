@@ -126,9 +126,8 @@ export default function EvidencePage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, [companyId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [companyId]);
 
   const handleUpload = async () => {
     if (!file || !companyId)
@@ -155,8 +154,8 @@ export default function EvidencePage() {
       setPeriodStart('');
       setPeriodEnd('');
       await load();
-    } catch (e: any) {
-      toast({ title: e.message || 'Lỗi tải lên', variant: 'destructive' });
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi tải lên', variant: 'destructive' });
     } finally {
       setUploading(false);
     }

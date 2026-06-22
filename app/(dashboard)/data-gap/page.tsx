@@ -100,9 +100,8 @@ export default function DataGapPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, [companyId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [companyId]);
 
   const seed = async () => {
     if (!companyId) return;
@@ -113,9 +112,9 @@ export default function DataGapPage() {
       });
       toast({ title: 'Đã tạo checklist mặc định' });
       await load();
-    } catch (e: any) {
+    } catch (e) {
       toast({
-        title: e.message || 'Lỗi tạo checklist',
+        title: (e as Error).message || 'Lỗi tạo checklist',
         variant: 'destructive',
       });
     }
@@ -140,8 +139,8 @@ export default function DataGapPage() {
       setOpen(false);
       setForm(EMPTY_FORM);
       await load();
-    } catch (e: any) {
-      toast({ title: e.message || 'Lỗi thêm mục', variant: 'destructive' });
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi thêm mục', variant: 'destructive' });
     }
   };
 
@@ -152,8 +151,8 @@ export default function DataGapPage() {
         body: JSON.stringify({ current_status: 'uploaded', risk_level: 'low' }),
       });
       await load();
-    } catch (e: any) {
-      toast({ title: e.message || 'Lỗi cập nhật', variant: 'destructive' });
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi cập nhật', variant: 'destructive' });
     }
   };
 

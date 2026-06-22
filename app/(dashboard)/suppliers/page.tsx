@@ -239,7 +239,7 @@ export default function SuppliersPage() {
             </div>
           ) : rows.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
-              Chưa có yêu cầu nào. Bấm "Tạo yêu cầu" để bắt đầu.
+              Chưa có yêu cầu nào. Bấm &quot;Tạo yêu cầu&quot; để bắt đầu.
             </div>
           ) : (
             <div className="overflow-x-auto">

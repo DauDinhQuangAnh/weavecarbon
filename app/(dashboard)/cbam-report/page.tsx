@@ -216,6 +216,7 @@ export default function CbamReportPage() {
       0
     );
     const scope3 = products.reduce(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (s, p: any) => s + (p.co2 ?? 0) * 0.7,
       0
     );
@@ -233,6 +234,7 @@ export default function CbamReportPage() {
   }, [evidence]);
 
   const productSummary = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return products.map((p: any) => {
       const calc = calcs.find((c) => c.product_id === p.id);
       const total = calc?.total_co2e ?? p.co2 ?? 0;
@@ -550,6 +552,7 @@ export default function CbamReportPage() {
                 </TableHeader>
                 <TableBody>
                   {TEXTILE_PROCESSES.map((proc) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const related = products.filter((p: any) =>
                       (p.materials ?? []).some(
                         (m: string) =>
@@ -628,6 +631,7 @@ export default function CbamReportPage() {
                       </TableCell>
                     </TableRow>
                   )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {products.slice(0, 20).map((p: any) => (
                     <TableRow key={p.id}>
                       <TableCell className="text-xs">
