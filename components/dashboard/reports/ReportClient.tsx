@@ -54,7 +54,10 @@ import {
   Shield,
   History,
   Loader2,
-  Eye } from
+  Eye,
+  Layers,
+  Building2,
+  ClipboardCheck } from
 "lucide-react";
 
 import { toast } from "sonner";
@@ -942,6 +945,103 @@ const exportHistory = useMemo(
               </Card>
             );
           })}
+        </div>
+
+        {/* ── 4 PDF Report Type Cards ────────────────────────────── */}
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
+            <h3 className="text-sm font-semibold text-slate-800">
+              {locale === "vi" ? "Loại báo cáo PDF" : "PDF Report Types"}
+            </h3>
+            <Badge
+              variant="outline"
+              className="rounded-full border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700"
+            >
+              {locale === "vi" ? "Sắp ra mắt" : "Coming Phase 08"}
+            </Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {([
+              {
+                key: "product",
+                icon: Package,
+                iconBg: "bg-emerald-100 text-emerald-700",
+                title: locale === "vi" ? "Báo cáo PCF Sản phẩm" : "Product Carbon Report",
+                desc: locale === "vi"
+                  ? "ISO 14067 · Bóc tách Scope 1/2/3 theo từng SKU"
+                  : "ISO 14067 · Scope 1/2/3 breakdown per SKU",
+              },
+              {
+                key: "batch",
+                icon: Layers,
+                iconBg: "bg-blue-100 text-blue-700",
+                title: locale === "vi" ? "Báo cáo Lô Xuất khẩu" : "Batch Export Report",
+                desc: locale === "vi"
+                  ? "CBAM-ready · Nhóm sản phẩm theo lô vận chuyển"
+                  : "CBAM-ready · Products grouped by shipment batch",
+              },
+              {
+                key: "facility",
+                icon: Building2,
+                iconBg: "bg-amber-100 text-amber-700",
+                title: locale === "vi" ? "Báo cáo Phát thải Cơ sở" : "Facility Emission Report",
+                desc: locale === "vi"
+                  ? "GHG Protocol · Scope 1 & 2 toàn nhà máy"
+                  : "GHG Protocol · Scope 1 & 2 facility-wide",
+              },
+              {
+                key: "compliance",
+                icon: ClipboardCheck,
+                iconBg: "bg-purple-100 text-purple-700",
+                title: locale === "vi" ? "Sẵn sàng Tuân thủ" : "Data Gap & Compliance",
+                desc: locale === "vi"
+                  ? "EU CBAM · EUDR · TT 01/2022 · Khoảng trống dữ liệu"
+                  : "EU CBAM · EUDR · VN TT 01/2022 · Data gap analysis",
+              },
+            ] as const).map((card) => {
+              const Icon = card.icon;
+              return (
+                <Card
+                  key={card.key}
+                  className="rounded-xl border border-slate-100 bg-white shadow-sm"
+                >
+                  <CardContent className="flex flex-col gap-3 p-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{card.title}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{card.desc}</p>
+                    </div>
+                    <div className="mt-auto flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="h-8 flex-1 rounded-lg border-slate-200 text-xs text-slate-500"
+                        title={locale === "vi" ? "Sẽ có ở Phase 08" : "Available in Phase 08"}
+                      >
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        {locale === "vi" ? "Xem trước" : "Preview"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled
+                        className="h-8 flex-1 rounded-lg bg-emerald-800 text-xs text-white hover:bg-emerald-900 disabled:opacity-40"
+                        title={locale === "vi" ? "Sẽ có ở Phase 08" : "Available in Phase 08"}
+                      >
+                        <Download className="mr-1.5 h-3.5 w-3.5" />
+                        PDF
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         <Card className="rounded-xl border border-emerald-200 bg-white shadow-sm">

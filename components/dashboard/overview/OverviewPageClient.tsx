@@ -41,9 +41,15 @@ import {
   Target,
   Gauge,
   Lightbulb,
-  PlusCircle } from
+  PlusCircle,
+  TrendingDown,
+  ShieldAlert,
+  CheckCircle,
+  Clock,
+  Info } from
 "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { reductionScenarios, type ReductionScenario } from "@/lib/dashboardData";
 import ProductOverviewModal from "../assessment/ProductOverviewModal";
 import OverviewCharts, {
   EmissionBreakdownPoint,
@@ -1080,6 +1086,83 @@ const OverviewPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Reduction Scenarios ────────────────────────────────── */}
+        <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-5 w-5 text-emerald-700" />
+              <CardTitle className="text-base font-semibold text-slate-900">
+                {locale === "vi" ? "Kịch bản giảm phát thải khả thi" : "Feasible Reduction Scenarios"}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-sm text-slate-500">
+              {locale === "vi"
+                ? "Ước tính dựa trên dữ liệu proxy — cần xác minh với hóa đơn thực tế trước khi báo cáo chính thức."
+                : "Proxy-based estimates — verify with actual invoices before official reporting."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {reductionScenarios.map((scenario: ReductionScenario) => {
+                const statusIcon =
+                  scenario.dataSourceStatus === "verified" ? (
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : scenario.dataSourceStatus === "proxy" ? (
+                    <Info className="h-3.5 w-3.5 text-amber-500" />
+                  ) : (
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  );
+                const statusLabel =
+                  scenario.dataSourceStatus === "verified"
+                    ? locale === "vi" ? "Đã xác minh" : "Verified"
+                    : scenario.dataSourceStatus === "proxy"
+                    ? locale === "vi" ? "Dữ liệu proxy" : "Proxy data"
+                    : locale === "vi" ? "Chờ dữ liệu" : "Pending data";
+
+                return (
+                  <div
+                    key={scenario.id}
+                    className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3"
+                  >
+                    <p className="text-sm font-medium leading-snug text-slate-800">{scenario.title}</p>
+                    <p className="text-xs text-slate-500">{scenario.description}</p>
+                    <Badge
+                      variant="outline"
+                      className="w-fit rounded-full border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700"
+                    >
+                      {scenario.rangeLabel}
+                    </Badge>
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                      {statusIcon}
+                      <span>{statusLabel}</span>
+                    </div>
+                    <p className="border-t border-slate-100 pt-2 text-[11px] italic text-slate-400">
+                      {scenario.disclaimer}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Pre-audit Disclaimer ───────────────────────────────── */}
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-amber-800">
+              {locale === "vi"
+                ? "Lưu ý trước kiểm toán độc lập"
+                : "Pre-audit disclaimer"}
+            </p>
+            <p className="text-xs leading-relaxed text-amber-700">
+              {locale === "vi"
+                ? "Các kết quả phát thải CO₂e hiển thị trên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. Số liệu sử dụng hệ số phát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Bộ TN&MT Việt Nam. Một số dữ liệu đầu vào vẫn là dữ liệu proxy — cần bổ sung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc để đạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
+                : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data — original invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
+            </p>
+          </div>
+        </div>
       </div>
 
       <Dialog

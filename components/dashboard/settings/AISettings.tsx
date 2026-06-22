@@ -49,6 +49,7 @@ const AISettings: React.FC = () => {
           system: t("tabs.system"),
           users: t("tabs.users"),
           ai: t("tabs.ai"),
+          notifications: "Thông báo",
         }}
       />
 

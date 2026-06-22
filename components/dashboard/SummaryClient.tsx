@@ -52,6 +52,10 @@ import MaterialImpactTable from "@/components/dashboard/product-details/Material
 import CarbonFootprintCard from "@/components/dashboard/product-details/CarbonFootprintCard";
 import ComplianceStatus from "@/components/dashboard/product-details/ComplianceStatus";
 import ProductSuggestionsCard from "@/components/dashboard/product-details/ProductSuggestionsCard";
+import ProductEvidenceList from "@/components/dashboard/product-details/ProductEvidenceList";
+import DataCompletenessCheck from "@/components/dashboard/product-details/DataCompletenessCheck";
+import EndOfLifeAssessment from "@/components/dashboard/product-details/EndOfLifeAssessment";
+import VersionHistory from "@/components/dashboard/product-details/VersionHistory";
 
 interface SummaryClientProps {
   productId: string;
@@ -1751,7 +1755,9 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
           {product && <ProductSuggestionsCard productId={product.id} />}
 
-          
+          {product && <DataCompletenessCheck product={product} />}
+
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             <Card className="border border-slate-200 shadow-sm">
@@ -1954,10 +1960,17 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
               </div>
             </CardContent>
           </Card>
+
+
+          <ProductEvidenceList productId={product.id} />
+
+          <EndOfLifeAssessment product={product} />
+
+          <VersionHistory product={product} />
         </div>
       </div>
 
-      
+
       {showQRModal &&
       <ProductQRCode
         productId={product.id}

@@ -4,8 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertCircle,
   BarChart3,
+  Calculator as CalculatorIcon,
+  CreditCard,
+  FileBarChart,
   FileCheck,
+  FileText,
+  History,
   Leaf,
   Loader2,
   LogOut,
@@ -13,6 +19,7 @@ import {
   Settings,
   TrendingUp,
   Truck,
+  Users,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,32 +41,19 @@ interface DashboardSidebarProps {
 }
 
 const menuItems = [
-  {
-    icon: BarChart3,
-    labelKey: "overview",
-    path: "/overview",
-  },
-  {
-    icon: Package,
-    labelKey: "product",
-    path: "/products",
-  },
-  {
-    icon: Truck,
-    labelKey: "logistics",
-    path: "/logistics",
-  },
-  { icon: FileCheck, labelKey: "export", path: "/export" },
-  {
-    icon: TrendingUp,
-    labelKey: "reports",
-    path: "/reports",
-  },
-  {
-    icon: Settings,
-    labelKey: "settings",
-    path: "/settings",
-  },
+  { icon: BarChart3,       labelKey: "overview",   path: "/overview"    },
+  { icon: Package,         labelKey: "product",    path: "/products"    },
+  { icon: Truck,           labelKey: "logistics",  path: "/logistics"   },
+  { icon: CalculatorIcon,  labelKey: "calculator", path: "/carbon-calculator"  },
+  { icon: FileText,        labelKey: "evidence",   path: "/evidence"    },
+  { icon: AlertCircle,     labelKey: "dataGap",    path: "/data-gap"    },
+  { icon: FileCheck,       labelKey: "export",     path: "/export"      },
+  { icon: TrendingUp,      labelKey: "reports",    path: "/reports"     },
+  { icon: FileBarChart,    labelKey: "cbamReport", path: "/cbam-report" },
+  { icon: History,         labelKey: "auditTrail", path: "/audit-trail" },
+  { icon: Users,           labelKey: "suppliers",  path: "/suppliers"   },
+  { icon: CreditCard,      labelKey: "billing",    path: "/billing"     },
+  { icon: Settings,        labelKey: "settings",   path: "/settings"    },
 ];
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({

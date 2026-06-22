@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, Settings as SettingsIcon, Users } from "lucide-react";
+import { Bell, Bot, Settings as SettingsIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsTabId = "system" | "users" | "ai";
+type SettingsTabId = "system" | "users" | "ai" | "notifications";
 
 interface SettingsTabsNavProps {
   activeId: SettingsTabId;
@@ -14,6 +14,7 @@ interface SettingsTabsNavProps {
     system: string;
     users: string;
     ai: string;
+    notifications: string;
   };
 }
 
@@ -47,6 +48,12 @@ const MOBILE_TAB_TONES: Record<
     activeIcon: "bg-sky-100 text-sky-700",
     inactiveIcon: "bg-white/85 text-sky-600",
   },
+  notifications: {
+    activeTab: "border-violet-200 bg-violet-50 text-violet-900 ring-1 ring-violet-200 shadow-sm",
+    inactiveTab: "border-transparent bg-violet-50/70 text-violet-800 hover:bg-violet-50",
+    activeIcon: "bg-violet-100 text-violet-700",
+    inactiveIcon: "bg-white/85 text-violet-600",
+  },
 };
 
 const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
@@ -72,6 +79,12 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
           },
         ]
       : []),
+    {
+      id: "notifications" as const,
+      label: labels.notifications,
+      icon: Bell,
+      href: "/settings?tab=notifications",
+    },
     ...(canAccessAISettings
       ? [
           {
@@ -93,7 +106,9 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
             ? "grid-cols-1"
             : items.length === 2
               ? "grid-cols-2"
-              : "grid-cols-3"
+              : items.length === 3
+                ? "grid-cols-3"
+                : "grid-cols-4"
         )}
       >
         {items.map((item) => {

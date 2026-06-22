@@ -20,6 +20,8 @@ import {
   ENERGY_SOURCES
 } from "./types";
 import { getMaterialById, MATERIAL_CATALOG } from "../materialCatalog";
+import { useAuth } from "@/contexts/AuthContext";
+import EvidenceUploader from "@/components/evidence/EvidenceUploader";
 
 interface Step3ProductionEnergyProps {
   data: ProductAssessmentData;
@@ -43,6 +45,8 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
   onChange
 }) => {
   const t = useTranslations("assessment.step3");
+  const { user } = useAuth();
+  const companyId = user?.company_id ?? null;
 
   const materialWarnings = useMemo(() => {
     const warnings: { type: "info" | "warning"; message: string }[] = [];
@@ -365,6 +369,12 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
           ) : null}
         </CardContent>
       </Card>
+
+      <EvidenceUploader
+        companyId={companyId}
+        productId={(data as { productId?: string }).productId}
+        defaultKind="electricity_bill"
+      />
 
       <Card>
         <CardHeader className="pb-4">

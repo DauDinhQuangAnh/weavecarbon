@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import SystemSettings from "./SystemSettings";
 import PersonalSettings from "./PersonalSettings";
 import UsersSettings from "./UsersSettings";
+import NotificationSettings from "./NotificationSettings";
 import SettingsTabsNav from "./SettingsTabsNav";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -25,9 +26,8 @@ const SettingsPage: React.FC = () => {
   const canAccessUsersTab = isRoot && !isTrialPlan;
   const activeTab = useMemo(() => {
     const requestedTab = searchParams.get("tab");
-    if (requestedTab === "users" && canAccessUsersTab) {
-      return "users";
-    }
+    if (requestedTab === "users" && canAccessUsersTab) return "users";
+    if (requestedTab === "notifications") return "notifications";
     return "system";
   }, [canAccessUsersTab, searchParams]);
 
@@ -61,12 +61,14 @@ const SettingsPage: React.FC = () => {
           system: t("tabs.system"),
           users: t("tabs.users"),
           ai: "AI",
+          notifications: "Thông báo",
         }}
       />
 
       <div className="mt-3">
         {activeTab === "system" ? (isRoot ? <SystemSettings /> : <PersonalSettings />) : null}
         {activeTab === "users" && canAccessUsersTab ? <UsersSettings /> : null}
+        {activeTab === "notifications" ? <NotificationSettings /> : null}
       </div>
     </div>
   );
