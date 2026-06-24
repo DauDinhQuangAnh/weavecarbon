@@ -86,6 +86,13 @@ export default function CalculatorClient() {
   const [emissions, setEmissions] = useState<EmissionBreakdown | null>(null);
   const t = useTranslations("calculator");
 
+  const reset = () => {
+    setEmissions(null);
+    setWeight("");
+    setMaterial("");
+    setRoute("");
+  };
+
   const calculateEmissions = () => {
     if (!weight || !material || !route) return;
 
@@ -145,16 +152,21 @@ export default function CalculatorClient() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="weight">{t("productWeight")}</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    placeholder="0.5"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="bg-background" />
-                  
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="weight"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      placeholder={t("weightPlaceholder")}
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      className="bg-background" />
+                    <span className="shrink-0 text-sm font-medium text-muted-foreground px-3 py-2 rounded-md border border-input bg-muted/50">
+                      {t("weightUnit")}
+                    </span>
+                  </div>
+
                 </div>
 
                 
@@ -172,6 +184,7 @@ export default function CalculatorClient() {
                       )}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">{t("materialHint")}</p>
                 </div>
 
                 
@@ -189,6 +202,7 @@ export default function CalculatorClient() {
                       )}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">{t("routeHint")}</p>
                 </div>
 
                 <Button
@@ -228,6 +242,9 @@ export default function CalculatorClient() {
                         {emissions.total.toFixed(2)}
                       </p>
                       <p className="text-sm opacity-80">{t("kgCO2e")}</p>
+                      <p className="text-xs opacity-70 mt-2">
+                        {t("carEquivalent", { km: Math.round(emissions.total / 0.21).toLocaleString("vi-VN") })}
+                      </p>
                     </div>
 
                     <div className="space-y-4">
@@ -311,6 +328,13 @@ export default function CalculatorClient() {
                         />
                       </div>
                     </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={reset}>
+                      {t("recalculate")}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

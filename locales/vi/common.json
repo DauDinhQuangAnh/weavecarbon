@@ -184,6 +184,12 @@
       "vnKr": "Việt Nam → Hàn Quốc"
     },
     "proxyNote": "Sử dụng hệ số phát thải proxy cho dữ liệu chuỗi cung ứng không đầy đủ",
+    "weightPlaceholder": "Ví dụ: 0.5",
+    "weightUnit": "kg",
+    "materialHint": "Vải cotton, polyester, len, v.v.",
+    "routeHint": "Tuyến vận chuyển từ nhà máy đến khách hàng",
+    "carEquivalent": "Tương đương {km} km di chuyển bằng xe hơi",
+    "recalculate": "Tính lại",
     "backToHome": "Quay lại trang chủ"
   },
   "pricing": {

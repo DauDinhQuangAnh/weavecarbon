@@ -184,6 +184,12 @@
       "vnKr": "Vietnam → South Korea"
     },
     "proxyNote": "Using proxy emission factors for incomplete supply chain data",
+    "weightPlaceholder": "E.g. 0.5",
+    "weightUnit": "kg",
+    "materialHint": "Cotton, polyester, wool, etc.",
+    "routeHint": "Shipping route from factory to customer",
+    "carEquivalent": "Equivalent to {km} km by car",
+    "recalculate": "Recalculate",
     "backToHome": "Back to Home"
   },
   "pricing": {
