@@ -24,7 +24,6 @@ const Hero = () => {
   const trustText = t("trust");
   const trustMatch =
     locale === "vi" ? trustText.match(/^(.*)\s(Việt Nam)$/u) : null;
-  // const tFeatures = useTranslations("features");
 
   useEffect(() => {
     const syncViewport = () => {
@@ -143,9 +142,7 @@ const Hero = () => {
             </Button>
             <Link
               href="/calculator"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                }}>
+              className="w-full sm:w-auto">
               <Button
                 variant="heroOutline"
                 size="xl"
@@ -155,31 +152,6 @@ const Hero = () => {
               </Button>
             </Link>
           </motion.div>
-
-          {/* Feature highlights */}
-          {/* <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            <FeatureCard
-              icon={<BarChart3 className="w-6 h-6" />}
-              title={tFeatures("carbonProxy.title")}
-              description={tFeatures("carbonProxy.desc")}
-            />
-            <FeatureCard
-              icon={<Recycle className="w-6 h-6" />}
-              title={tFeatures("circularHub.title")}
-              description={tFeatures("circularHub.desc")}
-            />
-            <FeatureCard
-              icon={<Shield className="w-6 h-6" />}
-              title={tFeatures("exportReady.title")}
-              description={tFeatures("exportReady.desc")}
-            />
-          </motion.div> */}
 
           {/* Trust badge */}
           <motion.p
@@ -224,30 +196,5 @@ const Hero = () => {
     </section>
   );
 };
-
-// const FeatureCard = ({
-//   icon,
-//   title,
-//   description,
-// }: {
-//   icon: React.ReactNode;
-//   title: string;
-//   description: string;
-// }) => (
-//   <motion.div
-//     initial={{ opacity: 0, y: 18 }}
-//     whileInView={{ opacity: 1, y: 0 }}
-//     viewport={{ once: true, amount: 0.5 }}
-//     transition={{ duration: 0.6, ease: "easeOut" }}
-//     whileHover={{ y: -4, scale: 1.02 }}
-//     className="glass-card rounded-2xl p-6 text-left transition-transform duration-300"
-//   >
-//     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
-//       {icon}
-//     </div>
-//     <h3 className="font-semibold text-foreground mb-2">{title}</h3>
-//     <p className="text-sm text-muted-foreground">{description}</p>
-//   </motion.div>
-// );
 
 export default Hero;

@@ -27,7 +27,7 @@ const HowItWorks = () => {
       const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
 
       setReducedEffects(
-        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6,
+        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 4,
       );
       setIsDesktopLayout(window.innerWidth >= 1024);
     };

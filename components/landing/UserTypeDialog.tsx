@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/useToast";
+import { toast } from "sonner";
 
 interface UserTypeDialogProps {
   open: boolean;
@@ -19,8 +19,7 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
   const t = useTranslations("userType");
   const tAuth = useTranslations("auth");
   const router = useRouter();
-  const { signInDemo, startLocalDemo } = useAuth();
-  const { toast } = useToast();
+  const { startLocalDemo, startLocalB2CDemo } = useAuth();
   const [demoLoading, setDemoLoading] = useState<"b2b" | "b2c" | null>(null);
   const demoB2CLabel = t.has("demoB2C") ? t("demoB2C") : "Demo B2C";
 
@@ -38,11 +37,7 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
     try {
       const { error } = await startLocalDemo("b2b_standard_20");
       if (error) {
-        toast({
-          title: tAuth("error"),
-          description: error.message,
-          variant: "destructive"
-        });
+        toast.error(`${tAuth("error")}: ${error.message}`);
         return;
       }
 
@@ -58,13 +53,9 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
 
     setDemoLoading("b2c");
     try {
-      const { error } = await signInDemo("b2c");
+      const { error } = await startLocalB2CDemo();
       if (error) {
-        toast({
-          title: tAuth("error"),
-          description: error.message,
-          variant: "destructive"
-        });
+        toast.error(`${tAuth("error")}: ${error.message}`);
         return;
       }
 

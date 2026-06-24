@@ -39,7 +39,7 @@ import {
   ensureDemoSession,
   readDemoSession } from
 "@/lib/demo/session";
-import { DEMO_SESSION_STORAGE_KEY } from "@/lib/demo/constants";
+import { DEMO_SESSION_STORAGE_KEY, B2C_DEMO_SESSION_KEY } from "@/lib/demo/constants";
 import {
   clearGoogleOAuthInflightState,
   hasActiveGoogleOAuthInflight,
@@ -105,6 +105,7 @@ interface AuthContextType {
   startLocalDemo: (
   scenario?: "b2b_standard_20")
   => Promise<{error: Error | null;}>;
+  startLocalB2CDemo: () => Promise<{error: Error | null;}>;
   exitDemoSession: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: (options?: RefreshUserOptions) => Promise<void>;
@@ -280,6 +281,21 @@ const loadDemoUser = (): User | null => {
   const session = readDemoSession();
   if (!session) return null;
   return normalizeStoredUser(session.user as User);
+};
+
+const loadB2CDemoUser = (): User | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(B2C_DEMO_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (parsed.user_type === "b2c" && parsed.is_demo === true) {
+      return normalizeStoredUser(parsed as unknown as User);
+    }
+    return null;
+  } catch {
+    return null;
+  }
 };
 
 const writeDemoLockState = () => {
@@ -716,6 +732,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         if (!cancelled) {
           setDemoUser(null);
           setAuthStatus("checking");
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Restore B2C local demo session (offline, no server tokens required)
+      const b2cDemoUser = loadB2CDemoUser();
+      if (b2cDemoUser) {
+        if (!cancelled) {
+          writeDemoLockState();
+          applyRuntimeUser(b2cDemoUser);
+          setAuthStatus("authenticated");
           setLoading(false);
         }
         return;
@@ -1227,7 +1255,31 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     }
   };
 
+  const startLocalB2CDemo = async (): Promise<{error: Error | null;}> => {
+    try {
+      const mockUser: User = {
+        id: "demo-b2c-001",
+        email: "demo-b2c@weavecarbon.io",
+        full_name: "Demo B2C User",
+        user_type: "b2c",
+        is_demo: true,
+        company_id: null,
+      };
+      window.localStorage.setItem(B2C_DEMO_SESSION_KEY, JSON.stringify(mockUser));
+      writeDemoLockState();
+      applyRuntimeUser(mockUser);
+      setAuthStatus("authenticated");
+      setLoading(false);
+      return { error: null };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error : new Error("B2C demo session could not be started.")
+      };
+    }
+  };
+
   const exitDemoSession = async () => {
+    window.localStorage.removeItem(B2C_DEMO_SESSION_KEY);
     clearDemoSession();
     clearSubscriptionLockStateCache();
     setDemoUser(null);
@@ -1236,6 +1288,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   };
 
   const signOut = async () => {
+    window.localStorage.removeItem(B2C_DEMO_SESSION_KEY);
+
     if (isDemoRuntime) {
       await exitDemoSession();
       return;
@@ -1273,6 +1327,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         signInWithGoogle,
         signInDemo,
         startLocalDemo,
+        startLocalB2CDemo,
         exitDemoSession,
         signOut,
         refreshUser,

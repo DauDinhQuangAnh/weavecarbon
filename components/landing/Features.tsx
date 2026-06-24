@@ -663,9 +663,9 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
                       className="absolute z-50 w-80"
                       style={{
                         left:
-                          Math.cos(angle) > 0 ? "calc(100% + 20px)" : "auto",
+                          Math.cos(angle) >= 0 ? "calc(100% + 20px)" : "auto",
                         right:
-                          Math.cos(angle) <= 0 ? "calc(100% + 20px)" : "auto",
+                          Math.cos(angle) < 0 ? "calc(100% + 20px)" : "auto",
                         top: "50%",
                         transform: "translateY(-50%)",
                       }}
@@ -757,7 +757,7 @@ const Features = () => {
       const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
 
       setReducedEffects(
-        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6,
+        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 4,
       );
     };
 
