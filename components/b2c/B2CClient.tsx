@@ -12,6 +12,9 @@ import B2CStatsGrid from "./B2CStatsGrid";
 import B2CDonateCard from "./B2CDonateCard";
 import B2CRecentActivity from "./B2CRecentActivity";
 
+// Set to false to restore auth protection
+const SKIP_AUTH_GUARD = true;
+
 const B2CClient: React.FC = () => {
   const router = useRouter();
   const { user, loading, authStatus, signOut } = useAuth();
@@ -21,6 +24,7 @@ const B2CClient: React.FC = () => {
   );
 
   useEffect(() => {
+    if (SKIP_AUTH_GUARD) return;
     if (loading || authStatus === "checking" || authStatus === "recovering") return;
 
     if (!user) {

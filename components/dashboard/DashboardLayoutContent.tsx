@@ -21,6 +21,9 @@ interface DashboardLayoutContentProps {
   children: React.ReactNode;
 }
 
+// Set to false to restore auth protection
+const SKIP_AUTH_GUARD = true;
+
 export default function DashboardLayoutContent({
   children
 }: DashboardLayoutContentProps) {
@@ -48,6 +51,7 @@ export default function DashboardLayoutContent({
           : "pt-[4.4rem]";
 
   useEffect(() => {
+    if (SKIP_AUTH_GUARD) return;
     if (
       isDemoPage ||
       loading ||
@@ -61,6 +65,7 @@ export default function DashboardLayoutContent({
   }, [authStatus, isDemoPage, loading, router, user]);
 
   useEffect(() => {
+    if (SKIP_AUTH_GUARD) return;
     if (
       loading ||
       authStatus === "checking" ||
@@ -96,6 +101,7 @@ export default function DashboardLayoutContent({
   }, [authStatus, loading, pathname, user, router]);
 
   useEffect(() => {
+    if (SKIP_AUTH_GUARD) return;
     if (
       loading ||
       authStatus === "checking" ||
