@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,7 +63,7 @@ export default function SuppliersPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!companyId) return;
     setLoading(true);
     try {
@@ -81,11 +81,11 @@ export default function SuppliersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
 
   useEffect(() => {
     load();
-  }, [companyId]);
+  }, [load]);
 
   const submit = async () => {
     if (!companyId)
@@ -113,9 +113,12 @@ export default function SuppliersPage() {
       setOpen(false);
       setForm(EMPTY_FORM);
       await load();
-    } catch (e: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Lỗi tạo yêu cầu';
+
       toast({
-        title: e.message || 'Lỗi tạo yêu cầu',
+        title: message,
         variant: 'destructive',
       });
     } finally {

@@ -20,7 +20,7 @@ interface EmptyStateProps {
   type?: 'overview' | 'products' | 'logistics' | 'reports';
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ type = 'overview' }) => {
+const EmptyState: React.FC<EmptyStateProps> = () => {
   const router = useRouter();
   const { locale } = useLanguage();
 

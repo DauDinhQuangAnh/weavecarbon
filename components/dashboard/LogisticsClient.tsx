@@ -48,8 +48,6 @@ import {
   Activity,
   X,
   Globe,
-  FileText,
-  FileCheck,
   Loader2,
   QrCode,
 } from "lucide-react";

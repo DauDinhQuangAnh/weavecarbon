@@ -15,7 +15,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle } from
 "@/components/ui/card";
@@ -141,7 +140,6 @@ export default function CalculatorClient() {
                   </div>
                   {t("title")}
                 </CardTitle>
-                <CardDescription>{t("description")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 

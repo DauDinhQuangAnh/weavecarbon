@@ -16,6 +16,7 @@ const HowItWorks = () => {
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   const [reducedEffects, setReducedEffects] = useState(false);
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false);
 
   useEffect(() => {
     const syncReducedEffects = () => {
@@ -28,6 +29,7 @@ const HowItWorks = () => {
       setReducedEffects(
         prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 6,
       );
+      setIsDesktopLayout(window.innerWidth >= 1024);
     };
 
     syncReducedEffects();
@@ -140,15 +142,17 @@ const HowItWorks = () => {
         <div className="max-w-6xl mx-auto">
           <div className="relative">
             {/* Animated vertical line for mobile/tablet */}
-            {reducedEffects ? (
-              <div className="lg:hidden absolute left-8 top-0 h-full w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20" />
-            ) : (
-              <motion.div
-                initial={{ height: 0 }}
-                animate={isInView ? { height: "100%" } : { height: 0 }}
-                transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
-                className="lg:hidden absolute left-8 top-0 w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20"
-              />
+            {!isDesktopLayout && (
+              reducedEffects ? (
+                <div className="lg:hidden absolute left-8 top-0 h-full w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20" />
+              ) : (
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={isInView ? { height: "100%" } : { height: 0 }}
+                  transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
+                  className="lg:hidden absolute left-8 top-0 w-0.5 bg-linear-to-b from-primary via-primary/50 to-primary/20"
+                />
+              )
             )}
 
             {steps.map((step, index) => {
@@ -156,202 +160,204 @@ const HowItWorks = () => {
 
               return (
                 <div key={step.number} className="relative">
-                  {/* Desktop Layout - Alternating sides */}
-                  <div className="hidden lg:block">
-                    <div
-                      className={`flex items-center gap-12 mb-24 ${isEven ? "" : "flex-row-reverse"}`}
-                    >
-                      {/* Content Card */}
-                      <motion.div
-                        initial={{ opacity: 0, x: isEven ? -60 : 60 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true, amount: 0.3 }}
-                        transition={{
-                          duration: 0.7,
-                          ease: "easeOut",
-                          delay: index * 0.15,
-                        }}
-                        className="flex-1 transform-gpu"
-                      >
-                        <motion.div
-                          whileHover={reducedEffects ? undefined : { scale: 1.02, y: -8 }}
-                          transition={{ duration: 0.3 }}
-                          className={`relative rounded-3xl p-8 shadow-lg transition-all duration-300 group ${
-                            reducedEffects ?
-                              "bg-card hover:shadow-xl" :
-                              "bg-card/80 backdrop-blur-sm hover:shadow-2xl"
-                          }`}
-                          style={{
-                            borderWidth: "1px",
-                            borderColor: step.borderColor,
-                          }}
+                  {isDesktopLayout ? (
+                    <div className="hidden lg:block">
+                      {/* Desktop Layout - Alternating sides */}
+                        <div
+                          className={`flex items-center gap-12 mb-24 ${isEven ? "" : "flex-row-reverse"}`}
                         >
-                          {/* Gradient overlay on hover */}
-                          <div
-                            className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-5 transition-opacity duration-300"
-                            style={{ background: step.gradient }}
-                          />
-
-                          <div className="relative z-10">
-                            {/* Number */}
-                            <div className="flex items-center justify-between mb-6">
-                              <span className="text-7xl font-display font-bold bg-clip-text text-transparent bg-linear-to-br from-primary/30 to-primary/10">
-                                {step.number}
-                              </span>
-                              <motion.div
-                                whileHover={reducedEffects ? undefined : { rotate: 360, scale: 1.1 }}
-                                transition={{ duration: 0.6 }}
-                                className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg"
-                                style={{ background: step.gradient }}
-                              >
-                                {step.icon}
-                              </motion.div>
-                            </div>
-
-                            <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-primary transition-colors">
-                              {t(step.titleKey)}
-                            </h3>
-                            <p className="text-muted-foreground mb-6 leading-relaxed">
-                              {t(step.descKey)}
-                            </p>
-
-                            {/* Checklist */}
-                            <ul className="space-y-3">
-                              {step.items.map((item) => (
-                                <li
-                                  key={item}
-                                  className="flex items-start gap-3 text-sm text-muted-foreground group/item"
-                                >
-                                  <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5 group-hover/item:scale-110 transition-transform" />
-                                  <span className="group-hover/item:text-foreground transition-colors">
-                                    {t(item)}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </motion.div>
-                      </motion.div>
-
-                      {/* Center Node */}
-                      <div className="relative shrink-0">
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          whileInView={{ scale: 1, opacity: 1 }}
-                          viewport={{ once: true }}
-                          transition={{
-                            duration: 0.5,
-                            delay: index * 0.15 + 0.3,
-                          }}
-                          className="relative transform-gpu"
-                        >
-                          <div
-                            className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-2xl ring-8 ring-background"
-                            style={{ background: step.gradient }}
+                          {/* Content Card */}
+                          <motion.div
+                            initial={{ opacity: 0, x: isEven ? -60 : 60 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true, amount: 0.3 }}
+                            transition={{
+                              duration: 0.7,
+                              ease: "easeOut",
+                              delay: index * 0.15,
+                            }}
+                            className="flex-1 transform-gpu"
                           >
-                            {step.number}
-                          </div>
-                          <div
-                            className="absolute inset-0 -z-10 rounded-full opacity-20 blur-md"
-                            style={{ background: step.gradient }}
-                          />
-                        </motion.div>
-
-                        {/* Connecting line */}
-                        {index < steps.length - 1 && (
-                          reducedEffects ? (
-                            <div
-                              className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
-                              style={{ height: "calc(100% + 6rem)" }}
-                            />
-                          ) : (
                             <motion.div
-                              initial={{ height: 0 }}
-                              whileInView={{ height: "100%" }}
+                              whileHover={reducedEffects ? undefined : { scale: 1.02, y: -8 }}
+                              transition={{ duration: 0.3 }}
+                              className={`relative rounded-3xl p-8 shadow-lg transition-all duration-300 group ${
+                                reducedEffects ?
+                                  "bg-card hover:shadow-xl" :
+                                  "bg-card/80 backdrop-blur-sm hover:shadow-2xl"
+                              }`}
+                              style={{
+                                borderWidth: "1px",
+                                borderColor: step.borderColor,
+                              }}
+                            >
+                              {/* Gradient overlay on hover */}
+                              <div
+                                className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-5 transition-opacity duration-300"
+                                style={{ background: step.gradient }}
+                              />
+
+                              <div className="relative z-10">
+                                {/* Number */}
+                                <div className="flex items-center justify-between mb-6">
+                                  <span className="text-7xl font-display font-bold bg-clip-text text-transparent bg-linear-to-br from-primary/30 to-primary/10">
+                                    {step.number}
+                                  </span>
+                                  <motion.div
+                                    whileHover={reducedEffects ? undefined : { rotate: 360, scale: 1.1 }}
+                                    transition={{ duration: 0.6 }}
+                                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg"
+                                    style={{ background: step.gradient }}
+                                  >
+                                    {step.icon}
+                                  </motion.div>
+                                </div>
+
+                                <h3 className="text-2xl font-bold text-foreground mb-4 group-hover:text-primary transition-colors">
+                                  {t(step.titleKey)}
+                                </h3>
+                                <p className="text-muted-foreground mb-6 leading-relaxed">
+                                  {t(step.descKey)}
+                                </p>
+
+                                {/* Checklist */}
+                                <ul className="space-y-3">
+                                  {step.items.map((item) => (
+                                    <li
+                                      key={item}
+                                      className="flex items-start gap-3 text-sm text-muted-foreground group/item"
+                                    >
+                                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5 group-hover/item:scale-110 transition-transform" />
+                                      <span className="group-hover/item:text-foreground transition-colors">
+                                        {t(item)}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </motion.div>
+                          </motion.div>
+
+                          {/* Center Node */}
+                          <div className="relative shrink-0">
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              whileInView={{ scale: 1, opacity: 1 }}
                               viewport={{ once: true }}
                               transition={{
-                                duration: 0.8,
-                                delay: index * 0.15 + 0.5,
+                                duration: 0.5,
+                                delay: index * 0.15 + 0.3,
                               }}
-                              className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
-                              style={{ height: "calc(100% + 6rem)" }}
-                            />
-                          )
-                        )}
-                      </div>
-
-                      {/* Empty space for alternating layout */}
-                      <div className="flex-1" />
-                    </div>
-                  </div>
-
-                  {/* Mobile/Tablet Layout */}
-                  <div
-                    className={`lg:hidden ${index === steps.length - 1 ? "" : "mb-6 sm:mb-8"}`}
-                  >
-                    <div className="flex gap-6">
-                      {/* Timeline node */}
-                      <div className="relative shrink-0">
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          whileInView={{ scale: 1, opacity: 1 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.5, delay: index * 0.15 }}
-                          className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-xl ring-4 ring-background relative z-10"
-                          style={{ background: step.gradient }}
-                        >
-                          {step.number}
-                        </motion.div>
-                      </div>
-
-                      {/* Content */}
-                      <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: index * 0.15 }}
-                        className="flex-1 pb-2 sm:pb-4 transform-gpu"
-                      >
-                        <div
-                          className={`rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ${
-                            reducedEffects ? "bg-card" : "bg-card/80 backdrop-blur-sm"
-                          }`}
-                          style={{
-                            borderWidth: "1px",
-                            borderColor: step.borderColor,
-                          }}
-                        >
-                          <div className="flex items-center gap-4 mb-4">
-                            <div
-                              className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
-                              style={{ background: step.gradient }}
+                              className="relative transform-gpu"
                             >
-                              <div className="scale-[0.72]">{step.icon}</div>
-                            </div>
-                            <h3 className="text-xl font-bold text-foreground flex-1">
-                              {t(step.titleKey)}
-                            </h3>
+                              <div
+                                aria-hidden="true"
+                                data-step-number={step.number}
+                                className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-2xl ring-8 ring-background before:content-[attr(data-step-number)]"
+                                style={{ background: step.gradient }}
+                              />
+                              <div
+                                className="absolute inset-0 -z-10 rounded-full opacity-20 blur-md"
+                                style={{ background: step.gradient }}
+                              />
+                            </motion.div>
+
+                            {/* Connecting line */}
+                            {index < steps.length - 1 && (
+                              reducedEffects ? (
+                                <div
+                                  className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
+                                  style={{ height: "calc(100% + 6rem)" }}
+                                />
+                              ) : (
+                                <motion.div
+                                  initial={{ height: 0 }}
+                                  whileInView={{ height: "100%" }}
+                                  viewport={{ once: true }}
+                                  transition={{
+                                    duration: 0.8,
+                                    delay: index * 0.15 + 0.5,
+                                  }}
+                                  className="absolute left-1/2 top-20 w-1 -translate-x-1/2 bg-linear-to-b from-primary to-primary/20"
+                                  style={{ height: "calc(100% + 6rem)" }}
+                                />
+                              )
+                            )}
                           </div>
 
-                          <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
-                            {t(step.descKey)}
-                          </p>
-
-                          <ul className="space-y-2">
-                            {step.items.map((item) => (
-                              <li
-                                key={item}
-                                className="flex items-start gap-2 text-sm text-muted-foreground"
-                              >
-                                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <span>{t(item)}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {/* Empty space for alternating layout */}
+                          <div className="flex-1" />
                         </div>
-                      </motion.div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className={`lg:hidden ${index === steps.length - 1 ? "" : "mb-6 sm:mb-8"}`}
+                    >
+                      {/* Mobile/Tablet Layout */}
+                        <div className="flex gap-6">
+                          {/* Timeline node */}
+                          <div className="relative shrink-0">
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              whileInView={{ scale: 1, opacity: 1 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.5, delay: index * 0.15 }}
+                              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-xl ring-4 ring-background relative z-10"
+                              style={{ background: step.gradient }}
+                            >
+                              {step.number}
+                            </motion.div>
+                          </div>
+
+                          {/* Content */}
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6, delay: index * 0.15 }}
+                            className="flex-1 pb-2 sm:pb-4 transform-gpu"
+                          >
+                            <div
+                              className={`rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                                reducedEffects ? "bg-card" : "bg-card/80 backdrop-blur-sm"
+                              }`}
+                              style={{
+                                borderWidth: "1px",
+                                borderColor: step.borderColor,
+                              }}
+                            >
+                              <div className="flex items-center gap-4 mb-4">
+                                <div
+                                  className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
+                                  style={{ background: step.gradient }}
+                                >
+                                  <div className="scale-[0.72]">{step.icon}</div>
+                                </div>
+                                <h3 className="text-xl font-bold text-foreground flex-1">
+                                  {t(step.titleKey)}
+                                </h3>
+                              </div>
+
+                              <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
+                                {t(step.descKey)}
+                              </p>
+
+                              <ul className="space-y-2">
+                                {step.items.map((item) => (
+                                  <li
+                                    key={item}
+                                    className="flex items-start gap-2 text-sm text-muted-foreground"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                    <span>{t(item)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </motion.div>
+                        </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
