@@ -49,7 +49,7 @@ import {
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
-import { Building2, Save, X, Zap, User, KeyRound } from "lucide-react";
+import { Building2, Clock, Save, X, Zap, User, KeyRound } from "lucide-react";
 import { toast } from "sonner";interface CompanyData {
   id: string;
   name: string;
@@ -95,9 +95,21 @@ interface SubscriptionData extends SubscriptionApiPayload {
   };
 }
 
+interface PaymentSessionData {
+  payment_url?: string;
+  vnpay_url?: string;
+  checkout_url?: string;
+  session_id?: string;
+}
+
+const SKU_TIERS: { value: 20 | 35 | 50; label: string; price: string }[] = [
+  { value: 20, label: '+20 SKU', price: '899,000 VND/tháng' },
+  { value: 35, label: '+35 SKU', price: '1,199,000 VND/tháng' },
+  { value: 50, label: '+50 SKU', price: '1,499,000 VND/tháng' },
+];
+
 const ACCOUNT_ENDPOINT_ENABLED =
 process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
-const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
 const TRIAL_PRODUCTS_LIMIT = 5;
 const TRIAL_MEMBERS_LIMIT = 1;
 
@@ -134,6 +146,9 @@ const SystemSettings: React.FC = () => {
     standardExpired: false,
     standardDaysRemaining: null
   });
+  const [showStandardModal, setShowStandardModal] = useState(false);
+  const [selectedSku, setSelectedSku] = useState<20 | 35 | 50>(20);
+  const [purchasing, setPurchasing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -517,13 +532,42 @@ const SystemSettings: React.FC = () => {
   };
 
   const handleUpgradeNow = () => {
-    if (typeof window === "undefined") return;
     if (!company?.id) {
       toast.error("Tài khoản chưa có thông tin công ty. Vui lòng hoàn tất onboarding trước.");
       router.push("/onboarding");
       return;
     }
-    window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
+    router.push("/billing");
+  };
+
+  const handleBuyStandard = async () => {
+    if (!company?.id) return;
+    setPurchasing(true);
+    try {
+      const res = await api.post<PaymentSessionData>(
+        '/subscription/upgrade',
+        {
+          target_plan: 'standard',
+          billing_cycle: 'monthly',
+          payment_provider: 'vnpay',
+          standard_sku_limit: selectedSku,
+        }
+      );
+      const url = res?.payment_url ?? res?.vnpay_url ?? res?.checkout_url;
+      if (url) {
+        sessionStorage.setItem('weavecarbon_pending_upgrade_plan', 'standard');
+        sessionStorage.setItem('weavecarbon_pending_upgrade_display_plan', 'standard');
+        sessionStorage.setItem('weavecarbon_pending_upgrade_expected_products_limit', String(selectedSku));
+        if (res?.session_id) {
+          sessionStorage.setItem('weavecarbon_pending_upgrade_session_id', res.session_id);
+        }
+        window.location.href = url;
+      }
+    } catch {
+      // noop
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   const toDisplayDate = (value: string | null) => {
@@ -614,6 +658,7 @@ const SystemSettings: React.FC = () => {
   }
 
   return (
+    <>
     <div className="space-y-4">
       <Card className="overflow-hidden border border-indigo-200 border-l-4 border-l-indigo-500 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
         <CardHeader className="rounded-t-[inherit] border-b border-indigo-200 bg-indigo-50 p-4 sm:p-5">
@@ -1060,7 +1105,73 @@ const SystemSettings: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>);
+    </div>
+
+    <Dialog open={showStandardModal} onOpenChange={setShowStandardModal}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Chọn gói SKU Standard</DialogTitle>
+          <DialogDescription>
+            Chọn số lượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2">
+          {SKU_TIERS.map((tier) => (
+            <button
+              key={tier.value}
+              type="button"
+              onClick={() => setSelectedSku(tier.value)}
+              className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
+                selectedSku === tier.value
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    selectedSku === tier.value ? 'border-primary' : 'border-slate-300'
+                  }`}
+                >
+                  {selectedSku === tier.value && (
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                  )}
+                </div>
+                <span className="font-medium text-sm">{tier.label}</span>
+              </div>
+              <span className="text-sm font-semibold text-primary">{tier.price}</span>
+            </button>
+          ))}
+        </div>
+
+        <DialogFooter className="flex gap-2 pt-1 sm:justify-start">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setShowStandardModal(false)}
+            disabled={purchasing}
+          >
+            Huỷ
+          </Button>
+          <Button
+            className="flex-1 bg-primary hover:bg-primary/90"
+            onClick={handleBuyStandard}
+            disabled={purchasing}
+          >
+            {purchasing ? (
+              <span className="flex items-center gap-2">
+                <Clock className="w-4 h-4 animate-spin" />
+                Đang xử lý…
+              </span>
+            ) : (
+              'Xác nhận thanh toán'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>);
 
 };
 

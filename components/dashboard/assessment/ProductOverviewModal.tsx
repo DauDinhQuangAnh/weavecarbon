@@ -156,7 +156,13 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
       weight: weightKg,
       unit: "kg",
       scope: "scope1",
-      confidenceScore: carbonResult.confidenceScore
+      confidenceScore: carbonResult.confidenceScore,
+      breakdown: {
+        materials:  carbonBreakdown.materials  || 0,
+        production: carbonBreakdown.manufacturing || 0,
+        transport:  carbonBreakdown.transport  || 0,
+        packaging:  carbonBreakdown.packaging  || 0,
+      },
     };
 
     addProduct(newProduct);

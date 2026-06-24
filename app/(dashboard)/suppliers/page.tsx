@@ -167,23 +167,25 @@ export default function SuppliersPage() {
               Tạo yêu cầu
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>Supplier Request</DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Tên nhà cung ứng</Label>
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="supplier-name">Tên nhà cung ứng</Label>
                 <Input
+                  id="supplier-name"
                   value={form.supplier_name}
                   onChange={(e) =>
                     setForm({ ...form, supplier_name: e.target.value })
                   }
                 />
               </div>
-              <div>
-                <Label>Email</Label>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-email">Email</Label>
                 <Input
+                  id="supplier-email"
                   type="email"
                   value={form.supplier_email}
                   onChange={(e) =>
@@ -191,27 +193,32 @@ export default function SuppliersPage() {
                   }
                 />
               </div>
-              <div>
-                <Label>Vật liệu</Label>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-material">Vật liệu</Label>
                 <Input
+                  id="supplier-material"
                   value={form.material}
                   onChange={(e) =>
                     setForm({ ...form, material: e.target.value })
                   }
                 />
               </div>
-              <div>
-                <Label>Dữ liệu yêu cầu (phân cách bằng dấu phẩy)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-required-data">
+                  Dữ liệu yêu cầu (phân cách bằng dấu phẩy)
+                </Label>
                 <Input
+                  id="supplier-required-data"
                   value={form.required}
                   onChange={(e) =>
                     setForm({ ...form, required: e.target.value })
                   }
                 />
               </div>
-              <div>
-                <Label>Hạn phản hồi</Label>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-deadline">Hạn phản hồi</Label>
                 <Input
+                  id="supplier-deadline"
                   type="date"
                   value={form.deadline}
                   onChange={(e) =>
@@ -220,7 +227,7 @@ export default function SuppliersPage() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <Button onClick={submit} disabled={saving}>
                 {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Lưu nháp

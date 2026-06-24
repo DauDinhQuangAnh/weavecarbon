@@ -26,6 +26,12 @@ export interface DashboardProduct {
   createdAt: string;
   scope: "scope1" | "scope1_2" | "scope1_2_3";
   confidenceScore: number;
+  breakdown: {
+    materials: number;
+    production: number;
+    transport: number;
+    packaging: number;
+  };
 }
 
 interface CarbonBreakdown {
@@ -97,7 +103,13 @@ const mapProductRecordToDashboardProduct = (product: ProductRecord): DashboardPr
   unit: "g",
   createdAt: product.createdAt,
   scope: "scope1_2_3",
-  confidenceScore: product.carbonResults?.confidenceScore || 0
+  confidenceScore: product.carbonResults?.confidenceScore || 0,
+  breakdown: {
+    materials: product.carbonResults?.perProduct?.materials || 0,
+    production: product.carbonResults?.perProduct?.production || 0,
+    transport: product.carbonResults?.perProduct?.transport || 0,
+    packaging: product.carbonResults?.perProduct?.packaging || 0,
+  },
 });
 
 const readSnapshot = (key: string): DashboardProduct[] => {

@@ -18,17 +18,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle } from
 "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Truck,
   FileCheck,
@@ -42,25 +38,17 @@ import {
   Gauge,
   Lightbulb,
   PlusCircle,
-  TrendingDown,
   ShieldAlert,
-  CheckCircle,
-  Clock,
-  Info } from
+  X } from
 "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { reductionScenarios, type ReductionScenario } from "@/lib/dashboardData";
 import ProductOverviewModal from "../assessment/ProductOverviewModal";
-import OverviewCharts, {
-  EmissionBreakdownPoint,
-  TrendDataPoint } from
-"../OverviewCharts";
+import OverviewCharts, { EmissionBreakdownPoint } from "../OverviewCharts";
 import { useRouter } from "next/navigation";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
-import { toast } from "sonner";
 
 interface Company {
   target_markets: string[] | null;
@@ -120,16 +108,6 @@ interface DashboardOverviewResponse {
     impact_level?: "high" | "medium" | "low";
     reduction_percentage?: number;
   }>;
-}
-
-interface SaveTargetResponse {
-  target_co2e?: number;
-  actual_co2e?: number;
-  reduction_percentage?: number | null;
-  baseline_co2e?: number | null;
-  year?: number;
-  month?: number;
-  mode?: "manual" | "auto";
 }
 
 const MARKET_READINESS_PREVIEW_LIMIT = 3;
@@ -298,14 +276,6 @@ const getImpactColor = (impact: string) => {
   }
 };
 
-const getCurrentPeriod = () => {
-  const now = new Date();
-  return {
-    year: now.getFullYear(),
-    month: now.getMonth() + 1
-  };
-};
-
 const OverviewPage: React.FC = () => {
   const t = useTranslations("overview");
   const locale = useLocale();
@@ -325,15 +295,6 @@ const OverviewPage: React.FC = () => {
   const [apiStats, setApiStats] = useState<OverviewStats | null>(null);
   const [showMarketReadinessDialog, setShowMarketReadinessDialog] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [showTargetDialog, setShowTargetDialog] = useState(false);
-  const [targetMode, setTargetMode] = useState<"auto" | "manual">("auto");
-  const [autoReduction, setAutoReduction] = useState<number>(8);
-  const [manualTarget, setManualTarget] = useState<string>("");
-  const initialPeriod = getCurrentPeriod();
-  const [targetYear, setTargetYear] = useState<number>(initialPeriod.year);
-  const [targetMonth, setTargetMonth] = useState<number>(initialPeriod.month);
-  const [saveTargetLoading, setSaveTargetLoading] = useState(false);
-  const [overviewReloadKey, setOverviewReloadKey] = useState(0);
   const [insightsLoading, setInsightsLoading] = useState(true);
   const [marketReadiness, setMarketReadiness] = useState<MarketReadinessItem[]>(
     []
@@ -344,10 +305,10 @@ const OverviewPage: React.FC = () => {
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsLoaded, setRecommendationsLoaded] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [emissionBreakdown, setEmissionBreakdown] = useState<
     EmissionBreakdownPoint[]>(
     []);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { setPageTitle } = useDashboardTitle();
   const isTrialPlan = String(currentPlan || "").trim().toLowerCase().includes("trial");
   const isAuthHydrating =
@@ -357,6 +318,16 @@ const OverviewPage: React.FC = () => {
   const handleOpenPricingModal = () => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
+  };
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("weavecarbon_audit_disclaimer_dismissed");
+    if (!dismissed) setShowDisclaimer(true);
+  }, []);
+
+  const handleDismissDisclaimer = () => {
+    localStorage.setItem("weavecarbon_audit_disclaimer_dismissed", "1");
+    setShowDisclaimer(false);
   };
 
   useEffect(() => {
@@ -382,69 +353,6 @@ const OverviewPage: React.FC = () => {
     clearPendingProduct();
   };
 
-  const handleOpenTargetDialog = () => {
-    if (!canMutate) {
-      showNoPermissionToast();
-      return;
-    }
-
-    const period = getCurrentPeriod();
-    setTargetYear(period.year);
-    setTargetMonth(period.month);
-    setTargetMode("auto");
-    setShowTargetDialog(true);
-  };
-
-  const handleSaveTarget = async () => {
-    if (!canMutate) {
-      showNoPermissionToast();
-      return;
-    }
-
-    if (targetYear < 2020 || targetYear > 2100 || targetMonth < 1 || targetMonth > 12) {
-      toast.error(locale === "vi" ? "Kỳ tháng không hợp lệ." : "Invalid target month.");
-      return;
-    }
-
-    const payload: Record<string, unknown> = {
-      mode: targetMode,
-      year: targetYear,
-      month: targetMonth
-    };
-
-    if (targetMode === "manual") {
-      const manualValue = Number.parseFloat(manualTarget);
-      if (!Number.isFinite(manualValue) || manualValue <= 0) {
-        toast.error(locale === "vi" ? "Nhập mục tiêu lớn hơn 0." : "Please enter a valid target > 0.");
-        return;
-      }
-      payload.target_co2e = Math.round(manualValue * 10000) / 10000;
-    } else {
-      const normalizedReduction = Math.min(50, Math.max(1, Number(autoReduction) || 0));
-      payload.reduction_percentage = normalizedReduction;
-    }
-
-    try {
-      setSaveTargetLoading(true);
-      const result = await api.post<SaveTargetResponse>("/dashboard/targets", payload);
-      const targetValue = Number(result?.target_co2e || 0);
-      const monthLabel = `${String(targetMonth).padStart(2, "0")}/${targetYear}`;
-      toast.success(
-        locale === "vi" ?
-        `Đã lưu mục tiêu ${targetValue.toLocaleString("vi-VN")} kg CO2e cho ${monthLabel}.` :
-        `Saved ${targetValue.toLocaleString("en-US")} kg CO2e target for ${monthLabel}.`
-      );
-      setShowTargetDialog(false);
-      setManualTarget("");
-      setOverviewReloadKey((prev) => prev + 1);
-    } catch (error) {
-      if (!isUnauthorizedApiError(error)) {
-        toast.error(locale === "vi" ? "Không lưu được mục tiêu." : "Unable to save target.");
-      }
-    } finally {
-      setSaveTargetLoading(false);
-    }
-  };
 
   const handleGenerateRecommendations = async () => {
     const companyId = user?.company_id?.trim() || "";
@@ -535,20 +443,22 @@ const OverviewPage: React.FC = () => {
     marketReadiness.length - marketReadinessPreview.length
   );
 
-  const autoBaseline = useMemo(() => {
-    const nonZero = trendData.
-    map((point) => point.emissions).
-    filter((value) => Number.isFinite(value) && value > 0);
-    const source = nonZero.length > 0 ? nonZero.slice(-3) : [stats.totalCO2];
-    const valid = source.filter((value) => Number.isFinite(value) && value > 0);
-    if (valid.length === 0) return 0;
-    return valid.reduce((sum, value) => sum + value, 0) / valid.length;
-  }, [trendData, stats.totalCO2]);
-
-  const autoSuggestedTarget = useMemo(() => {
-    const reduction = Math.min(50, Math.max(1, autoReduction || 0));
-    return Math.max(0, autoBaseline * (1 - reduction / 100));
-  }, [autoBaseline, autoReduction]);
+  const productEmissions = useMemo(
+    () =>
+      products
+        .filter((p) => p.co2 > 0)
+        .sort((a, b) => b.co2 - a.co2)
+        .map((p) => ({
+          name: p.name,
+          sku: p.sku,
+          materials:  p.breakdown.materials,
+          production: p.breakdown.production,
+          transport:  p.breakdown.transport,
+          packaging:  p.breakdown.packaging,
+          total:      p.co2,
+        })),
+    [products]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -566,7 +476,6 @@ const OverviewPage: React.FC = () => {
           setApiStats(null);
           setMarketReadiness([]);
           setRecommendations([]);
-          setTrendData([]);
           setEmissionBreakdown([]);
           setInsightsLoading(false);
         }
@@ -616,14 +525,6 @@ const OverviewPage: React.FC = () => {
           complianceReadiness.length > 0 ? complianceReadiness : overviewReadiness
         );
 
-        setTrendData(
-          (overview.carbon_trend || []).map((point) => ({
-            month: point.label || point.month || "-",
-            emissions: Math.round((point.actual_emissions || 0) * 100) / 100,
-            target: Math.round((point.target_emissions || 0) * 100) / 100
-          }))
-        );
-
         const usedBreakdownColors = new Set<string>();
         setEmissionBreakdown(
           (overview.emission_breakdown || []).map((item, index) => {
@@ -646,7 +547,6 @@ const OverviewPage: React.FC = () => {
         setApiStats(null);
         setMarketReadiness([]);
         setRecommendations([]);
-        setTrendData([]);
         setEmissionBreakdown([]);
       }
 
@@ -658,7 +558,7 @@ const OverviewPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [authStatus, isAuthHydrating, user, overviewReloadKey]);
+  }, [authStatus, isAuthHydrating, user]);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -782,11 +682,9 @@ const OverviewPage: React.FC = () => {
       </div>
 
       <OverviewCharts
-        carbonTrendData={trendData}
+        productEmissions={productEmissions}
         emissionBreakdown={emissionBreakdown}
-        isLoading={insightsLoading}
-        onOpenTargetSetup={handleOpenTargetDialog}
-        canConfigureTarget={canMutate} />
+        isLoading={insightsLoading} />
 
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -1089,75 +987,13 @@ const OverviewPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* ── Reduction Scenarios + Pre-audit Disclaimer ─────────── */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm lg:col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-emerald-700" />
-              <CardTitle className="text-base font-semibold text-slate-900">
-                {locale === "vi" ? "Kịch bản giảm phát thải khả thi" : "Feasible Reduction Scenarios"}
-              </CardTitle>
-            </div>
-            <CardDescription className="text-sm text-slate-500">
-              {locale === "vi"
-                ? "Ước tính dựa trên dữ liệu proxy — cần xác minh với hóa đơn thực tế trước khi báo cáo chính thức."
-                : "Proxy-based estimates — verify with actual invoices before official reporting."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {reductionScenarios.map((scenario: ReductionScenario) => {
-                const statusIcon =
-                  scenario.dataSourceStatus === "verified" ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                  ) : scenario.dataSourceStatus === "proxy" ? (
-                    <Info className="h-3.5 w-3.5 text-amber-500" />
-                  ) : (
-                    <Clock className="h-3.5 w-3.5 text-slate-400" />
-                  );
-                const statusLabel =
-                  scenario.dataSourceStatus === "verified"
-                    ? locale === "vi" ? "Đã xác minh" : "Verified"
-                    : scenario.dataSourceStatus === "proxy"
-                    ? locale === "vi" ? "Dữ liệu proxy" : "Proxy data"
-                    : locale === "vi" ? "Chờ dữ liệu" : "Pending data";
-
-                return (
-                  <div
-                    key={scenario.id}
-                    className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3"
-                  >
-                    <p className="text-sm font-medium leading-snug text-slate-800">{scenario.title}</p>
-                    <p className="text-xs text-slate-500">{scenario.description}</p>
-                    <Badge
-                      variant="outline"
-                      className="w-fit rounded-full border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700"
-                    >
-                      {scenario.rangeLabel}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                      {statusIcon}
-                      <span>{statusLabel}</span>
-                    </div>
-                    <p className="border-t border-slate-100 pt-2 text-[11px] italic text-slate-400">
-                      {scenario.disclaimer}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── Pre-audit Disclaimer ───────────────────────────────── */}
+      {/* ── Pre-audit Disclaimer (dismissible) ────────────────── */}
+      {showDisclaimer && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <div className="space-y-1">
+          <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-amber-800">
-              {locale === "vi"
-                ? "Lưu ý trước kiểm toán độc lập"
-                : "Pre-audit disclaimer"}
+              {locale === "vi" ? "Lưu ý trước kiểm toán độc lập" : "Pre-audit disclaimer"}
             </p>
             <p className="text-xs leading-relaxed text-amber-700">
               {locale === "vi"
@@ -1165,8 +1001,16 @@ const OverviewPage: React.FC = () => {
                 : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data — original invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
             </p>
           </div>
+          <button
+            type="button"
+            aria-label={locale === "vi" ? "Đóng thông báo" : "Dismiss"}
+            onClick={handleDismissDisclaimer}
+            className="shrink-0 rounded-md p-1 text-amber-600 hover:bg-amber-100 hover:text-amber-800"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      </div>
+      )}
 
       <Dialog
         open={showMarketReadinessDialog}
@@ -1186,118 +1030,6 @@ const OverviewPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={showTargetDialog}
-        onOpenChange={(open) => {
-          if (!saveTargetLoading) {
-            setShowTargetDialog(open);
-          }
-        }}>
-        <DialogContent className="border border-slate-200 bg-white sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              {locale === "vi" ? "Đặt mục tiêu phát thải theo tháng" : "Set monthly emissions target"}
-            </DialogTitle>
-            <DialogDescription className="text-slate-700">
-              {locale === "vi" ?
-              "Bạn có thể chọn gợi ý tự động hoặc nhập mục tiêu thủ công." :
-              "Use an automatic suggestion or configure your target manually."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="target-year">{locale === "vi" ? "Năm" : "Year"}</Label>
-              <Input
-                id="target-year"
-                type="number"
-                min={2020}
-                max={2100}
-                value={targetYear}
-                onChange={(event) => setTargetYear(Number.parseInt(event.target.value, 10) || getCurrentPeriod().year)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="target-month">{locale === "vi" ? "Tháng" : "Month"}</Label>
-              <Input
-                id="target-month"
-                type="number"
-                min={1}
-                max={12}
-                value={targetMonth}
-                onChange={(event) => setTargetMonth(Number.parseInt(event.target.value, 10) || getCurrentPeriod().month)} />
-            </div>
-          </div>
-
-          <Tabs
-            value={targetMode}
-            onValueChange={(value) => setTargetMode(value === "manual" ? "manual" : "auto")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="auto">{locale === "vi" ? "Tự động" : "Auto"}</TabsTrigger>
-              <TabsTrigger value="manual">{locale === "vi" ? "Thủ công" : "Manual"}</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="auto" className="space-y-4 pt-2">
-              <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                {locale === "vi" ?
-                `Baseline gần nhất: ${autoBaseline.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg CO2e` :
-                `Recent baseline: ${autoBaseline.toLocaleString("en-US", { maximumFractionDigits: 2 })} kg CO2e`}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="auto-reduction">
-                  {locale === "vi" ? "Tỷ lệ giảm (%)" : "Reduction (%)"}
-                </Label>
-                <Input
-                  id="auto-reduction"
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={autoReduction}
-                  onChange={(event) => {
-                    const next = Number.parseFloat(event.target.value);
-                    setAutoReduction(Number.isFinite(next) ? next : 8);
-                  }} />
-              </div>
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-                {locale === "vi" ?
-                `Mục tiêu gợi ý: ${autoSuggestedTarget.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg CO2e` :
-                `Suggested target: ${autoSuggestedTarget.toLocaleString("en-US", { maximumFractionDigits: 2 })} kg CO2e`}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="manual" className="space-y-2 pt-2">
-              <Label htmlFor="manual-target">{locale === "vi" ? "Mục tiêu (kg CO2e)" : "Target (kg CO2e)"}</Label>
-              <Input
-                id="manual-target"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder={locale === "vi" ? "Ví dụ: 980" : "e.g. 980"}
-                value={manualTarget}
-                onChange={(event) => setManualTarget(event.target.value)} />
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
-              disabled={saveTargetLoading}
-              onClick={() => setShowTargetDialog(false)}>
-              {locale === "vi" ? "Hủy" : "Cancel"}
-            </Button>
-            <Button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={saveTargetLoading}
-              onClick={handleSaveTarget}>
-              {saveTargetLoading ?
-              locale === "vi" ? "Đang lưu..." : "Saving..." :
-              locale === "vi" ? "Lưu mục tiêu" : "Save target"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {pendingProductData &&
       <ProductOverviewModal
