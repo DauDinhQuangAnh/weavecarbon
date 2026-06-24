@@ -103,7 +103,7 @@ interface AuthContextType {
   userType?: "b2b" | "b2c")
   => Promise<{error: Error | null;}>;
   startLocalDemo: (
-  scenario?: "b2b_standard_20")
+  _scenario?: "b2b_standard_20")
   => Promise<{error: Error | null;}>;
   startLocalB2CDemo: () => Promise<{error: Error | null;}>;
   exitDemoSession: () => Promise<void>;
@@ -1236,10 +1236,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   };
 
   const startLocalDemo = async (
-  scenario: "b2b_standard_20" = "b2b_standard_20")
+  _scenario: "b2b_standard_20" = "b2b_standard_20")
   : Promise<{error: Error | null;}> => {
     try {
-      void scenario;
       ensureDemoDataset();
       ensureDemoSession();
       writeDemoLockState();
