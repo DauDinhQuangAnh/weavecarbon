@@ -2830,9 +2830,6 @@
       }
     }
   },
-  "loading": {
-    "systemLoading": "System loading..."
-  },
   "pricingModal": {
     "title": "Choose the right plan for your business",
     "description": "Start tracking carbon footprint and prepare for sustainable export",

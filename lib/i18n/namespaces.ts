@@ -1,4 +1,4 @@
-export const SHARED_NAMESPACES = ["loading"] as const;
+export const SHARED_NAMESPACES = [] as const;
 
 export const ROOT_NAMESPACES = SHARED_NAMESPACES;
 

@@ -2635,9 +2635,6 @@
       }
     }
   },
-  "loading": {
-    "systemLoading": "Đang tải hệ thống..."
-  },
   "b2c": {
     "signOut": "Đăng xuất",
     "pointsAbbrev": "điểm",

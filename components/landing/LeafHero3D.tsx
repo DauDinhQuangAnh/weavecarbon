@@ -2,7 +2,7 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 type LeafSurfaceMaterial =
   | THREE.MeshPhysicalMaterial
@@ -10,8 +10,6 @@ type LeafSurfaceMaterial =
 
 const LeafHero3D = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [, setLoadingProgress] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -186,16 +184,9 @@ const LeafHero3D = () => {
     // --- 2. LOADING MANAGER (CHÌA KHÓA VẤN ĐỀ) ---
     const manager = new THREE.LoadingManager();
 
-    // Cập nhật % loading
-    manager.onProgress = (url, itemsLoaded, itemsTotal) => {
-      const progress = Math.round((itemsLoaded / itemsTotal) * 100);
-      setLoadingProgress(progress);
-    };
-
     // Khi tải xong TẤT CẢ (Ảnh + Model)
     manager.onLoad = () => {
-      isLoadedRef.current = true; // Use ref instead of state to avoid re-render
-      setIsLoaded(true);
+      isLoadedRef.current = true;
     };
 
     // --- 3. LOAD ASSETS ---
@@ -673,11 +664,6 @@ const LeafHero3D = () => {
 
   return (
     <div className="absolute z-0 -translate-x-380 w-600 md:w-400 md:-translate-x-200 lg:translate-x-0 lg:left-0 lg:z-1 bg-transparent lg:w-screen h-screen overflow-hidden">
-      {/* LOADING SCREEN */}
-      {!isLoaded && (
-        <div className="absolute bg-transparent inset-0 flex items-center justify-center z-50"></div>
-      )}
-
       {/* <motion.div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center overflow-hidden"
         initial={{ x: "0%" }}
