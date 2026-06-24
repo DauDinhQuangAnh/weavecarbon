@@ -992,7 +992,8 @@ const OverviewPage: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Card
           className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
@@ -1086,9 +1087,11 @@ const OverviewPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* ── Reduction Scenarios ────────────────────────────────── */}
-        <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+      {/* ── Reduction Scenarios + Pre-audit Disclaimer ─────────── */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm lg:col-span-2">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-emerald-700" />

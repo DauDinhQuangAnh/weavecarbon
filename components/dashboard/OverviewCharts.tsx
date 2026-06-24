@@ -85,6 +85,7 @@ export default function OverviewCharts({
   };
 
   const lastPointIndex = carbonTrendData.length - 1;
+  const hasTargetData = carbonTrendData.some(d => d.target > 0);
 
   const latestTrendPoint =
   hasTrendData ? carbonTrendData[carbonTrendData.length - 1] : null;
@@ -128,7 +129,7 @@ export default function OverviewCharts({
               </Button> :
             null}
           </div>
-          {latestTrendPoint && hasLatestDelta &&
+          {latestTrendPoint && hasLatestDelta && hasTargetData &&
           <p
             className={`text-xs ${
             isAboveTarget ? "text-amber-700" : "text-emerald-700"}`
@@ -221,6 +222,7 @@ export default function OverviewCharts({
                     }} />
                   </Area>
 
+                  {hasTargetData && (
                   <Area
                   type="monotone"
                   dataKey="target"
@@ -257,12 +259,13 @@ export default function OverviewCharts({
                         </text>);
                     }} />
                   </Area>
+                  )}
 
                 </AreaChart>
               </ResponsiveContainer> :
 
             <div className="flex h-full items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-sm text-slate-700">
-                No chart data yet
+                {locale === "vi" ? "Chưa có dữ liệu biểu đồ" : "No chart data yet"}
               </div>
             }
           </div>
@@ -300,7 +303,7 @@ export default function OverviewCharts({
               </ResponsiveContainer> :
 
             <div className="flex h-full w-full items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-sm text-slate-700">
-                No breakdown data yet
+                {locale === "vi" ? "Chưa có dữ liệu phát thải" : "No breakdown data yet"}
               </div>
             }
           </div>
