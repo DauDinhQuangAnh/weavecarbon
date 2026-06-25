@@ -14,8 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Loader2, Mail, Plus } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiRequest } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 
 type Status = 'draft' | 'sent' | 'waiting' | 'received' | 'overdue';
@@ -55,8 +54,6 @@ const EMPTY_FORM = {
 };
 
 export default function SuppliersPage() {
-  const { user } = useAuth();
-  const companyId = user?.company_id ?? null;
   const [rows, setRows] = useState<SupplierReq[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -64,12 +61,9 @@ export default function SuppliersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   const load = useCallback(async () => {
-    if (!companyId) return;
     setLoading(true);
     try {
-      const data = await apiRequest<SupplierReq[]>(
-        `/suppliers?companyId=${companyId}`
-      );
+      const data = await api.get<SupplierReq[]>('/suppliers');
       setRows(
         data.map((r) => ({
           ...r,
@@ -81,33 +75,27 @@ export default function SuppliersPage() {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const submit = async () => {
-    if (!companyId)
-      return toast({ title: 'Chưa có công ty', variant: 'destructive' });
     if (!form.supplier_name || !form.supplier_email)
-      return toast({ title: 'Cần tên & email', variant: 'destructive' });
+      return toast({ title: 'Cần tên & email nhà cung ứng', variant: 'destructive' });
     setSaving(true);
     try {
-      await apiRequest('/suppliers', {
-        method: 'POST',
-        body: JSON.stringify({
-          company_id: companyId,
-          supplier_name: form.supplier_name,
-          supplier_email: form.supplier_email,
-          material_supplied: form.material || null,
-          required_data: form.required
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean),
-          deadline: form.deadline || null,
-          status: 'draft',
-        }),
+      await api.post('/suppliers', {
+        supplier_name: form.supplier_name,
+        supplier_email: form.supplier_email,
+        material_supplied: form.material || null,
+        required_data: form.required
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        deadline: form.deadline || null,
+        status: 'draft',
       });
       toast({ title: 'Đã tạo yêu cầu' });
       setOpen(false);
@@ -116,11 +104,7 @@ export default function SuppliersPage() {
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Lỗi tạo yêu cầu';
-
-      toast({
-        title: message,
-        variant: 'destructive',
-      });
+      toast({ title: message, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -136,12 +120,9 @@ export default function SuppliersPage() {
     window.location.href = `mailto:${r.supplier_email}?subject=${subject}&body=${body}`;
     if (r.status === 'draft') {
       try {
-        await apiRequest(`/suppliers/${r.id}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            status: 'sent',
-            sent_at: new Date().toISOString(),
-          }),
+        await api.put(`/suppliers/${r.id}`, {
+          status: 'sent',
+          sent_at: new Date().toISOString(),
         });
         await load();
       } catch {
