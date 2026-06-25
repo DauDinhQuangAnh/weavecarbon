@@ -135,9 +135,11 @@ export default function BillingPage() {
       );
       const url = res?.payment_url ?? res?.vnpay_url ?? res?.checkout_url;
       if (url) {
+        const currentStandardLimit = planFamily === 'standard' ? subState.skuLimit : 0;
+        const expectedProductsLimit = currentStandardLimit + selectedSku;
         sessionStorage.setItem('weavecarbon_pending_upgrade_plan', 'standard');
         sessionStorage.setItem('weavecarbon_pending_upgrade_display_plan', 'standard');
-        sessionStorage.setItem('weavecarbon_pending_upgrade_expected_products_limit', String(selectedSku));
+        sessionStorage.setItem('weavecarbon_pending_upgrade_expected_products_limit', String(expectedProductsLimit));
         if (res?.session_id) {
           sessionStorage.setItem('weavecarbon_pending_upgrade_session_id', res.session_id);
         }
