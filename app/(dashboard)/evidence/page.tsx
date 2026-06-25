@@ -30,8 +30,7 @@ import {
   Loader2,
   Upload,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiRequest } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
 import { EvidenceTrustBadge } from '@/components/evidence/EvidenceTrustBadge';
@@ -93,11 +92,13 @@ interface ExtractedField {
 }
 
 
+const PAGE_SIZE = 50;
+
 export default function EvidencePage() {
-  const { user } = useAuth();
-  const companyId = user?.company_id ?? null;
   const [rows, setRows] = useState<EvDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewDoc, setReviewDoc] = useState<EvDoc | null>(null);
@@ -111,17 +112,19 @@ export default function EvidencePage() {
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const load = async () => {
-    if (!companyId) return;
+  const load = async (p = page) => {
     setLoading(true);
     try {
-      const result = await apiRequest<{ items?: EvDoc[] } | EvDoc[]>(
-        `/evidence?companyId=${companyId}&limit=200`
+      const result = await api.get<{ items?: EvDoc[]; total?: number } | EvDoc[]>(
+        `/evidence?page=${p}&page_size=${PAGE_SIZE}`
       );
-      const items = Array.isArray(result)
-        ? result
-        : (result as { items?: EvDoc[] }).items ?? [];
-      setRows(items);
+      if (Array.isArray(result)) {
+        setRows(result);
+        setTotal(result.length < PAGE_SIZE ? (p - 1) * PAGE_SIZE + result.length : 0);
+      } else {
+        setRows((result as { items?: EvDoc[] }).items ?? []);
+        setTotal((result as { total?: number }).total ?? 0);
+      }
     } catch {
       setRows([]);
     } finally {
@@ -129,26 +132,24 @@ export default function EvidencePage() {
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [companyId]);
+  useEffect(() => { load(page); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpload = async () => {
-    if (!file || !companyId)
-      return toast({ title: 'Thiếu file hoặc đăng nhập', variant: 'destructive' });
+    if (!file)
+      return toast({ title: 'Vui lòng chọn file', variant: 'destructive' });
     if (file.size > MAX_SIZE)
       return toast({ title: 'File vượt quá 20MB', variant: 'destructive' });
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('companyId', companyId);
       formData.append('kind', docType);
       if (periodStart) formData.append('reportingPeriodStart', periodStart);
       if (periodEnd) formData.append('reportingPeriodEnd', periodEnd);
       if (supplier) formData.append('supplierName', supplier);
       if (notes) formData.append('notes', notes);
 
-      await apiRequest('/evidence/upload', { method: 'POST', body: formData });
+      await api.post('/evidence/upload', formData);
       toast({ title: 'Đã tải lên. AI đang đọc chứng từ…' });
       setUploadOpen(false);
       setFile(null);
@@ -156,7 +157,8 @@ export default function EvidencePage() {
       setNotes('');
       setPeriodStart('');
       setPeriodEnd('');
-      await load();
+      setPage(1);
+      await load(1);
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi tải lên', variant: 'destructive' });
     } finally {
@@ -167,9 +169,7 @@ export default function EvidencePage() {
   const openReview = async (doc: EvDoc) => {
     setReviewDoc(doc);
     try {
-      const fields = await apiRequest<ExtractedField[]>(
-        `/evidence/${doc.id}/fields`
-      );
+      const fields = await api.get<ExtractedField[]>(`/evidence/${doc.id}/fields`);
       setReviewFields(fields);
     } catch {
       setReviewFields([]);
@@ -180,18 +180,15 @@ export default function EvidencePage() {
   const confirmReview = async () => {
     if (!reviewDoc) return;
     try {
-      await apiRequest(`/evidence/${reviewDoc.id}/confirm`, {
-        method: 'POST',
-        body: JSON.stringify({
-          fields: reviewFields.map((f) => ({
-            id: f.id,
-            confirmed_value: f.confirmed_value ?? f.ai_value,
-          })),
-        }),
+      await api.post(`/evidence/${reviewDoc.id}/confirm`, {
+        fields: reviewFields.map((f) => ({
+          id: f.id,
+          confirmed_value: f.confirmed_value ?? f.ai_value,
+        })),
       });
       toast({ title: 'Chứng từ đã được xác nhận.' });
       setReviewOpen(false);
-      await load();
+      await load(page);
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi xác nhận', variant: 'destructive' });
     }
@@ -243,6 +240,7 @@ export default function EvidencePage() {
               Chưa có chứng từ nào.
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
@@ -299,6 +297,33 @@ export default function EvidencePage() {
                 </tbody>
               </table>
             </div>
+            {/* Pagination */}
+            {(total > PAGE_SIZE || page > 1) && (
+              <div className="flex items-center justify-between border-t px-4 py-3 text-sm text-slate-600">
+                <span>
+                  Trang {page}{total > 0 ? ` · ${total} chứng từ` : ''}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    ← Trước
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={rows.length < PAGE_SIZE}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Tiếp →
+                  </Button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -306,7 +331,7 @@ export default function EvidencePage() {
       {/* Upload Modal */}
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
+          <DialogHeader className="space-y-2">
             <DialogTitle>Tải chứng từ mới</DialogTitle>
             <DialogDescription className="text-xs">
               Ưu tiên tải file XML hoặc PDF gốc từ hệ thống phát hành hóa đơn.
@@ -314,8 +339,8 @@ export default function EvidencePage() {
               hơn.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
               <Label>Loại chứng từ</Label>
               <Select value={docType} onValueChange={setDocType}>
                 <SelectTrigger>
@@ -331,7 +356,7 @@ export default function EvidencePage() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
+              <div className="space-y-1.5">
                 <Label>Kỳ bắt đầu</Label>
                 <Input
                   type="date"
@@ -339,7 +364,7 @@ export default function EvidencePage() {
                   onChange={(e) => setPeriodStart(e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <Label>Kỳ kết thúc</Label>
                 <Input
                   type="date"
@@ -348,7 +373,7 @@ export default function EvidencePage() {
                 />
               </div>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Nhà cung cấp / Bên phát hành</Label>
               <Input
                 value={supplier}
@@ -356,7 +381,7 @@ export default function EvidencePage() {
                 placeholder="EVN HCMC, Petrolimex…"
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>
                 File (PDF, XML, JPG, PNG, XLSX, CSV — tối đa 20MB)
               </Label>
@@ -366,7 +391,7 @@ export default function EvidencePage() {
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>Ghi chú</Label>
               <Textarea
                 value={notes}
@@ -375,7 +400,7 @@ export default function EvidencePage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button variant="ghost" onClick={() => setUploadOpen(false)}>
               Huỷ
             </Button>
