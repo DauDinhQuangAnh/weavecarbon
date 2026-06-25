@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { useEffect } from "react";
@@ -22,7 +22,7 @@ interface DashboardLayoutContentProps {
 }
 
 // Set to false to restore auth protection
-const SKIP_AUTH_GUARD = true;
+const SKIP_AUTH_GUARD = false;
 
 export default function DashboardLayoutContent({
   children

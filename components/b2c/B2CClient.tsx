@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ import B2CDonateCard from "./B2CDonateCard";
 import B2CRecentActivity from "./B2CRecentActivity";
 
 // Set to false to restore auth protection
-const SKIP_AUTH_GUARD = true;
+const SKIP_AUTH_GUARD = false;
 
 const B2CClient: React.FC = () => {
   const router = useRouter();
