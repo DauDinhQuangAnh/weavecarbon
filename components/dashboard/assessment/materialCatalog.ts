@@ -150,9 +150,9 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
   materialType: "fabric",
   materialFamily: "wool",
   typicalApplications: ["body_fabric"],
-  co2Factor: 10.1,
+  co2Factor: 27.0,
   recyclabilityDefaultPercent: 60,
-  dataQualityDefault: "primary",
+  dataQualityDefault: "secondary",
   status: "active"
 },
 {
@@ -162,9 +162,9 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
   materialType: "fabric",
   materialFamily: "wool",
   typicalApplications: ["body_fabric"],
-  co2Factor: 11.5,
+  co2Factor: 25.0,
   recyclabilityDefaultPercent: 65,
-  dataQualityDefault: "primary",
+  dataQualityDefault: "secondary",
   status: "active"
 },
 
@@ -176,7 +176,7 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
   materialType: "fabric",
   materialFamily: "silk",
   typicalApplications: ["body_fabric", "lining"],
-  co2Factor: 7.5,
+  co2Factor: 35.0,
   recyclabilityDefaultPercent: 40,
   dataQualityDefault: "secondary",
   status: "active"
@@ -231,7 +231,7 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
   materialType: "fabric",
   materialFamily: "bamboo",
   typicalApplications: ["body_fabric"],
-  co2Factor: 3.8,
+  co2Factor: 5.5,
   recyclabilityDefaultPercent: 70,
   dataQualityDefault: "secondary",
   status: "active"
@@ -243,7 +243,7 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
   materialType: "fabric",
   materialFamily: "hemp",
   typicalApplications: ["body_fabric"],
-  co2Factor: 2.9,
+  co2Factor: 3.5,
   recyclabilityDefaultPercent: 85,
   dataQualityDefault: "secondary",
   status: "active"
@@ -323,9 +323,9 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
   materialType: "fabric",
   materialFamily: "down",
   typicalApplications: ["padding"],
-  co2Factor: 15.0,
+  co2Factor: 23.0,
   recyclabilityDefaultPercent: 50,
-  dataQualityDefault: "proxy",
+  dataQualityDefault: "secondary",
   status: "active"
 },
 {

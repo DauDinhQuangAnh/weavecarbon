@@ -112,7 +112,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        style: "mapbox://styles/mapbox/streets-v12",
         center,
         zoom,
         antialias: true,

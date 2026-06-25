@@ -18,6 +18,7 @@ import { DEFRA_VERSION } from "@/config/penalties";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -213,7 +214,7 @@ const LogisticsClient: React.FC = () => {
   const [modeFilter, setModeFilter] = useState<"all" | LogisticsTransportMode>(
     "all"
   );
-  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "history">("history");
 
   const [selectedShipment, setSelectedShipment] =
     useState<LogisticsShipmentSummary | null>(null);
@@ -547,49 +548,17 @@ const LogisticsClient: React.FC = () => {
         onValueChange={(v) => setActiveTab(v as "active" | "history")}
       >
         <TabsList className="grid w-full max-w-[320px] grid-cols-2">
-          <TabsTrigger value="active" className="gap-1.5 text-xs md:text-sm">
-            <Activity className="h-4 w-4" />
-            Đang hoạt động ({activeCount})
-          </TabsTrigger>
           <TabsTrigger value="history" className="gap-1.5 text-xs md:text-sm">
             <History className="h-4 w-4" />
             Lịch sử ({historyCount})
           </TabsTrigger>
+          <TabsTrigger value="active" className="gap-1.5 text-xs md:text-sm">
+            <Activity className="h-4 w-4" />
+            Đang hoạt động ({activeCount})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-4 space-y-4">
-          {/* Map */}
-          {mapNodes.length > 0 && (
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <Globe className="h-4 w-4 text-primary" />
-                  Bản đồ vận chuyển
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 md:p-4">
-                <SupplyChainMap
-                  nodes={mapNodes}
-                  routes={mapRoutes}
-                  center={[20, 100]}
-                  zoom={2}
-                  height="360px"
-                  onNodeClick={(node) => {
-                    const hit = filteredShipments.find(
-                      (s) =>
-                        s.origin.city === node.name ||
-                        s.destination.city === node.name
-                    );
-                    if (hit)
-                      setSelectedShipment(
-                        selectedShipment?.id === hit.id ? null : hit
-                      );
-                  }}
-                />
-              </CardContent>
-            </Card>
-          )}
-
           {/* Shipment List */}
           {filteredShipments.length === 0 ? (
             <Card>
@@ -686,315 +655,262 @@ const LogisticsClient: React.FC = () => {
             </div>
           )}
 
-          {/* ── Detail Panel ── */}
-          {selectedShipment && (
-            <Card className="border-primary/50">
+          {/* Map */}
+          {mapNodes.length > 0 && (
+            <Card className="overflow-hidden">
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                    <Package className="h-4 w-4 text-primary" />
-                    <span className="truncate">
-                      {selectedShipment.reference_number || selectedShipment.id}
-                    </span>
-                    {getStatusBadge(selectedShipment.status)}
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedShipment(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                  <Globe className="h-4 w-4 text-primary" />
+                  Bản đồ vận chuyển
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Mã lô</p>
-                    <p className="font-mono text-xs font-medium md:text-sm">
-                      {selectedShipment.reference_number || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Xuất xứ</p>
-                    <p className="text-xs font-medium md:text-sm">
-                      {selectedShipment.origin.city},{" "}
-                      {selectedShipment.origin.country}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Đích đến</p>
-                    <p className="text-xs font-medium md:text-sm">
-                      {selectedShipment.destination.city},{" "}
-                      {selectedShipment.destination.country}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">ETA</p>
-                    <p className="text-xs font-medium md:text-sm">
-                      {selectedShipment.estimated_arrival
-                        ? new Date(
-                            selectedShipment.estimated_arrival
-                          ).toLocaleDateString("vi-VN")
-                        : "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {detailLoading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Đang tải chi tiết…
-                  </div>
-                )}
-
-                {selectedDetail && (
-                  <>
-                    {/* Legs breakdown */}
-                    {selectedDetail.legs.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Các chặng vận chuyển</p>
-                        <div className="space-y-2">
-                          {selectedDetail.legs.map((leg, idx) => {
-                            const defra = getDefraFactor(
-                              leg.transport_mode,
-                              leg.distance_km
-                            );
-                            return (
-                              <div
-                                key={leg.id}
-                                className="flex items-center gap-2 rounded-lg bg-muted/50 p-2 md:p-3"
-                              >
-                                <Badge variant="outline" className="shrink-0">
-                                  {idx + 1}
-                                </Badge>
-                                {getTransportIcon(leg.transport_mode)}
-                                <div className="min-w-0 flex-1">
-                                  <p className="line-clamp-1 text-xs font-medium md:text-sm">
-                                    {leg.origin_location} →{" "}
-                                    {leg.destination_location}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {leg.distance_km.toLocaleString()} km ·{" "}
-                                    {leg.co2e.toFixed(2)} kg CO₂e
-                                  </p>
-                                </div>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="shrink-0 cursor-help bg-emerald-50 text-[10px] text-emerald-700"
-                                      >
-                                        DEFRA {DEFRA_VERSION}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                      side="left"
-                                      className="max-w-xs"
-                                    >
-                                      <div className="space-y-1 text-xs">
-                                        <p className="font-semibold">
-                                          {defra.label}
-                                        </p>
-                                        <p className="font-mono">
-                                          {defra.factor} kg CO₂e / tonne-km
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                          {defra.citation}
-                                        </p>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* DEFRA 2024 Breakdown Table */}
-                    {selectedDetail.legs.length > 0 && (
-                      <div className="rounded-lg border bg-card">
-                        <div className="flex items-center justify-between border-b px-3 py-2 md:px-4 md:py-3">
-                          <div>
-                            <p className="flex items-center gap-2 text-sm font-semibold">
-                              Bảng DEFRA per-leg
-                              <Badge
-                                variant="outline"
-                                className="bg-emerald-50 text-[10px] text-emerald-700"
-                              >
-                                DEFRA {DEFRA_VERSION}
-                              </Badge>
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              Phân bổ tonne-km · audit-ready
-                            </p>
-                          </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead className="bg-muted/40 text-muted-foreground">
-                              <tr>
-                                <th className="px-2 py-2 text-left font-medium">
-                                  Chặng
-                                </th>
-                                <th className="px-2 py-2 text-left font-medium">
-                                  Tuyến
-                                </th>
-                                <th className="hidden px-2 py-2 text-left font-medium md:table-cell">
-                                  Mode
-                                </th>
-                                <th className="px-2 py-2 text-left font-medium">
-                                  Factor key
-                                </th>
-                                <th className="px-2 py-2 text-right font-medium">
-                                  Cự ly (km)
-                                </th>
-                                <th className="hidden px-2 py-2 text-right font-medium md:table-cell">
-                                  Tonne-KM
-                                </th>
-                                <th className="hidden px-2 py-2 text-right font-medium lg:table-cell">
-                                  Factor
-                                </th>
-                                <th className="px-2 py-2 text-right font-medium">
-                                  CO₂e (kg)
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedDetail.legs.map((leg, idx) => {
-                                const factorKey = pickDefraKey(
-                                  leg.transport_mode,
-                                  leg.distance_km
-                                );
-                                const defra = getDefraFactor(
-                                  leg.transport_mode,
-                                  leg.distance_km
-                                );
-                                const weightKg = selectedShipment.total_weight_kg || 500;
-                                const tonneKm =
-                                  (weightKg / 1000) * leg.distance_km;
-                                return (
-                                  <tr key={leg.id} className="border-t">
-                                    <td className="px-2 py-2 font-mono">
-                                      {idx + 1}
-                                    </td>
-                                    <td className="px-2 py-2">
-                                      <span className="line-clamp-1">
-                                        {leg.origin_location} →{" "}
-                                        {leg.destination_location}
-                                      </span>
-                                    </td>
-                                    <td className="hidden px-2 py-2 md:table-cell">
-                                      {getModeLabel(leg.transport_mode)}
-                                    </td>
-                                    <td className="px-2 py-2 font-mono text-[11px]">
-                                      {factorKey}
-                                    </td>
-                                    <td className="px-2 py-2 text-right tabular-nums">
-                                      {leg.distance_km.toLocaleString()}
-                                    </td>
-                                    <td className="hidden px-2 py-2 text-right tabular-nums md:table-cell">
-                                      {tonneKm.toFixed(2)}
-                                    </td>
-                                    <td className="hidden px-2 py-2 text-right tabular-nums lg:table-cell">
-                                      {defra.factor}
-                                    </td>
-                                    <td className="px-2 py-2 text-right font-semibold tabular-nums text-primary">
-                                      {leg.co2e.toFixed(2)}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                            <tfoot>
-                              <tr className="border-t bg-primary/5">
-                                <td
-                                  colSpan={4}
-                                  className="px-2 py-2 font-semibold"
-                                >
-                                  Tổng cộng
-                                </td>
-                                <td className="px-2 py-2 text-right font-semibold tabular-nums">
-                                  {selectedShipment.total_distance_km.toLocaleString()}
-                                </td>
-                                <td className="hidden px-2 py-2 md:table-cell" />
-                                <td className="hidden px-2 py-2 lg:table-cell" />
-                                <td className="px-2 py-2 text-right font-bold tabular-nums text-primary">
-                                  {selectedShipment.total_co2e.toFixed(2)}
-                                </td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Products in shipment */}
-                    {selectedDetail.products.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Sản phẩm trong lô</p>
-                        <div className="space-y-1">
-                          {selectedDetail.products.map((p) => (
-                            <div
-                              key={p.id}
-                              className="flex items-center justify-between rounded bg-muted/30 px-3 py-2 text-xs"
-                            >
-                              <span className="font-medium">
-                                {p.product_name || p.sku}
-                              </span>
-                              <div className="flex items-center gap-3 text-muted-foreground">
-                                <span>{p.quantity} sp</span>
-                                <span>{p.allocated_co2e.toFixed(2)} kg CO₂e</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Carbon Summary */}
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 md:p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground md:text-sm">
-                          Tổng CO₂e Scope 3 vận chuyển
-                        </p>
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-50 text-[10px] text-emerald-700"
-                        >
-                          DEFRA {DEFRA_VERSION}
-                        </Badge>
-                      </div>
-                      <p className="text-xl font-bold text-primary md:text-2xl">
-                        {selectedShipment.total_co2e.toFixed(2)} kg CO₂e
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground md:text-sm">
-                        Tổng cự ly
-                      </p>
-                      <p className="text-lg font-semibold md:text-xl">
-                        {selectedShipment.total_distance_km.toLocaleString()} km
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-[10px] text-muted-foreground">
-                    Hệ số phát thải DEFRA {DEFRA_VERSION} · UK Government GHG Conversion Factors for Company Reporting
-                  </p>
-                </div>
+              <CardContent className="p-2 md:p-4">
+                <SupplyChainMap
+                  nodes={mapNodes}
+                  routes={mapRoutes}
+                  center={[20, 100]}
+                  zoom={2}
+                  height="360px"
+                  onNodeClick={(node) => {
+                    const hit = filteredShipments.find(
+                      (s) =>
+                        s.origin.city === node.name ||
+                        s.destination.city === node.name
+                    );
+                    if (hit)
+                      setSelectedShipment(
+                        selectedShipment?.id === hit.id ? null : hit
+                      );
+                  }}
+                />
               </CardContent>
             </Card>
           )}
         </TabsContent>
       </Tabs>
+
+      {/* ── Shipment Detail Modal ── */}
+      <Dialog open={!!selectedShipment} onOpenChange={(open) => { if (!open) setSelectedShipment(null); }}>
+        <DialogContent className="flex max-h-[90vh] min-h-[80vh] max-w-3xl flex-col overflow-y-auto">
+          {selectedShipment && (
+            <>
+              {/* Header */}
+              <DialogTitle className="flex items-center gap-2 pb-2">
+                <Package className="h-5 w-5 text-primary" />
+                <span className="truncate font-semibold text-base">
+                  {selectedShipment.reference_number || selectedShipment.id}
+                </span>
+                {getStatusBadge(selectedShipment.status)}
+              </DialogTitle>
+
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Mã lô</p>
+                  <p className="font-mono text-xs font-medium md:text-sm">
+                    {selectedShipment.reference_number || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Xuất xứ</p>
+                  <p className="text-xs font-medium md:text-sm">
+                    {selectedShipment.origin.city},{" "}
+                    {selectedShipment.origin.country}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Đích đến</p>
+                  <p className="text-xs font-medium md:text-sm">
+                    {selectedShipment.destination.city},{" "}
+                    {selectedShipment.destination.country}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">ETA</p>
+                  <p className="text-xs font-medium md:text-sm">
+                    {selectedShipment.estimated_arrival
+                      ? new Date(selectedShipment.estimated_arrival).toLocaleDateString("vi-VN")
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {detailLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang tải chi tiết…
+                </div>
+              )}
+
+              {selectedDetail && (
+                <>
+                  {/* Legs breakdown */}
+                  {selectedDetail.legs.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Các chặng vận chuyển</p>
+                      <div className="space-y-2">
+                        {selectedDetail.legs.map((leg, idx) => {
+                          const defra = getDefraFactor(leg.transport_mode, leg.distance_km);
+                          return (
+                            <div
+                              key={leg.id}
+                              className="flex items-center gap-2 rounded-lg bg-muted/50 p-2 md:p-3"
+                            >
+                              <Badge variant="outline" className="shrink-0">{idx + 1}</Badge>
+                              {getTransportIcon(leg.transport_mode)}
+                              <div className="min-w-0 flex-1">
+                                <p className="line-clamp-1 text-xs font-medium md:text-sm">
+                                  {leg.origin_location} → {leg.destination_location}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {leg.distance_km.toLocaleString()} km · {leg.co2e.toFixed(2)} kg CO₂e
+                                </p>
+                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className="shrink-0 cursor-help bg-emerald-50 text-[10px] text-emerald-700">
+                                      DEFRA {DEFRA_VERSION}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="max-w-xs">
+                                    <div className="space-y-1 text-xs">
+                                      <p className="font-semibold">{defra.label}</p>
+                                      <p className="font-mono">{defra.factor} kg CO₂e / tonne-km</p>
+                                      <p className="text-muted-foreground">{defra.citation}</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DEFRA Breakdown Table */}
+                  {selectedDetail.legs.length > 0 && (
+                    <div className="rounded-lg border bg-card">
+                      <div className="flex items-center justify-between border-b px-3 py-2 md:px-4 md:py-3">
+                        <div>
+                          <p className="flex items-center gap-2 text-sm font-semibold">
+                            Bảng DEFRA per-leg
+                            <Badge variant="outline" className="bg-emerald-50 text-[10px] text-emerald-700">
+                              DEFRA {DEFRA_VERSION}
+                            </Badge>
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">Phân bổ tonne-km · audit-ready</p>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted/40 text-muted-foreground">
+                            <tr>
+                              <th className="px-2 py-2 text-left font-medium">Chặng</th>
+                              <th className="px-2 py-2 text-left font-medium">Tuyến</th>
+                              <th className="hidden px-2 py-2 text-left font-medium md:table-cell">Mode</th>
+                              <th className="px-2 py-2 text-left font-medium">Factor key</th>
+                              <th className="px-2 py-2 text-right font-medium">Cự ly (km)</th>
+                              <th className="hidden px-2 py-2 text-right font-medium md:table-cell">Tonne-KM</th>
+                              <th className="hidden px-2 py-2 text-right font-medium lg:table-cell">Factor</th>
+                              <th className="px-2 py-2 text-right font-medium">CO₂e (kg)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedDetail.legs.map((leg, idx) => {
+                              const factorKey = pickDefraKey(leg.transport_mode, leg.distance_km);
+                              const defra = getDefraFactor(leg.transport_mode, leg.distance_km);
+                              const weightKg = selectedShipment.total_weight_kg || 500;
+                              const tonneKm = (weightKg / 1000) * leg.distance_km;
+                              return (
+                                <tr key={leg.id} className="border-t">
+                                  <td className="px-2 py-2 font-mono">{idx + 1}</td>
+                                  <td className="px-2 py-2">
+                                    <span className="line-clamp-1">
+                                      {leg.origin_location} → {leg.destination_location}
+                                    </span>
+                                  </td>
+                                  <td className="hidden px-2 py-2 md:table-cell">{getModeLabel(leg.transport_mode)}</td>
+                                  <td className="px-2 py-2 font-mono text-[11px]">{factorKey}</td>
+                                  <td className="px-2 py-2 text-right tabular-nums">{leg.distance_km.toLocaleString()}</td>
+                                  <td className="hidden px-2 py-2 text-right tabular-nums md:table-cell">{tonneKm.toFixed(2)}</td>
+                                  <td className="hidden px-2 py-2 text-right tabular-nums lg:table-cell">{defra.factor}</td>
+                                  <td className="px-2 py-2 text-right font-semibold tabular-nums text-primary">{leg.co2e.toFixed(2)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t bg-primary/5">
+                              <td colSpan={4} className="px-2 py-2 font-semibold">Tổng cộng</td>
+                              <td className="px-2 py-2 text-right font-semibold tabular-nums">
+                                {selectedShipment.total_distance_km.toLocaleString()}
+                              </td>
+                              <td className="hidden px-2 py-2 md:table-cell" />
+                              <td className="hidden px-2 py-2 lg:table-cell" />
+                              <td className="px-2 py-2 text-right font-bold tabular-nums text-primary">
+                                {selectedShipment.total_co2e.toFixed(2)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Products in shipment */}
+                  {selectedDetail.products.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Sản phẩm trong lô</p>
+                      <div className="space-y-1">
+                        {selectedDetail.products.map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between rounded bg-muted/30 px-3 py-2 text-xs"
+                          >
+                            <span className="font-medium">{p.product_name || p.sku}</span>
+                            <div className="flex items-center gap-3 text-muted-foreground">
+                              <span>{p.quantity} sp</span>
+                              <span>{p.allocated_co2e.toFixed(2)} kg CO₂e</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Carbon Summary */}
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 md:p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground md:text-sm">Tổng CO₂e Scope 3 vận chuyển</p>
+                      <Badge variant="outline" className="bg-emerald-50 text-[10px] text-emerald-700">
+                        DEFRA {DEFRA_VERSION}
+                      </Badge>
+                    </div>
+                    <p className="text-xl font-bold text-primary md:text-2xl">
+                      {selectedShipment.total_co2e.toFixed(2)} kg CO₂e
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground md:text-sm">Tổng cự ly</p>
+                    <p className="text-lg font-semibold md:text-xl">
+                      {selectedShipment.total_distance_km.toLocaleString()} km
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  Hệ số phát thải DEFRA {DEFRA_VERSION} · UK Government GHG Conversion Factors for Company Reporting
+                </p>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* QR Modal */}
       {qrShipment && (

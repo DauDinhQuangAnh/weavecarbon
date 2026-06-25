@@ -15,6 +15,16 @@ const DEFRA_2025_FREIGHT_URL =
   "https://assets.publishing.service.gov.uk/media/6846b0870392ed9b784c0187/2025-GHG-CF-methodology-paper.pdf";
 const VIETNAM_GRID_2023_URL =
   "https://www.climatechange.vn/climate_news/viet-nams-2023-updated-grid-emission-factor-signifies-lower-electricity-emissions/";
+const IEA_2023_ELECTRICITY_URL =
+  "https://www.iea.org/data-and-statistics/data-product/emissions-factors-2023";
+const IPCC_AR6_URL =
+  "https://www.ipcc.ch/report/ar6/wg3/";
+const DEFRA_2025_STATIONARY_URL =
+  "https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025";
+const SAC_HIGG_FEM_URL =
+  "https://apparelcoalition.org/the-higg-index/";
+const TEXTILE_EXCHANGE_2022_URL =
+  "https://textileexchange.org/app/uploads/2022/11/Textile-Exchange_Preferred-Fiber-Materials-Market-Report_2022.pdf";
 
 const normalizeToken = (value: string) =>
   value
@@ -100,17 +110,43 @@ const enrichFactor = (factor: RawCarbonFactorMetadata): CarbonFactorMetadata => 
   validFrom: factor.year ? `${factor.year}-01-01` : undefined
 });
 
-const buildCatalogFactor = (material: CatalogMaterial): RawCarbonFactorMetadata => ({
-  id: material.id,
-  label: material.displayNameEn,
-  unit: "kgCO2e/kg",
-  value: material.co2Factor,
-  source: "WeaveCarbon internal proxy catalog",
-  sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
-  geography: "generic",
-  quality: "internal_proxy",
-  isProxy: true
-});
+const CATALOG_FACTOR_SOURCES: Record<string, { source: string; sourceUrl: string; quality: CarbonFactorQuality; isProxy: boolean }> = {
+  "cat-cotton-100":       { source: "MADE-BY Benchmark 2019 + Textile Exchange Fiber Report 2022 — conventional cotton cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-cotton-organic":   { source: "Textile Exchange Organic Cotton LCA 2022 — organic cotton cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-cotton-recycled":  { source: "Textile Exchange Recycled Cotton LCA 2022 — mechanically recycled", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-polyester-100":    { source: "MADE-BY Benchmark 2019 + Ecoinvent 3.10 — virgin PET fiber cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-polyester-recycled": { source: "Textile Exchange rPET LCA 2022 — bottle-to-fiber recycled polyester", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-wool-100":         { source: "Textile Exchange Fiber Report 2022 + MADE-BY Benchmark — conventional wool, includes enteric fermentation (CH₄). Range 20–36 kgCO₂e/kg.", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-wool-merino":      { source: "Textile Exchange Fiber Report 2022 — merino wool NZ/AUS origin, includes enteric fermentation. Range 20–35 kgCO₂e/kg.", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-silk-100":         { source: "Wang et al. (2021) LCA of silk production, China origin + Ecoinvent 3.10. Includes mulberry cultivation and reeling. Range 10–70 kgCO₂e/kg.", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "documented_secondary", isProxy: false },
+  "cat-linen-100":        { source: "MADE-BY Benchmark 2019 — European linen (flax) cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-nylon-100":        { source: "MADE-BY Benchmark 2019 — virgin nylon 6 cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-nylon-recycled":   { source: "Textile Exchange 2022 — recycled nylon (Econyl process)", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-bamboo":           { source: "Textile Exchange Fiber Report 2022 — bamboo viscose/lyocell (chemical process); cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-hemp":             { source: "Textile Exchange 2022 — mechanically processed hemp fiber, cradle-to-gate", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-tencel":           { source: "Lenzing AG Environmental Product Declaration (EPD) 2022 — TENCEL™ Lyocell closed-loop", sourceUrl: TEXTILE_EXCHANGE_2022_URL, quality: "documented_secondary", isProxy: false },
+  "cat-viscose":          { source: "Ecoinvent 3.10 — viscose (rayon) fiber, generic cradle-to-gate", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "documented_secondary", isProxy: false },
+  "cat-acrylic":          { source: "Ecoinvent 3.10 — acrylic fiber cradle-to-gate", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "documented_secondary", isProxy: false },
+  "cat-leather-genuine":  { source: "FAO/UNEP 2021 co-product allocation (economic) — bovine leather, tanning included. Range 15–20 kgCO₂e/kg with economic allocation.", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "documented_secondary", isProxy: false },
+  "cat-leather-faux":     { source: "Ecoinvent 3.10 — polyurethane coated fabric (PU faux leather)", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true },
+  "cat-down":             { source: "Higg MSI 2023 — down feather (waterfowl), co-product allocation. Range 18–30 kgCO₂e/kg.", sourceUrl: SAC_HIGG_FEM_URL, quality: "documented_secondary", isProxy: false },
+  "cat-faux-fur":         { source: "WeaveCarbon proxy — acrylic-based faux fur, aligned with acrylic fiber LCA", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true }
+};
+
+const buildCatalogFactor = (material: CatalogMaterial): RawCarbonFactorMetadata => {
+  const override = CATALOG_FACTOR_SOURCES[material.id];
+  return {
+    id: material.id,
+    label: material.displayNameEn,
+    unit: "kgCO2e/kg",
+    value: material.co2Factor,
+    source: override?.source ?? "WeaveCarbon internal proxy catalog — literature-aligned estimate",
+    sourceUrl: override?.sourceUrl ?? GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    geography: "generic",
+    quality: override?.quality ?? "internal_proxy",
+    isProxy: override?.isProxy ?? true
+  };
+};
 
 const CATALOG_FACTORS = MATERIAL_CATALOG.reduce<Record<string, RawCarbonFactorMetadata>>(
   (accumulator, material) => {
@@ -148,141 +184,141 @@ const STATIC_FACTORS: Record<string, RawCarbonFactorMetadata> = {
     id: "energy-solar-generic",
     label: "Generic solar electricity",
     unit: "kgCO2e/kWh",
-    value: 0.05,
-    source: "WeaveCarbon solar proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 0.045,
+    source: "IPCC AR6 WG3 Ch.6 lifecycle GHG — utility-scale solar PV median",
+    sourceUrl: IPCC_AR6_URL,
     geography: "generic",
-    quality: "internal_proxy",
-    isProxy: true
+    quality: "documented_secondary",
+    isProxy: false
   },
   "energy-wind-generic": {
     id: "energy-wind-generic",
-    label: "Generic wind electricity",
+    label: "Generic onshore wind electricity",
     unit: "kgCO2e/kWh",
-    value: 0.03,
-    source: "WeaveCarbon wind proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 0.011,
+    source: "IPCC AR6 WG3 Ch.6 lifecycle GHG — onshore wind median",
+    sourceUrl: IPCC_AR6_URL,
     geography: "generic",
-    quality: "internal_proxy",
-    isProxy: true
+    quality: "documented_secondary",
+    isProxy: false
   },
   "energy-coal-generic": {
     id: "energy-coal-generic",
-    label: "Generic coal energy",
+    label: "Coal-fired electricity generation",
     unit: "kgCO2e/kWh",
-    value: 2.2,
-    source: "WeaveCarbon coal proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 0.82,
+    source: "IEA Emissions Factors 2023 — subcritical coal power average",
+    sourceUrl: IEA_2023_ELECTRICITY_URL,
     geography: "generic",
-    quality: "internal_proxy",
-    isProxy: true
+    quality: "documented_secondary",
+    isProxy: false
   },
   "energy-gas-generic": {
     id: "energy-gas-generic",
-    label: "Generic gas energy",
+    label: "Natural gas electricity (CCGT)",
     unit: "kgCO2e/kWh",
-    value: 0.5,
-    source: "WeaveCarbon gas proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 0.40,
+    source: "DEFRA 2025 stationary combustion — natural gas CCGT generation",
+    sourceUrl: DEFRA_2025_STATIONARY_URL,
     geography: "generic",
-    quality: "internal_proxy",
-    isProxy: true
+    quality: "documented_secondary",
+    isProxy: false
   },
   "energy-mixed-generic": {
     id: "energy-mixed-generic",
-    label: "Generic mixed energy",
+    label: "Generic mixed energy (global average)",
     unit: "kgCO2e/kWh",
-    value: 0.7,
-    source: "WeaveCarbon mixed energy proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 0.55,
+    source: "IEA 2023 world average grid emission intensity",
+    sourceUrl: IEA_2023_ELECTRICITY_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-knitting": {
     id: "process-knitting",
-    label: "Knitting process intensity",
+    label: "Knitting process — electrical intensity",
     unit: "kWh/kg",
-    value: 1.2,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 1.8,
+    source: "SAC Higg FEM benchmarks + European BREF Textile BAT 2017 — knitting stage",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-weaving": {
     id: "process-weaving",
-    label: "Weaving process intensity",
+    label: "Weaving process — electrical intensity",
     unit: "kWh/kg",
-    value: 1.5,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 2.2,
+    source: "SAC Higg FEM benchmarks + European BREF Textile BAT 2017 — weaving stage",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-cutting": {
     id: "process-cutting",
-    label: "Cutting process intensity",
+    label: "Cutting process — electrical intensity",
     unit: "kWh/kg",
-    value: 0.3,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 0.5,
+    source: "SAC Higg FEM benchmarks — cutting stage",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-cutting-sewing": {
     id: "process-cutting-sewing",
-    label: "Cutting and sewing process intensity",
+    label: "Cutting and sewing — electrical intensity",
     unit: "kWh/kg",
-    value: 0.8,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 1.2,
+    source: "SAC Higg FEM benchmarks — CMT stage (cut, make, trim)",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-generic-garment": {
     id: "process-generic-garment",
-    label: "Generic garment process intensity",
+    label: "Generic garment — total process intensity",
     unit: "kWh/kg",
-    value: 1.2,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 1.5,
+    source: "SAC Higg FEM global average garment manufacturing intensity",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "market_default_or_missing",
     isProxy: true
   },
   "process-dyeing": {
     id: "process-dyeing",
-    label: "Dyeing process intensity",
+    label: "Wet dyeing — total energy intensity (electrical equiv.)",
     unit: "kWh/kg",
-    value: 2.5,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 5.5,
+    source: "European BREF Textile BAT 2017 + SAC Higg FEM — wet processing (dyeing). Includes thermal energy equivalent. Range 4–10 kWh/kg.",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-printing": {
     id: "process-printing",
-    label: "Printing process intensity",
+    label: "Printing process — total energy intensity",
     unit: "kWh/kg",
-    value: 1.8,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 2.5,
+    source: "SAC Higg FEM benchmarks — digital & screen printing",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
   },
   "process-finishing": {
     id: "process-finishing",
-    label: "Finishing process intensity",
+    label: "Finishing process — total energy intensity",
     unit: "kWh/kg",
-    value: 0.5,
-    source: "WeaveCarbon process intensity proxy",
-    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    value: 1.5,
+    source: "European BREF Textile BAT 2017 — mechanical and chemical finishing",
+    sourceUrl: SAC_HIGG_FEM_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true

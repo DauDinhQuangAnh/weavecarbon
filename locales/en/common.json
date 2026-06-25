@@ -1689,7 +1689,7 @@
       },
       "loading": "Loading 3D map...",
       "replaceTokenHint": "Replace token in code",
-      "titleBadge": "3D Satellite View",
+      "titleBadge": "3D View",
       "legend": {
         "title": "Legend",
         "seaRoute": "Sea Route",

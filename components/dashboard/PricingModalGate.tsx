@@ -317,6 +317,10 @@ export default function PricingModalGate() {
           Date.now() + PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS;
         return "pending" as const;
       }
+      if (isApiError(error) && error.status === 404) {
+        setPendingUpgrade(null, null, null, null);
+        return "expired" as const;
+      }
       if (isUnauthorizedApiError(error)) {
         await signOut();
       }

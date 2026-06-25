@@ -96,7 +96,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        style: "mapbox://styles/mapbox/streets-v12",
         center,
         zoom,
         pitch: 45,
