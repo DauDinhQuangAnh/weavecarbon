@@ -870,7 +870,8 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
 
       if (!response.ok) {
         const errorCode = getErrorCode(payload);
-        if (isDefinitiveAuthExpiredCode(errorCode)) {
+        // 401 on /auth/refresh always means session is definitively dead — clear regardless of error code
+        if (response.status === 401 || isDefinitiveAuthExpiredCode(errorCode)) {
           authTokenStore.clear({ notify: true });
           invalidateApiResponseCache("refresh-expired");
         }
