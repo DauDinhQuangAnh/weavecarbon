@@ -661,12 +661,21 @@ const ReportsPage: React.FC = () => {
         try {
           const status = await api.get<{ status: string }>(`/reports/${reportId}/status`);
           if (status?.status === "completed") {
+            // Fetch with auth header then trigger blob download
+            const token = authTokenStore.getAccessToken();
+            const res = await fetch(`${API_BASE_URL}/reports/${reportId}/download`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+            const blob = await res.blob();
+            const objectUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = `${API_BASE_URL}/reports/${reportId}/download`;
+            a.href = objectUrl;
             a.download = `${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            URL.revokeObjectURL(objectUrl);
             setPdfGenState(prev => ({ ...prev, [cardKey]: "idle" }));
             loadReports();
             done = true;
