@@ -8,6 +8,7 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   api,
+  API_BASE_URL,
   authTokenStore,
   isApiError
 } from "@/lib/apiClient";
@@ -116,6 +117,20 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 typeof value === "object" && value !== null;
 
 const REPORTS_ENDPOINT = "/reports";
+
+const PDF_REPORT_TYPE_MAP: Record<string, string> = {
+  product: "product_carbon",
+  batch: "batch_export",
+  facility: "facility_emission",
+  compliance: "compliance",
+};
+
+const PDF_REPORT_TITLE_MAP: Record<string, string> = {
+  product: "Báo cáo PCF Sản phẩm",
+  batch: "Báo cáo Lô Xuất khẩu",
+  facility: "Báo cáo Phát thải Cơ sở",
+  compliance: "Sẵn sàng Tuân thủ",
+};
 
 const CREATE_REPORT_TYPE_OPTIONS: ReportType[] = [
 "carbon_audit",
@@ -450,6 +465,9 @@ const ReportsPage: React.FC = () => {
   > | null>(null);
   const [exportingDataset, setExportingDataset] = useState<string | null>(null);
 
+  // PDF report generation state: cardKey → 'idle' | 'generating' | 'done' | 'error'
+  const [pdfGenState, setPdfGenState] = useState<Record<string, "idle" | "generating" | "done" | "error">>({});
+
   const [exportSourcesLoaded, setExportSourcesLoaded] = useState(false);
   const [exportSourceCounts, setExportSourceCounts] = useState(
     getDefaultReportExportSourceCounts()
@@ -615,6 +633,59 @@ const ReportsPage: React.FC = () => {
     },
     [canLoadProtectedReportData, isMissingAuthError, t]
   );
+
+  const handleGeneratePdf = useCallback(async (cardKey: string) => {
+    if (!ensureReportActionAllowed()) return;
+    if (pdfGenState[cardKey] === "generating") return;
+
+    const reportType = PDF_REPORT_TYPE_MAP[cardKey];
+    const title = PDF_REPORT_TITLE_MAP[cardKey] || reportType;
+
+    setPdfGenState(prev => ({ ...prev, [cardKey]: "generating" }));
+
+    try {
+      const created = await api.post<{ id: string }>("/reports", {
+        report_type: reportType,
+        title,
+        file_format: "pdf",
+      });
+
+      const reportId = created?.id;
+      if (!reportId) throw new Error("No report ID returned");
+
+      // Poll every 3s for up to 3 minutes
+      const MAX_ATTEMPTS = 60;
+      let done = false;
+      for (let i = 0; i < MAX_ATTEMPTS && !done; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const status = await api.get<{ status: string }>(`/reports/${reportId}/status`);
+          if (status?.status === "completed") {
+            const a = document.createElement("a");
+            a.href = `${API_BASE_URL}/reports/${reportId}/download`;
+            a.download = `${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setPdfGenState(prev => ({ ...prev, [cardKey]: "idle" }));
+            loadReports();
+            done = true;
+          } else if (status?.status === "failed") {
+            setPdfGenState(prev => ({ ...prev, [cardKey]: "error" }));
+            done = true;
+          }
+        } catch {
+          setPdfGenState(prev => ({ ...prev, [cardKey]: "error" }));
+          done = true;
+        }
+      }
+      if (!done) {
+        setPdfGenState(prev => ({ ...prev, [cardKey]: "error" }));
+      }
+    } catch {
+      setPdfGenState(prev => ({ ...prev, [cardKey]: "error" }));
+    }
+  }, [pdfGenState, ensureReportActionAllowed, loadReports]);
 
   const loadExportSources = useCallback(async () => {
     if (!canLoadProtectedReportData) {
@@ -954,12 +1025,6 @@ const exportHistory = useMemo(
             <h3 className="text-sm font-semibold text-slate-800">
               {locale === "vi" ? "Loại báo cáo PDF" : "PDF Report Types"}
             </h3>
-            <Badge
-              variant="outline"
-              className="rounded-full border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700"
-            >
-              {locale === "vi" ? "Sắp ra mắt" : "Coming Phase 08"}
-            </Badge>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {([
@@ -1017,24 +1082,30 @@ const exportHistory = useMemo(
                     <div className="mt-auto flex gap-2">
                       <Button
                         type="button"
-                        variant="outline"
                         size="sm"
-                        disabled
-                        className="h-8 flex-1 rounded-lg border-slate-200 text-xs text-slate-500"
-                        title={locale === "vi" ? "Sẽ có ở Phase 08" : "Available in Phase 08"}
+                        disabled={pdfGenState[card.key] === "generating" || !canMutate}
+                        onClick={() => handleGeneratePdf(card.key)}
+                        className="h-8 flex-1 rounded-lg bg-emerald-800 text-xs text-white hover:bg-emerald-900 disabled:opacity-50"
                       >
-                        <Eye className="mr-1.5 h-3.5 w-3.5" />
-                        {locale === "vi" ? "Xem trước" : "Preview"}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled
-                        className="h-8 flex-1 rounded-lg bg-emerald-800 text-xs text-white hover:bg-emerald-900 disabled:opacity-40"
-                        title={locale === "vi" ? "Sẽ có ở Phase 08" : "Available in Phase 08"}
-                      >
-                        <Download className="mr-1.5 h-3.5 w-3.5" />
-                        PDF
+                        {pdfGenState[card.key] === "generating" ? (
+                          <>
+                            <svg className="mr-1.5 h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            {locale === "vi" ? "Đang tạo…" : "Generating…"}
+                          </>
+                        ) : pdfGenState[card.key] === "error" ? (
+                          <>
+                            <Download className="mr-1.5 h-3.5 w-3.5" />
+                            {locale === "vi" ? "Thử lại" : "Retry"}
+                          </>
+                        ) : (
+                          <>
+                            <Download className="mr-1.5 h-3.5 w-3.5" />
+                            PDF
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>

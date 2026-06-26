@@ -3,9 +3,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
-import { apiRequest } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
+import { useDashboardTitle } from '@/contexts/DashboardContext';
 import {
   Card,
   CardContent,
@@ -80,15 +80,16 @@ interface CompanyData {
   target_markets: string[] | null;
 }
 
+// Aligned with factorRegistry.ts — SAC Higg FEM + BREF Textile BAT 2017
 const TEXTILE_PROCESSES = [
-  { key: 'knitting', label: 'Dệt kim (Knitting)', defaultFactor: 0.55, unit: 'kWh/kg' },
-  { key: 'weaving', label: 'Dệt thoi (Weaving)', defaultFactor: 0.62, unit: 'kWh/kg' },
-  { key: 'dyeing', label: 'Nhuộm (Dyeing)', defaultFactor: 1.85, unit: 'kWh/kg' },
-  { key: 'printing', label: 'In (Printing)', defaultFactor: 0.95, unit: 'kWh/kg' },
-  { key: 'cutting', label: 'Cắt & May (Cutting/Sewing)', defaultFactor: 0.35, unit: 'kWh/kg' },
-  { key: 'washing', label: 'Giặt (Washing)', defaultFactor: 1.2, unit: 'kWh/kg' },
-  { key: 'finishing', label: 'Hoàn tất (Finishing)', defaultFactor: 0.8, unit: 'kWh/kg' },
-  { key: 'packaging', label: 'Đóng gói (Packaging)', defaultFactor: 0.15, unit: 'kWh/kg' },
+  { key: 'knitting',  label: 'Dệt kim (Knitting)',       defaultFactor: 1.8,  unit: 'kWh/kg' },
+  { key: 'weaving',   label: 'Dệt thoi (Weaving)',        defaultFactor: 2.2,  unit: 'kWh/kg' },
+  { key: 'dyeing',    label: 'Nhuộm (Dyeing)',            defaultFactor: 5.5,  unit: 'kWh/kg' },
+  { key: 'printing',  label: 'In (Printing)',             defaultFactor: 2.5,  unit: 'kWh/kg' },
+  { key: 'cutting',   label: 'Cắt & May (Cutting/Sewing)', defaultFactor: 1.2, unit: 'kWh/kg' },
+  { key: 'washing',   label: 'Giặt (Washing)',            defaultFactor: 2.0,  unit: 'kWh/kg' },
+  { key: 'finishing', label: 'Hoàn tất (Finishing)',      defaultFactor: 1.5,  unit: 'kWh/kg' },
+  { key: 'packaging', label: 'Đóng gói (Packaging)',      defaultFactor: 0.3,  unit: 'kWh/kg' },
 ];
 
 const EVIDENCE_BADGE: Record<string, { label: string; className: string }> = {
@@ -168,10 +169,9 @@ const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 );
 
 export default function CbamReportPage() {
-  const { user } = useAuth();
-  const companyId = user?.company_id ?? null;
   const { products } = useProducts();
   const router = useRouter();
+  const { setPageTitle } = useDashboardTitle();
 
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [electricity, setElectricity] = useState<ElectricityInvoice[]>([]);
@@ -185,32 +185,29 @@ export default function CbamReportPage() {
   }, []);
 
   useEffect(() => {
-    if (!companyId) return;
-    // Company data from /account (returns company.name, business_type, target_markets)
-    const accountPromise = apiRequest<{ company?: CompanyData }>('/account').then(
-      (res) => {
-        const c = (res as { company?: CompanyData })?.company ?? null;
-        if (c) setCompany(c);
-      }
-    ).catch(() => {});
+    setPageTitle('Báo cáo CBAM-style', 'Cấu trúc 6 tab phỏng theo EU CBAM communication template.');
+  }, [setPageTitle]);
+
+  useEffect(() => {
+    api.get<{ company?: CompanyData }>('/account')
+      .then((res) => { if (res?.company) setCompany(res.company); })
+      .catch(() => {});
 
     Promise.allSettled([
-      apiRequest<ElectricityInvoice[]>(`/electricity-invoices?companyId=${companyId}`),
-      apiRequest<FuelInvoice[]>(`/fuel-invoices?companyId=${companyId}`),
-      apiRequest<{ items?: EvidenceDoc[] } | EvidenceDoc[]>(`/evidence?companyId=${companyId}`),
-      apiRequest<CarbonCalc[]>(`/carbon-calculations?companyId=${companyId}`),
+      api.get<ElectricityInvoice[]>('/electricity-invoices'),
+      api.get<FuelInvoice[]>('/fuel-invoices'),
+      api.get<{ items?: EvidenceDoc[] } | EvidenceDoc[]>('/evidence?page=1&page_size=100'),
+      api.get<CarbonCalc[]>('/carbon-calculations'),
     ]).then(([e, f, ev, k]) => {
-      if (e.status === 'fulfilled') setElectricity(e.value);
-      if (f.status === 'fulfilled') setFuels(f.value);
+      if (e.status === 'fulfilled') setElectricity(e.value ?? []);
+      if (f.status === 'fulfilled') setFuels(f.value ?? []);
       if (ev.status === 'fulfilled') {
         const evData = ev.value;
         setEvidence(Array.isArray(evData) ? evData : (evData as { items?: EvidenceDoc[] }).items ?? []);
       }
-      if (k.status === 'fulfilled') setCalcs(k.value);
+      if (k.status === 'fulfilled') setCalcs(k.value ?? []);
     });
-
-    return () => { void accountPromise; };
-  }, [companyId]);
+  }, []);
 
   const totals = useMemo(() => {
     const scope1 = fuels.reduce((s, f) => s + (f.scope1_co2e_kg ?? 0), 0);

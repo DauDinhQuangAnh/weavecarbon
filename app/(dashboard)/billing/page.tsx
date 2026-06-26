@@ -26,6 +26,7 @@ import { getSubscriptionApiPayload } from '@/lib/subscriptionApi';
 import { fetchProducts } from '@/lib/productsApi';
 import { api } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDashboardTitle } from '@/contexts/DashboardContext';
 
 interface SubscriptionState {
   plan: string | null;
@@ -52,6 +53,11 @@ const SKU_TIERS: { value: 20 | 35 | 50; label: string; price: string }[] = [
 export default function BillingPage() {
   const { user } = useAuth();
   const { currentPlan, trialEndsAt, trialExpired, hasHydrated } = useSubscriptionLock();
+  const { setPageTitle } = useDashboardTitle();
+
+  useEffect(() => {
+    setPageTitle('Gói dịch vụ', 'Quản lý gói đăng ký và thanh toán.');
+  }, [setPageTitle]);
 
   const [subState, setSubState] = useState<SubscriptionState>({
     plan: null,
@@ -183,10 +189,10 @@ export default function BillingPage() {
         </Card>
 
         {/* Plan cards — 3 cols */}
-        <div className="grid md:grid-cols-3 gap-6 items-start">
+        <div className="grid md:grid-cols-3 gap-6 items-stretch">
           {/* ── Trial ── */}
-          <Card className={`relative ${planFamily === 'trial' ? 'ring-2 ring-primary shadow-md' : ''}`}>
-            <CardContent className="pt-6 pb-5 px-5 space-y-4">
+          <Card className={`relative flex flex-col ${planFamily === 'trial' ? 'ring-2 ring-primary shadow-md' : ''}`}>
+            <CardContent className="flex flex-col flex-1 pt-6 pb-5 px-5 gap-4">
               <div className="flex flex-col items-center text-center gap-1">
                 <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center mb-1">
                   <Zap className="w-7 h-7 text-white" />
@@ -202,7 +208,7 @@ export default function BillingPage() {
                 </p>
               </div>
 
-              <ul className="space-y-2 text-sm">
+              <ul className="flex-1 space-y-2 text-sm">
                 {['Tính carbon proxy đơn giản', 'Vận chuyển nội địa', 'Xuất báo cáo PDF'].map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -211,7 +217,7 @@ export default function BillingPage() {
                 ))}
               </ul>
 
-              <Button variant="outline" className="w-full" disabled>
+              <Button variant="outline" className="w-full mt-auto" disabled>
                 Trial được kích hoạt tự động
               </Button>
             </CardContent>
@@ -219,7 +225,7 @@ export default function BillingPage() {
 
           {/* ── Standard ── */}
           <Card
-            className={`relative border-2 ${
+            className={`relative flex flex-col border-2 ${
               planFamily === 'standard'
                 ? 'border-primary ring-2 ring-primary shadow-md'
                 : 'border-primary'
@@ -229,7 +235,7 @@ export default function BillingPage() {
               Mua nhiều nhất
             </Badge>
 
-            <CardContent className="pt-7 pb-5 px-5 space-y-4">
+            <CardContent className="flex flex-col flex-1 pt-7 pb-5 px-5 gap-4">
               <div className="flex flex-col items-center text-center gap-1">
                 <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mb-1">
                   <Sparkles className="w-7 h-7 text-white" />
@@ -248,7 +254,7 @@ export default function BillingPage() {
                 Chọn thêm 20, 35 hoặc 50 SKU theo nhu cầu sử dụng.
               </div>
 
-              <ul className="space-y-2 text-sm">
+              <ul className="flex-1 space-y-2 text-sm">
                 {['Tính carbon proxy đơn giản', 'Vận chuyển nội địa', 'Vận chuyển xuất khẩu'].map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -258,7 +264,7 @@ export default function BillingPage() {
               </ul>
 
               <Button
-                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold"
+                className="w-full mt-auto bg-primary hover:bg-primary/90 text-white font-semibold"
                 onClick={() => setShowStandardModal(true)}
                 disabled={!user?.company_id}
               >
@@ -268,8 +274,8 @@ export default function BillingPage() {
           </Card>
 
           {/* ── Export ── */}
-          <Card className={`relative ${planFamily === 'export' ? 'ring-2 ring-amber-500 shadow-md' : ''}`}>
-            <CardContent className="pt-6 pb-5 px-5 space-y-4">
+          <Card className={`relative flex flex-col ${planFamily === 'export' ? 'ring-2 ring-amber-500 shadow-md' : ''}`}>
+            <CardContent className="flex flex-col flex-1 pt-6 pb-5 px-5 gap-4">
               <div className="flex flex-col items-center text-center gap-1">
                 <div className="w-14 h-14 rounded-full bg-amber-500 flex items-center justify-center mb-1">
                   <Crown className="w-7 h-7 text-white" />
@@ -282,7 +288,7 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <ul className="space-y-2 text-sm">
+              <ul className="flex-1 space-y-2 text-sm">
                 {[
                   'Tất cả tính năng của Standard',
                   'Báo cáo tuân thủ US/EU',
@@ -300,7 +306,7 @@ export default function BillingPage() {
 
               <Button
                 variant="outline"
-                className="w-full border-primary text-primary hover:bg-primary/5"
+                className="w-full mt-auto border-primary text-primary hover:bg-primary/5"
                 onClick={() =>
                   window.open(
                     'mailto:sales@weavecarbon.com?subject=Tư vấn gói Export WeaveCarbon',
