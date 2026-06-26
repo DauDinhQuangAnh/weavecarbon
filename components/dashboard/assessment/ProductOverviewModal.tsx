@@ -169,7 +169,11 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
     hasAddedOnOpenRef.current = true;
   }, [
     addProduct,
+    carbonBreakdown.manufacturing,
+    carbonBreakdown.materials,
+    carbonBreakdown.packaging,
     carbonBreakdown.total,
+    carbonBreakdown.transport,
     category,
     carbonResult.confidenceScore,
     materialPercentage,

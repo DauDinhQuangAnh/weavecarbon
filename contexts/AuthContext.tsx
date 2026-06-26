@@ -1236,6 +1236,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   };
 
   const startLocalDemo = async (
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _scenario: "b2b_standard_20" = "b2b_standard_20")
   : Promise<{error: Error | null;}> => {
     try {
