@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment: production
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -58,10 +58,6 @@ jobs:
       - name: Lint and typecheck
         if: steps.deploy_secrets.outputs.missing == '0'
         run: npm run check
-
-      - name: Build
-        if: steps.deploy_secrets.outputs.missing == '0'
-        run: npm run build
 
       - name: Configure SSH
         if: steps.deploy_secrets.outputs.missing == '0'
