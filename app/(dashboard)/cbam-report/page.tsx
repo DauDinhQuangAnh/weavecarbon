@@ -215,11 +215,7 @@ export default function CbamReportPage() {
       (s, e) => s + (e.scope2_co2e_kg ?? 0),
       0
     );
-    const scope3 = products.reduce(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (s, p: any) => s + (p.co2 ?? 0) * 0.7,
-      0
-    );
+    const scope3 = products.reduce((s, p) => s + (p.co2 ?? 0) * 0.7, 0);
     const totalKwh = electricity.reduce((s, e) => s + (e.kwh ?? 0), 0);
     return { scope1, scope2, scope3, total: scope1 + scope2 + scope3, totalKwh };
   }, [fuels, electricity, products]);
@@ -234,8 +230,7 @@ export default function CbamReportPage() {
   }, [evidence]);
 
   const productSummary = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return products.map((p: any) => {
+    return products.map((p) => {
       const calc = calcs.find((c) => c.product_id === p.id);
       const total = calc?.total_co2e ?? p.co2 ?? 0;
       const s1 = (calc?.production_co2e ?? 0) * 0.2 || total * 0.05;
@@ -255,7 +250,7 @@ export default function CbamReportPage() {
         s2,
         s3,
         total: s1 + s2 + s3,
-        proxyPct: p.proxyPercentage ?? Math.max(0, 100 - (p.confidenceScore ?? 50)),
+        proxyPct: Math.max(0, 100 - (p.confidenceScore ?? 50)),
         confidence: p.confidenceScore ?? 50,
       };
     });
@@ -552,10 +547,9 @@ export default function CbamReportPage() {
                 </TableHeader>
                 <TableBody>
                   {TEXTILE_PROCESSES.map((proc) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const related = products.filter((p: any) =>
+                    const related = products.filter((p) =>
                       (p.materials ?? []).some(
-                        (m: string) =>
+                        (m) =>
                           m?.toLowerCase().includes(proc.key) ||
                           proc.key === 'cutting'
                       )
@@ -631,8 +625,7 @@ export default function CbamReportPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {products.slice(0, 20).map((p: any) => (
+                  {products.slice(0, 20).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="text-xs">
                         <Link

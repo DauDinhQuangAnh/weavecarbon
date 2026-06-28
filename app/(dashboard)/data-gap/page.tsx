@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiRequest } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 
 type GapStatus =
@@ -85,31 +85,25 @@ export default function DataGapPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!companyId) return;
     setLoading(true);
     try {
-      const data = await apiRequest<GapRow[]>(
-        `/data-gaps?companyId=${companyId}`
-      );
+      const data = await api.get<GapRow[]>('/data-gaps');
       setRows(data);
     } catch {
       setRows([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [companyId]);
+  useEffect(() => { load(); }, [load]);
 
   const seed = async () => {
     if (!companyId) return;
     try {
-      await apiRequest('/data-gaps/seed', {
-        method: 'POST',
-        body: JSON.stringify({ company_id: companyId, groups: SEED_GROUPS }),
-      });
+      await api.post('/data-gaps/seed', { groups: SEED_GROUPS });
       toast({ title: 'Đã tạo checklist mặc định' });
       await load();
     } catch (e) {
@@ -123,18 +117,14 @@ export default function DataGapPage() {
   const addRow = async () => {
     if (!companyId || !form.data_group) return;
     try {
-      await apiRequest('/data-gaps', {
-        method: 'POST',
-        body: JSON.stringify({
-          company_id: companyId,
-          data_group: form.data_group,
-          required_for_audit: true,
-          current_status: form.current_status,
-          risk_level: form.risk_level,
-          required_action: form.required_action || null,
-          owner: form.owner || null,
-          deadline: form.deadline || null,
-        }),
+      await api.post('/data-gaps', {
+        data_group: form.data_group,
+        required_for_audit: true,
+        current_status: form.current_status,
+        risk_level: form.risk_level,
+        required_action: form.required_action || null,
+        owner: form.owner || null,
+        deadline: form.deadline || null,
       });
       setOpen(false);
       setForm(EMPTY_FORM);
@@ -146,10 +136,7 @@ export default function DataGapPage() {
 
   const markUploaded = async (r: GapRow) => {
     try {
-      await apiRequest(`/data-gaps/${r.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ current_status: 'uploaded', risk_level: 'low' }),
-      });
+      await api.put(`/data-gaps/${r.id}`, { current_status: 'uploaded', risk_level: 'low' });
       await load();
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi cập nhật', variant: 'destructive' });

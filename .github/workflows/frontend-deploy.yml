@@ -84,3 +84,22 @@ jobs:
           git pull --ff-only origin main
           bash deploy/redeploy-vps.sh --frontend-only
           EOF
+
+      - name: Post-deploy health check
+        if: steps.deploy_secrets.outputs.missing == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" <<'EOF'
+          for i in 1 2 3 4 5; do
+            if curl -sf "http://localhost:3000" > /dev/null; then
+              echo "[deploy] FE health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "[deploy] FE health check attempt $i failed, waiting 10s..."
+            sleep 10
+          done
+          echo "[deploy] ERROR: FE did not respond after 5 attempts"
+          exit 1
+          EOF

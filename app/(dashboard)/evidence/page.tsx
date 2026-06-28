@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,7 +112,7 @@ export default function EvidencePage() {
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const load = async (p = page) => {
+  const load = useCallback(async (p = 1) => {
     setLoading(true);
     try {
       const result = await api.get<{ items?: EvDoc[]; total?: number } | EvDoc[]>(
@@ -130,9 +130,9 @@ export default function EvidencePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(page); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(page); }, [page, load]);
 
   const handleUpload = async () => {
     if (!file)
