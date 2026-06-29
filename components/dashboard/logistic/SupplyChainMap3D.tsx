@@ -88,6 +88,14 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
 
     let isMounted = true;
 
+    // Fail-safe: if map hasn't loaded in 10s (token missing/invalid/network), show error.
+    const loadTimeout = setTimeout(() => {
+      if (isMounted && !mapRef.current) {
+        setError(t("errors.loadFailed"));
+        setIsLoading(false);
+      }
+    }, 10000);
+
     try {
       if (!hasMapboxPublicToken()) {
         throw new Error(t("errors.loadFailed"));
@@ -108,6 +116,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
       map.addControl(new mapboxgl.FullscreenControl());
 
       map.on("load", () => {
+        clearTimeout(loadTimeout);
         if (isMounted) {
           mapRef.current = map;
           setIsLoading(false);
@@ -115,6 +124,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
       });
 
       map.on("error", () => {
+        clearTimeout(loadTimeout);
         if (isMounted) {
           setError(t("errors.loadFailed"));
           setIsLoading(false);
@@ -122,6 +132,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
       });
 
       return () => {
+        clearTimeout(loadTimeout);
         isMounted = false;
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
@@ -131,6 +142,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
         }
       };
     } catch {
+      clearTimeout(loadTimeout);
       if (isMounted) {
         setError(t("errors.loadFailed"));
         setIsLoading(false);

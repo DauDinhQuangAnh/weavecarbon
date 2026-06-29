@@ -671,6 +671,7 @@ const LogisticsClient: React.FC = () => {
                   center={[20, 100]}
                   zoom={2}
                   height="360px"
+                  defaultMapMode="2d"
                   onNodeClick={(node) => {
                     const hit = filteredShipments.find(
                       (s) =>

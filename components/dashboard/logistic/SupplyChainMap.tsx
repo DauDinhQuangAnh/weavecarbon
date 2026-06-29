@@ -61,7 +61,7 @@ const SupplyChainMap: React.FC<SupplyChainMapProps> = (props) => {
   const t = useTranslations("logistics.supplyChainMap");
   const {
     height = "500px",
-    defaultMapMode = "3d",
+    defaultMapMode = "2d",
     showModeToggle = true,
     ...mapProps
   } = props;

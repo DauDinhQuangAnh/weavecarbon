@@ -49,12 +49,21 @@ const ShipmentMiniMap: React.FC<ShipmentMiniMapProps> = ({
     };
 
     let isMounted = true;
+    let mapLoaded = false;
+
+    const loadTimeout = setTimeout(() => {
+      if (isMounted && !mapLoaded) {
+        setError(t("errors.mapFailed"));
+        setIsLoading(false);
+      }
+    }, 10000);
 
     const initMap = async () => {
       if (!mapContainerRef.current) return;
 
       try {
         if (!hasMapboxPublicToken()) {
+          clearTimeout(loadTimeout);
           setError(t("errors.invalidToken"));
           setIsLoading(false);
           return;
@@ -79,6 +88,8 @@ const ShipmentMiniMap: React.FC<ShipmentMiniMapProps> = ({
         mapRef.current = map;
 
         map.on("load", () => {
+          clearTimeout(loadTimeout);
+          mapLoaded = true;
           if (!isMounted) return;
 
           const markerEl = document.createElement("div");
@@ -137,12 +148,14 @@ const ShipmentMiniMap: React.FC<ShipmentMiniMapProps> = ({
         });
 
         map.on("error", () => {
+          clearTimeout(loadTimeout);
           if (isMounted) {
             setError(t("errors.mapFailed"));
             setIsLoading(false);
           }
         });
       } catch {
+        clearTimeout(loadTimeout);
         if (isMounted) {
           setError(t("errors.loadFailed"));
           setIsLoading(false);
@@ -153,6 +166,7 @@ const ShipmentMiniMap: React.FC<ShipmentMiniMapProps> = ({
     initMap();
 
     return () => {
+      clearTimeout(loadTimeout);
       isMounted = false;
       if (mapRef.current) {
         mapRef.current.remove();
