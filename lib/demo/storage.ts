@@ -3,6 +3,7 @@
 import demoSeed from "@/lib/demo/seed/demo-b2b-standard20.json";
 import {
   DEMO_DATASET_STORAGE_KEY,
+  DEMO_DATA_REFRESH_INTERVAL_MS,
   DEMO_DATASET_UPDATED_EVENT,
   DEMO_DATA_VERSION,
   DEMO_MAX_DATASET_BYTES,
@@ -13,6 +14,9 @@ import { DemoDatasetV1Schema, type DemoDataset } from "@/lib/demo/schema";
 const isBrowser = () => typeof window !== "undefined";
 
 const DEMO_REPORT_SAMPLES_MARKER = "__demoReportSamplesHydrated";
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const cloneJson = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -20,6 +24,68 @@ const cloneDataset = (dataset: DemoDataset): DemoDataset => cloneJson(dataset);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date.getTime());
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+};
+
+const formatDateOnly = (date: Date) => date.toISOString().slice(0, 10);
+
+const rollDateString = (value: string, daysToRoll: number) => {
+  if (DATE_TIME_PATTERN.test(value)) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? value : addDays(parsed, daysToRoll).toISOString();
+  }
+
+  if (DATE_ONLY_PATTERN.test(value)) {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return Number.isNaN(parsed.getTime()) ? value : formatDateOnly(addDays(parsed, daysToRoll));
+  }
+
+  return value;
+};
+
+const rollDatesInValue = (value: unknown, daysToRoll: number): unknown => {
+  if (typeof value === "string") {
+    return rollDateString(value, daysToRoll);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => rollDatesInValue(item, daysToRoll));
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, rollDatesInValue(item, daysToRoll)])
+    );
+  }
+
+  return value;
+};
+
+const rollSeedDatasetDates = (dataset: DemoDataset): DemoDataset => {
+  const seedAnchor = new Date((demoSeed as DemoDataset).seededAt);
+  if (Number.isNaN(seedAnchor.getTime())) {
+    return dataset;
+  }
+
+  const now = new Date();
+  const daysToRoll = Math.max(0, Math.round((now.getTime() - seedAnchor.getTime()) / MS_PER_DAY));
+  const rolled = rollDatesInValue(dataset, daysToRoll) as DemoDataset;
+  rolled.seededAt = now.toISOString();
+  return rolled;
+};
+
+const isDatasetFresh = (dataset: DemoDataset) => {
+  const seededAt = new Date(dataset.seededAt);
+  if (Number.isNaN(seededAt.getTime())) {
+    return false;
+  }
+
+  return Date.now() - seededAt.getTime() < DEMO_DATA_REFRESH_INTERVAL_MS;
+};
 
 const prepareDataset = (dataset: DemoDataset): DemoDataset => {
   const prepared = cloneDataset(dataset);
@@ -65,9 +131,7 @@ const createSeedDataset = (): DemoDataset => {
     ...(cloneDataset(demoSeed as DemoDataset)),
     version: DEMO_DATA_VERSION,
   };
-  const dataset = prepareDataset(validateDataset(seedCandidate));
-  dataset.seededAt = new Date().toISOString();
-  return dataset;
+  return rollSeedDatasetDates(prepareDataset(validateDataset(seedCandidate)));
 };
 
 export const readDemoDataset = (): DemoDataset | null => {
@@ -109,7 +173,7 @@ export const resetDemoDataset = () => {
 
 export const ensureDemoDataset = () => {
   const existing = readDemoDataset();
-  if (existing && existing.version === DEMO_DATA_VERSION) {
+  if (existing && existing.version === DEMO_DATA_VERSION && isDatasetFresh(existing)) {
     return existing;
   }
   return resetDemoDataset();
