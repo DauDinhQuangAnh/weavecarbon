@@ -1201,8 +1201,6 @@ const ShippingOverviewMap: React.FC = () => {
                 center={[20, 80]}
                 zoom={2}
                 height={mapHeight}
-                defaultMapMode="2d"
-                showModeToggle={false}
               />
             </LazyMountOnView>
           </CardContent>

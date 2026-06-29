@@ -1,7 +1,5 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense } from "react";
 import { useTranslations } from "next-intl";
-import { Globe, Map } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface SupplyChainNode {
   id: string;
@@ -34,8 +32,6 @@ interface SupplyChainMapProps {
   height?: string;
   onNodeClick?: (node: SupplyChainNode) => void;
   onRouteClick?: (route: SupplyChainRoute) => void;
-  defaultMapMode?: "2d" | "3d";
-  showModeToggle?: boolean;
 }
 
 const LoadingPlaceholder: React.FC<{height: string;}> = ({ height }) => {
@@ -45,69 +41,24 @@ const LoadingPlaceholder: React.FC<{height: string;}> = ({ height }) => {
     <div
       className="relative rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center"
       style={{ height }}>
-
       <div className="text-center text-muted-foreground">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
         <p className="text-sm">{t("loading")}</p>
       </div>
-    </div>);
-
+    </div>
+  );
 };
 
 const LazyMapContent = lazy(() => import("./SupplyChainMapContent"));
-const LazyMap3D = lazy(() => import("./SupplyChainMap3D"));
 
 const SupplyChainMap: React.FC<SupplyChainMapProps> = (props) => {
-  const t = useTranslations("logistics.supplyChainMap");
-  const {
-    height = "500px",
-    defaultMapMode = "2d",
-    showModeToggle = true,
-    ...mapProps
-  } = props;
-
-  const [mapMode, setMapMode] = useState<"2d" | "3d">(defaultMapMode);
+  const { height = "500px", ...mapProps } = props;
 
   return (
-    <div className="space-y-3">
-      {showModeToggle &&
-      <div className="flex justify-end">
-          <ToggleGroup
-          type="single"
-          value={mapMode}
-          onValueChange={(value) => value && setMapMode(value as "2d" | "3d")}
-          className="bg-muted p-1 rounded-lg">
-
-            <ToggleGroupItem
-            value="2d"
-            aria-label={t("modes.twoDAria")}
-            className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-3">
-
-              <Map className="w-4 h-4 mr-2" />
-              {t("modes.twoD")}
-            </ToggleGroupItem>
-            <ToggleGroupItem
-            value="3d"
-            aria-label={t("modes.threeDAria")}
-            className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-3">
-
-              <Globe className="w-4 h-4 mr-2" />
-              {t("modes.threeD")}
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      }
-
-      <Suspense fallback={<LoadingPlaceholder height={height} />}>
-        {mapMode === "3d" ?
-        <LazyMap3D {...mapProps} height={height} /> :
-
-        <LazyMapContent {...mapProps} height={height} />
-        }
-      </Suspense>
-    </div>);
-
+    <Suspense fallback={<LoadingPlaceholder height={height} />}>
+      <LazyMapContent {...mapProps} height={height} />
+    </Suspense>
+  );
 };
 
 export default SupplyChainMap;
-
