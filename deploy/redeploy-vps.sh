@@ -18,10 +18,11 @@ compose() {
 
 usage() {
   cat <<'EOF'
-Usage: ./deploy/redeploy-vps.sh [--frontend-only]
+Usage: ./deploy/redeploy-vps.sh [--frontend-only|--backend-only]
 
 Options:
-  --frontend-only  Pulls up and rebuilds only the frontend service.
+  --frontend-only  Rebuilds only the frontend (fe) service.
+  --backend-only   Rebuilds only the backend (be) service.
   -h, --help       Show this help message.
 EOF
 }
@@ -220,6 +221,9 @@ for arg in "$@"; do
     --frontend-only)
       DEPLOY_MODE="frontend-only"
       ;;
+    --backend-only)
+      DEPLOY_MODE="backend-only"
+      ;;
     -h|--help)
       usage
       exit 0
@@ -241,6 +245,9 @@ ensure_proxy_ports_available
 if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
   echo "Deploy mode: frontend-only"
   retry_command 3 20 compose up -d --build --no-deps fe
+elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
+  echo "Deploy mode: backend-only"
+  retry_command 3 20 compose up -d --build --no-deps be
 else
   echo "Deploy mode: full stack"
   retry_command 3 20 compose up -d --build --remove-orphans

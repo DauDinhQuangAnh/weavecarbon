@@ -5,9 +5,28 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "hooks/**"
+      - "contexts/**"
+      - "locales/**"
+      - "public/**"
+      - "types/**"
+      - "config/**"
+      - "proxy.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.mjs"
+      - "tailwind.config.ts"
+      - "tsconfig.json"
+      - "Dockerfile"
+      - "deploy/**"
+      - ".github/workflows/frontend-deploy.yml"
 
 concurrency:
-  group: production-deploy
+  group: fe-deploy
   cancel-in-progress: false
 
 jobs:

@@ -4,7 +4,8 @@ RUN apk add --no-cache libc6-compat
 
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,id=npm-weavecarbon-fe,target=/root/.npm \
+    npm ci
 
 FROM base AS builder
 ARG NEXT_PUBLIC_API_BASE_URL=/api
@@ -34,7 +35,8 @@ ENV NEXT_PUBLIC_ACCOUNT_ENDPOINT=$NEXT_PUBLIC_ACCOUNT_ENDPOINT
 ENV NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD=$NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN --mount=type=cache,id=nextjs-weavecarbon,target=/app/.next/cache \
+    npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
