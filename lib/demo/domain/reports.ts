@@ -150,8 +150,8 @@ export const deleteDemoReport = (dataset: DemoDataset, reportId: string) => {
 export const getDemoReportSourceCounts = (dataset: DemoDataset) => {
   const counts = {
     products: getReportRowsByType(dataset, "products").length,
-    activity: 0,
-    audit: 0,
+    activity: getReportRowsByType(dataset, "activity").length,
+    audit: getReportRowsByType(dataset, "audit").length,
     users: getReportRowsByType(dataset, "users").length,
     history: getReportRowsByType(dataset, "history").length,
   };

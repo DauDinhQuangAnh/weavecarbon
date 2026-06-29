@@ -8,6 +8,7 @@ import {
   DEMO_DATA_VERSION,
   DEMO_MAX_DATASET_BYTES,
 } from "@/lib/demo/constants";
+import { enrichDemoDataset } from "@/lib/demo/enrich";
 import { normalizeSeedDemoDataset } from "@/lib/demo/normalize";
 import { DemoDatasetV1Schema, type DemoDataset } from "@/lib/demo/schema";
 
@@ -89,6 +90,7 @@ const isDatasetFresh = (dataset: DemoDataset) => {
 
 const prepareDataset = (dataset: DemoDataset): DemoDataset => {
   const prepared = cloneDataset(dataset);
+  enrichDemoDataset(prepared);
   const uiState = isRecord(prepared.uiState) ? prepared.uiState : {};
   const hasHydratedSampleReports = uiState[DEMO_REPORT_SAMPLES_MARKER] === true;
 

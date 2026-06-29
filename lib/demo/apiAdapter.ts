@@ -60,6 +60,16 @@ import {
   getDemoReportSourceCount,
   getDemoReportSourceCounts,
 } from "@/lib/demo/domain/reports";
+import {
+  getDemoAuditTrail,
+  getDemoCarbonCalculations,
+  getDemoDataGaps,
+  getDemoElectricityInvoices,
+  getDemoEvidenceDocuments,
+  getDemoEvidenceFields,
+  getDemoFuelInvoices,
+  getDemoSuppliers,
+} from "@/lib/demo/domain/operations";
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -160,6 +170,82 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         return {
           handled: true,
           value: getDemoCompanyMembersPayload(getDemoDataset()),
+        };
+      }
+
+      if (method === "POST" && pathname === "/company/members") {
+        const payload = getBodyObject(body);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            const now = new Date().toISOString();
+            const member = {
+              id: `demo-member-${Date.now()}`,
+              user_id: `demo-member-${Date.now()}`,
+              company_id: dataset.company.id,
+              full_name: String(payload.full_name || payload.email || "Demo Team Member"),
+              email: String(payload.email || `member-${Date.now()}@weavecarbon.demo`),
+              role: String(payload.role || "member"),
+              status: "invited",
+              last_login: null,
+              created_at: now,
+            };
+            dataset.users = [member, ...dataset.users] as DemoDataset["users"];
+            return member;
+          }),
+        };
+      }
+
+      if (method === "POST" && /^\/company\/members\/[^/]+\/resend-invite$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/company\/members\/([^/]+)\/resend-invite$/), pathname);
+        return {
+          handled: true,
+          value: {
+            success: true,
+            id: decodeURIComponent(match[1]),
+            resent_at: new Date().toISOString(),
+          },
+        };
+      }
+
+      if (method === "PUT" && /^\/company\/members\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/company\/members\/([^/]+)$/), pathname);
+        const memberId = decodeURIComponent(match[1]);
+        const payload = getBodyObject(body);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            let updated: Record<string, unknown> | null = null;
+            dataset.users = dataset.users.map((rawUser) => {
+              const user = rawUser as Record<string, unknown>;
+              if (String(user.id || user.user_id || "") !== memberId) return rawUser;
+              updated = {
+                ...user,
+                ...payload,
+                id: String(user.id || memberId),
+                user_id: String(user.user_id || user.id || memberId),
+                updated_at: new Date().toISOString(),
+              };
+              return updated;
+            }) as DemoDataset["users"];
+            return updated || { id: memberId, ...payload, updated_at: new Date().toISOString() };
+          }),
+        };
+      }
+
+      if (method === "DELETE" && /^\/company\/members\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/company\/members\/([^/]+)$/), pathname);
+        const memberId = decodeURIComponent(match[1]);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            dataset.users = dataset.users.filter((rawUser) => {
+              const user = rawUser as Record<string, unknown>;
+              const id = String(user.id || user.user_id || "");
+              return id !== memberId && id !== dataset.user.id;
+            }) as DemoDataset["users"];
+            return { success: true };
+          }),
         };
       }
 
@@ -636,6 +722,20 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         };
       }
 
+      if (method === "GET" && /^\/reports\/[^/]+\/status$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/reports\/([^/]+)\/status$/), pathname);
+        const reportId = decodeURIComponent(match[1]);
+        const report = getDemoReports(getDemoDataset()).find((item) => item.id === reportId);
+        return {
+          handled: true,
+          value: {
+            id: reportId,
+            status: report?.status || "completed",
+            download_url: report?.downloadUrl || `demo://report/${reportId}`,
+          },
+        };
+      }
+
       if (method === "DELETE" && /^\/reports\/[^/]+$/.test(pathname)) {
         const match = ensurePathMatches(pathname.match(/^\/reports\/([^/]+)$/), pathname);
         return {
@@ -669,6 +769,120 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         return {
           handled: true,
           value: getDemoExportData(getDemoDataset(), decodeURIComponent(match[1]) as never),
+        };
+      }
+
+      if (method === "GET" && pathname === "/audit-trail") {
+        return {
+          handled: true,
+          value: getDemoAuditTrail(getDemoDataset()),
+        };
+      }
+
+      if (method === "GET" && pathname === "/suppliers") {
+        return {
+          handled: true,
+          value: getDemoSuppliers(getDemoDataset()),
+        };
+      }
+
+      if (method === "POST" && pathname === "/suppliers") {
+        const payload = getBodyObject(body);
+        return {
+          handled: true,
+          value: {
+            id: `sup-${Date.now()}`,
+            company_id: "00000000-0000-4000-8000-000000000001",
+            supplier_name: String(payload.supplier_name || payload.name || "New demo supplier"),
+            supplier_email: String(payload.supplier_email || payload.email || "supplier@example.com"),
+            material_supplied: String(payload.material_supplied || "Material evidence"),
+            required_data: Array.isArray(payload.required_data)
+              ? payload.required_data
+              : ["Emission factor", "Invoice", "Certificate"],
+            deadline: String(
+              payload.deadline || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+            ),
+            status: String(payload.status || "pending"),
+            created_at: new Date().toISOString(),
+            ...payload,
+          },
+        };
+      }
+
+      if (method === "GET" && pathname === "/evidence") {
+        const allDocuments = getDemoEvidenceDocuments(getDemoDataset());
+        const page = searchParams.get("page") ? Number(searchParams.get("page")) : 1;
+        const pageSize = searchParams.get("page_size") ? Number(searchParams.get("page_size")) : allDocuments.length;
+        const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+        const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : allDocuments.length;
+        const start = (safePage - 1) * safePageSize;
+        const items = allDocuments.slice(start, start + safePageSize);
+        return {
+          handled: true,
+          value: {
+            items,
+            total: allDocuments.length,
+            page: safePage,
+            page_size: safePageSize,
+          },
+        };
+      }
+
+      if (method === "POST" && pathname === "/evidence/upload") {
+        return {
+          handled: true,
+          value: {
+            id: `ev-demo-${Date.now()}`,
+            company_id: "00000000-0000-4000-8000-000000000001",
+            kind: "supplier_declaration",
+            status: "processing",
+            file_name: "demo-upload.pdf",
+            storage_path: "demo/pending.pdf",
+            mime_type: "application/pdf",
+            ocr_confidence: null,
+            trust_score: 61,
+            verification_level: "pending",
+            file_hash_sha256: "pending-demo-upload-hash",
+            warnings: ["OCR processing in demo mode"],
+            created_at: new Date().toISOString(),
+            extracted: {},
+          },
+        };
+      }
+
+      if (method === "GET" && /^\/evidence\/[^/]+\/fields$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/evidence\/([^/]+)\/fields$/), pathname);
+        return {
+          handled: true,
+          value: getDemoEvidenceFields(getDemoDataset(), decodeURIComponent(match[1])),
+        };
+      }
+
+      if (method === "GET" && pathname === "/data-gaps") {
+        return {
+          handled: true,
+          value: getDemoDataGaps(getDemoDataset()),
+        };
+      }
+
+      if (method === "GET" && pathname === "/electricity-invoices") {
+        return {
+          handled: true,
+          value: getDemoElectricityInvoices(getDemoDataset()),
+        };
+      }
+
+      if (method === "GET" && pathname === "/fuel-invoices") {
+        return {
+          handled: true,
+          value: getDemoFuelInvoices(getDemoDataset()),
+        };
+      }
+
+      if (method === "GET" && pathname === "/carbon-calculations") {
+        return {
+          handled: true,
+          value: getDemoCarbonCalculations(getDemoDataset()),
         };
       }
       // ── Audit Trail ────────────────────────────────────────────
@@ -831,7 +1045,44 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       // ── Account profile update ─────────────────────────────────
       if (method === "PUT" && pathname === "/account/profile") {
         const payload = getBodyObject(body);
-        return { handled: true, value: { ...getDemoAccountPayload(getDemoDataset()), ...payload } };
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            dataset.user = {
+              ...dataset.user,
+              ...payload,
+              updated_at: new Date().toISOString(),
+            };
+            dataset.users = dataset.users.map((rawUser) => {
+              const user = rawUser as Record<string, unknown>;
+              if (String(user.id || user.user_id || "") !== dataset.user.id) return rawUser;
+              return {
+                ...user,
+                ...payload,
+                updated_at: new Date().toISOString(),
+              };
+            }) as DemoDataset["users"];
+            return {
+              full_name: dataset.user.full_name,
+              email: dataset.user.email,
+            };
+          }),
+        };
+      }
+
+      if ((method === "PUT" || method === "POST") && pathname === "/account/company") {
+        const payload = getBodyObject(body);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            dataset.company = {
+              ...dataset.company,
+              ...payload,
+              updated_at: new Date().toISOString(),
+            };
+            return getDemoAccountPayload(dataset).company;
+          }),
+        };
       }
 
       if (method === "POST" && pathname === "/account/change-password") {
@@ -867,5 +1118,3 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
     };
   }) as ApiRequestAdapter;
 };
-
-

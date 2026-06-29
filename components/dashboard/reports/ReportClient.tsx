@@ -75,6 +75,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { isStandardPlan, normalizeSubscriptionPlan } from "@/lib/subscriptionPlans";
 import { isDemoPath } from "@/lib/demo/routes";
+import { downloadDemoReportFromPath } from "@/lib/demo/domain/reports";
 import { cn } from "@/lib/utils";import MobileDataCard from "./mobile/MobileDataCard";
 const ReportPreviewModal = dynamic(() => import("./ReportPreviewModal"), { ssr: false });
 
@@ -659,8 +660,22 @@ const ReportsPage: React.FC = () => {
       for (let i = 0; i < MAX_ATTEMPTS && !done; i++) {
         await new Promise(r => setTimeout(r, 3000));
         try {
-          const status = await api.get<{ status: string }>(`/reports/${reportId}/status`);
+          const status = await api.get<{ status: string; download_url?: string; downloadUrl?: string }>(
+            `/reports/${reportId}/status`
+          );
           if (status?.status === "completed") {
+            const demoDownloadPath = status.download_url || status.downloadUrl;
+            if (isDemoRuntime && demoDownloadPath) {
+              await downloadDemoReportFromPath(demoDownloadPath, {
+                locale,
+                requestedBy: user?.email || null,
+                planLabel: currentPlan,
+              });
+              setPdfGenState(prev => ({ ...prev, [cardKey]: "idle" }));
+              loadReports();
+              done = true;
+              continue;
+            }
             // Fetch with auth header then trigger blob download
             const token = authTokenStore.getAccessToken();
             const res = await fetch(`${API_BASE_URL}/reports/${reportId}/download`, {
@@ -694,7 +709,7 @@ const ReportsPage: React.FC = () => {
     } catch {
       setPdfGenState(prev => ({ ...prev, [cardKey]: "error" }));
     }
-  }, [pdfGenState, ensureReportActionAllowed, loadReports]);
+  }, [currentPlan, ensureReportActionAllowed, isDemoRuntime, loadReports, locale, pdfGenState, user?.email]);
 
   const loadExportSources = useCallback(async () => {
     if (!canLoadProtectedReportData) {
@@ -931,25 +946,25 @@ const exportHistory = useMemo(
   const reportSummaryCards = [
     {
       label: "Sản phẩm",
-      value: isDemoRuntime ? 42 : getDatasetSourceCount("products"),
+      value: getDatasetSourceCount("products"),
       icon: Package,
       iconClassName: "text-emerald-800"
     },
     {
       label: "Hoạt động",
-      value: isDemoRuntime ? 6 : Math.max(reports.length, exportHistory.length),
+      value: getDatasetSourceCount("activity") || Math.max(reports.length, exportHistory.length),
       icon: Activity,
       iconClassName: "text-emerald-700"
     },
     {
       label: "Người dùng",
-      value: isDemoRuntime ? 3 : getDatasetSourceCount("users"),
+      value: getDatasetSourceCount("users"),
       icon: Users,
       iconClassName: "text-emerald-700"
     },
     {
       label: "Lịch sử tính",
-      value: isDemoRuntime ? 3 : getDatasetSourceCount("history"),
+      value: getDatasetSourceCount("history"),
       icon: History,
       iconClassName: "text-red-400"
     }

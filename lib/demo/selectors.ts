@@ -4,6 +4,10 @@ import type { DemoDataset, DemoReportSnapshot } from "@/lib/demo/schema";
 import type { ProductRecord } from "@/lib/productsApi";
 import type { MarketCompliance } from "@/components/dashboard/export/types";
 import type { ReportDatasetType, ReportExportSourceCounts } from "@/lib/reportsApi";
+import {
+  getDemoAuditTrail,
+  getDemoCarbonCalculations,
+} from "@/lib/demo/domain/operations";
 
 const asNumber = (value: unknown, fallback = 0) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -157,6 +161,8 @@ export const getComplianceMarkets = (dataset: DemoDataset) =>
 
 export const getReportRowsByType = (dataset: DemoDataset, type: ReportDatasetType) => {
   if (type === "products") return getDemoProductRows(dataset);
+  if (type === "activity") return getDemoCarbonCalculations(dataset) as Record<string, unknown>[];
+  if (type === "audit") return getDemoAuditTrail(dataset) as Record<string, unknown>[];
   if (type === "users") return getDemoUsersRows(dataset) as Record<string, unknown>[];
   if (type === "history") return getDemoHistoryRows(dataset) as Record<string, unknown>[];
   if (type === "analytics") return getDemoAnalyticsRows(dataset) as Record<string, unknown>[];
@@ -217,8 +223,8 @@ export const createReportSnapshot = (
 
 export const getReportSourceCounts = (dataset: DemoDataset): ReportExportSourceCounts => ({
   products: getDemoProducts(dataset).length,
-  activity: 0,
-  audit: 0,
+  activity: getDemoCarbonCalculations(dataset).length,
+  audit: getDemoAuditTrail(dataset).length,
   users: dataset.users.length,
   history: dataset.history.length,
 });
