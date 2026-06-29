@@ -78,7 +78,7 @@ const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
 const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodes,
   routes,
-  center = [108.2772, 14.0583],
+  center = [14.0583, 108.2772],
   zoom = 4,
   height = "500px",
   onNodeClick,
@@ -113,7 +113,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: "mapbox://styles/mapbox/streets-v12",
-        center,
+        center: [center[1], center[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
         zoom,
         antialias: true,
         pitch: 0,
