@@ -18,10 +18,11 @@ compose() {
 
 usage() {
   cat <<'EOF'
-Usage: ./deploy/redeploy-vps.sh [--frontend-only]
+Usage: ./deploy/redeploy-vps.sh [--frontend-only|--backend-only]
 
 Options:
-  --frontend-only  Pulls up and rebuilds only the frontend service.
+  --frontend-only  Pulls the configured frontend image and restarts only the frontend service.
+  --backend-only   Pulls the configured backend image and restarts only the backend service.
   -h, --help       Show this help message.
 EOF
 }
@@ -89,6 +90,60 @@ fetch_url() {
 
   echo "Neither curl nor wget is available on this host, so post-deploy URL verification cannot run."
   return 127
+}
+
+acquire_deploy_lock() {
+  if command -v flock >/dev/null 2>&1; then
+    exec 9>/tmp/weavecarbon-deploy.lock
+    echo "Waiting for deploy lock..."
+    flock -w 900 9
+    echo "Deploy lock acquired."
+  fi
+}
+
+pull_images() {
+  if [[ "$#" -eq 0 ]]; then
+    return 0
+  fi
+
+  echo "Pulling prebuilt images: $*"
+  retry_command 3 20 compose pull "$@"
+}
+
+wait_for_service_health() {
+  local service="$1"
+  local timeout_seconds="${2:-120}"
+  local interval_seconds=5
+  local elapsed_seconds=0
+  local container_id status
+
+  container_id="$(compose ps -q "${service}")"
+  if [[ -z "${container_id}" ]]; then
+    echo "No container found for service: ${service}"
+    return 1
+  fi
+
+  echo "Waiting for ${service} to become healthy..."
+  while (( elapsed_seconds <= timeout_seconds )); do
+    status="$(
+      docker inspect \
+        --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+        "${container_id}" 2>/dev/null || true
+    )"
+
+    if [[ "${status}" == "healthy" || "${status}" == "running" ]]; then
+      echo "${service} is ${status}."
+      return 0
+    fi
+
+    echo "${service} status: ${status:-unknown}; waiting ${interval_seconds}s..."
+    sleep "${interval_seconds}"
+    elapsed_seconds=$((elapsed_seconds + interval_seconds))
+  done
+
+  echo "${service} did not become healthy within ${timeout_seconds}s."
+  docker logs --tail 80 "${container_id}" || true
+  return 1
 }
 
 cleanup_legacy_containers() {
@@ -220,6 +275,9 @@ for arg in "$@"; do
     --frontend-only)
       DEPLOY_MODE="frontend-only"
       ;;
+    --backend-only)
+      DEPLOY_MODE="backend-only"
+      ;;
     -h|--help)
       usage
       exit 0
@@ -234,15 +292,28 @@ done
 
 cd "${ROOT_DIR}"
 
+acquire_deploy_lock
 compose config >/dev/null
 cleanup_legacy_containers
 ensure_proxy_ports_available
 
 if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
   echo "Deploy mode: frontend-only"
-  retry_command 3 20 compose up -d --build --no-deps fe
+  pull_images fe
+  retry_command 3 20 compose up -d --no-deps fe
+  wait_for_service_health fe 180
+elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
+  echo "Deploy mode: backend-only"
+  pull_images be
+  retry_command 3 20 compose up -d --no-deps be
+  wait_for_service_health be 180
 else
   echo "Deploy mode: full stack"
+  pull_images be fe
   retry_command 3 20 compose up -d --build --remove-orphans
+  wait_for_service_health db 180
+  wait_for_service_health be 180
+  wait_for_service_health rag 240
+  wait_for_service_health fe 180
 fi
 compose ps
