@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -132,8 +132,8 @@ const Step5CarbonResult: React.FC<Step5CarbonResultProps> = ({
   onChange
 }) => {
   const t = useTranslations("assessment.step5");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const locale = "vi";
+  const displayLocale = "vi-VN";
   const currentSerialized = useMemo(
     () => JSON.stringify(data.carbonResults ?? null),
     [data.carbonResults]

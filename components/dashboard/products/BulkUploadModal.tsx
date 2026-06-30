@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { toast } from "sonner";
@@ -1007,8 +1007,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   starterDomesticMarket
 }) => {
   const t = useTranslations("products.bulkUpload");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const navigate = useRouter();
   const appRoutes = useAppRoutes();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1261,7 +1260,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           <div className="space-y-6">
             {starterDomesticOnly &&
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-                Gói Trial chỉ hỗ trợ dữ liệu nội địa. Nếu file có dòng xuất khẩu, hệ thống sẽ chuyển về nội địa.
+                Gói Trial chềEhềEtrợ dữ liệu nội địa. Nếu file có dòng xuất khẩu, hềEthống sẽ chuyển vềEnội địa.
               </div>
             }
             <div className="bg-muted/50 rounded-lg p-4 border border-dashed">

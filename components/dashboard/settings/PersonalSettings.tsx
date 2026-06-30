@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, authTokenStore } from "@/lib/apiClient";
 import {
@@ -46,8 +46,7 @@ const toInitials = (value: string) => {
 
 const PersonalSettings: React.FC = () => {
   const t = useTranslations("settings.system");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const { user, updateUser, refreshUser } = useAuth();
   const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

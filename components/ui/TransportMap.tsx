@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Badge } from "@/components/ui/badge";
@@ -139,8 +139,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
 }) => {
   const tTrack = useTranslations("trackShipment");
   const tMap = useTranslations("trackShipment.map");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -915,7 +914,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
                       </div>
                       <div className="rounded-md bg-slate-50 px-2 py-1.5">
                         <p className="text-[10px] text-muted-foreground">
-                          {locale === "vi" ? "Loại" : "Mode"}
+                          Loại
                         </p>
                         <p className="mt-0.5 text-xs font-semibold text-slate-800">
                           {getRouteTypeLabel(leg.routeType)}

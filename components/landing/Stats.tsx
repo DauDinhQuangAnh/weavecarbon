@@ -2,11 +2,10 @@
 
 import { motion } from "motion/react";
 import { TrendingUp } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import StatsWave from "@/components/icons/StatsWave";
 
 const Stats = () => {
-  const locale = useLocale();
   const t = useTranslations("stats");
   const stats = [
     {
@@ -32,7 +31,7 @@ const Stats = () => {
   ];
 
   const renderStatLabel = (labelKey: string) => {
-    if (locale !== "vi") {
+    if (false) {
       return t(labelKey);
     }
 

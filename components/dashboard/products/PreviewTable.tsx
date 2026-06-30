@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Leaf } from "lucide-react";
 import type { BulkProductRow } from "./types";
 import { Badge } from "@/components/ui/badge";
@@ -38,8 +38,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
   showCarbonData = false
 }) => {
   const t = useTranslations("products.previewTable");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
 
   const confidenceLabels = {
     high: t("confidence.high"),

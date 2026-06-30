@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -36,8 +36,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
   onProductClick
 }) => {
   const t = useTranslations("calculationHistory");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString(displayLocale, {
       day: "2-digit",

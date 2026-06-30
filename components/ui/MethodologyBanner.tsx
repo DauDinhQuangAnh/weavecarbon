@@ -1,9 +1,7 @@
 'use client';
 
 import { ShieldCheck } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 import {
-  METHODOLOGY_DISCLAIMER_EN,
   METHODOLOGY_DISCLAIMER_VI,
 } from '@/config/penalties';
 
@@ -18,8 +16,7 @@ interface MethodologyBannerProps {
  * immediately see the standards the platform is built on.
  */
 const MethodologyBanner = ({ variant = 'subtle', className = '' }: MethodologyBannerProps) => {
-  const { locale } = useLanguage();
-  const text = locale === 'vi' ? METHODOLOGY_DISCLAIMER_VI : METHODOLOGY_DISCLAIMER_EN;
+  const text = METHODOLOGY_DISCLAIMER_VI;
 
   if (variant === 'prominent') {
     return (

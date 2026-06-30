@@ -3,7 +3,7 @@
 import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   AlertCircle,
   Camera,
@@ -101,12 +101,12 @@ const buildFallbackMaterialRewards = (locale: string): MaterialReward[] =>
   DEFAULT_B2C_MATERIAL_REWARDS.map((material) => ({
       id: material.id,
       material_name:
-        locale.startsWith("vi") ? material.materialNameVi : material.materialNameEn,
+        true ? material.materialNameVi : material.materialNameEn,
       material_category: material.materialCategory,
       points_per_kg: material.pointsPerKg,
       co2_saved_per_kg: material.co2SavedPerKg,
       description:
-        locale.startsWith("vi") ? material.descriptionVi : material.descriptionEn,
+        true ? material.descriptionVi : material.descriptionEn,
       is_active: true
     }))
     .sort((left, right) =>
@@ -162,7 +162,7 @@ const B2CDonationClient: React.FC = () => {
   const router = useRouter();
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
-  const locale = useLocale();
+  const locale = "vi";
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
 
   const uploadInputRef = useRef<HTMLInputElement | null>(null);

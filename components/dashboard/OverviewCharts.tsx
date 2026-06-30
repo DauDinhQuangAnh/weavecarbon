@@ -20,7 +20,7 @@ import {
   Tooltip,
   Legend } from
 "recharts";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 export interface ProductEmissionsPoint {
   name: string;
@@ -57,7 +57,7 @@ export default function OverviewCharts({
   isLoading = false,
 }: OverviewChartsProps) {
   const t = useTranslations("overview");
-  const locale = useLocale();
+  const locale = "vi";
 
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
@@ -74,7 +74,7 @@ export default function OverviewCharts({
   const categoryLabels = {
     materials:  locale === "vi" ? "Vật liệu"   : "Materials",
     production: locale === "vi" ? "Sản xuất"   : "Production",
-    transport:  locale === "vi" ? "Vận chuyển" : "Transport",
+    transport:  "Vận chuyển",
     packaging:  locale === "vi" ? "Đóng gói"   : "Packaging",
   };
 
@@ -91,7 +91,7 @@ export default function OverviewCharts({
           <CardTitle className="flex items-center gap-2 text-sm leading-5 md:text-base">
             <BarChart2 className="w-4 h-4 md:w-5 md:h-5" />
             <span>
-              {locale === "vi" ? "Phát thải CO₂e theo sản phẩm" : "CO₂e Emissions by Product"}
+              {"Phát thải CO₂e theo sản phẩm"}
             </span>
           </CardTitle>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -131,7 +131,7 @@ export default function OverviewCharts({
                       fontSize: "12px",
                     }}
                     formatter={(value, name) => [
-                      `${Number(value).toLocaleString(locale === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 2 })} kg`,
+                      `${Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 2 })} kg`,
                       name,
                     ]}
                   />
@@ -148,7 +148,7 @@ export default function OverviewCharts({
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-sm text-slate-700">
-                {locale === "vi" ? "Chưa có sản phẩm nào" : "No products yet"}
+                {"Chưa có sản phẩm nào"}
               </div>
             )}
           </div>
@@ -187,7 +187,7 @@ export default function OverviewCharts({
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full w-full items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-sm text-slate-700">
-                {locale === "vi" ? "Chưa có dữ liệu phát thải" : "No breakdown data yet"}
+                {"Chưa có dữ liệu phát thải"}
               </div>
             )}
           </div>

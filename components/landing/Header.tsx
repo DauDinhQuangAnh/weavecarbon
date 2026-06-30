@@ -6,7 +6,6 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import UserTypeDialog from "./UserTypeDialog";
-import { LanguageToggle } from "../ui/LanguageToggle";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -132,7 +131,6 @@ const Header = () => {
             </nav>
 
             <div className="hidden lg:flex items-center justify-end gap-3">
-              <LanguageToggle />
               <Button
                 variant="ghost"
                 size="sm"
@@ -150,7 +148,6 @@ const Header = () => {
             </div>
 
             <div className="flex shrink-0 gap-1.5 sm:gap-2 lg:hidden">
-              <LanguageToggle />
               <button
                 className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted sm:p-2.5 lg:hidden"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}

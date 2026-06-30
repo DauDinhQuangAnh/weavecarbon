@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -160,7 +160,6 @@ type AssessmentModalMode = "create" | "edit" | null;
 const ProductsClient: React.FC = () => {
   const router = useRouter();
   const appRoutes = useAppRoutes();
-  const locale = useLocale();
   const t = useTranslations("products");
   const { setPageTitle } = useDashboardTitle();
   const { canMutate } = usePermissions();
@@ -1386,7 +1385,7 @@ const ProductsClient: React.FC = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={Boolean(deletingProductId)}>
-              {locale === "vi" ? "Hủy" : "Cancel"}
+              {"Hủy"}
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"

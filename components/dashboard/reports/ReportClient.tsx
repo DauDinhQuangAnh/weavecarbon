@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
@@ -426,7 +426,7 @@ const EXPORT_DATASET_TYPES = new Set<ReportType>([
 
 const ReportsPage: React.FC = () => {
   const t = useTranslations("reports");
-  const locale = useLocale();
+  const locale = "vi";
   const { setPageTitle } = useDashboardTitle();
   const { canMutate } = usePermissions();
   const { currentPlan } = useSubscriptionLock();
@@ -1047,7 +1047,7 @@ const exportHistory = useMemo(
           <div className="mb-3 flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
             <h3 className="text-sm font-semibold text-slate-800">
-              {locale === "vi" ? "Loại báo cáo PDF" : "PDF Report Types"}
+              {"Loại báo cáo PDF"}
             </h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1056,7 +1056,7 @@ const exportHistory = useMemo(
                 key: "product",
                 icon: Package,
                 iconBg: "bg-emerald-100 text-emerald-700",
-                title: locale === "vi" ? "Báo cáo PCF Sản phẩm" : "Product Carbon Report",
+                title: "Báo cáo PCF Sản phẩm",
                 desc: locale === "vi"
                   ? "ISO 14067 · Bóc tách Scope 1/2/3 theo từng SKU"
                   : "ISO 14067 · Scope 1/2/3 breakdown per SKU",
@@ -1065,7 +1065,7 @@ const exportHistory = useMemo(
                 key: "batch",
                 icon: Layers,
                 iconBg: "bg-blue-100 text-blue-700",
-                title: locale === "vi" ? "Báo cáo Lô Xuất khẩu" : "Batch Export Report",
+                title: "Báo cáo Lô Xuất khẩu",
                 desc: locale === "vi"
                   ? "CBAM-ready · Nhóm sản phẩm theo lô vận chuyển"
                   : "CBAM-ready · Products grouped by shipment batch",
@@ -1074,7 +1074,7 @@ const exportHistory = useMemo(
                 key: "facility",
                 icon: Building2,
                 iconBg: "bg-amber-100 text-amber-700",
-                title: locale === "vi" ? "Báo cáo Phát thải Cơ sở" : "Facility Emission Report",
+                title: "Báo cáo Phát thải Cơ sở",
                 desc: locale === "vi"
                   ? "GHG Protocol · Scope 1 & 2 toàn nhà máy"
                   : "GHG Protocol · Scope 1 & 2 facility-wide",
@@ -1083,7 +1083,7 @@ const exportHistory = useMemo(
                 key: "compliance",
                 icon: ClipboardCheck,
                 iconBg: "bg-purple-100 text-purple-700",
-                title: locale === "vi" ? "Sẵn sàng Tuân thủ" : "Data Gap & Compliance",
+                title: "Sẵn sàng Tuân thủ",
                 desc: locale === "vi"
                   ? "EU CBAM · EUDR · TT 01/2022 · Khoảng trống dữ liệu"
                   : "EU CBAM · EUDR · VN TT 01/2022 · Data gap analysis",
@@ -1117,12 +1117,12 @@ const exportHistory = useMemo(
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                             </svg>
-                            {locale === "vi" ? "Đang tạo…" : "Generating…"}
+                            {"Đang tạo…"}
                           </>
                         ) : pdfGenState[card.key] === "error" ? (
                           <>
                             <Download className="mr-1.5 h-3.5 w-3.5" />
-                            {locale === "vi" ? "Thử lại" : "Retry"}
+                            {"Thử lại"}
                           </>
                         ) : (
                           <>

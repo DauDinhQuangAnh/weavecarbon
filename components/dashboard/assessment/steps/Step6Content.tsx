@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +44,7 @@ const Step6Content: React.FC<Step6SaveHistoryProps> = ({
   submissionMode = null
 }) => {
   const t = useTranslations("assessment.step6");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
 
   const productType = PRODUCT_TYPES.find((type) => type.value === data.productType);
   const productTypeLabel =

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -214,7 +214,7 @@ const getDocumentStatusMeta = (status: DocumentStatus) => {
 };
 
 const ExportPage: React.FC = () => {
-  const locale = useLocale();
+  const locale = "vi";
   const t = useTranslations("export");
   const { setPageTitle } = useDashboardTitle();
   const { canMutate } = usePermissions();
@@ -802,7 +802,7 @@ const ExportPage: React.FC = () => {
       return {
         title: t("certificates"),
         description: t("documents.uploadManagerTitle"),
-        switchTitle: locale === "vi" ? "Hồ sơ xuất khẩu" : "Export compliance",
+        switchTitle: "Hồ sơ xuất khẩu",
         noResultText: t("documents.uploadManagerNoResults"),
         icon: FileText
       };
@@ -1095,7 +1095,7 @@ const ExportPage: React.FC = () => {
                   <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-1">
                       <p className="text-sm font-semibold text-slate-900">
-                        {locale === "vi" ? "Thị trường xuất khẩu" : "Export markets"}
+                        {"Thị trường xuất khẩu"}
                       </p>
                       <Badge className="border border-slate-200 bg-slate-50 text-slate-700">
                         {availableMarkets.length}
@@ -1288,11 +1288,11 @@ const ExportPage: React.FC = () => {
                     </p>
                     <div className="grid grid-cols-2 gap-1 pt-0 text-[9px] md:mt-auto md:gap-2 md:pt-0 md:text-xs">
                       <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700 md:border-slate-200 md:bg-white md:text-slate-600 md:py-1">
-                        {locale === "vi" ? "Duyệt" : "Approved"}:{" "}
+                        {"Duyệt"}:{" "}
                         <span className="font-semibold text-slate-900">{counts.approvedCount}</span>
                       </span>
                       <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-rose-700 md:border-slate-200 md:bg-white md:text-slate-600 md:py-1">
-                        {locale === "vi" ? "Thiếu" : "Missing"}:{" "}
+                        {"Thiếu"}:{" "}
                         <span className="font-semibold text-rose-700">{counts.missingCount}</span>
                       </span>
                     </div>
@@ -1310,7 +1310,7 @@ const ExportPage: React.FC = () => {
         <DialogContent className="max-w-[calc(100vw-1rem)] rounded-2xl border border-slate-200 bg-white p-0 sm:max-w-lg">
           <DialogHeader className="border-b px-4 py-3">
             <DialogTitle>
-              {locale === "vi" ? "Thị trường xuất khẩu" : "Export markets"}
+              {"Thị trường xuất khẩu"}
             </DialogTitle>
             <DialogDescription className="text-slate-600">
               {locale === "vi"
@@ -1494,7 +1494,7 @@ const ExportPage: React.FC = () => {
               disabled={!previewDocument || uploadingDocument || Boolean(approvingDocumentKey)}
             >
               <Upload className="mr-1 h-4 w-4" />
-              {locale === "vi" ? "Upload l\u1ea1i" : "Re-upload"}
+              {"Upload l\u1ea1i"}
             </Button>
             <Button
               type="button"
@@ -1535,7 +1535,7 @@ const ExportPage: React.FC = () => {
         <AlertDialogContent className="w-[92vw] max-w-md border-slate-200 bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {locale === "vi" ? "X\u00f3a t\u00e0i li\u1ec7u" : "Remove document"}
+              {"X\u00f3a t\u00e0i li\u1ec7u"}
             </AlertDialogTitle>
             <AlertDialogDescription>{t("documents.removeConfirm")}</AlertDialogDescription>
           </AlertDialogHeader>
@@ -1559,7 +1559,7 @@ const ExportPage: React.FC = () => {
               ) : (
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
-              {locale === "vi" ? "X\u00f3a" : "Remove"}
+              {"X\u00f3a"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

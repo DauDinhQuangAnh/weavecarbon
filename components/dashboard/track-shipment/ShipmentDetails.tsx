@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -115,8 +115,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   onRefresh
 }) => {
   const t = useTranslations("trackShipment");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const router = useRouter();
   const appRoutes = useAppRoutes();
   const [isCancelling, setIsCancelling] = useState(false);

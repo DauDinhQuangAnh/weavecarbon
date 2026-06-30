@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,8 @@ import { Loader2, MapPin, Navigation, Search, X } from "lucide-react";
 import {
   buildMapboxForwardGeocodingUrl,
   buildMapboxReverseGeocodingUrl,
-  configureMapboxRuntime
+  configureMapboxRuntime,
+  hasMapboxPublicToken
 } from "@/lib/mapbox";
 import { type RoadRoutePointSource } from "@/lib/roadRouting";
 import { AddressInput } from "./types";
@@ -163,8 +164,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 }) => {
   const t = useTranslations("assessment.locationPicker");
   const tAddress = useTranslations("addressSelection");
-  const locale = useLocale();
-  const mapLanguage = locale === "vi" ? "vi" : "en";
+  const mapLanguage = "vi";
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -176,6 +176,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const skipNextSearchRef = useRef(false);
   const autoLocateAttemptedRef = useRef(false);
 
+  const [isMapAvailable] = useState(() => hasMapboxPublicToken());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -552,12 +553,15 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
+    if (!isMapAvailable) return;
 
     try {
       configureMapboxRuntime(mapboxgl);
 
-      const initialLat = address.lat;
-      const initialLng = address.lng;
+      // Read initial coords from ref so this effect only runs once on mount,
+      // not every time the address updates (which would destroy/recreate the map).
+      const initialLat = addressRef.current.lat;
+      const initialLng = addressRef.current.lng;
       const hasInitialCoordinates = hasCoordinatePair(initialLat, initialLng);
       const initialCenter: [number, number] =
         hasInitialCoordinates ?
@@ -600,7 +604,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     } catch (error) {
       console.error("Error initializing map:", error);
     }
-  }, [address.lat, address.lng, defaultCenter, syncMarker]);
+  }, [defaultCenter, isMapAvailable, syncMarker]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -933,11 +937,20 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           ) : null}
         </div>
 
-        <div
-          ref={mapContainerRef}
-          className="w-full rounded-lg overflow-hidden border"
-          style={{ height: "250px" }}
-        />
+        {isMapAvailable ? (
+          <div
+            ref={mapContainerRef}
+            className="w-full rounded-lg overflow-hidden border"
+            style={{ height: "250px" }}
+          />
+        ) : (
+          <div className="w-full rounded-lg border bg-muted/40 flex items-center justify-center" style={{ height: "250px" }}>
+            <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="w-6 h-6" />
+              <span>{t("mapUnavailable")}</span>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1 sm:col-span-2">

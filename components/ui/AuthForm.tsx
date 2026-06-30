@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { ArrowRight, LayoutDashboard, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,7 +45,6 @@ const parseAccountTypeMismatch = (message?: string | null) => {
 };
 
 const AuthForm: React.FC = () => {
-  const locale = useLocale();
   const t = useTranslations("auth");
   const tUserType = useTranslations("userType");
   const { signUp, signIn, signInWithGoogle, signInDemo, startLocalDemo, signOut, user, loading } =
@@ -56,7 +55,6 @@ const AuthForm: React.FC = () => {
   const { toast } = useToast();
 
   const userType = searchParams.get("type") === "b2c" ? "b2c" : "b2b";
-  const isVi = locale === "vi";
   const forceLogin = searchParams.get("forceLogin") === "1";
   const forceSignOutDoneRef = useRef(false);
   const forceLoginCheckedRef = useRef(false);
@@ -78,21 +76,15 @@ const AuthForm: React.FC = () => {
   const demoSectionLabel =
     t.has("demoSectionLabel") ?
       t("demoSectionLabel") :
-      isVi ?
-        "dùng thử nhanh" :
-        "Quick trial";
+      "D\u00f9ng th\u1eed nhanh";
   const demoSectionTitle =
     t.has("demoSectionTitle") ?
       t("demoSectionTitle") :
-      isVi ?
-        "Khám phá các không gian demo" :
-        "Explore demo workspaces";
+      "Kh\u00e1m ph\u00e1 c\u00e1c kh\u00f4ng gian demo";
   const demoSectionDescription =
     t.has("demoSectionDescription") ?
       t("demoSectionDescription") :
-      isVi ?
-        "Mở ngay workspace mẫu để xem trước trải nghiệm mà không ảnh hưởng tới tài khoản thật." :
-        "Open a sample workspace to preview the experience without affecting your real account.";
+      "M\u1edf ngay workspace m\u1eabu \u0111\u1ec3 xem tr\u01b0\u1edbc tr\u1ea3i nghi\u1ec7m m\u00e0 kh\u00f4ng \u1ea3nh h\u01b0\u1edfng t\u1edbi t\u00e0i kho\u1ea3n th\u1eadt.";
   const demoB2CLabel =
     t.has("demoB2CLabel") ?
       t("demoB2CLabel") :

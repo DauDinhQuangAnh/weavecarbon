@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   AlertCircle,
   Loader2,
@@ -54,7 +54,6 @@ const normalizeDifficulty = (
 const ProductSuggestionsCard: React.FC<ProductSuggestionsCardProps> = ({
   productId,
 }) => {
-  const locale = useLocale();
   const t = useTranslations("productDetail.aiSuggestions");
   const requestSequenceRef = useRef(0);
   const [suggestions, setSuggestions] = useState<AiProductSuggestion[]>([]);
@@ -99,7 +98,7 @@ const ProductSuggestionsCard: React.FC<ProductSuggestionsCardProps> = ({
         productId,
         {
           product_id: productId,
-          language: locale.toLowerCase().startsWith("vi") ? "vi" : "en",
+          language: "vi",
         }
       );
 

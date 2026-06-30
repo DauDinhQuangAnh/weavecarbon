@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -44,8 +44,6 @@ const MaterialCombobox: React.FC<MaterialComboboxProps> = ({
   disabled = false
 }) => {
   const t = useTranslations("assessment.materialCombobox");
-  const locale = useLocale();
-  const isVi = locale === "vi";
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -92,8 +90,7 @@ const MaterialCombobox: React.FC<MaterialComboboxProps> = ({
 
   const selectedMaterial = value ? MATERIAL_CATALOG.find((material) => material.id === value) : null;
 
-  const getMaterialName = (material: CatalogMaterial) =>
-    isVi ? material.displayNameVi : material.displayNameEn;
+  const getMaterialName = (material: CatalogMaterial) => material.displayNameVi;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

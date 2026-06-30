@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   PieChart,
   Pie,
@@ -52,8 +52,7 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
   quantity = 1,
 }) => {
   const t = useTranslations("productDetail.carbonBreakdown");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const quantityForBatch = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
   const batchUnitLabel = t("batchUnit");
   const isMobile = useIsMobile();
