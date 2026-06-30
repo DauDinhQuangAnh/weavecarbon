@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { runWithConcurrency } from "@/lib/concurrency";
 import {
   fetchRoadRoute,
   type RoadRouteFailureReason,
@@ -214,30 +215,29 @@ export const useResolvedRoadRouteGeometry = <
     }
 
     const resolvePendingRoutes = async () => {
-      const resolvedEntries = await Promise.all(
-        pendingCandidates.map(async (candidate) => {
-          const resolution = await fetchRoadRoute(candidate.origin, candidate.destination, {
-            destinationSource: candidate.destinationSource,
-            originSource: candidate.originSource
-          });
-          if (!resolution.ok || !hasValidGeometry(resolution.route.geometry)) {
-            return {
-              failureReason: resolution.ok ? "invalid_geometry" : resolution.failureReason,
-              id: candidate.id,
-              routeKey: candidate.routeKey,
-              status: "failed" as const
-            };
-          }
-
+      const tasks = pendingCandidates.map((candidate) => async () => {
+        const resolution = await fetchRoadRoute(candidate.origin, candidate.destination, {
+          destinationSource: candidate.destinationSource,
+          originSource: candidate.originSource
+        });
+        if (!resolution.ok || !hasValidGeometry(resolution.route.geometry)) {
           return {
+            failureReason: resolution.ok ? "invalid_geometry" : resolution.failureReason,
             id: candidate.id,
             routeKey: candidate.routeKey,
-            status: "resolved" as const,
-            geometry: resolution.route.geometry,
-            metrics: optionsRef.current.getResolvedMetrics?.(candidate.item, resolution.route)
+            status: "failed" as const
           };
-        })
-      );
+        }
+
+        return {
+          id: candidate.id,
+          routeKey: candidate.routeKey,
+          status: "resolved" as const,
+          geometry: resolution.route.geometry,
+          metrics: optionsRef.current.getResolvedMetrics?.(candidate.item, resolution.route)
+        };
+      });
+      const resolvedEntries = await runWithConcurrency(tasks, 5);
 
       if (isCancelled) return;
 

@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   ReactNode } from
 "react";
 import { AddressInput } from "@/components/dashboard/assessment/types";
@@ -58,7 +59,6 @@ interface BatchContextType {
   refresh: () => Promise<void>;
 
 
-  createBatch: (name: string, description?: string) => Batch;
   updateBatch: (id: string, updates: Partial<Batch>) => void;
   deleteBatch: (id: string) => void;
 
@@ -179,28 +179,6 @@ export const BatchProvider: React.FC<{children: ReactNode;}> = ({
     void refresh();
   }, [authStatus, refresh]);
 
-  const createBatch = useCallback(
-    (name: string, description?: string): Batch => {
-      const newBatch: Batch = {
-        id: `batch-${Date.now()}`,
-        name,
-        description,
-        status: "draft",
-        products: [],
-        totalProducts: 0,
-        totalQuantity: 0,
-        totalCO2: 0,
-        totalWeight: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      setBatches((prev) => [newBatch, ...prev]);
-      return newBatch;
-    },
-    []
-  );
-
   const updateBatch = useCallback((id: string, updates: Partial<Batch>) => {
     setBatches((prev) =>
     prev.map((b) =>
@@ -319,24 +297,36 @@ export const BatchProvider: React.FC<{children: ReactNode;}> = ({
     [batches]
   );
 
+  const contextValue = useMemo(() => ({
+    batches,
+    status,
+    lastHydratedAt,
+    refresh,
+    updateBatch,
+    deleteBatch,
+    addProductToBatch,
+    removeProductFromBatch,
+    publishBatch,
+    getBatch,
+    getBatchesByStatus,
+    getBatchByProduct
+  }), [
+    batches,
+    status,
+    lastHydratedAt,
+    refresh,
+    updateBatch,
+    deleteBatch,
+    addProductToBatch,
+    removeProductFromBatch,
+    publishBatch,
+    getBatch,
+    getBatchesByStatus,
+    getBatchByProduct
+  ]);
+
   return (
-    <BatchContext.Provider
-      value={{
-        batches,
-        status,
-        lastHydratedAt,
-        refresh,
-        createBatch,
-        updateBatch,
-        deleteBatch,
-        addProductToBatch,
-        removeProductFromBatch,
-        publishBatch,
-        getBatch,
-        getBatchesByStatus,
-        getBatchByProduct
-      }}>
-      
+    <BatchContext.Provider value={contextValue}>
       {children}
     </BatchContext.Provider>);
 

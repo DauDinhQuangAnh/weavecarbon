@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -25,7 +25,7 @@ import {
   TrendingDown,
   CheckCircle2
 } from "lucide-react";
-import { useProducts, DashboardProduct } from "@/contexts/ProductContext";
+import { useProducts } from "@/contexts/ProductContext";
 import { useAppRoutes } from "@/lib/demo/routes";
 import {
   calculateProductOverviewCarbon,
@@ -91,7 +91,7 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
   const t = useTranslations("assessment.productOverview");
   const router = useRouter();
   const appRoutes = useAppRoutes();
-  const { addProduct } = useProducts();
+  const { refresh } = useProducts();
 
   const carbonResult = calculateProductOverviewCarbon(
     productData as ProductOverviewAdapterInput
@@ -103,20 +103,6 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
     packaging: carbonResult.perProduct.packaging,
     total: carbonResult.perProduct.total
   };
-  const hasAddedOnOpenRef = useRef(false);
-
-  const {
-    productName,
-    productCode,
-    category,
-    weight,
-    unit,
-    primaryMaterial,
-    materialPercentage,
-    secondaryMaterial,
-    secondaryPercentage
-  } = productData;
-
   const getMaterialLabel = useCallback(
     (value: string) =>
       t.has(`materials.${value}`) ? t(`materials.${value}`) : MATERIAL_LABELS[value] || value,
@@ -130,63 +116,9 @@ const ProductOverviewModal: React.FC<ProductOverviewModalProps> = ({
     t.has(`categories.${value}`) ? t(`categories.${value}`) : value;
 
   useEffect(() => {
-    if (!open) {
-      hasAddedOnOpenRef.current = false;
-      return;
-    }
-
-    if (!productName || hasAddedOnOpenRef.current) return;
-
-    let weightKg = parseFloat(weight) || 0;
-    if (unit === "g") weightKg /= 1000;
-    if (unit === "lb") weightKg *= 0.453592;
-
-    const newProduct: Omit<DashboardProduct, "id" | "createdAt"> = {
-      name: productName,
-      sku: productCode || `SKU-${Date.now().toString().slice(-6)}`,
-      category,
-      co2: carbonBreakdown.total,
-      status: "draft",
-      materials: [
-        `${getMaterialLabel(primaryMaterial)} ${materialPercentage}%`,
-        ...(secondaryMaterial
-          ? [`${getMaterialLabel(secondaryMaterial)} ${secondaryPercentage}%`]
-          : [])
-      ],
-      weight: weightKg,
-      unit: "kg",
-      scope: "scope1",
-      confidenceScore: carbonResult.confidenceScore,
-      breakdown: {
-        materials:  carbonBreakdown.materials  || 0,
-        production: carbonBreakdown.manufacturing || 0,
-        transport:  carbonBreakdown.transport  || 0,
-        packaging:  carbonBreakdown.packaging  || 0,
-      },
-    };
-
-    addProduct(newProduct);
-    hasAddedOnOpenRef.current = true;
-  }, [
-    addProduct,
-    carbonBreakdown.manufacturing,
-    carbonBreakdown.materials,
-    carbonBreakdown.packaging,
-    carbonBreakdown.total,
-    carbonBreakdown.transport,
-    category,
-    carbonResult.confidenceScore,
-    materialPercentage,
-    open,
-    primaryMaterial,
-    productCode,
-    productName,
-    secondaryMaterial,
-    secondaryPercentage,
-    unit,
-    weight,
-    getMaterialLabel
-  ]);
+    if (!open) return;
+    void refresh();
+  }, [open, refresh]);
 
   const getPercentage = (value: number) => {
     if (carbonBreakdown.total === 0) return 0;

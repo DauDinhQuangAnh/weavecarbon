@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   ReactNode } from
 "react";
 
@@ -71,9 +72,6 @@ interface ProductContextType {
   status: "idle" | "hydrating" | "ready" | "error";
   lastHydratedAt: string | null;
   refresh: () => Promise<void>;
-  addProduct: (
-  product: Omit<DashboardProduct, "id" | "createdAt">)
-  => DashboardProduct;
   updateProduct: (id: string, updates: Partial<DashboardProduct>) => void;
   getProduct: (id: string) => DashboardProduct | undefined;
   getProductsByStatus: (status: ProductStatus | "all") => DashboardProduct[];
@@ -201,24 +199,6 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     void refresh();
   }, [authStatus, refresh]);
 
-  const addProduct = useCallback(
-    (
-    productData: Omit<DashboardProduct, "id" | "createdAt">)
-    : DashboardProduct => {
-      const newProduct: DashboardProduct = {
-        ...productData,
-        id: `product-${Date.now()}`,
-        createdAt: new Date().toISOString()
-      };
-
-      setProducts((prev) => [newProduct, ...prev]);
-      setLastCreatedProduct(newProduct);
-
-      return newProduct;
-    },
-    []
-  );
-
   const updateProduct = useCallback(
     (id: string, updates: Partial<DashboardProduct>) => {
       setProducts((prev) =>
@@ -251,25 +231,38 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     [products]
   );
 
+  const contextValue = useMemo(() => ({
+    products,
+    status,
+    lastHydratedAt,
+    refresh,
+    updateProduct,
+    getProduct,
+    getProductsByStatus,
+    getProductsByCategory,
+    lastCreatedProduct,
+    setLastCreatedProduct,
+    pendingProductData,
+    setPendingProductData,
+    clearPendingProduct
+  }), [
+    products,
+    status,
+    lastHydratedAt,
+    refresh,
+    updateProduct,
+    getProduct,
+    getProductsByStatus,
+    getProductsByCategory,
+    lastCreatedProduct,
+    setLastCreatedProduct,
+    pendingProductData,
+    setPendingProductData,
+    clearPendingProduct
+  ]);
+
   return (
-    <ProductContext.Provider
-      value={{
-        products,
-        status,
-        lastHydratedAt,
-        refresh,
-        addProduct,
-        updateProduct,
-        getProduct,
-        getProductsByStatus,
-        getProductsByCategory,
-        lastCreatedProduct,
-        setLastCreatedProduct,
-        pendingProductData,
-        setPendingProductData,
-        clearPendingProduct
-      }}>
-      
+    <ProductContext.Provider value={contextValue}>
       {children}
     </ProductContext.Provider>);
 
