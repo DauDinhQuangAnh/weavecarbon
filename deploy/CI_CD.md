@@ -18,7 +18,8 @@ Set these secrets in both repositories:
 - `DEPLOY_SSH_KEY`
 - `DEPLOY_PORT` optional, defaults to `22`
 
-If GHCR packages are private, also set these in both repositories:
+The deploy workflows use the short-lived GitHub Actions token to log the VPS into GHCR for the image they just built.
+If your package permissions are customized, or the VPS must pull images from another repository, set these in both repositories:
 
 - `GHCR_USERNAME`
 - `GHCR_TOKEN` with package read permission
