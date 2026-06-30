@@ -22,6 +22,7 @@ export interface SupplyChainRoute {
   co2Kg?: number;
   distanceKm?: number;
   geometry?: Array<[number, number]>;
+  color?: string;
 }
 
 interface SupplyChainMapProps {
