@@ -15,6 +15,25 @@ compose() {
     "$@"
 }
 
+get_env_value() {
+  local key="$1"
+  local default_value="${2:-}"
+  local line
+  line="$(grep -E "^[[:space:]]*${key}=" "${ENV_FILE}" | tail -n 1 || true)"
+
+  if [[ -z "${line}" ]]; then
+    printf '%s\n' "${default_value}"
+    return
+  fi
+
+  line="${line#*=}"
+  line="${line%\"}"
+  line="${line#\"}"
+  line="${line%\'}"
+  line="${line#\'}"
+  printf '%s\n' "${line}"
+}
+
 usage() {
   cat <<'EOF'
 Usage: ./deploy/reset-db-vps.sh --yes [--skip-backup]
@@ -80,9 +99,10 @@ else
   echo "Postgres volume ${DB_VOLUME_NAME} does not exist yet. Continuing."
 fi
 
+compose pull be fe
 compose up -d --build
 compose ps
 
 echo
 echo "Database reset completed."
-echo "A fresh database was created from ${ROOT_DIR}/../BE_Carbon-main/DATABASE_SCHEMA.sql"
+echo "A fresh database was created from $(get_env_value "BACKEND_SCHEMA_PATH" "../BE_Carbon-main/DATABASE_SCHEMA.sql")"

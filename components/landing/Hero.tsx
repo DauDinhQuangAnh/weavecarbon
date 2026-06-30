@@ -6,7 +6,7 @@ import { ArrowRight, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
 import UserTypeDialog from "./UserTypeDialog";
 import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import Waves from "../icons/Waves";
 import { useEffect, useRef, useState } from "react";const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
   ssr: false,
@@ -17,7 +17,7 @@ const Hero = () => {
   const [showUserTypeDialog, setShowUserTypeDialog] = useState(false);
   const [isDesktopHero, setIsDesktopHero] = useState(false);
   const heroRef = useRef<HTMLElement | null>(null);
-  const locale = useLocale();
+  const locale = "vi";
   const t = useTranslations("hero");
   const isHeroInView = useInView(heroRef, { amount: 0.15 });
   const heroTitle = t("title");

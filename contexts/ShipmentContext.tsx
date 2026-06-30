@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   ReactNode } from
 "react";
 import { useTranslations } from "next-intl";
@@ -960,29 +961,48 @@ export const ShipmentProvider: React.FC<{children: ReactNode;}> = ({
     [shipments]
   );
 
+  const contextValue = useMemo(() => ({
+    shipments,
+    statusLogs,
+    hydrationStatus,
+    lastHydratedAt,
+    refresh,
+    createShipmentFromProduct,
+    createShipmentFromBatch,
+    updateShipment,
+    deleteShipment,
+    updateShipmentStatus,
+    confirmDelivered,
+    refreshAllStatuses,
+    getShipment,
+    getShipmentsByStatus,
+    searchShipments,
+    getShipmentByProduct,
+    getShipmentByBatch,
+    filterShipments
+  }), [
+    shipments,
+    statusLogs,
+    hydrationStatus,
+    lastHydratedAt,
+    refresh,
+    createShipmentFromProduct,
+    createShipmentFromBatch,
+    updateShipment,
+    deleteShipment,
+    updateShipmentStatus,
+    confirmDelivered,
+    refreshAllStatuses,
+    getShipment,
+    getShipmentsByStatus,
+    searchShipments,
+    getShipmentByProduct,
+    getShipmentByBatch,
+    filterShipments
+  ]);
+
   return (
-    <ShipmentContext.Provider
-      value={{
-        shipments,
-        statusLogs,
-        hydrationStatus,
-        lastHydratedAt,
-        refresh,
-        createShipmentFromProduct,
-        createShipmentFromBatch,
-        updateShipment,
-        deleteShipment,
-        updateShipmentStatus,
-        confirmDelivered,
-        refreshAllStatuses,
-        getShipment,
-        getShipmentsByStatus,
-        searchShipments,
-        getShipmentByProduct,
-        getShipmentByBatch,
-        filterShipments
-      }}>
-      
+    <ShipmentContext.Provider value={contextValue}>
       {children}
     </ShipmentContext.Provider>);
 

@@ -1,7 +1,6 @@
 import React from "react";
 import { Leaf } from "lucide-react";
 import Link from "next/link";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
 import type { AbstractIntlMessages } from "use-intl/core";
 import { getScopedMessages } from "@/lib/i18n/messages";
@@ -25,10 +24,6 @@ export default async function AuthLayout({
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="flex min-h-screen flex-col bg-linear-to-br from-background via-background to-primary/5 p-3 md:p-4">
         
-        <div className="flex items-center gap-3 mb-4">
-          <LanguageToggle />
-        </div>
-
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-lg">
             

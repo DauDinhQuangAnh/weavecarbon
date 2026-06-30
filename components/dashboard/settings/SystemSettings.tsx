@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -116,10 +116,8 @@ const TRIAL_MEMBERS_LIMIT = 1;
 const SystemSettings: React.FC = () => {
   const t = useTranslations("settings.system");
   const tPricing = useTranslations("pricingModal");
-  const locale = useLocale();
-  const isVi = locale === "vi";
   const router = useRouter();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const { user, updateUser, refreshUser } = useAuth();
   const { canAccessSystemSettings } = usePermissions();
   const [company, setCompany] = useState<CompanyData | null>(null);
@@ -608,11 +606,11 @@ const SystemSettings: React.FC = () => {
         }) :
     activePlanFamily === "standard" ?
       subscriptionInfo.standardExpired ?
-        `${isVi ? "Standard \u0111\u00e3 h\u1ebft h\u1ea1n" : "Standard expired"}${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
+        `Standard \u0111\u00e3 h\u1ebft h\u1ea1n${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
       subscriptionInfo.standardDaysRemaining === null ?
-        `${isVi ? "Standard \u0111ang ho\u1ea1t \u0111\u1ed9ng" : "Standard active"}${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
-        `${isVi ? "C\u00f2n" : "Remaining"} ${subscriptionInfo.standardDaysRemaining} ${isVi ? "ng\u00e0y" : "day(s)"}${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
-      isVi ? "G\u00f3i Export \u0111ang ho\u1ea1t \u0111\u1ed9ng" : "Export plan active";
+        `Standard \u0111ang ho\u1ea1t \u0111\u1ed9ng${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
+        `C\u00f2n ${subscriptionInfo.standardDaysRemaining} ng\u00e0y${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
+      "G\u00f3i Export \u0111ang ho\u1ea1t \u0111\u1ed9ng";
   if (!canAccessSystemSettings) {
     return null;
   }
@@ -939,7 +937,7 @@ const SystemSettings: React.FC = () => {
                   <SelectContent>
                     {TARGET_MARKET_OPTIONS.map((option) => (
                       <SelectItem key={option.code} value={option.code}>
-                        {formatTargetMarketLabel(option.code, locale)}
+                        {formatTargetMarketLabel(option.code, "vi")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -950,7 +948,7 @@ const SystemSettings: React.FC = () => {
                       company?.domestic_market,
                       company?.target_markets || []
                     ),
-                    locale
+                    "vi"
                   )}
                 </p>
               }
@@ -988,7 +986,7 @@ const SystemSettings: React.FC = () => {
                       <span
                         key={marketCode}
                         className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-700">
-                        {formatTargetMarketLabel(marketCode, locale)}
+                        {formatTargetMarketLabel(marketCode, "vi")}
                       </span>
                     ))}
                   </div> :
@@ -1114,7 +1112,7 @@ const SystemSettings: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Chọn gói SKU Standard</DialogTitle>
           <DialogDescription>
-            Chọn số lượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
+            Chọn sềElượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
           </DialogDescription>
         </DialogHeader>
 

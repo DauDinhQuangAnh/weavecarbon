@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -119,10 +119,9 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
 }) => {
   const t = useTranslations("export.modal");
   const tStatus = useTranslations("export.status");
-  const locale = useLocale();
   const appRoutes = useAppRoutes();
   const { canMutate } = usePermissions();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const [activeTab, setActiveTab] = useState("overview");
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [carbonForm, setCarbonForm] = useState<CarbonFormState | null>(null);

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +32,7 @@ const ComplianceProductScope: React.FC<ComplianceProductScopeProps> = ({
   onRemoveProduct
 }) => {
   const t = useTranslations("export.productScope");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const totalVolume = products.reduce((sum, p) => sum + p.exportVolume, 0);
 
   if (products.length === 0) {

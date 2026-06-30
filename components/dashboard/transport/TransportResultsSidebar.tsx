@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Card,
   CardContent,
@@ -43,8 +43,7 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
   emissionUnitLabel
 }) => {
   const t = useTranslations("transport");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const getModeIcon = (mode: string) => {
     switch (mode) {
       case "ship":

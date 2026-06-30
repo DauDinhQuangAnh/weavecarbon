@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -498,8 +498,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 }) => {
   const t = useTranslations("assessment.step4");
   const tAssessmentClient = useTranslations("assessment.client");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const destinationMarketToken = normalizeMarketToken(data.destinationMarket);
   const configuredDomesticMarketToken = normalizeMarketToken(companyDomesticMarket);
   const isDomesticRoute =

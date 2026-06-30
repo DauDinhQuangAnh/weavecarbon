@@ -10,7 +10,6 @@ npm run lint
 npm run typecheck
 npm run check
 npm run build
-npm run audit:i18n
 ```
 
 ## Structure

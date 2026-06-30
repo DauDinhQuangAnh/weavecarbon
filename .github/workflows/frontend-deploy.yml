@@ -2,7 +2,11 @@ name: Frontend Deploy VPS
 
 on:
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows:
+      - Frontend CI
+    types:
+      - completed
     branches:
       - main
     paths:
@@ -29,18 +33,92 @@ concurrency:
   group: fe-deploy
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 35
     environment: production
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || github.actor }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+          SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        run: |
+          set -euo pipefail
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          RELEASE_TAG="sha-$RELEASE_SHA"
+          echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "$IMAGE_NAME:$RELEASE_TAG"
+            if [ "$SOURCE_BRANCH" = "main" ]; then
+              echo "$IMAGE_NAME:main"
+              echo "$IMAGE_NAME:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR for push
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          pull: true
+          tags: ${{ steps.release.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ vars.NEXT_PUBLIC_API_BASE_URL || '/api' }}
+            NEXT_PUBLIC_WEAVEY_API_URL=${{ vars.NEXT_PUBLIC_WEAVEY_API_URL }}
+            NEXT_PUBLIC_RAG_API_BASE_URL=${{ vars.NEXT_PUBLIC_RAG_API_BASE_URL || 'https://weavecarbon.com/rag' }}
+            NEXT_PUBLIC_RAG_COLLECTION=${{ vars.NEXT_PUBLIC_RAG_COLLECTION }}
+            NEXT_PUBLIC_RAG_COLUMNS_TO_ANSWER=${{ vars.NEXT_PUBLIC_RAG_COLUMNS_TO_ANSWER || 'chunk' }}
+            NEXT_PUBLIC_RAG_NUMBER_DOCS_RETRIEVAL=${{ vars.NEXT_PUBLIC_RAG_NUMBER_DOCS_RETRIEVAL || '3' }}
+            NEXT_PUBLIC_RAG_TIMEOUT_MS=${{ vars.NEXT_PUBLIC_RAG_TIMEOUT_MS || '30000' }}
+            NEXT_PUBLIC_MAPBOX_TOKEN=${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN || vars.NEXT_PUBLIC_MAPBOX_TOKEN }}
+            NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL=${{ vars.NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL || 'https://api.mapbox.com/geocoding/v5/mapbox.places' }}
+            NEXT_PUBLIC_AUTH_DISABLED=${{ vars.NEXT_PUBLIC_AUTH_DISABLED || '0' }}
+            NEXT_PUBLIC_ACCOUNT_ENDPOINT=${{ vars.NEXT_PUBLIC_ACCOUNT_ENDPOINT }}
+            NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD=${{ vars.NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD || '0' }}
+
       - name: Check deploy secrets
         id: deploy_secrets
         shell: bash
@@ -57,26 +135,7 @@ jobs:
 
       - name: Skip deploy until secrets are configured
         if: steps.deploy_secrets.outputs.missing != '0'
-        run: echo "Skipping deploy because DEPLOY_* GitHub secrets are not configured yet."
-
-      - name: Checkout
-        if: steps.deploy_secrets.outputs.missing == '0'
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        if: steps.deploy_secrets.outputs.missing == '0'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        if: steps.deploy_secrets.outputs.missing == '0'
-        run: npm ci
-
-      - name: Lint and typecheck
-        if: steps.deploy_secrets.outputs.missing == '0'
-        run: npm run check
+        run: echo "Image was pushed, but VPS deploy was skipped because DEPLOY_* secrets are not configured yet."
 
       - name: Configure SSH
         if: steps.deploy_secrets.outputs.missing == '0'
@@ -90,38 +149,36 @@ jobs:
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Deploy on VPS
+      - name: Deploy frontend on VPS
         if: steps.deploy_secrets.outputs.missing == '0'
         shell: bash
         run: |
           set -euo pipefail
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" <<'EOF'
+          REMOTE_FE_IMAGE="${{ steps.image.outputs.name }}:${{ steps.release.outputs.tag }}"
+          GHCR_TOKEN_B64="$(printf '%s' "${GHCR_TOKEN:-}" | base64 -w0)"
+
+          ssh \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=20 \
+            -o TCPKeepAlive=yes \
+            -T -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "FE_IMAGE='$REMOTE_FE_IMAGE' GHCR_USERNAME='$GHCR_USERNAME' GHCR_TOKEN_B64='$GHCR_TOKEN_B64' bash --noprofile --norc -se" <<'EOF'
           set -euo pipefail
+
+          if [ -n "${GHCR_USERNAME:-}" ] && [ -n "${GHCR_TOKEN_B64:-}" ]; then
+            GHCR_TOKEN="$(printf '%s' "$GHCR_TOKEN_B64" | base64 -d)"
+            echo "[deploy] Logging in to GHCR as ${GHCR_USERNAME}"
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+          else
+            echo "[deploy] ERROR: Missing GHCR credentials. Set GHCR_USERNAME/GHCR_TOKEN or allow GITHUB_TOKEN package access."
+            exit 1
+          fi
+
           cd /opt/weavecarbon/FE
           git checkout main
           git pull --ff-only origin main
-          bash deploy/redeploy-vps.sh --frontend-only
-          EOF
 
-      - name: Post-deploy health check
-        if: steps.deploy_secrets.outputs.missing == '0'
-        shell: bash
-        run: |
-          set -euo pipefail
-          DEPLOY_PORT="${DEPLOY_PORT:-22}"
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" <<'EOF'
-          health_ok=0
-          for i in 1 2 3 4 5; do
-            if curl -sf "http://localhost:3000" > /dev/null; then
-              echo "[deploy] FE health check passed (attempt $i)"
-              health_ok=1
-              break
-            fi
-            echo "[deploy] FE health check attempt $i failed, waiting 10s..."
-            sleep 10
-          done
-          if [ "$health_ok" -eq 0 ]; then
-            echo "[deploy] WARNING: FE did not respond after 5 attempts (may be behind proxy or still starting)"
-          fi
+          export FE_IMAGE
+          bash deploy/redeploy-vps.sh --frontend-only
           EOF

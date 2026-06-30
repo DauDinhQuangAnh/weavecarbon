@@ -41,7 +41,7 @@ import {
   ShieldAlert,
   X } from
 "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import ProductOverviewModal from "../assessment/ProductOverviewModal";
 import OverviewCharts, { EmissionBreakdownPoint } from "../OverviewCharts";
 import { useRouter } from "next/navigation";
@@ -278,8 +278,8 @@ const getImpactColor = (impact: string) => {
 
 const OverviewPage: React.FC = () => {
   const t = useTranslations("overview");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const locale = "vi";
+  const displayLocale = "vi-VN";
   const { canMutate } = usePermissions();
   const { currentPlan } = useSubscriptionLock();
   const { user, loading: authLoading, authStatus } = useAuth();
@@ -369,7 +369,7 @@ const OverviewPage: React.FC = () => {
         companyId,
         {
           company_id: companyId,
-          language: locale === "vi" ? "vi" : "en",
+          language: "vi",
         }
       );
 
@@ -993,17 +993,17 @@ const OverviewPage: React.FC = () => {
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium text-amber-800">
-              {locale === "vi" ? "Lưu ý trước kiểm toán độc lập" : "Pre-audit disclaimer"}
+              {"Lưu ý trước kiểm toán độc lập"}
             </p>
             <p className="text-xs leading-relaxed text-amber-700">
               {locale === "vi"
-                ? "Các kết quả phát thải CO₂e hiển thị trên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. Số liệu sử dụng hệ số phát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Bộ TN&MT Việt Nam. Một số dữ liệu đầu vào vẫn là dữ liệu proxy — cần bổ sung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc để đạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
-                : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data — original invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
+                ? "Các kết quả phát thải CO₂e hiển thềEtrên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. SềEliệu sử dụng hềEsềEphát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám BềETN&MT Việt Nam. Một sềEdữ liệu đầu vào vẫn là dữ liệu proxy  Ecần bềEsung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc đềEđạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
+                : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data  Eoriginal invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
             </p>
           </div>
           <button
             type="button"
-            aria-label={locale === "vi" ? "Đóng thông báo" : "Dismiss"}
+            aria-label={"Đóng thông báo"}
             onClick={handleDismissDisclaimer}
             className="shrink-0 rounded-md p-1 text-amber-600 hover:bg-amber-100 hover:text-amber-800"
           >

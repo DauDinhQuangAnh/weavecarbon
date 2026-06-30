@@ -2212,7 +2212,8 @@
       "locating": "Đang lấy vị trí...",
       "searchPlaceholder": "Tìm địa chỉ...",
       "currentLocation": "Vị trí hiện tại",
-      "mapHint": "Nhấn vào bản đồ hoặc kéo điểm đánh dấu để chọn vị trí chính xác"
+      "mapHint": "Nhấn vào bản đồ hoặc kéo điểm đánh dấu để chọn vị trí chính xác",
+      "mapUnavailable": "Bản đồ không khả dụng. Vui lòng nhập địa chỉ thủ công."
     },
     "materialCombobox": {
       "searchPlaceholder": "Tìm vật liệu...",

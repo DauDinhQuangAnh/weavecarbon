@@ -11,7 +11,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 const DESKTOP_DECORATIVE_PARTICLES = [
@@ -46,7 +46,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({
   t,
   reducedEffects = false,
 }) => {
-  const locale = useLocale();
+  const locale = "vi";
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const sliderRef = useRef<HTMLDivElement | null>(null);

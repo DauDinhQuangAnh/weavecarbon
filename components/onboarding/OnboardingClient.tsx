@@ -8,7 +8,7 @@ import { api } from "@/lib/apiClient";import { clearSubscriptionLockStateCache }
 import { resolveDomesticMarketCode } from "@/lib/targetMarkets";
 import OnboardingHeader from "./OnboardingHeader";
 import OnboardingForm from "./OnboardingForm";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 const PRICING_PROMPT_ON_LOGIN_KEY = "weavecarbon_show_pricing_on_login";
 
@@ -21,7 +21,7 @@ const OnboardingClient: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const locale = useLocale();
+  const locale = "vi";
   const t = useTranslations("onboarding");
   const isGoogleFlow = searchParams.get("source") === "google";
   const defaultDomesticMarket = resolveDomesticMarketCode(locale);

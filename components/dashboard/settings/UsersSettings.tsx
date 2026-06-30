@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
@@ -94,7 +94,7 @@ const MEMBERS_PAGE_SIZE = 8;
 
 const UsersSettings: React.FC = () => {
   const t = useTranslations("settings.users");
-  const locale = useLocale();
+  const locale = "vi";
   const { user } = useAuth();
   const { canAccessUsersSettings } = usePermissions();
   const { currentPlan } = useSubscriptionLock();

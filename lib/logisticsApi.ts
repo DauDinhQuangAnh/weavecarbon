@@ -1,4 +1,5 @@
 import { api, invalidateApiResponseCache, isApiError } from "@/lib/apiClient";
+import { runWithConcurrency } from "@/lib/concurrency";
 import { buildTransportRouteGeometry } from "@/lib/transportRouteGeometry";
 import type { TransportLeg } from "@/types/transport";
 import {
@@ -1373,29 +1374,27 @@ export const fetchAllLogisticsShipmentDetails = async (
 query: Omit<LogisticsShipmentListQuery, "page" | "page_size"> = {})
 : Promise<LogisticsShipmentDetail[]> => {
   const summaries = await fetchAllLogisticsShipments(query);
-  const details = await Promise.all(
-    summaries.map(async (summary) => {
-      if (!isValidUuid(summary.id)) {
-        return {
-          ...summary,
-          company_id: "",
-          legs: [],
-          products: []
-        } as LogisticsShipmentDetail;
-      }
-      try {
-        return await fetchLogisticsShipmentById(summary.id);
-      } catch {
-        return {
-          ...summary,
-          company_id: "",
-          legs: [],
-          products: []
-        } as LogisticsShipmentDetail;
-      }
-    })
-  );
-  return details;
+  const tasks = summaries.map((summary) => async () => {
+    if (!isValidUuid(summary.id)) {
+      return {
+        ...summary,
+        company_id: "",
+        legs: [],
+        products: []
+      } as LogisticsShipmentDetail;
+    }
+    try {
+      return await fetchLogisticsShipmentById(summary.id);
+    } catch {
+      return {
+        ...summary,
+        company_id: "",
+        legs: [],
+        products: []
+      } as LogisticsShipmentDetail;
+    }
+  });
+  return runWithConcurrency(tasks, 5);
 };
 
 export const createLogisticsShipment = async (

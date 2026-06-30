@@ -1,31 +1,12 @@
 import { getLocale } from "next-intl/server";
 import { cache } from "react";
-import { defaultLocale, locales, type Locale } from "./config";
+import { defaultLocale, type Locale } from "./config";
 import { SHARED_NAMESPACES } from "./namespaces";
 
 type MessageTree = Record<string, unknown>;
 
 const isMessageTree = (value: unknown): value is MessageTree =>
   typeof value === "object" && value !== null && !Array.isArray(value);
-
-const mergeMessageTrees = (base: unknown, override: unknown): unknown => {
-  if (isMessageTree(base) && isMessageTree(override)) {
-    const merged: MessageTree = { ...base };
-
-    Object.entries(override).forEach(([key, value]) => {
-      merged[key] = mergeMessageTrees(base[key], value);
-    });
-
-    return merged;
-  }
-
-  return typeof override === "undefined" ? base : override;
-};
-
-const resolveFallbackLocale = (locale: Locale): Locale | null => {
-  const fallback = locales.find((item) => item !== locale);
-  return fallback ?? null;
-};
 
 const getMessageByPath = (messages: MessageTree, path: string[]): unknown => {
   let current: unknown = messages;
@@ -79,21 +60,13 @@ export const getScopedMessagesForLocale = async (
   namespaces: string[]
 ): Promise<MessageTree> => {
   const commonMessages = await loadCommonMessages(locale);
-  const localeScopedMessages = pickMessagesByNamespaces(commonMessages, namespaces);
-  const fallbackLocale = resolveFallbackLocale(locale);
-
-  if (!fallbackLocale) {
-    return localeScopedMessages;
-  }
-
-  const fallbackMessages = await loadCommonMessages(fallbackLocale);
-  const fallbackScopedMessages = pickMessagesByNamespaces(fallbackMessages, namespaces);
-
-  return mergeMessageTrees(fallbackScopedMessages, localeScopedMessages) as MessageTree;
+  return pickMessagesByNamespaces(commonMessages, namespaces);
 };
 
-export const normalizeLocale = (locale: string): Locale =>
-  locales.includes(locale as Locale) ? locale as Locale : defaultLocale;
+export const normalizeLocale = (locale?: string): Locale => {
+  void locale;
+  return defaultLocale;
+};
 
 export const getScopedMessages = async (namespaces: readonly string[]) => {
   const locale = normalizeLocale(await getLocale());

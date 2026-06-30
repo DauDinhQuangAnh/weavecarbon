@@ -18,34 +18,30 @@ interface SupplyChainMapContentProps {
   onRouteClick?: (route: SupplyChainRoute) => void;
 }
 
-const getRouteColor = (mode: string, status: string) => {
-  if (status === "completed") return "#22c55e";
-  if (status === "pending") return "#9ca3af";
-
-  switch (mode) {
-    case "ship":
-      return "#3b82f6";
-    case "air":
-      return "#8b5cf6";
-    case "rail":
-      return "#14b8a6";
-    case "truck":
-      return "#f59e0b";
-    default:
-      return "#6b7280";
-  }
+const MODE_FALLBACK_COLORS: Record<string, string> = {
+  ship: "#3b82f6",
+  air: "#8b5cf6",
+  rail: "#14b8a6",
+  truck: "#f59e0b",
 };
 
-const getRouteWeight = (status: string) => {
-  if (status === "in_transit") return 4;
-  if (status === "completed") return 3;
-  return 2;
+const getRouteColor = (mode: string, status: string, color?: string) => {
+  if (status === "pending") return color ? `${color}88` : "#9ca3af";
+  if (status === "completed") return color ?? "#22c55e";
+  return color ?? MODE_FALLBACK_COLORS[mode] ?? "#6b7280";
+};
+
+const getRouteWeight = (mode: string, status: string) => {
+  const base = mode === "ship" ? 4 : mode === "air" ? 3.5 : mode === "rail" ? 3 : 2.5;
+  if (status === "in_transit") return base;
+  if (status === "completed") return base * 0.85;
+  return base * 0.65;
 };
 
 const getRouteDashArray = (mode: string, status: string) => {
-  if (status === "pending") return "10,10";
-  if (mode === "air") return "8,8";
-  if (mode === "rail") return "12,6";
+  if (status === "pending") return "6,6";
+  if (mode === "air") return "8,5";
+  if (mode === "rail") return "14,5,3,5";
   return undefined;
 };
 
@@ -230,8 +226,8 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
               } as GeoJSON.Feature
             });
 
-            const color = getRouteColor(route.mode, route.status);
-            const weight = getRouteWeight(route.status);
+            const color = getRouteColor(route.mode, route.status, route.color);
+            const weight = getRouteWeight(route.mode, route.status);
             const dashArray = getRouteDashArray(route.mode, route.status);
 
             map.addLayer({
@@ -397,28 +393,33 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
       <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur rounded-lg p-3 shadow-lg border z-10">
         <p className="text-xs font-semibold mb-2">{t("legend.title")}</p>
-        <div className="space-y-1 text-xs">
+        <div className="space-y-1.5 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-1 bg-blue-500 rounded" />
+            <svg width="20" height="6" viewBox="0 0 20 6">
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="3" strokeLinecap="round" />
+            </svg>
             <span>{t("legend.seaRoute")}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-1 bg-purple-500 rounded"
-              style={{ borderStyle: "dashed" }} />
-
+            <svg width="20" height="6" viewBox="0 0 20 6">
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="6 4" />
+            </svg>
             <span>{t("legend.airRoute")}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-1 bg-teal-500 rounded"
-              style={{ borderStyle: "dashed" }} />
-
+            <svg width="20" height="6" viewBox="0 0 20 6">
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="10 4 2 4" />
+            </svg>
             <span>{t.has("legend.railRoute") ? t("legend.railRoute") : "Rail route"}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-1 bg-amber-500 rounded" />
+            <svg width="20" height="6" viewBox="0 0 20 6">
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />
+            </svg>
             <span>{t("legend.roadRoute")}</span>
+          </div>
+          <div className="border-t border-slate-200 mt-1.5 pt-1.5 text-muted-foreground">
+            <span>Mỗi màu = 1 lô hàng</span>
           </div>
         </div>
       </div>

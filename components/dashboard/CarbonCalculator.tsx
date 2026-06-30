@@ -21,15 +21,13 @@ import {
 import { Progress } from '@/components/ui/progress';
 import {
   Calculator,
-  Leaf,
   Factory,
-  Truck,
-  Package,
   Info,
+  Leaf,
+  Package,
+  Truck,
 } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 
-// Emission factors — kg CO₂e per kg of material (Ecoinvent v3.10 proxy)
 const MATERIAL_FACTORS: Record<string, number> = {
   cotton: 5.9,
   polyester: 6.4,
@@ -41,7 +39,6 @@ const MATERIAL_FACTORS: Record<string, number> = {
   hemp: 2.3,
 };
 
-// Transport emission factors: kg CO₂e / (kg·km)
 const ROUTE_EMISSIONS: Record<string, { distance: number; factor: number }> = {
   vnEu: { distance: 15000, factor: 0.00016 },
   vnUs: { distance: 12500, factor: 0.00016 },
@@ -50,8 +47,8 @@ const ROUTE_EMISSIONS: Record<string, { distance: number; factor: number }> = {
   vnKr: { distance: 3200, factor: 0.00016 },
 };
 
-const MANUFACTURING_FACTOR = 2.5; // kg CO₂e per kg
-const PACKAGING_FACTOR = 0.3; // kg CO₂e per kg
+const MANUFACTURING_FACTOR = 2.5;
+const PACKAGING_FACTOR = 0.3;
 
 interface EmissionBreakdown {
   material: number;
@@ -61,32 +58,36 @@ interface EmissionBreakdown {
   total: number;
 }
 
-const MATERIAL_LABELS: Record<string, { vi: string; en: string }> = {
-  cotton: { vi: 'Cotton thông thường', en: 'Conventional Cotton' },
-  polyester: { vi: 'Polyester nguyên sinh', en: 'Virgin Polyester' },
-  wool: { vi: 'Len (Wool)', en: 'Wool' },
-  silk: { vi: 'Lụa tơ tằm', en: 'Silk' },
-  linen: { vi: 'Linen (Lanh)', en: 'Linen' },
-  recycledPoly: { vi: 'Polyester tái chế', en: 'Recycled Polyester' },
-  organicCotton: { vi: 'Cotton hữu cơ', en: 'Organic Cotton' },
-  hemp: { vi: 'Hemp (Gai dầu)', en: 'Hemp' },
+const MATERIAL_LABELS: Record<string, string> = {
+  cotton: 'Cotton thông thường',
+  polyester: 'Polyester nguyên sinh',
+  wool: 'Len',
+  silk: 'Lụa tơ tằm',
+  linen: 'Linen',
+  recycledPoly: 'Polyester tái chế',
+  organicCotton: 'Cotton hữu cơ',
+  hemp: 'Hemp',
 };
 
-const ROUTE_LABELS: Record<string, { vi: string; en: string }> = {
-  vnEu: { vi: 'VN → EU (biển, ~15.000 km)', en: 'VN → EU (sea, ~15,000 km)' },
-  vnUs: { vi: 'VN → Mỹ (biển, ~12.500 km)', en: 'VN → US (sea, ~12,500 km)' },
-  vnJp: { vi: 'VN → Nhật (biển, ~3.800 km)', en: 'VN → Japan (sea, ~3,800 km)' },
-  vnKr: { vi: 'VN → Hàn (biển, ~3.200 km)', en: 'VN → Korea (sea, ~3,200 km)' },
-  vnDomestic: { vi: 'Nội địa (~500 km, xe tải)', en: 'Domestic (~500 km, truck)' },
+const ROUTE_LABELS: Record<string, string> = {
+  vnEu: 'Việt Nam - EU (đường biển, khoảng 15.000 km)',
+  vnUs: 'Việt Nam - Mỹ (đường biển, khoảng 12.500 km)',
+  vnJp: 'Việt Nam - Nhật Bản (đường biển, khoảng 3.800 km)',
+  vnKr: 'Việt Nam - Hàn Quốc (đường biển, khoảng 3.200 km)',
+  vnDomestic: 'Nội địa (khoảng 500 km, xe tải)',
 };
+
+const BREAKDOWN_META = [
+  { key: 'material', icon: Leaf, label: 'Vật liệu', color: 'text-green-600' },
+  { key: 'manufacturing', icon: Factory, label: 'Sản xuất', color: 'text-blue-600' },
+  { key: 'transport', icon: Truck, label: 'Vận chuyển', color: 'text-orange-600' },
+  { key: 'packaging', icon: Package, label: 'Đóng gói', color: 'text-purple-600' },
+] as const;
 
 const pct = (value: number, total: number) =>
   total > 0 ? (value / total) * 100 : 0;
 
 export default function CarbonCalculator() {
-  const { locale } = useLanguage();
-  const vi = locale === 'vi';
-
   const [weight, setWeight] = useState('');
   const [material, setMaterial] = useState('');
   const [route, setRoute] = useState('');
@@ -94,21 +95,26 @@ export default function CarbonCalculator() {
 
   const calculate = () => {
     if (!weight || !material || !route) return;
-    const kg = parseFloat(weight);
-    if (isNaN(kg) || kg <= 0) return;
 
-    const matEmission = kg * (MATERIAL_FACTORS[material] ?? 0);
-    const mfgEmission = kg * MANUFACTURING_FACTOR;
+    const kg = parseFloat(weight);
     const routeData = ROUTE_EMISSIONS[route];
-    const trnEmission = kg * routeData.distance * routeData.factor;
-    const pkgEmission = kg * PACKAGING_FACTOR;
-    const total = matEmission + mfgEmission + trnEmission + pkgEmission;
+    if (Number.isNaN(kg) || kg <= 0 || !routeData) return;
+
+    const materialEmission = kg * (MATERIAL_FACTORS[material] ?? 0);
+    const manufacturingEmission = kg * MANUFACTURING_FACTOR;
+    const transportEmission = kg * routeData.distance * routeData.factor;
+    const packagingEmission = kg * PACKAGING_FACTOR;
+    const total =
+      materialEmission +
+      manufacturingEmission +
+      transportEmission +
+      packagingEmission;
 
     setEmissions({
-      material: matEmission,
-      manufacturing: mfgEmission,
-      transport: trnEmission,
-      packaging: pkgEmission,
+      material: materialEmission,
+      manufacturing: manufacturingEmission,
+      transport: transportEmission,
+      packaging: packagingEmission,
       total,
     });
   };
@@ -117,43 +123,32 @@ export default function CarbonCalculator() {
 
   return (
     <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Calculator className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">
-            {vi ? 'Tính Carbon Proxy' : 'Carbon Proxy Calculator'}
-          </h1>
+          <h1 className="text-2xl font-bold">Tính Carbon Proxy</h1>
           <p className="text-sm text-muted-foreground">
-            {vi
-              ? 'Ước tính phát thải CO₂e của sản phẩm dệt may theo vật liệu, sản xuất và vận chuyển'
-              : 'Estimate CO₂e emissions for textile products based on material, manufacturing and transport'}
+            Ước tính phát thải CO2e của sản phẩm dệt may theo vật liệu, sản xuất và vận chuyển.
           </p>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Calculator Form */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Calculator className="w-4 h-4 text-primary" />
-              {vi ? 'Nhập thông tin sản phẩm' : 'Product information'}
+              Nhập thông tin sản phẩm
             </CardTitle>
             <CardDescription className="text-xs">
-              {vi
-                ? 'Kết quả là ước tính proxy từ hệ số Ecoinvent v3.10 — chưa phải dữ liệu sơ cấp.'
-                : 'Result is a proxy estimate from Ecoinvent v3.10 — not primary measured data.'}
+              Kết quả là ước tính proxy từ hệ số Ecoinvent v3.10, chưa thay thế dữ liệu sơ cấp.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Weight */}
             <div className="space-y-1.5">
-              <Label htmlFor="weight">
-                {vi ? 'Khối lượng sản phẩm (kg)' : 'Product weight (kg)'}
-              </Label>
+              <Label htmlFor="weight">Khối lượng sản phẩm (kg)</Label>
               <Input
                 id="weight"
                 type="number"
@@ -161,28 +156,23 @@ export default function CarbonCalculator() {
                 min="0.01"
                 placeholder="0.25"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(event) => setWeight(event.target.value)}
               />
             </div>
 
-            {/* Material */}
             <div className="space-y-1.5">
-              <Label>
-                {vi ? 'Loại vật liệu chính' : 'Primary material type'}
-              </Label>
+              <Label>Loại vật liệu chính</Label>
               <Select value={material} onValueChange={setMaterial}>
                 <SelectTrigger>
-                  <SelectValue
-                    placeholder={vi ? 'Chọn vật liệu' : 'Select material'}
-                  />
+                  <SelectValue placeholder="Chọn vật liệu" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(MATERIAL_LABELS).map(([key, lbl]) => (
+                  {Object.entries(MATERIAL_LABELS).map(([key, label]) => (
                     <SelectItem key={key} value={key}>
                       <span className="flex items-center gap-2">
-                        {vi ? lbl.vi : lbl.en}
+                        {label}
                         <span className="text-xs text-muted-foreground ml-1">
-                          ({MATERIAL_FACTORS[key]} kg CO₂e/kg)
+                          ({MATERIAL_FACTORS[key]} kg CO2e/kg)
                         </span>
                       </span>
                     </SelectItem>
@@ -191,21 +181,16 @@ export default function CarbonCalculator() {
               </Select>
             </div>
 
-            {/* Shipping Route */}
             <div className="space-y-1.5">
-              <Label>
-                {vi ? 'Tuyến vận chuyển xuất khẩu' : 'Shipping route'}
-              </Label>
+              <Label>Tuyến vận chuyển xuất khẩu</Label>
               <Select value={route} onValueChange={setRoute}>
                 <SelectTrigger>
-                  <SelectValue
-                    placeholder={vi ? 'Chọn tuyến' : 'Select route'}
-                  />
+                  <SelectValue placeholder="Chọn tuyến" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ROUTE_LABELS).map(([key, lbl]) => (
+                  {Object.entries(ROUTE_LABELS).map(([key, label]) => (
                     <SelectItem key={key} value={key}>
-                      {vi ? lbl.vi : lbl.en}
+                      {label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -218,109 +203,72 @@ export default function CarbonCalculator() {
               disabled={!canCalculate}
             >
               <Calculator className="w-4 h-4 mr-2" />
-              {vi ? 'Tính toán phát thải' : 'Calculate emissions'}
+              Tính toán phát thải
             </Button>
 
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-sky-500" />
               <span>
-                {vi
-                  ? 'Hệ số phát thải từ Ecoinvent v3.10 (ngành dệt may). Kết quả proxy — thay thế bằng dữ liệu đo đếm thực tế cho báo cáo kiểm toán.'
-                  : 'Emission factors from Ecoinvent v3.10 (textiles). Proxy result — replace with measured data for audit-grade reporting.'}
+                Hệ số phát thải lấy từ proxy ngành dệt may. Với báo cáo kiểm toán, hãy thay bằng dữ liệu đo đạc và chứng từ thực tế.
               </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Results */}
         <Card
           className={`transition-opacity duration-300 ${emissions ? 'opacity-100' : 'opacity-50'}`}
         >
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Leaf className="w-4 h-4 text-primary" />
-              {vi ? 'Kết quả tính toán' : 'Calculation results'}
+              Kết quả tính toán
             </CardTitle>
           </CardHeader>
           <CardContent>
             {emissions ? (
               <div className="space-y-6">
-                {/* Total */}
                 <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 text-white">
                   <p className="text-sm font-medium opacity-80 mb-1">
-                    {vi ? 'Tổng phát thải' : 'Total emissions'}
+                    Tổng phát thải
                   </p>
                   <p className="text-5xl font-bold mb-1">
                     {emissions.total.toFixed(2)}
                   </p>
-                  <p className="text-sm opacity-80">kg CO₂e</p>
+                  <p className="text-sm opacity-80">kg CO2e</p>
                 </div>
 
-                {/* Breakdown */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-sm">
-                    {vi ? 'Phân rã theo nhóm' : 'Breakdown by category'}
-                  </h4>
+                  <h4 className="font-semibold text-sm">Phân rã theo nhóm</h4>
+                  {BREAKDOWN_META.map(({ key, icon: Icon, label, color }) => {
+                    const value = emissions[key];
 
-                  {[
-                    {
-                      icon: Leaf,
-                      label: vi ? 'Vật liệu' : 'Material',
-                      value: emissions.material,
-                      color: 'text-green-600',
-                    },
-                    {
-                      icon: Factory,
-                      label: vi ? 'Sản xuất' : 'Manufacturing',
-                      value: emissions.manufacturing,
-                      color: 'text-blue-600',
-                    },
-                    {
-                      icon: Truck,
-                      label: vi ? 'Vận chuyển' : 'Transport',
-                      value: emissions.transport,
-                      color: 'text-orange-600',
-                    },
-                    {
-                      icon: Package,
-                      label: vi ? 'Đóng gói' : 'Packaging',
-                      value: emissions.packaging,
-                      color: 'text-purple-600',
-                    },
-                  ].map(({ icon: Icon, label, value, color }) => (
-                    <div key={label} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                          <Icon className={`w-4 h-4 ${color}`} />
-                          {label}
-                        </span>
-                        <span className="font-medium">
-                          {value.toFixed(2)} kg CO₂e
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({pct(value, emissions.total).toFixed(0)}%)
+                    return (
+                      <div key={key} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2 text-muted-foreground">
+                            <Icon className={`w-4 h-4 ${color}`} />
+                            {label}
                           </span>
-                        </span>
+                          <span className="font-medium">
+                            {value.toFixed(2)} kg CO2e
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({pct(value, emissions.total).toFixed(0)}%)
+                            </span>
+                          </span>
+                        </div>
+                        <Progress
+                          value={pct(value, emissions.total)}
+                          className="h-1.5"
+                        />
                       </div>
-                      <Progress
-                        value={pct(value, emissions.total)}
-                        className="h-1.5"
-                      />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {/* Interpretation */}
                 <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">
-                    {vi ? 'Giải thích kết quả' : 'Result interpretation'}
-                  </p>
+                  <p className="font-medium text-foreground">Giải thích kết quả</p>
                   <p>
-                    {vi
-                      ? `${emissions.total.toFixed(2)} kg CO₂e / sản phẩm là ước tính proxy Scope 1+2+3. `
-                      : `${emissions.total.toFixed(2)} kg CO₂e / product is a Scope 1+2+3 proxy estimate. `}
-                    {vi
-                      ? 'Để đạt chuẩn kiểm toán, tải chứng từ lên Evidence và hệ thống sẽ tự động nâng cấp điểm tin cậy.'
-                      : 'To reach audit-grade, upload evidence docs and the system will automatically upgrade the trust score.'}
+                    {emissions.total.toFixed(2)} kg CO2e / sản phẩm là ước tính proxy Scope 1+2+3. Để đạt chuẩn kiểm toán, hãy tải chứng từ lên Evidence để hệ thống nâng cấp độ tin cậy.
                   </p>
                 </div>
               </div>
@@ -329,9 +277,7 @@ export default function CarbonCalculator() {
                 <div className="text-center space-y-2">
                   <Calculator className="w-10 h-10 mx-auto opacity-30" />
                   <p className="text-sm">
-                    {vi
-                      ? 'Điền thông tin và nhấn "Tính toán" để xem kết quả'
-                      : 'Fill in the form and click "Calculate" to see your emissions'}
+                    Điền thông tin và nhấn nút Tính toán để xem kết quả.
                   </p>
                 </div>
               </div>
@@ -340,36 +286,27 @@ export default function CarbonCalculator() {
         </Card>
       </div>
 
-      {/* Info Panel */}
       <Card className="bg-sky-50 border-sky-200">
         <CardContent className="p-4">
           <div className="grid md:grid-cols-3 gap-4 text-xs">
             <div>
               <p className="font-semibold text-sky-900 mb-1">
-                {vi ? 'Nguồn hệ số phát thải' : 'Emission factor sources'}
+                Nguồn hệ số phát thải
               </p>
               <p className="text-sky-800">
-                Ecoinvent v3.10 (textiles) · IPCC 2021 GWP100 · Higg MSI 3.0
+                Ecoinvent v3.10 (textiles) - IPCC 2021 GWP100 - Higg MSI 3.0
               </p>
             </div>
             <div>
-              <p className="font-semibold text-sky-900 mb-1">
-                {vi ? 'Phạm vi tính' : 'Calculation scope'}
-              </p>
+              <p className="font-semibold text-sky-900 mb-1">Phạm vi tính</p>
               <p className="text-sky-800">
-                {vi
-                  ? 'Scope 1 (đốt nhiên liệu trực tiếp) + Scope 2 (điện) + Scope 3 upstream (vật liệu, vận chuyển mua vào) + transport xuất khẩu'
-                  : 'Scope 1 (direct fuel) + Scope 2 (electricity) + Scope 3 upstream (materials, inbound transport) + export transport'}
+                Scope 1, Scope 2, Scope 3 upstream và vận chuyển xuất khẩu.
               </p>
             </div>
             <div>
-              <p className="font-semibold text-sky-900 mb-1">
-                {vi ? 'Hạn chế' : 'Limitations'}
-              </p>
+              <p className="font-semibold text-sky-900 mb-1">Hạn chế</p>
               <p className="text-sky-800">
-                {vi
-                  ? 'Hệ số trung bình ngành — sai số ±20-40% so với dữ liệu sơ cấp. Không dùng trực tiếp cho báo cáo CBAM/GHG Protocol.'
-                  : 'Industry-average factors — ±20-40% vs primary data. Not suitable for direct CBAM/GHG Protocol submission.'}
+                Hệ số trung bình ngành có thể lệch 20-40% so với dữ liệu sơ cấp, không dùng trực tiếp cho CBAM hoặc GHG Protocol.
               </p>
             </div>
           </div>

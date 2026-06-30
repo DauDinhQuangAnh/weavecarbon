@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import DashboardHeaderButton from "./DashboardHeaderButton";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
-import { LanguageToggle } from "../ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
 import { resolvePostLoginPath, type CompanyCheckPayload } from "@/lib/auth/routing";
@@ -192,9 +191,6 @@ export default function DashboardLayoutContent({
                 <ArrowLeft className="h-4 w-4" />
               </button>
             ) : null}
-          </div>
-          <div className="hidden shrink-0 lg:block">
-            <LanguageToggle />
           </div>
         </div>
       </header>

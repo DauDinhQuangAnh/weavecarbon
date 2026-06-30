@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -69,8 +69,6 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
   onSelectMaterial
 }) => {
   const t = useTranslations("assessment.otherMaterialModal");
-  const locale = useLocale();
-  const isVi = locale === "vi";
 
   const [step, setStep] = useState<"input" | "results">("input");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -298,7 +296,7 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
                                 htmlFor={candidate.material.id}
                                 className="font-medium cursor-pointer"
                               >
-                                {isVi ? candidate.material.displayNameVi : candidate.material.displayNameEn}
+                                {candidate.material.displayNameVi}
                               </Label>
                               <Badge variant={getScoreBadgeVariant(candidate.score)}>
                                 {Math.round(candidate.score * 100)}% - {getScoreLabel(candidate.score)}
@@ -307,10 +305,7 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
 
                             <p className="text-sm text-muted-foreground">
                               {t("candidate.co2Line", {
-                                name:
-                                isVi ?
-                                candidate.material.displayNameEn :
-                                candidate.material.displayNameVi,
+                                name: candidate.material.displayNameVi,
                                 factor: candidate.material.co2Factor
                               })}
                             </p>

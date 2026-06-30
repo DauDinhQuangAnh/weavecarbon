@@ -1,7 +1,22 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+
+const SHIPMENT_COLORS = [
+  "#3b82f6",
+  "#f97316",
+  "#10b981",
+  "#8b5cf6",
+  "#ef4444",
+  "#06b6d4",
+  "#84cc16",
+  "#ec4899",
+  "#f59e0b",
+  "#14b8a6",
+  "#6366f1",
+  "#a855f7",
+];
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -440,7 +455,6 @@ const STATUS_PALETTE: Record<
 const ShippingOverviewMap: React.FC = () => {
   const t = useTranslations("logistics");
   const tTrack = useTranslations("trackShipment");
-  const locale = useLocale();
   const { isMobile } = useBreakpoint();
   const [allShipments, setAllShipments] = useState<Shipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -456,7 +470,7 @@ const ShippingOverviewMap: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 8;
   const mapHeight = isMobile ? "min(62dvh, 420px)" : "520px";
-  const filterToggleLabel = locale === "vi" ? "Bộ lọc" : "Filters";
+  const filterToggleLabel = "Bộ lọc";
   const shipmentFallbacks = useMemo(
     () => ({
       shipmentName: t("fallbacks.shipment"),
@@ -800,7 +814,7 @@ const ShippingOverviewMap: React.FC = () => {
 
   const allRoutes = useMemo(
     (): SupplyChainRoute[] =>
-    paginatedShipments.flatMap((shipment) =>
+    paginatedShipments.flatMap((shipment, shipmentIndex) =>
     shipment.legs.map((leg) => ({
       id: `${getShipmentIdentityKey(shipment) || shipment.id}-${leg.id}`,
       from: {
@@ -829,7 +843,8 @@ const ShippingOverviewMap: React.FC = () => {
       "in_transit" as const,
       co2Kg: leg.co2Kg,
       distanceKm: leg.distanceKm,
-      geometry: leg.geometry
+      geometry: leg.geometry,
+      color: SHIPMENT_COLORS[shipmentIndex % SHIPMENT_COLORS.length],
     }))
     ),
     [paginatedShipments]

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { Button } from "@/components/ui/button";
@@ -466,11 +466,11 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
   const { setPageTitle } = useDashboardTitle();
   const t = useTranslations("summary");
   const tProductDetail = useTranslations("productDetail");
-  const locale = useLocale();
+  const locale = "vi";
   const { currentPlan } = useSubscriptionLock();
   const [accountPlan, setAccountPlan] = useState<string | null>(null);
   const [starterDomesticMarket, setStarterDomesticMarket] = useState<string>("vietnam");
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const displayLocale = "vi-VN";
   const initialPrefetchedProduct = useMemo(
     () => readSummaryPrefetchedProduct(productId),
     [productId]

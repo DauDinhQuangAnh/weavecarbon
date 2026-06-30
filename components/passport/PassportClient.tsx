@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   Card,
@@ -746,8 +746,8 @@ const PassportClient: React.FC = () => {
   const productId = searchParams.get("id");
   const shipmentId = searchParams.get("shipmentId");
   const t = useTranslations("passport");
-  const locale = useLocale();
-  const displayLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const locale = "vi";
+  const displayLocale = "vi-VN";
   const formatExactValue = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 20 });
 
@@ -1092,37 +1092,20 @@ const PassportClient: React.FC = () => {
   }
 
   const exportReadiness = getExportReadiness();
-  const uiText =
-  locale === "vi" ?
-  {
-    legsLabel: "chặng",
-    estimated: "Ước tính",
-    routeData: "Theo hành trình",
+  const uiText = {
+    legsLabel: "ch\u1eb7ng",
+    estimated: "\u01af\u1edbc t\u00ednh",
+    routeData: "Theo h\u00e0nh tr\u00ecnh",
     apiData: "API",
     localData: "Local",
-    summaryDistance: "Quãng đường",
+    summaryDistance: "Qu\u00e3ng \u0111\u01b0\u1eddng",
     summaryCo2: "CO2e",
-    summaryIntensity: "Cường độ",
-    summaryRoute: "Tuyến",
-    routeDomestic: "Nội địa",
-    routeInternational: "Quốc tế",
-    routeMixed: "Hỗn hợp",
-    legPrefix: "Chặng"
-  } :
-  {
-    legsLabel: "legs",
-    estimated: "Estimated",
-    routeData: "Route-based",
-    apiData: "API",
-    localData: "Local",
-    summaryDistance: "Distance",
-    summaryCo2: "CO2e",
-    summaryIntensity: "Intensity",
-    summaryRoute: "Route",
-    routeDomestic: "Domestic",
-    routeInternational: "International",
-    routeMixed: "Mixed",
-    legPrefix: "Leg"
+    summaryIntensity: "C\u01b0\u1eddng \u0111\u1ed9",
+    summaryRoute: "Tuy\u1ebfn",
+    routeDomestic: "N\u1ed9i \u0111\u1ecba",
+    routeInternational: "Qu\u1ed1c t\u1ebf",
+    routeMixed: "H\u1ed7n h\u1ee3p",
+    legPrefix: "Ch\u1eb7ng"
   };
   const transportLegs = transport?.legs || [];
   const transportOrigin =
