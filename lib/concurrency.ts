@@ -12,6 +12,7 @@ export async function runWithConcurrency<T>(
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  const concurrency = Math.max(1, Math.floor(limit) || 1);
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, worker));
   return results;
 }

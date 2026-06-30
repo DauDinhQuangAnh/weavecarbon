@@ -1,6 +1,21 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+const SHIPMENT_COLORS = [
+  "#3b82f6",
+  "#f97316",
+  "#10b981",
+  "#8b5cf6",
+  "#ef4444",
+  "#06b6d4",
+  "#84cc16",
+  "#ec4899",
+  "#f59e0b",
+  "#14b8a6",
+  "#6366f1",
+  "#a855f7",
+];
 import { useLocale, useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -797,21 +812,6 @@ const ShippingOverviewMap: React.FC = () => {
 
     return nodes;
   }, [paginatedShipments, t]);
-
-  const SHIPMENT_COLORS = [
-    "#3b82f6", // blue
-    "#f97316", // orange
-    "#10b981", // emerald
-    "#8b5cf6", // violet
-    "#ef4444", // red
-    "#06b6d4", // cyan
-    "#84cc16", // lime
-    "#ec4899", // pink
-    "#f59e0b", // amber
-    "#14b8a6", // teal
-    "#6366f1", // indigo
-    "#a855f7", // purple
-  ];
 
   const allRoutes = useMemo(
     (): SupplyChainRoute[] =>
