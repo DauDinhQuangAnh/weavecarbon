@@ -71,6 +71,26 @@ const getTypeEmoji = (type: string) => {
 const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
   buildSupplyChainRouteGeometry(route);
 
+const OSM_RASTER_STYLE = {
+  version: 8 as const,
+  sources: {
+    osm: {
+      type: "raster" as const,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }
+  },
+  layers: [
+    {
+      id: "osm-tiles",
+      type: "raster" as const,
+      source: "osm"
+    }
+  ]
+};
+
 const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodes,
   routes,
@@ -100,11 +120,15 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     let loadTimeout: NodeJS.Timeout | undefined;
 
     try {
-      if (!hasMapboxPublicToken()) {
-        throw new Error(t("errors.missingToken"));
+      const hasToken = hasMapboxPublicToken();
+      if (hasToken) {
+        configureMapboxRuntime(mapboxgl);
+      } else {
+        mapboxgl.accessToken = "pk.placeholder";
+        if (typeof (mapboxgl as unknown as { setTelemetryEnabled?: (enabled: boolean) => void }).setTelemetryEnabled === "function") {
+          (mapboxgl as unknown as { setTelemetryEnabled: (enabled: boolean) => void }).setTelemetryEnabled(false);
+        }
       }
-
-      configureMapboxRuntime(mapboxgl);
       // Prevent worker init errors in Turbopack/Next.js builds
       if (typeof mapboxgl.workerCount === "number" && mapboxgl.workerCount > 2) {
         mapboxgl.workerCount = 1;
@@ -112,14 +136,15 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: hasToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
         center: [center[1], center[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
         zoom,
         antialias: true,
         pitch: 0,
         bearing: 0,
         maxPitch: 0,
-        projection: "mercator"
+        projection: "mercator",
+        attributionControl: !hasToken
       });
 
       loadTimeout = setTimeout(() => {
