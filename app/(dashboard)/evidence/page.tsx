@@ -156,7 +156,7 @@ export default function EvidencePage() {
       if (notes) formData.append('notes', notes);
 
       await api.post('/evidence/upload', formData);
-      toast({ title: 'Đã tải lên. AI đang đọc chứng từ…' });
+      toast({ title: 'Đã tải lên. AI đang đọc chứng từ — kết quả hiện sau 5-10 giây.' });
       setUploadOpen(false);
       setFile(null);
       setSupplier('');
@@ -165,6 +165,8 @@ export default function EvidencePage() {
       setPeriodEnd('');
       setPage(1);
       await load(1);
+      // Auto-refresh after AI extraction completes (~8s)
+      setTimeout(() => load(1), 8000);
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi tải lên', variant: 'destructive' });
     } finally {
