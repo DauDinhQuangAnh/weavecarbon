@@ -76,19 +76,20 @@ const STATUS_LABEL: Record<string, string> = {
 
 interface EvDoc {
   id: string;
-  file_name: string;
+  documentName: string;
+  fileName: string;
   kind: string;
   status: string;
-  trust_score: number;
-  verification_level: number;
-  created_at: string;
-  file_hash_sha256: string | null;
+  trustScore: number | null;
+  verificationLevel: number;
+  createdAt: string;
+  checksumSha256: string | null;
   warnings: string[] | null;
 }
 
 interface ExtractedField {
   id: string;
-  field_key: string;
+  label: string;
   ai_value: string | null;
   confirmed_value: string | null;
   confidence: number | null;
@@ -290,27 +291,27 @@ export default function EvidencePage() {
                       key={r.id}
                       className="border-t hover:bg-slate-50"
                     >
-                      <td className="p-3 font-medium">{r.file_name}</td>
+                      <td className="p-3 font-medium">{r.fileName || r.documentName}</td>
                       <td className="p-3">
                         {DOC_TYPES.find((d) => d.value === r.kind)?.label ??
                           r.kind}
                       </td>
                       <td className="p-3">
-                        <EvidenceLevelBadge level={r.verification_level} />
+                        <EvidenceLevelBadge level={r.verificationLevel} />
                       </td>
                       <td className="p-3">
-                        <EvidenceTrustBadge score={r.trust_score} />
+                        <EvidenceTrustBadge score={r.trustScore} />
                       </td>
                       <td className="p-3 text-xs">
                         {STATUS_LABEL[r.status] ?? r.status}
                       </td>
                       <td className="p-3 font-mono text-xs text-slate-500">
-                        {r.file_hash_sha256
-                          ? r.file_hash_sha256.slice(0, 10) + '…'
+                        {r.checksumSha256
+                          ? r.checksumSha256.slice(0, 10) + '…'
                           : '—'}
                       </td>
                       <td className="p-3 text-xs text-slate-500">
-                        {new Date(r.created_at).toLocaleString('vi-VN')}
+                        {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1">
@@ -497,8 +498,8 @@ export default function EvidencePage() {
           {reviewDoc && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <EvidenceLevelBadge level={reviewDoc.verification_level} />
-                <EvidenceTrustBadge score={reviewDoc.trust_score} />
+                <EvidenceLevelBadge level={reviewDoc.verificationLevel} />
+                <EvidenceTrustBadge score={reviewDoc.trustScore} />
                 <Badge variant="outline">
                   {STATUS_LABEL[reviewDoc.status] ?? reviewDoc.status}
                 </Badge>
@@ -537,7 +538,7 @@ export default function EvidencePage() {
                     ) : (
                       reviewFields.map((f, i) => (
                         <tr key={f.id} className="border-t">
-                          <td className="p-2 font-medium">{f.field_key}</td>
+                          <td className="p-2 font-medium">{f.label || f.id}</td>
                           <td className="p-2 text-slate-600 max-w-[180px] truncate">
                             {f.ai_value ?? '—'}
                           </td>

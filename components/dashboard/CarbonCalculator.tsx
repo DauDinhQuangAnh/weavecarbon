@@ -30,6 +30,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { api } from '@/lib/apiClient';
+import ReactMarkdown from 'react-markdown';
 
 const MATERIAL_FACTORS: Record<string, number> = {
   cotton: 5.9,
@@ -444,8 +445,21 @@ export default function CarbonCalculator() {
                   )}
 
                   {assessment && !isAssessing && (
-                    <div className="rounded-md bg-white px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-                      {assessment}
+                    <div className="rounded-md bg-white px-3 py-2 text-sm leading-relaxed text-foreground">
+                      <ReactMarkdown
+                        components={{
+                          h3: ({ children }) => <p className="font-semibold text-foreground mt-3 mb-1 first:mt-0">{children}</p>,
+                          h2: ({ children }) => <p className="font-semibold text-foreground mt-3 mb-1 first:mt-0">{children}</p>,
+                          h1: ({ children }) => <p className="font-semibold text-foreground mt-3 mb-1 first:mt-0">{children}</p>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          ul: ({ children }) => <ul className="list-disc pl-4 my-1 space-y-0.5">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-4 my-1 space-y-0.5">{children}</ol>,
+                          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                          p: ({ children }) => <p className="my-1">{children}</p>,
+                        }}
+                      >
+                        {assessment}
+                      </ReactMarkdown>
                     </div>
                   )}
                 </div>
