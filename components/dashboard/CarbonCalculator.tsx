@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -20,11 +21,16 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
+  Bot,
   Calculator,
+  ChevronRight,
   Factory,
   Info,
   Leaf,
+  Loader2,
   Package,
+  Send,
+  Sparkles,
   Truck,
 } from 'lucide-react';
 
@@ -87,11 +93,53 @@ const BREAKDOWN_META = [
 const pct = (value: number, total: number) =>
   total > 0 ? (value / total) * 100 : 0;
 
+const SUGGESTED_QUESTIONS = [
+  "Làm thế nào để giảm phát thải từ vật liệu này?",
+  "So sánh với trung bình ngành dệt may",
+  "Gợi ý vật liệu thay thế ít carbon hơn",
+  "Giải thích phát thải vận chuyển đường biển",
+];
+
+interface AiMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function buildAiPrompt(query: string, context: {
+  weight: string;
+  material: string;
+  route: string;
+  emissions: EmissionBreakdown | null;
+}): string {
+  if (!context.emissions) return query;
+
+  const materialLabel = MATERIAL_LABELS[context.material] ?? context.material;
+  const routeLabel = ROUTE_LABELS[context.route] ?? context.route;
+
+  return `Ngữ cảnh tính toán carbon vừa thực hiện:
+- Sản phẩm dệt may, khối lượng: ${context.weight} kg
+- Vật liệu chính: ${materialLabel} (${MATERIAL_FACTORS[context.material]} kg CO2e/kg)
+- Tuyến vận chuyển: ${routeLabel}
+- Tổng phát thải: ${context.emissions.total.toFixed(2)} kg CO2e/sản phẩm
+  • Vật liệu: ${context.emissions.material.toFixed(2)} kg CO2e (${((context.emissions.material / context.emissions.total) * 100).toFixed(0)}%)
+  • Sản xuất: ${context.emissions.manufacturing.toFixed(2)} kg CO2e (${((context.emissions.manufacturing / context.emissions.total) * 100).toFixed(0)}%)
+  • Vận chuyển: ${context.emissions.transport.toFixed(2)} kg CO2e (${((context.emissions.transport / context.emissions.total) * 100).toFixed(0)}%)
+  • Đóng gói: ${context.emissions.packaging.toFixed(2)} kg CO2e (${((context.emissions.packaging / context.emissions.total) * 100).toFixed(0)}%)
+
+Câu hỏi: ${query}`;
+}
+
 export default function CarbonCalculator() {
   const [weight, setWeight] = useState('');
   const [material, setMaterial] = useState('');
   const [route, setRoute] = useState('');
   const [emissions, setEmissions] = useState<EmissionBreakdown | null>(null);
+
+  const [aiInput, setAiInput] = useState('');
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const calculate = () => {
     if (!weight || !material || !route) return;
@@ -120,6 +168,42 @@ export default function CarbonCalculator() {
   };
 
   const canCalculate = weight && material && route;
+
+  const askAi = async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed || isAiLoading) return;
+
+    const userMsg: AiMessage = { role: "user", content: trimmed };
+    setAiMessages((prev) => [...prev, userMsg]);
+    setAiInput('');
+    setAiError(null);
+    setIsAiLoading(true);
+
+    setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
+    try {
+      const prompt = buildAiPrompt(trimmed, { weight, material, route, emissions });
+      const res = await fetch('/api/ai-carbon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: prompt }),
+      });
+
+      const data = await res.json() as { answer?: string; error?: string };
+      if (!res.ok || !data.answer) {
+        throw new Error(data.error ?? `Lỗi ${res.status}`);
+      }
+
+      setAiMessages((prev) => [...prev, { role: "assistant", content: data.answer! }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Lỗi không xác định';
+      setAiError(msg);
+      setAiMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setIsAiLoading(false);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  };
 
   return (
     <div className="flex-1 p-6 space-y-6">
@@ -310,6 +394,154 @@ export default function CarbonCalculator() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Assistant Panel */}
+      <Card className="border-violet-100">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-violet-600" />
+            </div>
+            Trợ lý Carbon AI
+            <span className="ml-auto text-xs font-normal text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-violet-400" />
+              Powered by Gemini
+            </span>
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Đặt câu hỏi về kết quả tính toán, phương án giảm thiểu carbon hoặc kiến thức ngành dệt may.
+            {emissions && (
+              <span className="text-violet-600 font-medium ml-1">
+                AI đã có ngữ cảnh từ kết quả tính toán của bạn.
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Suggested questions — only show when chat is empty */}
+          {aiMessages.length === 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">Gợi ý câu hỏi:</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => askAi(q)}
+                    disabled={isAiLoading}
+                    className="flex items-center gap-1 text-xs rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-50"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chat history */}
+          {aiMessages.length > 0 && (
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+              {aiMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  {msg.role === 'assistant' && (
+                    <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="w-3.5 h-3.5 text-violet-600" />
+                    </div>
+                  )}
+                  <div
+                    className={`rounded-2xl px-3.5 py-2.5 text-sm max-w-[85%] leading-relaxed whitespace-pre-wrap ${
+                      msg.role === 'user'
+                        ? 'bg-violet-600 text-white rounded-tr-sm'
+                        : 'bg-muted text-foreground rounded-tl-sm'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                  {msg.role === 'user' && (
+                    <div className="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold">
+                      B
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {isAiLoading && (
+                <div className="flex gap-2.5 justify-start">
+                  <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+                    <Bot className="w-3.5 h-3.5 text-violet-600" />
+                  </div>
+                  <div className="bg-muted rounded-2xl rounded-tl-sm px-3.5 py-3 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:300ms]" />
+                  </div>
+                </div>
+              )}
+
+              <div ref={chatBottomRef} />
+            </div>
+          )}
+
+          {/* Error */}
+          {aiError && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                Không thể kết nối RAG API: <span className="font-medium">{aiError}</span>. Kiểm tra server đang chạy tại <code className="bg-red-100 px-1 rounded">http://127.0.0.1:8000</code>
+              </span>
+            </div>
+          )}
+
+          {/* Input row */}
+          <div className="flex gap-2 pt-1">
+            <Textarea
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+              placeholder={
+                emissions
+                  ? "Hỏi về kết quả tính toán hoặc cách giảm phát thải..."
+                  : "Hỏi về carbon footprint trong ngành dệt may..."
+              }
+              className="min-h-[2.75rem] max-h-32 resize-none text-sm"
+              rows={1}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void askAi(aiInput);
+                }
+              }}
+            />
+            <Button
+              type="button"
+              size="icon"
+              className="shrink-0 h-11 w-11 bg-violet-600 hover:bg-violet-700"
+              onClick={() => askAi(aiInput)}
+              disabled={!aiInput.trim() || isAiLoading}
+            >
+              {isAiLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+
+          {aiMessages.length > 0 && (
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => { setAiMessages([]); setAiError(null); }}
+            >
+              Xóa lịch sử chat
+            </button>
+          )}
         </CardContent>
       </Card>
     </div>

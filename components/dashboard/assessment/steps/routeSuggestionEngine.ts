@@ -81,6 +81,7 @@ export interface RouteSuggestionResponse {
 export type SuggestedRouteResolution = RouteSuggestionResponse;
 
 export interface IntermodalPlanContext {
+  cargoWeightKg?: number;
   destination: AddressInput;
   destinationMarket: string;
   origin: AddressInput;
@@ -93,6 +94,7 @@ export interface IntermodalPlanConstraints {
 
 export interface RouteSuggestionRequest {
   autoSuggested?: boolean;
+  cargoWeightKg?: number;
   destination: AddressInput;
   destinationMarket: string;
   destinationSource?: RoadRoutePointSource;
@@ -253,10 +255,34 @@ const normalizeMarketScope = (value: string | null | undefined): RouteMarketScop
     normalized === "korea" ||
     normalized === "japan" ||
     normalized === "china" ||
+    normalized === "asean" ||
+    normalized === "australia" ||
     normalized === "other"
   ) {
     return normalized;
   }
+  return "other";
+};
+
+// Infer destination market from coordinates when user hasn't explicitly selected one.
+// Checked in priority order: smaller/more specific regions before broad ones.
+export const inferDestinationMarketFromCoordinates = (lat: number, lng: number): RouteMarketScope => {
+  // Vietnam (narrow bounds)
+  if (lat >= 8.3 && lat <= 23.4 && lng >= 102.1 && lng <= 109.5) return "vietnam";
+  // Japan (island chain)
+  if (lat >= 30.0 && lat <= 45.5 && lng >= 129.0 && lng <= 146.0) return "japan";
+  // South Korea
+  if (lat >= 33.0 && lat <= 38.6 && lng >= 125.0 && lng <= 130.0) return "korea";
+  // Australia + New Zealand
+  if (lat >= -47.0 && lat <= -10.0 && lng >= 112.0 && lng <= 179.0) return "australia";
+  // ASEAN (Thailand, Malaysia, Indonesia, Philippines, Myanmar, Cambodia, Laos, Singapore, Brunei)
+  if (lat >= -11.0 && lat <= 28.0 && lng >= 92.0 && lng <= 142.0) return "asean";
+  // China (mainland — after ASEAN to avoid capturing SE Asia)
+  if (lat >= 18.0 && lat <= 53.5 && lng >= 73.5 && lng <= 135.0) return "china";
+  // Europe (broad: from Iceland to Eastern Turkey)
+  if (lat >= 34.0 && lat <= 71.5 && lng >= -24.0 && lng <= 45.0) return "eu";
+  // North America (USA + Canada, treat as USA market)
+  if (lat >= 24.0 && lat <= 71.0 && lng >= -168.0 && lng <= -52.0) return "usa";
   return "other";
 };
 
@@ -435,6 +461,14 @@ const getFallbackLongHaulMode = (
 
   if (destinationMarket === "china") {
     return "rail";
+  }
+
+  if (destinationMarket === "asean") {
+    return totalDistanceKm <= 2500 ? "sea" : "air";
+  }
+
+  if (destinationMarket === "australia") {
+    return "sea";
   }
 
   return totalDistanceKm <= 4500 ? "air" : "sea";
@@ -927,17 +961,20 @@ const buildReasonCodes = ({
   candidate,
   fastestEtaRouteKey,
   lowestCarbonRouteKey,
+  minTransferRouteKey,
   profile,
   request
 }: {
   candidate: RankedSuggestedRoute & { routeKey: string };
   fastestEtaRouteKey: string;
   lowestCarbonRouteKey: string;
+  minTransferRouteKey: string;
   profile: "domestic" | "export";
   request: RouteSuggestionRequest;
 }) => {
   const reasonCodes: string[] = [];
   const { metrics, route } = candidate;
+  const cargoWeightKg = request.cargoWeightKg ?? 0;
 
   if (metrics.unresolvedRoadSegments === 0) {
     reasonCodes.push("resolved_all_road_legs");
@@ -964,8 +1001,18 @@ const buildReasonCodes = ({
   if (fastestEtaRouteKey === candidate.routeKey) {
     reasonCodes.push("fastest_eta_on_frontier");
   }
+  if (minTransferRouteKey === candidate.routeKey) {
+    reasonCodes.push("fewest_transshipments");
+  }
   if (request.requiredLongHaulMode && routeMatchesRequiredLongHaulMode(route, request.requiredLongHaulMode)) {
     reasonCodes.push(`forced_${request.requiredLongHaulMode}_mode`);
+  }
+  // Cargo-weight specific signals
+  if (cargoWeightKg >= 1000 && !route.legs.some((leg) => leg.mode === "air" && leg.segmentKind === "line_haul")) {
+    reasonCodes.push("heavy_cargo_non_air");
+  }
+  if (cargoWeightKg >= 5000 && route.legs.some((leg) => leg.mode === "sea" && leg.segmentKind === "line_haul")) {
+    reasonCodes.push("bulk_cargo_sea_optimal");
   }
   if (reasonCodes.length === 0) {
     reasonCodes.push(profile === "domestic" ? "balanced_domestic_route" : "balanced_export_route");
@@ -1065,6 +1112,8 @@ const rankCandidates = ({
     }
   };
 
+  const cargoWeightKg = request.cargoWeightKg ?? 0;
+
   const scored = scorePool.map((candidate) => {
     const normalizedCo2 = normalizeMetricValue(
       candidate.metrics.totalCo2PerTonKg,
@@ -1092,6 +1141,16 @@ const rankCandidates = ({
       metricRanges.unreliability.max
     );
 
+    // Heavy cargo penalty: air line-haul becomes increasingly undesirable above 500kg.
+    // Penalty grows linearly from 0 at 500kg to 0.4 at 5000kg, capped at 0.4.
+    const hasAirLineHaul = candidate.route.legs.some(
+      (leg) => leg.mode === "air" && leg.segmentKind === "line_haul"
+    );
+    const airWeightPenalty =
+      hasAirLineHaul && cargoWeightKg > 500
+        ? Math.min(0.4, (cargoWeightKg - 500) / 11250)
+        : 0;
+
     const score =
       profile === "domestic" ?
         0.35 * normalizedEta +
@@ -1099,13 +1158,15 @@ const rankCandidates = ({
         0.2 * normalizedFeederRoadKm +
         0.1 * normalizedTransferCount +
         0.15 * normalizedUnreliability +
-        2 * candidate.metrics.unresolvedRoadSegments :
+        2 * candidate.metrics.unresolvedRoadSegments +
+        airWeightPenalty :
         0.3 * normalizedCo2 +
         0.2 * normalizedEta +
         0.2 * normalizedFeederRoadKm +
         0.15 * normalizedTransferCount +
         0.15 * normalizedUnreliability +
-        2 * candidate.metrics.unresolvedRoadSegments;
+        2 * candidate.metrics.unresolvedRoadSegments +
+        airWeightPenalty;
 
     return {
       candidate,
@@ -1131,6 +1192,15 @@ const rankCandidates = ({
 
       return left.candidate.routeKey.localeCompare(right.candidate.routeKey);
     })[0]?.candidate.routeKey || "";
+  const minTransferRouteKey = [...scored]
+    .sort((left, right) => {
+      const byTransfers = compareNumbers(left.candidate.metrics.transferCount, right.candidate.metrics.transferCount, 0.001);
+      if (byTransfers !== 0) {
+        return byTransfers;
+      }
+
+      return left.candidate.routeKey.localeCompare(right.candidate.routeKey);
+    })[0]?.candidate.routeKey || "";
 
   return scored
     .map(({ candidate, score }) => {
@@ -1150,6 +1220,7 @@ const rankCandidates = ({
         candidate: ranked,
         fastestEtaRouteKey,
         lowestCarbonRouteKey,
+        minTransferRouteKey,
         profile,
         request
       });
@@ -1222,6 +1293,15 @@ const toResponseAlternatives = (
       const byEta = compareNumbers(left.metrics.etaHours, right.metrics.etaHours, 0.001);
       if (byEta !== 0) {
         return byEta;
+      }
+      return left.routeKey.localeCompare(right.routeKey);
+    })
+  );
+  pickDistinct(
+    [...rankedCandidates].sort((left, right) => {
+      const byTransfers = compareNumbers(left.metrics.transferCount, right.metrics.transferCount, 0.001);
+      if (byTransfers !== 0) {
+        return byTransfers;
       }
       return left.routeKey.localeCompare(right.routeKey);
     })
@@ -1905,14 +1985,30 @@ export const buildRouteSuggestionFallback = (
 export const resolveRouteSuggestion = async (
   request: RouteSuggestionRequest
 ): Promise<RouteSuggestionResponse> => {
-  const profile = normalizeMarketScope(request.destinationMarket) === "vietnam" ? "domestic" : "export";
-  const candidates = await selectCandidatesForRequest(request);
+  // Auto-infer destination market from coordinates when the caller passes "other" or nothing.
+  // This allows callers to omit explicit market selection and still get accurate routing.
+  const inferredMarket = (() => {
+    const explicit = normalizeMarketScope(request.destinationMarket);
+    if (explicit !== "other") return explicit;
+    const { lat, lng } = request.destination;
+    if (isFiniteNumber(lat) && isFiniteNumber(lng)) {
+      return inferDestinationMarketFromCoordinates(lat, lng);
+    }
+    return "other";
+  })();
+  const effectiveRequest: RouteSuggestionRequest =
+    inferredMarket !== normalizeMarketScope(request.destinationMarket)
+      ? { ...request, destinationMarket: inferredMarket }
+      : request;
+
+  const profile = inferredMarket === "vietnam" ? "domestic" : "export";
+  const candidates = await selectCandidatesForRequest(effectiveRequest);
 
   if (candidates.length === 0) {
     return buildFallbackResponse(
-      request,
-      request.requiredLongHaulMode ?
-        ["forced_mode_unavailable", `forced_${request.requiredLongHaulMode}_mode`] :
+      effectiveRequest,
+      effectiveRequest.requiredLongHaulMode ?
+        ["forced_mode_unavailable", `forced_${effectiveRequest.requiredLongHaulMode}_mode`] :
         ["no_viable_candidate"]
     );
   }
@@ -1920,14 +2016,14 @@ export const resolveRouteSuggestion = async (
   const rankedCandidates = rankCandidates({
     candidates,
     profile,
-    request
+    request: effectiveRequest
   });
 
   if (rankedCandidates.length === 0) {
     return buildFallbackResponse(
-      request,
-      request.requiredLongHaulMode ?
-        ["forced_mode_unavailable", `forced_${request.requiredLongHaulMode}_mode`] :
+      effectiveRequest,
+      effectiveRequest.requiredLongHaulMode ?
+        ["forced_mode_unavailable", `forced_${effectiveRequest.requiredLongHaulMode}_mode`] :
         ["no_viable_candidate"]
     );
   }
@@ -1961,6 +2057,7 @@ export const buildIntermodalFallbackRoute = (
 ): SuggestedRoute =>
   buildRouteSuggestionFallback({
     autoSuggested: constraints.autoSuggested,
+    cargoWeightKg: context.cargoWeightKg,
     destination: context.destination,
     destinationMarket: context.destinationMarket,
     origin: context.origin,
@@ -1974,6 +2071,7 @@ export const resolveIntermodalPlan = async (
 ): Promise<RouteSuggestionResponse> =>
   resolveRouteSuggestion({
     autoSuggested: constraints.autoSuggested,
+    cargoWeightKg: context.cargoWeightKg,
     destination: context.destination,
     destinationMarket: context.destinationMarket,
     destinationSource: options.destinationSource,

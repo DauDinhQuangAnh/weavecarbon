@@ -243,6 +243,8 @@ export const DESTINATION_MARKETS = [
 { value: "japan", label: "Nhật Bản", distance: 3500 },
 { value: "eu", label: "Châu Âu", distance: 10000 },
 { value: "china", label: "Trung Quốc", distance: 2500 },
+{ value: "asean", label: "ASEAN", distance: 2000 },
+{ value: "australia", label: "Australia / Oceania", distance: 6500 },
 { value: "other", label: "Khác", distance: 5000 }];
 
 

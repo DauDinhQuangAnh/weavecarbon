@@ -55,6 +55,40 @@ interface GeocodingResult {
   };
 }
 
+interface NominatimResult {
+  place_id?: number;
+  display_name?: string;
+  lat: string;
+  lon: string;
+  name?: string;
+  type?: string;
+  address?: {
+    house_number?: string;
+    road?: string;
+    pedestrian?: string;
+    footway?: string;
+    neighbourhood?: string;
+    suburb?: string;
+    quarter?: string;
+    borough?: string;
+    hamlet?: string;
+    residential?: string;
+    city_district?: string;
+    state_district?: string;
+    district?: string;
+    county?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    state?: string;
+    province?: string;
+    region?: string;
+    postcode?: string;
+    country?: string;
+  };
+}
+
 const REVERSE_GEOCODING_TYPES = [
   "address",
   "neighborhood",
@@ -91,6 +125,11 @@ const FORWARD_GEOCODING_TYPE_PRIORITY: Record<string, number> = {
 
 const MARKER_SYNC_EPSILON = 0.00001;
 const TARGET_MAP_ZOOM = 14;
+const OSM_SEARCH_ENDPOINT = "https://nominatim.openstreetmap.org/search";
+const OSM_REVERSE_ENDPOINT = "https://nominatim.openstreetmap.org/reverse";
+const GEOLOCATION_PERMISSION_DENIED = 1;
+const GEOLOCATION_POSITION_UNAVAILABLE = 2;
+const GEOLOCATION_TIMEOUT = 3;
 
 const EMPTY_ADDRESS_PARTS: Omit<
   AddressInput,
@@ -152,6 +191,32 @@ const hasAddressContent = (address: AddressInput) =>
       hasCoordinatePair(address.lat, address.lng)
   );
 
+const buildOsmMapEmbedUrl = (
+  center: [number, number],
+  marker?: {
+    lat: number;
+    lng: number;
+  }
+) => {
+  const [lng, lat] = center;
+  const delta = marker ? 0.012 : 0.08;
+  const params = new URLSearchParams({
+    bbox: [
+      (lng - delta).toFixed(6),
+      (lat - delta).toFixed(6),
+      (lng + delta).toFixed(6),
+      (lat + delta).toFixed(6)
+    ].join(","),
+    layer: "mapnik"
+  });
+
+  if (marker) {
+    params.set("marker", `${marker.lat.toFixed(6)},${marker.lng.toFixed(6)}`);
+  }
+
+  return `https://www.openstreetmap.org/export/embed.html?${params.toString()}`;
+};
+
 const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
   onChange,
@@ -181,6 +246,24 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const hasSelectedCoordinates = hasCoordinatePair(address.lat, address.lng);
+  const fallbackMapCenter = React.useMemo<[number, number]>(
+    () =>
+      hasSelectedCoordinates ?
+        [address.lng as number, address.lat as number] :
+        defaultCenter,
+    [address.lat, address.lng, defaultCenter, hasSelectedCoordinates]
+  );
+  const fallbackMapUrl = React.useMemo(
+    () =>
+      buildOsmMapEmbedUrl(
+        fallbackMapCenter,
+        hasSelectedCoordinates ?
+          { lat: address.lat as number, lng: address.lng as number } :
+          undefined
+      ),
+    [address.lat, address.lng, fallbackMapCenter, hasSelectedCoordinates]
+  );
 
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -191,6 +274,71 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const reverseGeocodeRef = useRef<ReverseGeocodeHandler>(async () => {});
   const normalizedLockedCountry = normalizeCountryToken(lockedCountry);
   const mapboxCountryFilter = resolveMapboxCountryFilter(lockedCountry);
+  const osmCountryFilter = mapboxCountryFilter || undefined;
+
+  const mapOsmResultToGeocodingResult = useCallback(
+    (item: NominatimResult): GeocodingResult | null => {
+      const lat = Number.parseFloat(item.lat);
+      const lng = Number.parseFloat(item.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return null;
+      }
+
+      const osmAddress = item.address || {};
+      const road =
+        osmAddress.road ||
+        osmAddress.pedestrian ||
+        osmAddress.footway ||
+        item.name ||
+        "";
+      const locality =
+        osmAddress.neighbourhood ||
+        osmAddress.suburb ||
+        osmAddress.quarter ||
+        osmAddress.borough ||
+        osmAddress.hamlet ||
+        osmAddress.residential ||
+        "";
+      const district =
+        osmAddress.city_district ||
+        osmAddress.state_district ||
+        osmAddress.district ||
+        osmAddress.county ||
+        "";
+      const city =
+        osmAddress.city ||
+        osmAddress.town ||
+        osmAddress.village ||
+        osmAddress.municipality ||
+        "";
+      const stateRegion = osmAddress.state || osmAddress.province || osmAddress.region || "";
+
+      const context = [
+        locality ? { id: "locality.osm", text: locality } : null,
+        district ? { id: "district.osm", text: district } : null,
+        city ? { id: "place.osm", text: city } : null,
+        stateRegion ? { id: "region.osm", text: stateRegion } : null,
+        osmAddress.postcode ? { id: "postcode.osm", text: osmAddress.postcode } : null,
+        osmAddress.country ? { id: "country.osm", text: osmAddress.country } : null
+      ].filter(Boolean) as GeocodingResult["context"];
+
+      return {
+        id: item.place_id ? `osm.${item.place_id}` : undefined,
+        place_name: item.display_name || [road, locality, district, city, stateRegion, osmAddress.country]
+          .filter(Boolean)
+          .join(", "),
+        center: [lng, lat],
+        place_type: [road ? "address" : "place"],
+        context,
+        address: osmAddress.house_number,
+        text: road || city || stateRegion || osmAddress.country,
+        properties: {
+          address: osmAddress.house_number
+        }
+      };
+    },
+    []
+  );
 
   const resetMapToDefaultCenter = useCallback(() => {
     const map = mapRef.current;
@@ -456,25 +604,34 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           types: [...REVERSE_GEOCODING_TYPES]
         });
         if (!reverseGeocodingUrl) {
+          const params = new URLSearchParams({
+            format: "jsonv2",
+            addressdetails: "1",
+            zoom: "18",
+            lat: String(lat),
+            lon: String(lng),
+            "accept-language": mapLanguage
+          });
+          const response = await fetch(`${OSM_REVERSE_ENDPOINT}?${params.toString()}`, {
+            signal: controller.signal
+          });
+          const data = await response.json();
           if (
             controller.signal.aborted ||
             requestSeq !== reverseGeocodeRequestSeqRef.current
           ) {
             return;
           }
-          if (normalizedLockedCountry) {
-            onInvalidCountrySelection?.(null);
-            restoreMarkerToCurrentAddress();
+
+          const osmFeature = mapOsmResultToGeocodingResult(data as NominatimResult);
+          if (osmFeature) {
+            const addressParts = parseGeocodingResult(osmFeature);
+            const nextAddress = buildGeocodedAddress(lat, lng, addressParts);
+            commitAddressChange(nextAddress, source);
             return;
           }
-          commitAddressChange(
-            {
-              ...addressRef.current,
-              lat,
-              lng
-            },
-            source
-          );
+
+          commitAddressChange({ ...addressRef.current, lat, lng }, source);
           return;
         }
 
@@ -542,6 +699,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       buildGeocodedAddress,
       commitAddressChange,
       mapLanguage,
+      mapOsmResultToGeocodingResult,
       normalizedLockedCountry,
       onInvalidCountrySelection,
       parseGeocodingResult,
@@ -690,13 +848,35 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           types: ["address", "poi", "neighborhood", "locality", "place", "district", "region"]
         });
         if (!forwardGeocodingUrl) {
+          const params = new URLSearchParams({
+            q: normalizedQuery,
+            format: "jsonv2",
+            addressdetails: "1",
+            limit: "5",
+            "accept-language": mapLanguage
+          });
+          if (osmCountryFilter) {
+            params.set("countrycodes", osmCountryFilter);
+          }
+
+          const response = await fetch(`${OSM_SEARCH_ENDPOINT}?${params.toString()}`, {
+            signal: controller.signal
+          });
+          const data = await response.json();
           if (
             !controller.signal.aborted &&
             requestSeq === searchRequestSeqRef.current
           ) {
-            setSearchResults([]);
+            const nextResults =
+              Array.isArray(data) ?
+                data
+                  .map((item) => mapOsmResultToGeocodingResult(item as NominatimResult))
+                  .filter((item): item is GeocodingResult => Boolean(item))
+                  .filter((feature) => isCountryAllowed(parseGeocodingResult(feature).country)) :
+                [];
+            setSearchResults(nextResults);
+            setShowResults(true);
           }
-          setSearchResults([]);
           return;
         }
 
@@ -733,7 +913,15 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         }
       }
     },
-    [isCountryAllowed, mapLanguage, mapboxCountryFilter, parseGeocodingResult, sortForwardGeocodingResults]
+    [
+      isCountryAllowed,
+      mapLanguage,
+      mapOsmResultToGeocodingResult,
+      mapboxCountryFilter,
+      osmCountryFilter,
+      parseGeocodingResult,
+      sortForwardGeocodingResults
+    ]
   );
 
   const selectLocation = (result: GeocodingResult) => {
@@ -779,6 +967,13 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   }, [searchLocation, searchQuery]);
 
   const getCurrentLocation = useCallback((options?: { silent?: boolean }) => {
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      if (!options?.silent) {
+        window.alert(t("secureContextRequired"));
+      }
+      return;
+    }
+
     if (!navigator.geolocation) {
       if (!options?.silent) {
         window.alert(t("browserNotSupported"));
@@ -799,10 +994,18 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           setIsLocating(false);
         }
       },
-      () => {
+      (error) => {
         setIsLocating(false);
         if (!options?.silent) {
-          window.alert(t("cannotGetLocation"));
+          const messageKey =
+            error.code === GEOLOCATION_PERMISSION_DENIED ?
+              "permissionDenied" :
+            error.code === GEOLOCATION_POSITION_UNAVAILABLE ?
+              "positionUnavailable" :
+            error.code === GEOLOCATION_TIMEOUT ?
+              "locationTimeout" :
+              "cannotGetLocation";
+          window.alert(t(messageKey));
         }
       },
       {
@@ -944,11 +1147,15 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             style={{ height: "250px" }}
           />
         ) : (
-          <div className="w-full rounded-lg border bg-muted/40 flex items-center justify-center" style={{ height: "250px" }}>
-            <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="w-6 h-6" />
-              <span>{t("mapUnavailable")}</span>
-            </div>
+          <div className="w-full rounded-lg overflow-hidden border bg-muted/40" style={{ height: "250px" }}>
+            <iframe
+              key={fallbackMapUrl}
+              title={label}
+              src={fallbackMapUrl}
+              className="h-full w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         )}
 
@@ -1062,7 +1269,9 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           </div>
         ) : null}
 
-        <p className="text-xs text-muted-foreground">{t("mapHint")}</p>
+        <p className="text-xs text-muted-foreground">
+          {isMapAvailable ? t("mapHint") : t("fallbackMapHint")}
+        </p>
       </CardContent>
     </Card>
   );

@@ -45,7 +45,8 @@ import {
 import {
   buildDomesticFallbackRoute,
   resolveDomesticSuggestedRoute,
-  type SuggestedRoute
+  type SuggestedRoute,
+  type SuggestedRouteResolution
 } from "./domesticRouteSuggestion";
 import {
   buildExportFallbackRoute,
@@ -300,12 +301,14 @@ const formatRouteCoordinateToken = (value: number | undefined) =>
   isFiniteNumber(value) ? value.toFixed(5) : "";
 
 const buildRouteSuggestionSignature = (context: {
+  cargoWeightKg?: number;
   destinationMarket: string;
   destination: AddressInput;
   origin: AddressInput;
 }) =>
   [
     context.destinationMarket || "",
+    context.cargoWeightKg != null ? context.cargoWeightKg.toFixed(1) : "",
     context.origin.city || "",
     context.origin.stateRegion || "",
     formatRouteCoordinateToken(context.origin.lat),
@@ -745,13 +748,26 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
       destinationRouteLng
     ]
   );
+  const cargoWeightKg = React.useMemo(
+    () =>
+      typeof data.weightPerUnit === "number" &&
+      typeof data.quantity === "number" &&
+      data.weightPerUnit > 0 &&
+      data.quantity > 0
+        ? data.weightPerUnit * data.quantity
+        : undefined,
+    [data.weightPerUnit, data.quantity]
+  );
+
   const routeSuggestionInput = React.useMemo(
     () => ({
+      cargoWeightKg,
       destinationMarket: data.destinationMarket,
       destination: routeRelevantDestinationAddress,
       origin: routeRelevantOriginAddress
     }),
     [
+      cargoWeightKg,
       data.destinationMarket,
       routeRelevantDestinationAddress,
       routeRelevantOriginAddress
@@ -1126,6 +1142,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     }
 
     return buildExportFallbackRoute({
+      cargoWeightKg: debouncedRouteSuggestionContext.cargoWeightKg,
       destinationMarket: debouncedRouteSuggestionContext.destinationMarket,
       destination: debouncedRouteSuggestionContext.destination,
       origin: debouncedRouteSuggestionContext.origin
@@ -1135,6 +1152,8 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
   const [displaySuggestedRoute, setDisplaySuggestedRoute] = React.useState<SuggestedRoute>(
     suggestedRoute
   );
+  const [routeSuggestionResult, setRouteSuggestionResult] =
+    React.useState<SuggestedRouteResolution | null>(null);
   const [isSuggestingRoute, setIsSuggestingRoute] = React.useState(false);
   const [resolvingRoadLegIds, setResolvingRoadLegIds] = React.useState<string[]>([]);
   const routeSuggestionRequestSeqRef = React.useRef(0);
@@ -1192,6 +1211,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
           });
 
           setDisplaySuggestedRoute(resolvedRoute.route);
+          setRouteSuggestionResult(resolvedRoute);
           if (snappedUpdates) {
             onChange(snappedUpdates);
           }
@@ -1200,6 +1220,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
 
         const resolvedRoute = await resolveExportSuggestedRoute(
           {
+            cargoWeightKg: debouncedRouteSuggestionContext.cargoWeightKg,
             destinationMarket: debouncedRouteSuggestionContext.destinationMarket,
             destination: debouncedRouteSuggestionContext.destination,
             origin: debouncedRouteSuggestionContext.origin
@@ -1218,6 +1239,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
         });
 
         setDisplaySuggestedRoute(resolvedRoute.route);
+        setRouteSuggestionResult(resolvedRoute);
         if (snappedUpdates) {
           onChange(snappedUpdates);
         }
@@ -1497,6 +1519,16 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     onChange(buildTransportLegUpdates(autoSuggestedTransportLegs));
   }, [autoSuggestedTransportLegs, buildTransportLegUpdates, onChange]);
 
+  const applyAlternativeRoute = React.useCallback(
+    (route: SuggestedRoute) => {
+      setRouteEditingMode("auto");
+      const legs = materializeSuggestedRouteLegs(route, true);
+      onChange(buildTransportLegUpdates(legs));
+      setDisplaySuggestedRoute(route);
+    },
+    [buildTransportLegUpdates, onChange]
+  );
+
   const addTransportLeg = React.useCallback(() => {
     setRouteEditingMode("manual");
     const nextLegs = [...data.transportLegs, createManualTransportLeg()];
@@ -1761,6 +1793,87 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {/* Smart route recommendation panel */}
+              {(isSuggestingRoute || routeSuggestionResult) && (
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50/30 p-3 space-y-2">
+                  {/* Header row */}
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">
+                      Gợi ý thông minh
+                    </span>
+                    {isSuggestingRoute && (
+                      <Loader2 className="h-3 w-3 animate-spin text-emerald-600 ml-auto" />
+                    )}
+                  </div>
+
+                  {!isSuggestingRoute && routeSuggestionResult && (() => {
+                    const rec = routeSuggestionResult.recommended;
+                    const modeKey = rec.route.longHaulMode;
+                    const modeName = modeKey === "sea" ? "Đường biển" : modeKey === "air" ? "Hàng không" : modeKey === "rail" ? "Đường sắt" : "Đường bộ";
+                    const ModeIcon = modeKey === "sea" ? Ship : modeKey === "air" ? Plane : modeKey === "rail" ? Train : Truck;
+                    const modeColor = modeKey === "sea" ? "text-blue-600" : modeKey === "air" ? "text-violet-600" : modeKey === "rail" ? "text-teal-600" : "text-amber-600";
+                    return (
+                      <>
+                        {/* Recommended route row */}
+                        <div className="flex items-center gap-2 rounded-md bg-white border border-emerald-100 px-3 py-2">
+                          <ModeIcon className={`h-4 w-4 shrink-0 ${modeColor}`} />
+                          <span className="text-sm font-semibold">{modeName}</span>
+                          <div className="flex items-center gap-2 ml-1 text-xs text-muted-foreground">
+                            <span className="bg-slate-100 rounded px-1.5 py-0.5">{rec.route.legs.length} chặng</span>
+                            <span>{Math.round(rec.metrics.etaHours)}h</span>
+                            <span className="text-emerald-700 font-medium">{rec.metrics.totalCo2PerTonKg.toFixed(1)} kgCO₂/tấn</span>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="ml-auto h-7 text-xs gap-1 border-emerald-300 hover:bg-emerald-50 shrink-0"
+                            onClick={applySuggestedTransportLegs}
+                            disabled={autoSuggestedTransportLegs.length === 0}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Áp dụng
+                          </Button>
+                        </div>
+
+                        {/* Alternatives */}
+                        {routeSuggestionResult.alternatives.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {routeSuggestionResult.alternatives.map((alt, i) => {
+                              const isLowestCarbon = alt.explanation.reasonCodes.includes("lowest_carbon_on_frontier");
+                              const isFastest = alt.explanation.reasonCodes.includes("fastest_eta_on_frontier");
+                              const isFewestTransfers = alt.explanation.reasonCodes.includes("fewest_transshipments");
+                              const label = isLowestCarbon ? "Ít CO₂ nhất" : isFastest ? "Nhanh nhất" : isFewestTransfers ? "Ít trung chuyển" : `Tuyến ${i + 1}`;
+                              const altMode = alt.route.longHaulMode;
+                              const AltIcon = altMode === "sea" ? Ship : altMode === "air" ? Plane : altMode === "rail" ? Train : Truck;
+                              const altColor = altMode === "sea" ? "text-blue-500" : altMode === "air" ? "text-violet-500" : altMode === "rail" ? "text-teal-500" : "text-amber-500";
+                              const metricHint = isLowestCarbon
+                                ? `${alt.metrics.totalCo2PerTonKg.toFixed(1)} kgCO₂/tấn`
+                                : isFastest
+                                ? `${Math.round(alt.metrics.etaHours)}h`
+                                : `${alt.route.legs.length} chặng`;
+                              return (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => applyAlternativeRoute(alt.route)}
+                                  className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs hover:border-emerald-300 hover:bg-emerald-50/60 transition-colors"
+                                >
+                                  <AltIcon className={`h-3 w-3 shrink-0 ${altColor}`} />
+                                  <span className="font-medium text-slate-700">{label}</span>
+                                  <span className="text-muted-foreground">{metricHint}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
@@ -1771,17 +1884,6 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                 >
                   <Plus className="h-4 w-4" />
                   {t("transport.addLeg")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={applySuggestedTransportLegs}
-                  disabled={autoSuggestedTransportLegs.length === 0}
-                  className="gap-2"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  {t("suggestedRoute.apply")}
                 </Button>
                 <Button
                   type="button"
