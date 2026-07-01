@@ -13,7 +13,7 @@ import {
   buildMapboxForwardGeocodingUrl,
   buildMapboxReverseGeocodingUrl,
   configureMapboxRuntime,
-  hasMapboxPublicToken
+  MAPBOX_PUBLIC_TOKEN
 } from "@/lib/mapbox";
 import { type RoadRoutePointSource } from "@/lib/roadRouting";
 import { AddressInput } from "./types";
@@ -191,31 +191,6 @@ const hasAddressContent = (address: AddressInput) =>
       hasCoordinatePair(address.lat, address.lng)
   );
 
-const buildOsmMapEmbedUrl = (
-  center: [number, number],
-  marker?: {
-    lat: number;
-    lng: number;
-  }
-) => {
-  const [lng, lat] = center;
-  const delta = marker ? 0.012 : 0.08;
-  const params = new URLSearchParams({
-    bbox: [
-      (lng - delta).toFixed(6),
-      (lat - delta).toFixed(6),
-      (lng + delta).toFixed(6),
-      (lat + delta).toFixed(6)
-    ].join(","),
-    layer: "mapnik"
-  });
-
-  if (marker) {
-    params.set("marker", `${marker.lat.toFixed(6)},${marker.lng.toFixed(6)}`);
-  }
-
-  return `https://www.openstreetmap.org/export/embed.html?${params.toString()}`;
-};
 
 const LocationPicker: React.FC<LocationPickerProps> = ({
   address,
@@ -241,29 +216,10 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const skipNextSearchRef = useRef(false);
   const autoLocateAttemptedRef = useRef(false);
 
-  const [isMapAvailable] = useState(() => hasMapboxPublicToken());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const hasSelectedCoordinates = hasCoordinatePair(address.lat, address.lng);
-  const fallbackMapCenter = React.useMemo<[number, number]>(
-    () =>
-      hasSelectedCoordinates ?
-        [address.lng as number, address.lat as number] :
-        defaultCenter,
-    [address.lat, address.lng, defaultCenter, hasSelectedCoordinates]
-  );
-  const fallbackMapUrl = React.useMemo(
-    () =>
-      buildOsmMapEmbedUrl(
-        fallbackMapCenter,
-        hasSelectedCoordinates ?
-          { lat: address.lat as number, lng: address.lng as number } :
-          undefined
-      ),
-    [address.lat, address.lng, fallbackMapCenter, hasSelectedCoordinates]
-  );
 
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -711,13 +667,42 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-    if (!isMapAvailable) return;
 
     try {
-      configureMapboxRuntime(mapboxgl);
+      const hasToken = MAPBOX_PUBLIC_TOKEN.startsWith("pk.");
 
-      // Read initial coords from ref so this effect only runs once on mount,
-      // not every time the address updates (which would destroy/recreate the map).
+      if (hasToken) {
+        configureMapboxRuntime(mapboxgl);
+      } else {
+        // Use a placeholder so mapbox-gl doesn't throw; OSM tiles need no token.
+        mapboxgl.accessToken = "pk.placeholder";
+        if (typeof (mapboxgl as unknown as { setTelemetryEnabled?: (v: boolean) => void }).setTelemetryEnabled === "function") {
+          (mapboxgl as unknown as { setTelemetryEnabled: (v: boolean) => void }).setTelemetryEnabled(false);
+        }
+      }
+
+      const mapStyle = hasToken
+        ? "mapbox://styles/mapbox/streets-v12"
+        : {
+            version: 8 as const,
+            sources: {
+              osm: {
+                type: "raster" as const,
+                tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+                tileSize: 256,
+                attribution:
+                  '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+              },
+            },
+            layers: [
+              {
+                id: "osm-tiles",
+                type: "raster" as const,
+                source: "osm",
+              },
+            ],
+          };
+
       const initialLat = addressRef.current.lat;
       const initialLng = addressRef.current.lng;
       const hasInitialCoordinates = hasCoordinatePair(initialLat, initialLng);
@@ -728,10 +713,10 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: mapStyle,
         center: initialCenter,
         zoom: hasInitialCoordinates ? TARGET_MAP_ZOOM : 10,
-        attributionControl: false
+        attributionControl: !hasToken
       });
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
@@ -762,7 +747,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     } catch (error) {
       console.error("Error initializing map:", error);
     }
-  }, [defaultCenter, isMapAvailable, syncMarker]);
+  }, [defaultCenter, syncMarker]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -1140,24 +1125,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           ) : null}
         </div>
 
-        {isMapAvailable ? (
-          <div
-            ref={mapContainerRef}
-            className="w-full rounded-lg overflow-hidden border"
-            style={{ height: "250px" }}
-          />
-        ) : (
-          <div className="w-full rounded-lg overflow-hidden border bg-muted/40" style={{ height: "250px" }}>
-            <iframe
-              key={fallbackMapUrl}
-              title={label}
-              src={fallbackMapUrl}
-              className="h-full w-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
-        )}
+        <div
+          ref={mapContainerRef}
+          className="w-full rounded-lg overflow-hidden border"
+          style={{ height: "250px" }}
+        />
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1 sm:col-span-2">
@@ -1270,7 +1242,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         ) : null}
 
         <p className="text-xs text-muted-foreground">
-          {isMapAvailable ? t("mapHint") : t("fallbackMapHint")}
+          {t("mapHint")}
         </p>
       </CardContent>
     </Card>
