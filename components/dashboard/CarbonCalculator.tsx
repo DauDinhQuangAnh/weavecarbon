@@ -66,39 +66,39 @@ interface EmissionBreakdown {
 }
 
 const MATERIAL_LABELS: Record<string, string> = {
-  cotton: 'Cotton thﾃｴng thﾆｰ盻拵g',
-  polyester: 'Polyester nguyﾃｪn sinh',
+  cotton: 'Cotton thông thường',
+  polyester: 'Polyester nguyên sinh',
   wool: 'Len',
-  silk: 'L盻･a tﾆ｡ t蘯ｱm',
+  silk: 'Lụa tơ tằm',
   linen: 'Linen',
-  recycledPoly: 'Polyester tﾃ｡i ch蘯ｿ',
-  organicCotton: 'Cotton h盻ｯu cﾆ｡',
+  recycledPoly: 'Polyester tái chế',
+  organicCotton: 'Cotton hữu cơ',
   hemp: 'Hemp',
 };
 
 const ROUTE_LABELS: Record<string, string> = {
-  vnEu: 'Vi盻㏄ Nam - EU (ﾄ柁ｰ盻拵g bi盻ハ, kho蘯｣ng 15.000 km)',
-  vnUs: 'Vi盻㏄ Nam - M盻ｹ (ﾄ柁ｰ盻拵g bi盻ハ, kho蘯｣ng 12.500 km)',
-  vnJp: 'Vi盻㏄ Nam - Nh蘯ｭt B蘯｣n (ﾄ柁ｰ盻拵g bi盻ハ, kho蘯｣ng 3.800 km)',
-  vnKr: 'Vi盻㏄ Nam - Hﾃn Qu盻祖 (ﾄ柁ｰ盻拵g bi盻ハ, kho蘯｣ng 3.200 km)',
-  vnDomestic: 'N盻冓 ﾄ黛ｻ蟻 (kho蘯｣ng 500 km, xe t蘯｣i)',
+  vnEu: 'Việt Nam - EU (đường biển, khoảng 15.000 km)',
+  vnUs: 'Việt Nam - Mỹ (đường biển, khoảng 12.500 km)',
+  vnJp: 'Việt Nam - Nhật Bản (đường biển, khoảng 3.800 km)',
+  vnKr: 'Việt Nam - Hàn Quốc (đường biển, khoảng 3.200 km)',
+  vnDomestic: 'Nội địa (khoảng 500 km, xe tải)',
 };
 
 const BREAKDOWN_META = [
-  { key: 'material', icon: Leaf, label: 'V蘯ｭt li盻㎡', color: 'text-green-600' },
-  { key: 'manufacturing', icon: Factory, label: 'S蘯｣n xu蘯･t', color: 'text-blue-600' },
-  { key: 'transport', icon: Truck, label: 'V蘯ｭn chuy盻ハ', color: 'text-orange-600' },
-  { key: 'packaging', icon: Package, label: 'ﾄ静ｳng gﾃｳi', color: 'text-purple-600' },
+  { key: 'material', icon: Leaf, label: 'Vật liệu', color: 'text-green-600' },
+  { key: 'manufacturing', icon: Factory, label: 'Sản xuất', color: 'text-blue-600' },
+  { key: 'transport', icon: Truck, label: 'Vận chuyển', color: 'text-orange-600' },
+  { key: 'packaging', icon: Package, label: 'Đóng gói', color: 'text-purple-600' },
 ] as const;
 
 const pct = (value: number, total: number) =>
   total > 0 ? (value / total) * 100 : 0;
 
 const SUGGESTED_QUESTIONS = [
-  "Lﾃm th蘯ｿ nﾃo ﾄ黛ｻ・gi蘯｣m phﾃ｡t th蘯｣i t盻ｫ v蘯ｭt li盻㎡ nﾃy?",
-  "So sﾃ｡nh v盻嬖 trung bﾃｬnh ngﾃnh d盻㏄ may",
-  "G盻｣i ﾃｽ v蘯ｭt li盻㎡ thay th蘯ｿ ﾃｭt carbon hﾆ｡n",
-  "Gi蘯｣i thﾃｭch phﾃ｡t th蘯｣i v蘯ｭn chuy盻ハ ﾄ柁ｰ盻拵g bi盻ハ",
+  "Làm thế nào để giảm phát thải từ vật liệu này?",
+  "So sánh với trung bình ngành dệt may",
+  "Gợi ý vật liệu thay thế ít carbon hơn",
+  "Giải thích phát thải vận chuyển đường biển",
 ];
 
 interface AiMessage {
@@ -117,17 +117,17 @@ function buildAiPrompt(query: string, context: {
   const materialLabel = MATERIAL_LABELS[context.material] ?? context.material;
   const routeLabel = ROUTE_LABELS[context.route] ?? context.route;
 
-  return `Ng盻ｯ c蘯｣nh tﾃｭnh toﾃ｡n carbon v盻ｫa th盻ｱc hi盻㌻:
-- S蘯｣n ph蘯ｩm d盻㏄ may, kh盻訴 lﾆｰ盻｣ng: ${context.weight} kg
-- V蘯ｭt li盻㎡ chﾃｭnh: ${materialLabel} (${MATERIAL_FACTORS[context.material]} kg CO2e/kg)
-- Tuy蘯ｿn v蘯ｭn chuy盻ハ: ${routeLabel}
-- T盻貧g phﾃ｡t th蘯｣i: ${context.emissions.total.toFixed(2)} kg CO2e/s蘯｣n ph蘯ｩm
-  窶｢ V蘯ｭt li盻㎡: ${context.emissions.material.toFixed(2)} kg CO2e (${((context.emissions.material / context.emissions.total) * 100).toFixed(0)}%)
-  窶｢ S蘯｣n xu蘯･t: ${context.emissions.manufacturing.toFixed(2)} kg CO2e (${((context.emissions.manufacturing / context.emissions.total) * 100).toFixed(0)}%)
-  窶｢ V蘯ｭn chuy盻ハ: ${context.emissions.transport.toFixed(2)} kg CO2e (${((context.emissions.transport / context.emissions.total) * 100).toFixed(0)}%)
-  窶｢ ﾄ静ｳng gﾃｳi: ${context.emissions.packaging.toFixed(2)} kg CO2e (${((context.emissions.packaging / context.emissions.total) * 100).toFixed(0)}%)
+  return `Ngữ cảnh tính toán carbon vừa thực hiện:
+- Sản phẩm dệt may, khối lượng: ${context.weight} kg
+- Vật liệu chính: ${materialLabel} (${MATERIAL_FACTORS[context.material]} kg CO2e/kg)
+- Tuyến vận chuyển: ${routeLabel}
+- Tổng phát thải: ${context.emissions.total.toFixed(2)} kg CO2e/sản phẩm
+  • Vật liệu: ${context.emissions.material.toFixed(2)} kg CO2e (${((context.emissions.material / context.emissions.total) * 100).toFixed(0)}%)
+  • Sản xuất: ${context.emissions.manufacturing.toFixed(2)} kg CO2e (${((context.emissions.manufacturing / context.emissions.total) * 100).toFixed(0)}%)
+  • Vận chuyển: ${context.emissions.transport.toFixed(2)} kg CO2e (${((context.emissions.transport / context.emissions.total) * 100).toFixed(0)}%)
+  • Đóng gói: ${context.emissions.packaging.toFixed(2)} kg CO2e (${((context.emissions.packaging / context.emissions.total) * 100).toFixed(0)}%)
 
-Cﾃ｢u h盻淑: ${query}`;
+Câu hỏi: ${query}`;
 }
 
 export default function CarbonCalculator() {
@@ -191,7 +191,7 @@ export default function CarbonCalculator() {
 
       setAiMessages((prev) => [...prev, { role: "assistant", content: data.answer! }]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'L盻擁 khﾃｴng xﾃ｡c ﾄ黛ｻ杵h';
+      const msg = err instanceof Error ? err.message : 'Lỗi không xác định';
       setAiError(msg);
       setAiMessages((prev) => prev.slice(0, -1));
     } finally {
@@ -207,9 +207,9 @@ export default function CarbonCalculator() {
           <Calculator className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Tﾃｭnh Carbon Proxy</h1>
+          <h1 className="text-2xl font-bold">Tính Carbon Proxy</h1>
           <p className="text-sm text-muted-foreground">
-            ﾆｯ盻嫩 tﾃｭnh phﾃ｡t th蘯｣i CO2e c盻ｧa s蘯｣n ph蘯ｩm d盻㏄ may theo v蘯ｭt li盻㎡, s蘯｣n xu蘯･t vﾃ v蘯ｭn chuy盻ハ.
+            Ước tính phát thải CO2e của sản phẩm dệt may theo vật liệu, sản xuất và vận chuyển.
           </p>
         </div>
       </div>
@@ -219,15 +219,15 @@ export default function CarbonCalculator() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Calculator className="w-4 h-4 text-primary" />
-              Nh蘯ｭp thﾃｴng tin s蘯｣n ph蘯ｩm
+              Nhập thông tin sản phẩm
             </CardTitle>
             <CardDescription className="text-xs">
-              K蘯ｿt qu蘯｣ lﾃ ﾆｰ盻嫩 tﾃｭnh proxy t盻ｫ h盻・s盻・Ecoinvent v3.10, chﾆｰa thay th蘯ｿ d盻ｯ li盻㎡ sﾆ｡ c蘯･p.
+              Kết quả là ước tính proxy từ hệ số Ecoinvent v3.10, chưa thay thế dữ liệu sơ cấp.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="weight">Kh盻訴 lﾆｰ盻｣ng s蘯｣n ph蘯ｩm (kg)</Label>
+              <Label htmlFor="weight">Khối lượng sản phẩm (kg)</Label>
               <Input
                 id="weight"
                 type="number"
@@ -240,10 +240,10 @@ export default function CarbonCalculator() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Lo蘯｡i v蘯ｭt li盻㎡ chﾃｭnh</Label>
+              <Label>Loại vật liệu chính</Label>
               <Select value={material} onValueChange={setMaterial}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Ch盻肱 v蘯ｭt li盻㎡" />
+                  <SelectValue placeholder="Chọn vật liệu" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(MATERIAL_LABELS).map(([key, label]) => (
@@ -261,10 +261,10 @@ export default function CarbonCalculator() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Tuy蘯ｿn v蘯ｭn chuy盻ハ xu蘯･t kh蘯ｩu</Label>
+              <Label>Tuyến vận chuyển xuất khẩu</Label>
               <Select value={route} onValueChange={setRoute}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Ch盻肱 tuy蘯ｿn" />
+                  <SelectValue placeholder="Chọn tuyến" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROUTE_LABELS).map(([key, label]) => (
@@ -282,13 +282,13 @@ export default function CarbonCalculator() {
               disabled={!canCalculate}
             >
               <Calculator className="w-4 h-4 mr-2" />
-              Tﾃｭnh toﾃ｡n phﾃ｡t th蘯｣i
+              Tính toán phát thải
             </Button>
 
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-sky-500" />
               <span>
-                H盻・s盻・phﾃ｡t th蘯｣i l蘯･y t盻ｫ proxy ngﾃnh d盻㏄ may. V盻嬖 bﾃ｡o cﾃ｡o ki盻ノ toﾃ｡n, hﾃ｣y thay b蘯ｱng d盻ｯ li盻㎡ ﾄ双 ﾄ黛ｺ｡c vﾃ ch盻ｩng t盻ｫ th盻ｱc t蘯ｿ.
+                Hệ số phát thải lấy từ proxy ngành dệt may. Với báo cáo kiểm toán, hãy thay bằng dữ liệu đo đạc và chứng từ thực tế.
               </span>
             </div>
           </CardContent>
@@ -300,7 +300,7 @@ export default function CarbonCalculator() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Leaf className="w-4 h-4 text-primary" />
-              K蘯ｿt qu蘯｣ tﾃｭnh toﾃ｡n
+              Kết quả tính toán
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -308,7 +308,7 @@ export default function CarbonCalculator() {
               <div className="space-y-6">
                 <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 text-white">
                   <p className="text-sm font-medium opacity-80 mb-1">
-                    T盻貧g phﾃ｡t th蘯｣i
+                    Tổng phát thải
                   </p>
                   <p className="text-5xl font-bold mb-1">
                     {emissions.total.toFixed(2)}
@@ -317,7 +317,7 @@ export default function CarbonCalculator() {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-sm">Phﾃ｢n rﾃ｣ theo nhﾃｳm</h4>
+                  <h4 className="font-semibold text-sm">Phân rã theo nhóm</h4>
                   {BREAKDOWN_META.map(({ key, icon: Icon, label, color }) => {
                     const value = emissions[key];
 
@@ -345,9 +345,9 @@ export default function CarbonCalculator() {
                 </div>
 
                 <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">Gi蘯｣i thﾃｭch k蘯ｿt qu蘯｣</p>
+                  <p className="font-medium text-foreground">Giải thích kết quả</p>
                   <p>
-                    {emissions.total.toFixed(2)} kg CO2e / s蘯｣n ph蘯ｩm lﾃ ﾆｰ盻嫩 tﾃｭnh proxy Scope 1+2+3. ﾄ雪ｻ・ﾄ黛ｺ｡t chu蘯ｩn ki盻ノ toﾃ｡n, hﾃ｣y t蘯｣i ch盻ｩng t盻ｫ lﾃｪn Evidence ﾄ黛ｻ・h盻・th盻創g nﾃ｢ng c蘯･p ﾄ黛ｻ・tin c蘯ｭy.
+                    {emissions.total.toFixed(2)} kg CO2e / sản phẩm là ước tính proxy Scope 1+2+3. Để đạt chuẩn kiểm toán, hãy tải chứng từ lên Evidence để hệ thống nâng cấp độ tin cậy.
                   </p>
                 </div>
               </div>
@@ -356,7 +356,7 @@ export default function CarbonCalculator() {
                 <div className="text-center space-y-2">
                   <Calculator className="w-10 h-10 mx-auto opacity-30" />
                   <p className="text-sm">
-                    ﾄ進盻］ thﾃｴng tin vﾃ nh蘯･n nﾃｺt Tﾃｭnh toﾃ｡n ﾄ黛ｻ・xem k蘯ｿt qu蘯｣.
+                    Điền thông tin và nhấn nút Tính toán để xem kết quả.
                   </p>
                 </div>
               </div>
@@ -370,22 +370,22 @@ export default function CarbonCalculator() {
           <div className="grid md:grid-cols-3 gap-4 text-xs">
             <div>
               <p className="font-semibold text-sky-900 mb-1">
-                Ngu盻渡 h盻・s盻・phﾃ｡t th蘯｣i
+                Nguồn hệ số phát thải
               </p>
               <p className="text-sky-800">
                 Ecoinvent v3.10 (textiles) - IPCC 2021 GWP100 - Higg MSI 3.0
               </p>
             </div>
             <div>
-              <p className="font-semibold text-sky-900 mb-1">Ph蘯｡m vi tﾃｭnh</p>
+              <p className="font-semibold text-sky-900 mb-1">Phạm vi tính</p>
               <p className="text-sky-800">
-                Scope 1, Scope 2, Scope 3 upstream vﾃ v蘯ｭn chuy盻ハ xu蘯･t kh蘯ｩu.
+                Scope 1, Scope 2, Scope 3 upstream và vận chuyển xuất khẩu.
               </p>
             </div>
             <div>
-              <p className="font-semibold text-sky-900 mb-1">H蘯｡n ch蘯ｿ</p>
+              <p className="font-semibold text-sky-900 mb-1">Hạn chế</p>
               <p className="text-sky-800">
-                H盻・s盻・trung bﾃｬnh ngﾃnh cﾃｳ th盻・l盻㌘h 20-40% so v盻嬖 d盻ｯ li盻㎡ sﾆ｡ c蘯･p, khﾃｴng dﾃｹng tr盻ｱc ti蘯ｿp cho CBAM ho蘯ｷc GHG Protocol.
+                Hệ số trung bình ngành có thể lệch 20-40% so với dữ liệu sơ cấp, không dùng trực tiếp cho CBAM hoặc GHG Protocol.
               </p>
             </div>
           </div>
@@ -399,27 +399,27 @@ export default function CarbonCalculator() {
             <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
               <Bot className="w-4 h-4 text-violet-600" />
             </div>
-            Tr盻｣ lﾃｽ Carbon AI
+            Trợ lý Carbon AI
             <span className="ml-auto text-xs font-normal text-muted-foreground flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-violet-400" />
               Powered by Gemini
             </span>
           </CardTitle>
           <CardDescription className="text-xs">
-            ﾄ雪ｺｷt cﾃ｢u h盻淑 v盻・k蘯ｿt qu蘯｣ tﾃｭnh toﾃ｡n, phﾆｰﾆ｡ng ﾃ｡n gi蘯｣m thi盻ブ carbon ho蘯ｷc ki蘯ｿn th盻ｩc ngﾃnh d盻㏄ may.
+            Đặt câu hỏi về kết quả tính toán, phương án giảm thiểu carbon hoặc kiến thức ngành dệt may.
             {emissions && (
               <span className="text-violet-600 font-medium ml-1">
-                AI ﾄ妥｣ cﾃｳ ng盻ｯ c蘯｣nh t盻ｫ k蘯ｿt qu蘯｣ tﾃｭnh toﾃ｡n c盻ｧa b蘯｡n.
+                AI đã có ngữ cảnh từ kết quả tính toán của bạn.
               </span>
             )}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Suggested questions 窶・only show when chat is empty */}
+          {/* Suggested questions — only show when chat is empty */}
           {aiMessages.length === 0 && (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground font-medium">G盻｣i ﾃｽ cﾃ｢u h盻淑:</p>
+              <p className="text-xs text-muted-foreground font-medium">Gợi ý câu hỏi:</p>
               <div className="flex flex-wrap gap-2">
                 {SUGGESTED_QUESTIONS.map((q) => (
                   <button
@@ -489,7 +489,7 @@ export default function CarbonCalculator() {
             <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
               <Info className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
-                Khﾃｴng th盻・k蘯ｿt n盻訴 RAG API: <span className="font-medium">{aiError}</span>. Ki盻ノ tra server ﾄ疎ng ch蘯｡y t蘯｡i <code className="bg-red-100 px-1 rounded">http://127.0.0.1:8000</code>
+                Không thể kết nối RAG API: <span className="font-medium">{aiError}</span>. Kiểm tra server đang chạy tại <code className="bg-red-100 px-1 rounded">http://127.0.0.1:8000</code>
               </span>
             </div>
           )}
@@ -501,8 +501,8 @@ export default function CarbonCalculator() {
               onChange={(e) => setAiInput(e.target.value)}
               placeholder={
                 emissions
-                  ? "H盻淑 v盻・k蘯ｿt qu蘯｣ tﾃｭnh toﾃ｡n ho蘯ｷc cﾃ｡ch gi蘯｣m phﾃ｡t th蘯｣i..."
-                  : "H盻淑 v盻・carbon footprint trong ngﾃnh d盻㏄ may..."
+                  ? "Hỏi về kết quả tính toán hoặc cách giảm phát thải..."
+                  : "Hỏi về carbon footprint trong ngành dệt may..."
               }
               className="min-h-[2.75rem] max-h-32 resize-none text-sm"
               rows={1}
@@ -534,7 +534,7 @@ export default function CarbonCalculator() {
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => { setAiMessages([]); setAiError(null); }}
             >
-              Xﾃｳa l盻議h s盻ｭ chat
+              Xóa lịch sử chat
             </button>
           )}
         </CardContent>
