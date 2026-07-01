@@ -15,8 +15,17 @@ export const trustTone = (s: number) =>
   : s <= 80 ? 'bg-sky-100 text-sky-800 border-sky-200'
   : 'bg-emerald-100 text-emerald-800 border-emerald-200';
 
-export const EvidenceTrustBadge: React.FC<{ score: number }> = ({ score }) => (
-  <Badge variant="outline" className={`font-mono ${trustTone(score)}`}>
-    {score}/100 · {trustLabel(score)}
-  </Badge>
-);
+export const EvidenceTrustBadge: React.FC<{ score: number | null | undefined }> = ({ score }) => {
+  if (score == null) {
+    return (
+      <Badge variant="outline" className="font-mono bg-slate-100 text-slate-500 border-slate-200">
+        —/100 · Chưa đánh giá
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className={`font-mono ${trustTone(score)}`}>
+      {score}/100 · {trustLabel(score)}
+    </Badge>
+  );
+};

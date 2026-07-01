@@ -267,7 +267,7 @@ product: ProductRecord)
   const nameLookup = normalizeLookupValue(product.productName);
 
   const byId = shipment.products.find((item) =>
-  normalizeLookupValue(item.product_id) === productIdLookup
+  normalizeLookupValue(item.productId) === productIdLookup
   );
   if (byId) return byId;
 
@@ -285,7 +285,7 @@ product: ProductRecord)
   if (bySku) return bySku;
 
   const byName = shipment.products.find((item) =>
-  normalizeLookupValue(item.product_name) === nameLookup &&
+  normalizeLookupValue(item.productName) === nameLookup &&
   nameLookup.length > 0
   );
   return byName || null;
@@ -309,9 +309,9 @@ product: ProductRecord)
     let bestScore = 0;
 
     for (const shipmentProduct of shipment.products) {
-      const shipmentProductId = normalizeLookupValue(shipmentProduct.product_id);
+      const shipmentProductId = normalizeLookupValue(shipmentProduct.productId);
       const shipmentSku = normalizeLookupValue(shipmentProduct.sku || "");
-      const shipmentName = normalizeLookupValue(shipmentProduct.product_name || "");
+      const shipmentName = normalizeLookupValue(shipmentProduct.productName || "");
 
       if (shipmentProductId && shipmentProductId === productIdLookup) {
         bestScore = Math.max(bestScore, 300);
@@ -339,7 +339,7 @@ product: ProductRecord)
       });
       for (const summary of summaries) {
         if (isValidUuid(summary.id)) {
-          candidateMap.set(summary.id, summary.updated_at);
+          candidateMap.set(summary.id, summary.updatedAt);
         }
       }
     } catch {
@@ -352,7 +352,7 @@ product: ProductRecord)
       const summaries = await fetchAllLogisticsShipments({ page_size: 50 });
       for (const summary of summaries) {
         if (isValidUuid(summary.id)) {
-          candidateMap.set(summary.id, summary.updated_at);
+          candidateMap.set(summary.id, summary.updatedAt);
         }
       }
     } catch {
@@ -736,8 +736,8 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
               };
             });
             const inferredDistance =
-            shipment.total_distance_km > 0 ?
-            shipment.total_distance_km :
+            shipment.totalDistanceKm > 0 ?
+            shipment.totalDistanceKm :
             sumEstimatedDistance(mappedLegs);
             const currentLegDistance = sumEstimatedDistance(hydratedProduct.transportLegs);
             const resolvedTransportLegs =
@@ -758,7 +758,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
             );
             const totalAllocatedCo2Kg = shipment.products.reduce(
               (sum, shipmentProduct) =>
-              sum + Math.max(0, shipmentProduct.allocated_co2e),
+              sum + Math.max(0, shipmentProduct.allocatedCo2e),
               0
             );
             const totalQuantity = shipment.products.reduce(
@@ -768,7 +768,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
             );
             const totalWeightKg = shipment.products.reduce(
               (sum, shipmentProduct) =>
-              sum + Math.max(0, shipmentProduct.weight_kg),
+              sum + Math.max(0, shipmentProduct.weightKg),
               0
             );
 
@@ -776,18 +776,18 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
               shipmentId: shipment.id,
               legCount: mappedLegs.length,
               shipmentLegTotalCo2Kg: legTotalCo2Kg,
-              shipmentTotalCo2Kg: Math.max(0, shipment.total_co2e),
+              shipmentTotalCo2Kg: Math.max(0, shipment.totalCo2e),
               productAllocatedCo2Kg:
-              matchedShipmentProduct && matchedShipmentProduct.allocated_co2e > 0 ?
-              matchedShipmentProduct.allocated_co2e :
+              matchedShipmentProduct && matchedShipmentProduct.allocatedCo2e > 0 ?
+              matchedShipmentProduct.allocatedCo2e :
               null,
               productQuantity:
               matchedShipmentProduct && matchedShipmentProduct.quantity > 0 ?
               matchedShipmentProduct.quantity :
               null,
               productWeightKg:
-              matchedShipmentProduct && matchedShipmentProduct.weight_kg > 0 ?
-              matchedShipmentProduct.weight_kg :
+              matchedShipmentProduct && matchedShipmentProduct.weightKg > 0 ?
+              matchedShipmentProduct.weightKg :
               null,
               totalAllocatedCo2Kg,
               totalQuantity,

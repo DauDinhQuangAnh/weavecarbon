@@ -1,3 +1,5 @@
+import { api } from "@/lib/apiClient";
+
 const RAG_CONFIG_STORAGE_KEY = "weavecarbon_rag_runtime_config_v1";
 
 const DEFAULT_RAG_BASE_URL = "https://weavecarbon.com/rag";
@@ -161,12 +163,16 @@ export interface RagIngestResult {
   collection_name: string;
   rows: number;
   chunks: number;
+  warnings?: string[];
+  chunking_profile?: string | null;
+  chunk_stats?: PrimitiveRecord;
 }
 
 export interface RagQueryRequest {
   query: string;
-  columns_to_answer: string[];
+  columns_to_answer?: string[];
   number_docs_retrieval?: number;
+  include_debug_info?: boolean;
 }
 
 export interface RagQueryResponse {
@@ -174,6 +180,36 @@ export interface RagQueryResponse {
   retrieved_data: string;
   metadatas: unknown;
   full_prompt: string | null;
+  citations: RagCitation[];
+}
+
+export interface RagCitation {
+  id: number;
+  source: string | null;
+  source_type: string | null;
+  page_number: number | null;
+  chunk_index: number | null;
+  section_title: string | null;
+  section_path: string | null;
+  chunk_type: string | null;
+  snippet: string;
+}
+
+export interface RagDocumentInfo {
+  source: string;
+  source_type: string | null;
+  chunk_count: number;
+  doc_id: string | null;
+}
+
+export interface RagCollectionRecords {
+  collection_name: string;
+  count: number;
+  limit: number;
+  offset: number;
+  ids: string[];
+  metadatas: unknown[];
+  documents: string[];
 }
 
 export interface RagProductSuggestionRequest {
@@ -469,27 +505,58 @@ const normalizeProductSuggestion = (
 export const getCollectionDescription = (collection: RagCollectionDetail | null) =>
   asNullableString(collection?.metadata?.description) || "";
 
-export const checkRagHealth = async (baseUrl: string): Promise<RagHealthResponse> => {
-  const payload = await ragRequest<unknown>(baseUrl, "/health");
+export const checkRagHealth = async (_baseUrl: string): Promise<RagHealthResponse> => {
+  void _baseUrl;
+  const payload = await api.get<unknown>("/ai-config/rag/health");
   const candidate = asRecord(payload);
   return {
     status: asString(candidate.status, "unknown")
   };
 };
 
-export const testRagDatabase = async (baseUrl: string): Promise<RagDbTestResponse> => {
-  const payload = await ragRequest<unknown>(baseUrl, "/db/test");
+const normalizeRagCitation = (payload: unknown, index: number): RagCitation => {
   const candidate = asRecord(payload);
   return {
-    status: asString(candidate.status, "unknown"),
-    message: asString(candidate.message, ""),
-    database: asNullableString(candidate.database),
-    version: asNullableString(candidate.version)
+    id: Math.trunc(asNumber(candidate.id, index + 1)),
+    source: asNullableString(candidate.source),
+    source_type: asNullableString(candidate.source_type),
+    page_number:
+      typeof candidate.page_number === "undefined" ? null : Math.trunc(asNumber(candidate.page_number, 0)),
+    chunk_index:
+      typeof candidate.chunk_index === "undefined" ? null : Math.trunc(asNumber(candidate.chunk_index, 0)),
+    section_title: asNullableString(candidate.section_title),
+    section_path: asNullableString(candidate.section_path),
+    chunk_type: asNullableString(candidate.chunk_type),
+    snippet: asString(candidate.snippet, "")
   };
 };
 
-export const listRagCollections = async (baseUrl: string): Promise<string[]> => {
-  const payload = await ragRequest<unknown>(baseUrl, "/collections");
+const normalizeDocumentInfo = (payload: unknown): RagDocumentInfo => {
+  const candidate = asRecord(payload);
+  return {
+    source: asString(candidate.source, ""),
+    source_type: asNullableString(candidate.source_type),
+    chunk_count: Math.max(0, Math.trunc(asNumber(candidate.chunk_count, 0))),
+    doc_id: asNullableString(candidate.doc_id)
+  };
+};
+
+export const testRagDatabase = async (_baseUrl: string): Promise<RagDbTestResponse> => {
+  void _baseUrl;
+  const payload = await api.get<unknown>("/ai-config/rag/runtime-status");
+  const candidate = asRecord(payload);
+  const chroma = asRecord(candidate.chroma);
+  return {
+    status: asString(candidate.status, "unknown"),
+    message: asString(candidate.message, asString(chroma.local, "")),
+    database: asNullableString(chroma.local),
+    version: asNullableString(candidate.embedding_model)
+  };
+};
+
+export const listRagCollections = async (_baseUrl: string): Promise<string[]> => {
+  void _baseUrl;
+  const payload = await api.get<unknown>("/ai-config/rag/collections");
   const collections = asRecord(payload).collections;
   if (!Array.isArray(collections)) return [];
   const normalized = collections
@@ -499,12 +566,12 @@ export const listRagCollections = async (baseUrl: string): Promise<string[]> => 
 };
 
 export const getRagCollection = async (
-  baseUrl: string,
+  _baseUrl: string,
   collectionName: string
 ): Promise<RagCollectionDetail> => {
-  const payload = await ragRequest<unknown>(
-    baseUrl,
-    `/collections/${encodeURIComponent(collectionName)}`
+  void _baseUrl;
+  const payload = await api.get<unknown>(
+    `/ai-config/rag/collections/${encodeURIComponent(collectionName)}`
   );
   return normalizeCollectionDetail(payload, collectionName);
 };
@@ -529,106 +596,161 @@ export const fetchRagCollectionsWithDetails = async (baseUrl: string) => {
 };
 
 export const createRagCollection = async (
-  baseUrl: string,
+  _baseUrl: string,
   payload: {
     name: string;
     description?: string;
   }
 ) => {
-  const response = await ragRequest<unknown>(baseUrl, "/collections", {
-    method: "POST",
-    body: {
-      name: payload.name,
-      description: payload.description
-    }
+  void _baseUrl;
+  const response = await api.post<unknown>("/ai-config/rag/collections", {
+    name: payload.name,
+    description: payload.description
   });
   return normalizeCollectionDetail(response, payload.name);
 };
 
 export const updateRagCollection = async (
-  baseUrl: string,
+  _baseUrl: string,
   collectionName: string,
   payload: {
     new_name?: string;
     metadata?: PrimitiveRecord;
   }
 ) => {
-  const response = await ragRequest<unknown>(
-    baseUrl,
-    `/collections/${encodeURIComponent(collectionName)}`,
-    {
-      method: "PATCH",
-      body: payload
-    }
+  void _baseUrl;
+  const response = await api.patch<unknown>(
+    `/ai-config/rag/collections/${encodeURIComponent(collectionName)}`,
+    payload
   );
   return normalizeCollectionDetail(response, payload.new_name || collectionName);
 };
 
-export const deleteRagCollection = async (baseUrl: string, collectionName: string) => {
-  await ragRequest<unknown>(baseUrl, `/collections/${encodeURIComponent(collectionName)}`, {
-    method: "DELETE"
-  });
+export const deleteRagCollection = async (_baseUrl: string, collectionName: string) => {
+  void _baseUrl;
+  await api.delete<unknown>(`/ai-config/rag/collections/${encodeURIComponent(collectionName)}`);
 };
 
-export const ingestRagCsv = async (
-  baseUrl: string,
+export const getRagCollectionRecords = async (
+  _baseUrl: string,
+  collectionName: string,
+  options: {
+    limit?: number;
+    offset?: number;
+  } = {}
+): Promise<RagCollectionRecords> => {
+  void _baseUrl;
+  const params = new URLSearchParams({
+    limit: String(clampInteger(options.limit, 200, 1, 5000)),
+    offset: String(Math.max(0, Math.trunc(asNumber(options.offset, 0))))
+  });
+  const response = await api.get<unknown>(
+    `/ai-config/rag/collections/${encodeURIComponent(collectionName)}/records?${params.toString()}`
+  );
+  const candidate = asRecord(response);
+  const ids = Array.isArray(candidate.ids) ? candidate.ids.map((entry) => asString(entry, "")) : [];
+  const documents = Array.isArray(candidate.documents)
+    ? candidate.documents.map((entry) => asString(entry, ""))
+    : [];
+  return {
+    collection_name: asString(candidate.collection_name, collectionName),
+    count: Math.max(0, Math.trunc(asNumber(candidate.count, 0))),
+    limit: Math.max(1, Math.trunc(asNumber(candidate.limit, options.limit || 200))),
+    offset: Math.max(0, Math.trunc(asNumber(candidate.offset, options.offset || 0))),
+    ids,
+    metadatas: Array.isArray(candidate.metadatas) ? candidate.metadatas : [],
+    documents
+  };
+};
+
+export const listRagDocuments = async (
+  _baseUrl: string,
+  collectionName: string
+): Promise<RagDocumentInfo[]> => {
+  void _baseUrl;
+  const response = await api.get<unknown>(
+    `/ai-config/rag/collections/${encodeURIComponent(collectionName)}/documents`
+  );
+  const documents = asRecord(response).documents;
+  return Array.isArray(documents)
+    ? documents.map(normalizeDocumentInfo).filter((item) => item.source.length > 0)
+    : [];
+};
+
+export const deleteRagDocument = async (
+  _baseUrl: string,
+  collectionName: string,
+  source: string
+) => {
+  void _baseUrl;
+  await api.post<unknown>(
+    `/ai-config/rag/collections/${encodeURIComponent(collectionName)}/documents/delete`,
+    { source }
+  );
+};
+
+export const ingestRagDocument = async (
+  _baseUrl: string,
   payload: {
     file: File;
-    indexColumn: string;
     collectionName?: string;
+    chunkingProfile?: string;
   }
 ): Promise<RagIngestResult> => {
+  void _baseUrl;
   const formData = new FormData();
   formData.append("file", payload.file);
-  formData.append("index_column", payload.indexColumn);
   if (payload.collectionName) {
     formData.append("collection_name", payload.collectionName);
   }
+  if (payload.chunkingProfile) {
+    formData.append("chunking_profile", payload.chunkingProfile);
+  }
 
-  const response = await ragRequest<unknown>(baseUrl, "/ingest", {
-    method: "POST",
-    body: formData,
-    headers: {}
-  });
+  const response = await api.post<unknown>("/ai-config/rag/ingest", formData);
 
   const candidate = asRecord(response);
   return {
     collection_name: asString(candidate.collection_name, payload.collectionName || ""),
     rows: Math.max(0, Math.trunc(asNumber(candidate.rows, 0))),
-    chunks: Math.max(0, Math.trunc(asNumber(candidate.chunks, 0)))
+    chunks: Math.max(0, Math.trunc(asNumber(candidate.chunks, 0))),
+    warnings: Array.isArray(candidate.warnings)
+      ? candidate.warnings.map((entry) => asString(entry, "")).filter(Boolean)
+      : [],
+    chunking_profile: asNullableString(candidate.chunking_profile),
+    chunk_stats: asRecord(candidate.chunk_stats)
   };
 };
 
 export const queryRagCollection = async (
-  baseUrl: string,
+  _baseUrl: string,
   collectionName: string,
   payload: RagQueryRequest,
   timeoutMs?: number
 ): Promise<RagQueryResponse> => {
-  const response = await ragRequest<unknown>(
-    baseUrl,
-    `/collections/${encodeURIComponent(collectionName)}/query`,
+  void _baseUrl;
+  void timeoutMs;
+  const response = await api.post<unknown>(
+    `/ai-config/rag/collections/${encodeURIComponent(collectionName)}/query`,
     {
-      method: "POST",
-      timeoutMs,
-      body: {
-        query: payload.query,
-        columns_to_answer: payload.columns_to_answer,
-        number_docs_retrieval: clampInteger(
-          payload.number_docs_retrieval,
-          DEFAULT_NUMBER_DOCS_RETRIEVAL,
-          1,
-          50
-        )
-      }
+      query: payload.query,
+      number_docs_retrieval: clampInteger(
+        payload.number_docs_retrieval,
+        DEFAULT_NUMBER_DOCS_RETRIEVAL,
+        1,
+        50
+      ),
+      include_debug_info: payload.include_debug_info === true
     }
   );
   const candidate = asRecord(response);
+  const citations = Array.isArray(candidate.citations) ? candidate.citations : [];
   return {
     answer: asString(candidate.answer, ""),
     retrieved_data: asString(candidate.retrieved_data, ""),
     metadatas: candidate.metadatas ?? null,
-    full_prompt: asNullableString(candidate.full_prompt)
+    full_prompt: asNullableString(candidate.full_prompt),
+    citations: citations.map((entry, index) => normalizeRagCitation(entry, index))
   };
 };
 

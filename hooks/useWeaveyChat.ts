@@ -384,17 +384,12 @@ async function getWeaveyResponse(input: string): Promise<string> {
   if (!runtimeConfig.collectionName) {
     throw new Error("AI collection is not configured. Please update Settings > AI.");
   }
-  if (!runtimeConfig.columnsToAnswer.length) {
-    throw new Error("columns_to_answer is empty. Please update Settings > AI.");
-  }
-
   try {
     const data = await queryRagCollection(
       runtimeConfig.baseUrl,
       runtimeConfig.collectionName,
       {
         query: input,
-        columns_to_answer: runtimeConfig.columnsToAnswer,
         number_docs_retrieval: runtimeConfig.numberDocsRetrieval,
       },
       runtimeConfig.timeoutMs

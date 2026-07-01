@@ -78,26 +78,26 @@ interface OverviewStats {
 
 interface DashboardOverviewResponse {
   stats?: {
-    total_co2e?: number;
-    total_skus?: number;
-    avg_export_readiness?: number;
-    data_confidence?: number;
+    totalCo2e?: number;
+    totalSkus?: number;
+    avgExportReadiness?: number;
+    dataConfidence?: number;
   };
-  carbon_trend?: Array<{
+  carbonTrend?: Array<{
     month?: string;
     label?: string;
-    actual_emissions?: number;
-    target_emissions?: number;
+    actualEmissions?: number;
+    targetEmissions?: number;
   }>;
-  emission_breakdown?: Array<{
+  emissionBreakdown?: Array<{
     category?: string;
     label?: string;
     percentage?: number;
     color?: string;
   }>;
-  market_readiness?: Array<{
-    market_code?: string;
-    market_name?: string;
+  marketReadiness?: Array<{
+    marketCode?: string;
+    marketName?: string;
     score?: number;
     status?: "good" | "warning" | "danger";
   }>;
@@ -105,8 +105,8 @@ interface DashboardOverviewResponse {
     id: string | number;
     title?: string;
     description?: string;
-    impact_level?: "high" | "medium" | "low";
-    reduction_percentage?: number;
+    impactLevel?: "high" | "medium" | "low";
+    reductionPercentage?: number;
   }>;
 }
 
@@ -226,9 +226,9 @@ const clampReadiness = (score: number) => Math.max(0, Math.min(100, score));
 const normalizeReadinessScore = (score: number) => clampReadiness(Math.round(score * 100) / 100);
 
 const mapOverviewMarketReadiness = (
-items: DashboardOverviewResponse["market_readiness"] = []) =>
+items: DashboardOverviewResponse["marketReadiness"] = []) =>
 (items || []).map((item) => ({
-  market: item.market_name || item.market_code || "Unknown",
+  market: item.marketName || item.marketCode || "Unknown",
   score: normalizeReadinessScore(item.score || 0),
   status: item.status
 }));
@@ -502,23 +502,23 @@ const OverviewPage: React.FC = () => {
         if (cancelled) return;
 
         setApiStats({
-          totalCO2: Math.round((overview.stats?.total_co2e || 0) * 100) / 100,
-          skuCount: overview.stats?.total_skus || 0,
-          exportReadiness: Math.round(overview.stats?.avg_export_readiness || 0),
-          confidenceScore: Math.round(overview.stats?.data_confidence || 0)
+          totalCO2: Math.round((overview.stats?.totalCo2e || 0) * 100) / 100,
+          skuCount: overview.stats?.totalSkus || 0,
+          exportReadiness: Math.round(overview.stats?.avgExportReadiness || 0),
+          confidenceScore: Math.round(overview.stats?.dataConfidence || 0)
         });
 
         const complianceReadiness =
         complianceMarkets && Object.keys(complianceMarkets).length > 0 ?
         mapComplianceMarketReadiness(complianceMarkets) :
         [];
-        const overviewReadiness = mapOverviewMarketReadiness(overview.market_readiness);
+        const overviewReadiness = mapOverviewMarketReadiness(overview.marketReadiness);
 
         setCompany({
           target_markets:
           complianceReadiness.length > 0 ?
           Object.keys(complianceMarkets || {}) :
-          overview.market_readiness?.map((item) => item.market_code || "") || []
+          overview.marketReadiness?.map((item) => item.marketCode || "") || []
         });
 
         setMarketReadiness(
@@ -527,7 +527,7 @@ const OverviewPage: React.FC = () => {
 
         const usedBreakdownColors = new Set<string>();
         setEmissionBreakdown(
-          (overview.emission_breakdown || []).map((item, index) => {
+          (overview.emissionBreakdown || []).map((item, index) => {
             const name = item.label || item.category || "unknown";
             return {
               name,

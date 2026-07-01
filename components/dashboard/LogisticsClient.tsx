@@ -293,7 +293,7 @@ const LogisticsClient: React.FC = () => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match =
-          s.reference_number.toLowerCase().includes(q) ||
+          s.referenceNumber.toLowerCase().includes(q) ||
           s.origin.city?.toLowerCase().includes(q) ||
           s.destination.city?.toLowerCase().includes(q) ||
           s.origin.country?.toLowerCase().includes(q) ||
@@ -380,8 +380,8 @@ const LogisticsClient: React.FC = () => {
             : s.status === "in_transit"
             ? ("in_transit" as const)
             : ("pending" as const),
-        co2Kg: s.total_co2e,
-        distanceKm: s.total_distance_km,
+        co2Kg: s.totalCo2e,
+        distanceKm: s.totalDistanceKm,
       }));
   }, [filteredShipments]);
 
@@ -417,7 +417,7 @@ const LogisticsClient: React.FC = () => {
         <div>
           <p className="text-sm text-muted-foreground">
             {overview
-              ? `${overview.total_shipments} lô hàng · ${overview.in_transit} đang vận chuyển · ${overview.delivered} đã giao · CO₂e Scope 3: ${overview.total_co2e.toFixed(0)} kg`
+              ? `${overview.totalShipments} lô hàng · ${overview.inTransit} đang vận chuyển · ${overview.delivered} đã giao · CO₂e Scope 3: ${overview.totalCo2e.toFixed(0)} kg`
               : "Đang tải…"}
           </p>
         </div>
@@ -443,7 +443,7 @@ const LogisticsClient: React.FC = () => {
           {[
             {
               label: "Tổng lô",
-              value: overview.total_shipments,
+              value: overview.totalShipments,
               color: "text-slate-900",
             },
             {
@@ -453,7 +453,7 @@ const LogisticsClient: React.FC = () => {
             },
             {
               label: "Đang giao",
-              value: overview.in_transit,
+              value: overview.inTransit,
               color: "text-blue-600",
             },
             {
@@ -468,7 +468,7 @@ const LogisticsClient: React.FC = () => {
             },
             {
               label: "kg CO₂e S3",
-              value: overview.total_co2e.toFixed(0),
+              value: overview.totalCo2e.toFixed(0),
               color: "text-orange-600",
             },
           ].map((stat) => (
@@ -575,7 +575,7 @@ const LogisticsClient: React.FC = () => {
               {filteredShipments.map((s) => (
                 <MobileDataCard
                   key={s.id}
-                  title={s.reference_number || s.id.slice(0, 12)}
+                  title={s.referenceNumber || s.id.slice(0, 12)}
                   subtitle={`${s.origin.city || s.origin.country} → ${s.destination.city || s.destination.country}`}
                   icon={<Package className="h-5 w-5 text-primary" />}
                   status={{
@@ -598,14 +598,14 @@ const LogisticsClient: React.FC = () => {
                   }}
                   metrics={[
                     {
-                      value: s.total_co2e.toFixed(1),
+                      value: s.totalCo2e.toFixed(1),
                       unit: "kg CO₂e",
                       className: "text-primary",
                     },
                     {
                       label: "ETA",
-                      value: s.estimated_arrival
-                        ? new Date(s.estimated_arrival).toLocaleDateString(
+                      value: s.estimatedArrival
+                        ? new Date(s.estimatedArrival).toLocaleDateString(
                             "vi-VN"
                           )
                         : "—",
@@ -698,7 +698,7 @@ const LogisticsClient: React.FC = () => {
               <DialogTitle className="flex items-center gap-2 pb-2">
                 <Package className="h-5 w-5 text-primary" />
                 <span className="truncate font-semibold text-base">
-                  {selectedShipment.reference_number || selectedShipment.id}
+                  {selectedShipment.referenceNumber || selectedShipment.id}
                 </span>
                 {getStatusBadge(selectedShipment.status)}
               </DialogTitle>
@@ -708,7 +708,7 @@ const LogisticsClient: React.FC = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Mã lô</p>
                   <p className="font-mono text-xs font-medium md:text-sm">
-                    {selectedShipment.reference_number || "—"}
+                    {selectedShipment.referenceNumber || "—"}
                   </p>
                 </div>
                 <div>
@@ -728,8 +728,8 @@ const LogisticsClient: React.FC = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">ETA</p>
                   <p className="text-xs font-medium md:text-sm">
-                    {selectedShipment.estimated_arrival
-                      ? new Date(selectedShipment.estimated_arrival).toLocaleDateString("vi-VN")
+                    {selectedShipment.estimatedArrival
+                      ? new Date(selectedShipment.estimatedArrival).toLocaleDateString("vi-VN")
                       : "—"}
                   </p>
                 </div>
@@ -750,20 +750,20 @@ const LogisticsClient: React.FC = () => {
                       <p className="text-sm font-medium">Các chặng vận chuyển</p>
                       <div className="space-y-2">
                         {selectedDetail.legs.map((leg, idx) => {
-                          const defra = getDefraFactor(leg.transport_mode, leg.distance_km);
+                          const defra = getDefraFactor(leg.transportMode, leg.distanceKm);
                           return (
                             <div
                               key={leg.id}
                               className="flex items-center gap-2 rounded-lg bg-muted/50 p-2 md:p-3"
                             >
                               <Badge variant="outline" className="shrink-0">{idx + 1}</Badge>
-                              {getTransportIcon(leg.transport_mode)}
+                              {getTransportIcon(leg.transportMode)}
                               <div className="min-w-0 flex-1">
                                 <p className="line-clamp-1 text-xs font-medium md:text-sm">
-                                  {leg.origin_location} → {leg.destination_location}
+                                  {leg.originLocation} → {leg.destinationLocation}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  {leg.distance_km.toLocaleString()} km · {leg.co2e.toFixed(2)} kg CO₂e
+                                  {leg.distanceKm.toLocaleString()} km · {leg.co2e.toFixed(2)} kg CO₂e
                                 </p>
                               </div>
                               <TooltipProvider>
@@ -819,21 +819,21 @@ const LogisticsClient: React.FC = () => {
                           </thead>
                           <tbody>
                             {selectedDetail.legs.map((leg, idx) => {
-                              const factorKey = pickDefraKey(leg.transport_mode, leg.distance_km);
-                              const defra = getDefraFactor(leg.transport_mode, leg.distance_km);
-                              const weightKg = selectedShipment.total_weight_kg || 500;
-                              const tonneKm = (weightKg / 1000) * leg.distance_km;
+                              const factorKey = pickDefraKey(leg.transportMode, leg.distanceKm);
+                              const defra = getDefraFactor(leg.transportMode, leg.distanceKm);
+                              const weightKg = selectedShipment.totalWeightKg || 500;
+                              const tonneKm = (weightKg / 1000) * leg.distanceKm;
                               return (
                                 <tr key={leg.id} className="border-t">
                                   <td className="px-2 py-2 font-mono">{idx + 1}</td>
                                   <td className="px-2 py-2">
                                     <span className="line-clamp-1">
-                                      {leg.origin_location} → {leg.destination_location}
+                                      {leg.originLocation} → {leg.destinationLocation}
                                     </span>
                                   </td>
-                                  <td className="hidden px-2 py-2 md:table-cell">{getModeLabel(leg.transport_mode)}</td>
+                                  <td className="hidden px-2 py-2 md:table-cell">{getModeLabel(leg.transportMode)}</td>
                                   <td className="px-2 py-2 font-mono text-[11px]">{factorKey}</td>
-                                  <td className="px-2 py-2 text-right tabular-nums">{leg.distance_km.toLocaleString()}</td>
+                                  <td className="px-2 py-2 text-right tabular-nums">{leg.distanceKm.toLocaleString()}</td>
                                   <td className="hidden px-2 py-2 text-right tabular-nums md:table-cell">{tonneKm.toFixed(2)}</td>
                                   <td className="hidden px-2 py-2 text-right tabular-nums lg:table-cell">{defra.factor}</td>
                                   <td className="px-2 py-2 text-right font-semibold tabular-nums text-primary">{leg.co2e.toFixed(2)}</td>
@@ -845,12 +845,12 @@ const LogisticsClient: React.FC = () => {
                             <tr className="border-t bg-primary/5">
                               <td colSpan={4} className="px-2 py-2 font-semibold">Tổng cộng</td>
                               <td className="px-2 py-2 text-right font-semibold tabular-nums">
-                                {selectedShipment.total_distance_km.toLocaleString()}
+                                {selectedShipment.totalDistanceKm.toLocaleString()}
                               </td>
                               <td className="hidden px-2 py-2 md:table-cell" />
                               <td className="hidden px-2 py-2 lg:table-cell" />
                               <td className="px-2 py-2 text-right font-bold tabular-nums text-primary">
-                                {selectedShipment.total_co2e.toFixed(2)}
+                                {selectedShipment.totalCo2e.toFixed(2)}
                               </td>
                             </tr>
                           </tfoot>
@@ -869,10 +869,10 @@ const LogisticsClient: React.FC = () => {
                             key={p.id}
                             className="flex items-center justify-between rounded bg-muted/30 px-3 py-2 text-xs"
                           >
-                            <span className="font-medium">{p.product_name || p.sku}</span>
+                            <span className="font-medium">{p.productName || p.sku}</span>
                             <div className="flex items-center gap-3 text-muted-foreground">
                               <span>{p.quantity} sp</span>
-                              <span>{p.allocated_co2e.toFixed(2)} kg CO₂e</span>
+                              <span>{p.allocatedCo2e.toFixed(2)} kg CO₂e</span>
                             </div>
                           </div>
                         ))}
@@ -893,13 +893,13 @@ const LogisticsClient: React.FC = () => {
                       </Badge>
                     </div>
                     <p className="text-xl font-bold text-primary md:text-2xl">
-                      {selectedShipment.total_co2e.toFixed(2)} kg CO₂e
+                      {selectedShipment.totalCo2e.toFixed(2)} kg CO₂e
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground md:text-sm">Tổng cự ly</p>
                     <p className="text-lg font-semibold md:text-xl">
-                      {selectedShipment.total_distance_km.toLocaleString()} km
+                      {selectedShipment.totalDistanceKm.toLocaleString()} km
                     </p>
                   </div>
                 </div>
@@ -916,8 +916,8 @@ const LogisticsClient: React.FC = () => {
       {qrShipment && (
         <ProductQRCode
           productId={qrShipment.id}
-          productName={`Lô ${qrShipment.reference_number || qrShipment.id}`}
-          productCode={qrShipment.reference_number || qrShipment.id}
+          productName={`Lô ${qrShipment.referenceNumber || qrShipment.id}`}
+          productCode={qrShipment.referenceNumber || qrShipment.id}
           open={true}
           onClose={() => setQrShipment(null)}
         />

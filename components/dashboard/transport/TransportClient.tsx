@@ -428,9 +428,9 @@ lookup: ShipmentLookupInput) =>
   }
 
   const matchesProduct = shipment.products.some((product) => {
-    const productId = normalizeLookupValue(product.product_id);
+    const productId = normalizeLookupValue(product.productId);
     const sku = normalizeLookupValue(product.sku);
-    const name = normalizeLookupValue(product.product_name);
+    const name = normalizeLookupValue(product.productName);
 
     if (targetProductId && productId === targetProductId) return true;
     if (targetSku && sku) {
@@ -444,7 +444,7 @@ lookup: ShipmentLookupInput) =>
 
   if (matchesProduct) return true;
 
-  const reference = normalizeLookupValue(shipment.reference_number);
+  const reference = normalizeLookupValue(shipment.referenceNumber);
   if (targetSku && reference && reference.includes(targetSku)) {
     return true;
   }

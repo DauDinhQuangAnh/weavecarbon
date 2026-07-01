@@ -21,10 +21,10 @@ type Status = 'draft' | 'sent' | 'waiting' | 'received' | 'overdue';
 
 interface SupplierReq {
   id: string;
-  supplier_name: string;
-  supplier_email: string;
-  material_supplied: string | null;
-  required_data: string[];
+  supplierName: string;
+  supplierEmail: string;
+  materialSupplied: string | null;
+  requiredData: string[];
   deadline: string | null;
   status: Status;
 }
@@ -46,8 +46,8 @@ const STATUS_COLOR: Record<Status, string> = {
 };
 
 const EMPTY_FORM = {
-  supplier_name: '',
-  supplier_email: '',
+  supplierName: '',
+  supplierEmail: '',
   material: '',
   deadline: '',
   required: 'Material origin, Energy data',
@@ -67,7 +67,7 @@ export default function SuppliersPage() {
       setRows(
         data.map((r) => ({
           ...r,
-          required_data: Array.isArray(r.required_data) ? r.required_data : [],
+          requiredData: Array.isArray(r.requiredData) ? r.requiredData : [],
         }))
       );
     } catch {
@@ -82,15 +82,15 @@ export default function SuppliersPage() {
   }, [load]);
 
   const submit = async () => {
-    if (!form.supplier_name || !form.supplier_email)
+    if (!form.supplierName || !form.supplierEmail)
       return toast({ title: 'Cần tên & email nhà cung ứng', variant: 'destructive' });
     setSaving(true);
     try {
       await api.post('/suppliers', {
-        supplier_name: form.supplier_name,
-        supplier_email: form.supplier_email,
-        material_supplied: form.material || null,
-        required_data: form.required
+        supplierName: form.supplierName,
+        supplierEmail: form.supplierEmail,
+        materialSupplied: form.material || null,
+        requiredData: form.required
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean),
@@ -112,17 +112,17 @@ export default function SuppliersPage() {
 
   const sendMail = async (r: SupplierReq) => {
     const subject = encodeURIComponent(
-      `[Weave Carbon] Yêu cầu dữ liệu Scope 3 — ${r.material_supplied || ''}`
+      `[Weave Carbon] Yêu cầu dữ liệu Scope 3 — ${r.materialSupplied || ''}`
     );
     const body = encodeURIComponent(
-      `Kính gửi ${r.supplier_name},\n\nChúng tôi cần các dữ liệu sau:\n- ${(r.required_data || []).join('\n- ')}\n\nHạn: ${r.deadline || '—'}\n\nTrân trọng.`
+      `Kính gửi ${r.supplierName},\n\nChúng tôi cần các dữ liệu sau:\n- ${(r.requiredData || []).join('\n- ')}\n\nHạn: ${r.deadline || '—'}\n\nTrân trọng.`
     );
-    window.location.href = `mailto:${r.supplier_email}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${r.supplierEmail}?subject=${subject}&body=${body}`;
     if (r.status === 'draft') {
       try {
         await api.put(`/suppliers/${r.id}`, {
           status: 'sent',
-          sent_at: new Date().toISOString(),
+          sentAt: new Date().toISOString(),
         });
         await load();
       } catch {
@@ -157,9 +157,9 @@ export default function SuppliersPage() {
                 <Label htmlFor="supplier-name">Tên nhà cung ứng</Label>
                 <Input
                   id="supplier-name"
-                  value={form.supplier_name}
+                  value={form.supplierName}
                   onChange={(e) =>
-                    setForm({ ...form, supplier_name: e.target.value })
+                    setForm({ ...form, supplierName: e.target.value })
                   }
                 />
               </div>
@@ -168,9 +168,9 @@ export default function SuppliersPage() {
                 <Input
                   id="supplier-email"
                   type="email"
-                  value={form.supplier_email}
+                  value={form.supplierEmail}
                   onChange={(e) =>
-                    setForm({ ...form, supplier_email: e.target.value })
+                    setForm({ ...form, supplierEmail: e.target.value })
                   }
                 />
               </div>
@@ -249,14 +249,14 @@ export default function SuppliersPage() {
                   {rows.map((r) => (
                     <tr key={r.id} className="border-b last:border-0">
                       <td className="py-3">
-                        <div className="font-medium">{r.supplier_name}</div>
+                        <div className="font-medium">{r.supplierName}</div>
                         <div className="text-xs text-muted-foreground">
-                          {r.supplier_email}
+                          {r.supplierEmail}
                         </div>
                       </td>
-                      <td className="text-xs">{r.material_supplied || '—'}</td>
+                      <td className="text-xs">{r.materialSupplied || '—'}</td>
                       <td className="text-xs">
-                        {(r.required_data || []).join(', ')}
+                        {(r.requiredData || []).join(', ')}
                       </td>
                       <td className="text-xs">{r.deadline || '—'}</td>
                       <td>

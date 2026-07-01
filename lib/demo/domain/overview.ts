@@ -211,24 +211,24 @@ export const getDemoOverviewPayload = (dataset: DemoDataset) => {
   const stats = getOverviewStats(dataset);
   return {
     stats: {
-      total_co2e: stats.totalCO2,
-      total_skus: stats.skuCount,
-      avg_export_readiness: stats.exportReadiness,
-      data_confidence: stats.confidenceScore,
+      totalCo2e: stats.totalCO2,
+      totalSkus: stats.skuCount,
+      avgExportReadiness: stats.exportReadiness,
+      dataConfidence: stats.confidenceScore,
     },
-    carbon_trend: getOverviewTrend(dataset).map((item) => ({
+    carbonTrend: getOverviewTrend(dataset).map((item) => ({
       month: item.month,
       label: item.month,
-      actual_emissions: item.emissions,
-      target_emissions: item.target,
+      actualEmissions: item.emissions,
+      targetEmissions: item.target,
     })),
-    emission_breakdown: getEmissionBreakdown(dataset).map((item) => ({
+    emissionBreakdown: getEmissionBreakdown(dataset).map((item) => ({
       category: item.category,
       label: item.category,
       percentage: item.percentage,
       color: item.color,
     })),
-    market_readiness: getMarketReadiness(dataset),
+    marketReadiness: getMarketReadiness(dataset),
     recommendations: getOverviewRecommendations(dataset),
   };
 };

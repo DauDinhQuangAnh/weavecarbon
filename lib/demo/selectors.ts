@@ -127,8 +127,8 @@ export const getEmissionBreakdown = (dataset: DemoDataset) => {
 
 export const getMarketReadiness = (dataset: DemoDataset) =>
   Object.values(getDemoMarkets(dataset)).map((market) => ({
-    market_code: market.market,
-    market_name: market.marketName,
+    marketCode: market.market,
+    marketName: market.marketName,
     score: market.score,
     status: market.score >= 80 ? "good" : market.score >= 50 ? "warning" : "danger",
   }));
@@ -142,13 +142,13 @@ export const getOverviewRecommendations = (dataset: DemoDataset) => {
         id: item.id,
         title: item.missingItem,
         description: item.regulatoryReason,
-        impact_level:
+        impactLevel:
           item.priority === "mandatory"
             ? "high"
             : item.priority === "important"
               ? "medium"
               : "low",
-        reduction_percentage:
+        reductionPercentage:
           item.priority === "mandatory" ? 12 : item.priority === "important" ? 7 : 3,
       }))
   );

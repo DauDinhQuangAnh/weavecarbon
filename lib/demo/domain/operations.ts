@@ -106,7 +106,7 @@ export const getDemoEvidenceDocuments = (dataset: DemoDataset) => {
   const products = getProducts(dataset);
   const shipments = getShipments(dataset);
   const firstProduct = products[0] || {};
-  const exportShipment = shipments.find((shipment) => asString(shipment.reference_number).includes("EU")) || shipments[0] || {};
+  const exportShipment = shipments.find((shipment) => asString(shipment.referenceNumber).includes("EU")) || shipments[0] || {};
   const supplier = getDemoSuppliers(dataset)[0];
 
   return [
@@ -150,7 +150,7 @@ export const getDemoEvidenceDocuments = (dataset: DemoDataset) => {
     {
       id: "ev-demo-bol",
       shipment_id: asString(exportShipment.id),
-      file_name: `${asString(exportShipment.reference_number, "SHIP-EU-DEMO")}-Bill-of-Lading.pdf`,
+      file_name: `${asString(exportShipment.referenceNumber, "SHIP-EU-DEMO")}-Bill-of-Lading.pdf`,
       kind: "bill_of_lading",
       status: "ocr_parsed",
       trust_score: 74,
@@ -160,9 +160,9 @@ export const getDemoEvidenceDocuments = (dataset: DemoDataset) => {
       warnings: ["Carrier emission factor still uses default sea freight factor."],
       extracted: {
         carrier: "Ocean Network Express",
-        reference_number: asString(exportShipment.reference_number),
+        reference_number: asString(exportShipment.referenceNumber),
         destination: asString(asRecord(exportShipment.destination).city),
-        distance_km: asNumber(exportShipment.total_distance_km),
+        distance_km: asNumber(exportShipment.totalDistanceKm),
       },
     },
     {
@@ -234,7 +234,7 @@ export const getDemoEvidenceFields = (dataset: DemoDataset, evidenceId: string) 
 
 export const getDemoDataGaps = (dataset: DemoDataset) => {
   const shipments = getShipments(dataset);
-  const exportShipment = shipments.find((shipment) => asString(shipment.reference_number).includes("EU")) || shipments[0] || {};
+  const exportShipment = shipments.find((shipment) => asString(shipment.referenceNumber).includes("EU")) || shipments[0] || {};
   return [
     {
       id: "dg-demo-supplier-energy",
@@ -248,7 +248,7 @@ export const getDemoDataGaps = (dataset: DemoDataset) => {
     },
     {
       id: "dg-demo-bol",
-      data_group: `Sea freight BOL evidence - ${asString(exportShipment.reference_number, "SHIP-EU-2304")}`,
+      data_group: `Sea freight BOL evidence - ${asString(exportShipment.referenceNumber, "SHIP-EU-2304")}`,
       required_for_audit: true,
       current_status: "proxy",
       risk_level: "high",
@@ -328,7 +328,7 @@ export const getDemoAuditTrail = (dataset: DemoDataset) => {
     ["demo.seeded", "Demo workspace", null, "12 SKU + linked evidence", "Seeded judging-ready B2B dataset", null],
     ["product.published", asString(products[0]?.productCode), "draft", "published", "Published first product with BOM and EVN evidence", null],
     ["supplier_request.sent", "Viet Thang Textile Co.", "draft", "waiting", "Requested energy mix and material origin", null],
-    ["shipment.created", asString(shipments[0]?.reference_number), null, "in_transit", "Created linked logistics route for export shipment", null],
+    ["shipment.created", asString(shipments[0]?.referenceNumber), null, "in_transit", "Created linked logistics route for export shipment", null],
     ["evidence.uploaded", asString(evidence[0]?.file_name), null, "source_matched", "Uploaded and matched EVN invoice", asString(evidence[0]?.id)],
     ["evidence.uploaded", asString(evidence[2]?.file_name), null, "ocr_parsed", "OCR parsed bill of lading for shipment route", asString(evidence[2]?.id)],
     ["data_gap.updated", "Sea freight BOL evidence", "missing", "proxy", "Marked route as proxy pending carrier confirmation", null],

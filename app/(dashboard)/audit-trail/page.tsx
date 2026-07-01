@@ -18,20 +18,20 @@ import { toast } from 'sonner';
 
 interface TrailEntry {
   id: string;
-  evidence_document_id: string | null;
-  data_group: string;
-  changed_field: string | null;
-  old_value: string | null;
-  new_value: string | null;
+  evidenceDocumentId: string | null;
+  dataGroup: string;
+  changedField: string | null;
+  oldValue: string | null;
+  newValue: string | null;
   reason: string | null;
   notes: string | null;
-  changed_by: string | null;
-  created_at: string;
+  changedBy: string | null;
+  createdAt: string;
 }
 
 interface CompanyMember {
-  user_id: string;
-  full_name: string;
+  userId: string;
+  fullName: string;
   email: string;
   role: string;
 }
@@ -76,7 +76,7 @@ export default function AuditTrailPage() {
       const members = Array.isArray(res) ? res : (res as { data: CompanyMember[] }).data ?? [];
       const map = new Map<string, string>();
       members.forEach((m) => {
-        if (m.user_id && m.full_name) map.set(m.user_id, m.full_name);
+        if (m.userId && m.fullName) map.set(m.userId, m.fullName);
       });
       setNameMap(map);
     }).catch(() => {
@@ -102,18 +102,18 @@ export default function AuditTrailPage() {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       const matchAction =
-        actionFilter === 'all' || r.changed_field === actionFilter;
-      const haystack = `${r.data_group} ${r.notes || ''} ${r.changed_field || ''} ${r.new_value || ''}`.toLowerCase();
+        actionFilter === 'all' || r.changedField === actionFilter;
+      const haystack = `${r.dataGroup} ${r.notes || ''} ${r.changedField || ''} ${r.newValue || ''}`.toLowerCase();
       const matchSearch = !search || haystack.includes(search.toLowerCase());
       return matchAction && matchSearch;
     });
   }, [rows, search, actionFilter]);
 
   const evidence = filtered.filter(
-    (r) => r.evidence_document_id || r.changed_field === 'evidence.uploaded'
+    (r) => r.evidenceDocumentId || r.changedField === 'evidence.uploaded'
   );
   const versions = filtered.filter(
-    (r) => !r.evidence_document_id && r.changed_field !== 'evidence.uploaded'
+    (r) => !r.evidenceDocumentId && r.changedField !== 'evidence.uploaded'
   );
 
   return (
@@ -188,24 +188,24 @@ export default function AuditTrailPage() {
                     {evidence.map((r) => (
                       <tr key={r.id} className="border-b last:border-0">
                         <td className="py-3 text-xs">
-                          {new Date(r.created_at).toLocaleString('vi-VN')}
+                          {new Date(r.createdAt).toLocaleString('vi-VN')}
                         </td>
                         <td className="text-xs font-medium">
                           <span className="inline-flex items-center gap-1">
                             <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-                            {actor(r.changed_by)}
+                            {actor(r.changedBy)}
                           </span>
                         </td>
                         <td>
                           <Badge variant="outline" className="text-xs">
-                            {ACTION_LABEL[r.changed_field || ''] ||
-                              r.changed_field ||
+                            {ACTION_LABEL[r.changedField || ''] ||
+                              r.changedField ||
                               '—'}
                           </Badge>
                         </td>
-                        <td className="text-xs">{r.data_group}</td>
+                        <td className="text-xs">{r.dataGroup}</td>
                         <td className="text-xs text-muted-foreground">
-                          {r.notes || r.new_value || '—'}
+                          {r.notes || r.newValue || '—'}
                         </td>
                       </tr>
                     ))}
@@ -240,27 +240,27 @@ export default function AuditTrailPage() {
                     {versions.map((v) => (
                       <tr key={v.id} className="border-b last:border-0">
                         <td className="py-3 text-xs">
-                          {new Date(v.created_at).toLocaleString('vi-VN')}
+                          {new Date(v.createdAt).toLocaleString('vi-VN')}
                         </td>
                         <td className="text-xs font-medium">
                           <span className="inline-flex items-center gap-1">
                             <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-                            {actor(v.changed_by)}
+                            {actor(v.changedBy)}
                           </span>
                         </td>
                         <td>
                           <Badge variant="outline" className="text-xs">
-                            {ACTION_LABEL[v.changed_field || ''] ||
-                              v.changed_field ||
+                            {ACTION_LABEL[v.changedField || ''] ||
+                              v.changedField ||
                               '—'}
                           </Badge>
                         </td>
-                        <td className="text-xs">{v.data_group}</td>
+                        <td className="text-xs">{v.dataGroup}</td>
                         <td className="text-xs text-muted-foreground">
-                          {v.old_value || '—'}
+                          {v.oldValue || '—'}
                         </td>
                         <td className="text-xs font-medium">
-                          {v.new_value || '—'}
+                          {v.newValue || '—'}
                         </td>
                         <td className="text-xs">
                           {v.reason || v.notes || '—'}
