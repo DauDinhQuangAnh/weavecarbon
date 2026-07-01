@@ -175,6 +175,7 @@ cleanup_docker_disk() {
   echo "Pruning unused Docker build cache, stopped containers, networks, and dangling images..."
   docker builder prune -af || true
   docker system prune -af || true
+  docker volume prune -f || true
 
   echo "Docker disk usage after cleanup:"
   docker system df || true
