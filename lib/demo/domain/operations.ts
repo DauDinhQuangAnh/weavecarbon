@@ -333,23 +333,23 @@ export const getDemoAuditTrail = (dataset: DemoDataset) => {
     ["evidence.uploaded", asString(evidence[2]?.file_name), null, "ocr_parsed", "OCR parsed bill of lading for shipment route", asString(evidence[2]?.id)],
     ["data_gap.updated", "Sea freight BOL evidence", "missing", "proxy", "Marked route as proxy pending carrier confirmation", null],
     ["product.updated", asString(products[4]?.productCode), "73 confidence", "80 confidence", "Linked GRS certificate to recycled material", null],
-    ["report.generate", "EU export readiness pack", "processing", "completed", "Generated compliance report for buyer review", null],
+    ["report.generated", "EU export readiness pack", "processing", "completed", "Generated compliance report for buyer review", null],
     ["data_gap.verified", "Factory electricity invoice", "uploaded", "verified", "Confirmed Scope 2 invoice fields", asString(evidence[0]?.id)],
     ["product.published", asString(products[8]?.productCode), "draft", "published", "Published extra demo SKU after supplier declaration", null],
-    ["report.generate", "Product carbon register", "processing", "completed", "Exported product carbon dataset with confidence scores", null],
+    ["report.generated", "Product carbon register", "processing", "completed", "Exported product carbon dataset with confidence scores", null],
   ];
 
   return rows.map(([changedField, dataGroup, oldValue, newValue, notes, evidenceId], index) => ({
     id: `at-demo-${index + 1}`,
-    evidence_document_id: evidenceId || null,
-    data_group: dataGroup,
-    changed_field: changedField,
-    old_value: oldValue,
-    new_value: newValue,
+    evidenceDocumentId: evidenceId || null,
+    dataGroup,
+    changedField,
+    oldValue,
+    newValue,
     reason: changedField === "demo.seeded" ? "demo.seed" : "demo.workflow",
     notes,
-    changed_by: actor,
-    created_at: fromSeed(dataset, -10 + index, 8 + (index % 7)),
+    changedBy: actor,
+    createdAt: fromSeed(dataset, -10 + index, 8 + (index % 7)),
   }));
 };
 

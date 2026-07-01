@@ -129,8 +129,8 @@ describe("B2B demo dataset", () => {
     expect(evidence.some((doc) => asString(doc.kind).includes("electricity"))).toBe(true);
     expect(evidence.some((doc) => asString(doc.kind).includes("fuel"))).toBe(true);
     expect(gaps.some((gap) => asString(gap.risk_level) === "high")).toBe(true);
-    expect(audit.some((row) => asString(row.changed_field) === "shipment.created")).toBe(true);
-    expect(audit.some((row) => asString(row.changed_field) === "evidence.uploaded")).toBe(true);
+    expect(audit.some((row) => asString(row.changedField) === "shipment.created")).toBe(true);
+    expect(audit.some((row) => asString(row.changedField) === "evidence.uploaded")).toBe(true);
 
     expect(reportCounts.products).toBe(dataset.products.length);
     expect(reportCounts.activity).toBe(getDemoCarbonCalculations(dataset).length);

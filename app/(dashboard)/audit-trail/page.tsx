@@ -29,6 +29,15 @@ interface TrailEntry {
   createdAt: string;
 }
 
+interface AuditTrailResponse {
+  data?: TrailEntry[];
+  meta?: {
+    total?: number;
+    page?: number;
+    limit?: number;
+  };
+}
+
 interface CompanyMember {
   userId: string;
   fullName: string;
@@ -37,16 +46,29 @@ interface CompanyMember {
 }
 
 const ACTION_LABEL: Record<string, string> = {
-  'data_gap.created': 'Tạo gap',
-  'data_gap.updated': 'Cập nhật gap',
-  'data_gap.uploaded': 'Đánh dấu đã tải chứng từ',
-  'data_gap.verified': 'Xác minh gap',
-  'data_gap.seeded': 'Khởi tạo checklist',
+  // Products
+  'product.created': 'Tạo sản phẩm',
+  'product.updated': 'Cập nhật sản phẩm',
+  'product.published': 'Publish sản phẩm',
+  // Evidence
+  'evidence.uploaded': 'Tải lên chứng từ',
+  'evidence.verified': 'Xác minh chứng từ',
+  // Suppliers
   'supplier_request.created': 'Tạo Supplier Request',
   'supplier_request.sent': 'Gửi email cho supplier',
-  'evidence.uploaded': 'Tải lên chứng từ',
-  'product.published': 'Publish sản phẩm',
-  'product.updated': 'Cập nhật sản phẩm',
+  'supplier_request.updated': 'Cập nhật Supplier Request',
+  // Data Gap
+  'data_gap.seeded': 'Khởi tạo checklist',
+  'data_gap.created': 'Tạo gap',
+  'data_gap.updated': 'Cập nhật gap',
+  'data_gap.verified': 'Xác minh gap',
+  // Logistics
+  'shipment.created': 'Tạo lô hàng',
+  'shipment.updated': 'Cập nhật lô hàng',
+  // Reports
+  'report.generated': 'Tạo báo cáo',
+  'report.downloaded': 'Tải xuống báo cáo',
+  // System
   'demo.seeded': 'Seed dữ liệu demo',
 };
 
@@ -66,7 +88,7 @@ export default function AuditTrailPage() {
     if (!companyId) return;
     setLoading(true);
 
-    const trailPromise = apiRequest<TrailEntry[]>(
+    const trailPromise = apiRequest<TrailEntry[] | AuditTrailResponse>(
       `/audit-trail?companyId=${companyId}&limit=500`
     );
 
@@ -85,7 +107,12 @@ export default function AuditTrailPage() {
 
     Promise.all([trailPromise, membersPromise])
       .then(([data]) => {
-        if (Array.isArray(data)) setRows(data);
+        if (Array.isArray(data)) {
+          setRows(data);
+          return;
+        }
+
+        setRows(Array.isArray(data?.data) ? data.data : []);
       })
       .catch((e: Error) =>
         toast.error(e.message || 'Không tải được dữ liệu audit.')

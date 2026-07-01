@@ -65,6 +65,18 @@ const MATERIAL_LABELS: Record<string, string> = {
   hemp: 'Hemp',
 };
 
+const DESTINATION_OPTIONS = [
+  { value: 'japan', label: 'Nhật Bản', distanceKm: 3800 },
+  { value: 'korea', label: 'Hàn Quốc', distanceKm: 3200 },
+  { value: 'china', label: 'Trung Quốc', distanceKm: 1800 },
+  { value: 'asean', label: 'ASEAN', distanceKm: 1500 },
+  { value: 'eu', label: 'Liên minh Châu Âu', distanceKm: 15000 },
+  { value: 'us', label: 'Hoa Kỳ', distanceKm: 12500 },
+  { value: 'uk', label: 'Vương quốc Anh', distanceKm: 14500 },
+  { value: 'australia', label: 'Úc', distanceKm: 6800 },
+  { value: 'domestic', label: 'Nội địa Việt Nam', distanceKm: 500 },
+] as const;
+
 const BREAKDOWN_META = [
   { key: 'material', icon: Leaf, label: 'Vật liệu', color: 'text-green-600' },
   { key: 'manufacturing', icon: Factory, label: 'Sản xuất', color: 'text-blue-600' },
@@ -75,6 +87,9 @@ const BREAKDOWN_META = [
 const pct = (value: number, total: number) =>
   total > 0 ? (value / total) * 100 : 0;
 
+const getDestinationLabel = (value: string) =>
+  DESTINATION_OPTIONS.find((option) => option.value === value)?.label ?? value;
+
 function buildAssessmentPrompt(context: {
   weight: string;
   material: string;
@@ -83,6 +98,7 @@ function buildAssessmentPrompt(context: {
   emissions: EmissionBreakdown;
 }): string {
   const materialLabel = MATERIAL_LABELS[context.material] ?? context.material;
+  const destinationLabel = getDestinationLabel(context.destination);
   const materialFactor = MATERIAL_FACTORS[context.material] ?? 0;
 
   return `Bạn là chuyên gia tư vấn carbon footprint cho sản phẩm dệt may.
@@ -98,7 +114,7 @@ Dữ liệu đầu vào:
 - Khối lượng sản phẩm: ${context.weight} kg
 - Vật liệu chính: ${materialLabel}
 - Hệ số vật liệu: ${materialFactor} kg CO2e/kg
-- Điểm đến vận chuyển: ${context.destination}
+- Điểm đến vận chuyển: ${destinationLabel}
 - Khoảng cách vận chuyển: ${context.transportDistance} km
 - Hệ số vận chuyển proxy: ${TRANSPORT_FACTOR} kg CO2e/kg.km
 - Hệ số sản xuất proxy: ${MANUFACTURING_FACTOR} kg CO2e/kg
@@ -259,16 +275,36 @@ export default function CarbonCalculator() {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="destination">Điểm đến xuất khẩu</Label>
-                <Input
-                  id="destination"
-                  placeholder="Ví dụ: Tokyo, Nhật Bản"
+                <Label>Điểm đến xuất khẩu</Label>
+                <Select
                   value={destination}
-                  onChange={(event) => {
-                    setDestination(event.target.value);
+                  onValueChange={(value) => {
+                    const selectedDestination = DESTINATION_OPTIONS.find(
+                      (option) => option.value === value
+                    );
+                    setDestination(value);
+                    setTransportDistance(
+                      selectedDestination?.distanceKm.toString() ?? ''
+                    );
                     resetDerivedState();
                   }}
-                />
+                >
+                  <SelectTrigger id="destination">
+                    <SelectValue placeholder="Chọn điểm đến" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DESTINATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="flex items-center gap-2">
+                          {option.label}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (~{option.distanceKm.toLocaleString('vi-VN')} km)
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">
