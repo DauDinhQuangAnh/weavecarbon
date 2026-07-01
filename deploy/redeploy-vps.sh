@@ -168,6 +168,18 @@ cleanup_legacy_containers() {
   fi
 }
 
+cleanup_docker_disk() {
+  echo "Docker disk usage before cleanup:"
+  docker system df || true
+
+  echo "Pruning unused Docker build cache, stopped containers, networks, and dangling images..."
+  docker builder prune -af || true
+  docker system prune -af || true
+
+  echo "Docker disk usage after cleanup:"
+  docker system df || true
+}
+
 docker_containers_using_port() {
   local port="$1"
   docker ps --format '{{.Names}}\t{{.Ports}}\t{{.Labels}}' | awk -F '\t' -v port="${port}" '
@@ -295,16 +307,11 @@ cd "${ROOT_DIR}"
 acquire_deploy_lock
 compose config >/dev/null
 cleanup_legacy_containers
+cleanup_docker_disk
 ensure_proxy_ports_available
 
 if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
   echo "Deploy mode: frontend-only"
-<<<<<<< HEAD
-  retry_command 3 20 compose up -d --build --no-deps fe
-elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
-  echo "Deploy mode: backend-only"
-  retry_command 3 20 compose up -d --build --no-deps be
-=======
   pull_images fe
   retry_command 3 20 compose up -d --no-deps fe
   wait_for_service_health fe 180
@@ -313,7 +320,6 @@ elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
   pull_images be
   retry_command 3 20 compose up -d --no-deps be
   wait_for_service_health be 180
->>>>>>> d71e8284659bf80db1efccfc5f9db0172156ac2d
 else
   echo "Deploy mode: full stack"
   pull_images be fe
@@ -323,4 +329,6 @@ else
   wait_for_service_health rag 240
   wait_for_service_health fe 180
 fi
+
+cleanup_docker_disk
 compose ps
