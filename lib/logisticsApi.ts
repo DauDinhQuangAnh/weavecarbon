@@ -27,51 +27,51 @@ export interface LogisticsLocation {
 
 export interface LogisticsShipmentLeg {
   id: string;
-  leg_order: number;
-  transport_mode: LogisticsTransportMode;
-  origin_location: string;
-  destination_location: string;
-  distance_km: number;
-  duration_hours: number | null;
+  legOrder: number;
+  transportMode: LogisticsTransportMode;
+  originLocation: string;
+  destinationLocation: string;
+  distanceKm: number;
+  durationHours: number | null;
   co2e: number;
-  emission_factor_used: number | null;
-  carrier_name: string;
-  vehicle_type: string;
+  emissionFactorUsed: number | null;
+  carrierName: string;
+  vehicleType: string;
 }
 
 export interface LogisticsShipmentProduct {
   id: string;
-  product_id: string;
+  productId: string;
   quantity: number;
-  weight_kg: number;
-  allocated_co2e: number;
+  weightKg: number;
+  allocatedCo2e: number;
   sku: string;
-  product_name: string;
+  productName: string;
 }
 
 export interface LogisticsShipmentSummary {
   id: string;
-  reference_number: string;
+  referenceNumber: string;
   status: LogisticsShipmentStatus;
   origin: LogisticsLocation;
   destination: LogisticsLocation;
-  total_weight_kg: number;
-  total_distance_km: number;
-  total_co2e: number;
-  pending_until: string | null;
-  estimated_arrival: string | null;
-  estimated_arrival_at: string | null;
-  actual_arrival: string | null;
-  actual_arrival_at: string | null;
-  simulation_enabled: boolean;
-  legs_count: number;
-  products_count: number;
-  created_at: string;
-  updated_at: string;
+  totalWeightKg: number;
+  totalDistanceKm: number;
+  totalCo2e: number;
+  pendingUntil: string | null;
+  estimatedArrival: string | null;
+  estimatedArrivalAt: string | null;
+  actualArrival: string | null;
+  actualArrivalAt: string | null;
+  simulationEnabled: boolean;
+  legsCount: number;
+  productsCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LogisticsShipmentDetail extends LogisticsShipmentSummary {
-  company_id: string;
+  companyId: string;
   legs: LogisticsShipmentLeg[];
   products: LogisticsShipmentProduct[];
 }
@@ -105,25 +105,25 @@ type ShipmentListRequestQuery = Omit<LogisticsShipmentListQuery, "page_size"> & 
 };
 
 export interface LogisticsOverview {
-  total_shipments: number;
+  totalShipments: number;
   pending: number;
-  in_transit: number;
+  inTransit: number;
   delivered: number;
   cancelled: number;
-  total_co2e: number;
+  totalCo2e: number;
 }
 
 export interface ShipmentMutationResult {
   id: string;
   status?: LogisticsShipmentStatus;
-  updated_at?: string;
-  created_at?: string;
-  pending_until?: string | null;
-  estimated_arrival?: string | null;
-  estimated_arrival_at?: string | null;
-  actual_arrival?: string | null;
-  actual_arrival_at?: string | null;
-  simulation_enabled?: boolean;
+  updatedAt?: string;
+  createdAt?: string;
+  pendingUntil?: string | null;
+  estimatedArrival?: string | null;
+  estimatedArrivalAt?: string | null;
+  actualArrival?: string | null;
+  actualArrivalAt?: string | null;
+  simulationEnabled?: boolean;
 }
 
 export interface ShipmentLocationInput {
@@ -312,31 +312,26 @@ index: number)
 
   return {
     id: asString(value.id, `leg-${index + 1}`),
-    leg_order: Math.max(1, Math.trunc(asNumber(value.leg_order, index + 1))),
-    transport_mode: toTransportMode(value.transport_mode),
-    origin_location: asString(value.origin_location),
-    destination_location: asString(value.destination_location),
-    distance_km: Math.max(0, asNumber(value.distance_km)),
-    duration_hours: (() => {
-      if (value.duration_hours === null || value.duration_hours === undefined) {
-        return null;
-      }
-      const duration = asNumber(value.duration_hours, NaN);
+    legOrder: Math.max(1, Math.trunc(asNumber(value.legOrder ?? value.leg_order, index + 1))),
+    transportMode: toTransportMode(value.transportMode ?? value.transport_mode),
+    originLocation: asString(value.originLocation ?? value.origin_location),
+    destinationLocation: asString(value.destinationLocation ?? value.destination_location),
+    distanceKm: Math.max(0, asNumber(value.distanceKm ?? value.distance_km)),
+    durationHours: (() => {
+      const raw = value.durationHours ?? value.duration_hours;
+      if (raw === null || raw === undefined) return null;
+      const duration = asNumber(raw, NaN);
       return Number.isFinite(duration) ? duration : null;
     })(),
     co2e: Math.max(0, asNumber(value.co2e)),
-    emission_factor_used: (() => {
-      if (
-      value.emission_factor_used === null ||
-      value.emission_factor_used === undefined)
-      {
-        return null;
-      }
-      const factor = asNumber(value.emission_factor_used, NaN);
+    emissionFactorUsed: (() => {
+      const raw = value.emissionFactorUsed ?? value.emission_factor_used;
+      if (raw === null || raw === undefined) return null;
+      const factor = asNumber(raw, NaN);
       return Number.isFinite(factor) ? factor : null;
     })(),
-    carrier_name: asString(value.carrier_name),
-    vehicle_type: asString(value.vehicle_type)
+    carrierName: asString(value.carrierName ?? value.carrier_name),
+    vehicleType: asString(value.vehicleType ?? value.vehicle_type)
   };
 };
 
@@ -346,17 +341,17 @@ index: number)
 : LogisticsShipmentProduct | null => {
   if (!isObject(value)) return null;
 
-  const productId = asString(value.product_id);
+  const productId = asString(value.productId ?? value.product_id);
   if (!productId) return null;
 
   return {
     id: asString(value.id, `shipment-product-${index + 1}`),
-    product_id: productId,
+    productId,
     quantity: Math.max(0, Math.trunc(asNumber(value.quantity))),
-    weight_kg: Math.max(0, asNumber(value.weight_kg)),
-    allocated_co2e: Math.max(0, asNumber(value.allocated_co2e)),
+    weightKg: Math.max(0, asNumber(value.weightKg ?? value.weight_kg)),
+    allocatedCo2e: Math.max(0, asNumber(value.allocatedCo2e ?? value.allocated_co2e)),
     sku: asString(value.sku),
-    product_name: asString(value.product_name)
+    productName: asString(value.productName ?? value.product_name)
   };
 };
 
@@ -370,27 +365,27 @@ value: unknown)
 
   return {
     id,
-    reference_number: asString(value.reference_number, id),
+    referenceNumber: asString(value.referenceNumber ?? value.reference_number, id),
     status: toShipmentStatus(value.status),
     origin: normalizeLocation(value.origin),
     destination: normalizeLocation(value.destination),
-    total_weight_kg: Math.max(0, asNumber(value.total_weight_kg)),
-    total_distance_km: Math.max(0, asNumber(value.total_distance_km)),
-    total_co2e: Math.max(0, asNumber(value.total_co2e)),
-    pending_until: normalizeTemporalValue(value.pending_until),
-    estimated_arrival: toIsoDate(value.estimated_arrival),
-    estimated_arrival_at: normalizeTemporalValue(
-      value.estimated_arrival_at ?? value.estimated_arrival
+    totalWeightKg: Math.max(0, asNumber(value.totalWeightKg ?? value.total_weight_kg)),
+    totalDistanceKm: Math.max(0, asNumber(value.totalDistanceKm ?? value.total_distance_km)),
+    totalCo2e: Math.max(0, asNumber(value.totalCo2e ?? value.total_co2e)),
+    pendingUntil: normalizeTemporalValue(value.pendingUntil ?? value.pending_until),
+    estimatedArrival: toIsoDate(value.estimatedArrival ?? value.estimated_arrival),
+    estimatedArrivalAt: normalizeTemporalValue(
+      value.estimatedArrivalAt ?? value.estimated_arrival_at ?? value.estimatedArrival ?? value.estimated_arrival
     ),
-    actual_arrival: toIsoDate(value.actual_arrival),
-    actual_arrival_at: normalizeTemporalValue(
-      value.actual_arrival_at ?? value.actual_arrival
+    actualArrival: toIsoDate(value.actualArrival ?? value.actual_arrival),
+    actualArrivalAt: normalizeTemporalValue(
+      value.actualArrivalAt ?? value.actual_arrival_at ?? value.actualArrival ?? value.actual_arrival
     ),
-    simulation_enabled: value.simulation_enabled === true,
-    legs_count: Math.max(0, Math.trunc(asNumber(value.legs_count))),
-    products_count: Math.max(0, Math.trunc(asNumber(value.products_count))),
-    created_at: toIsoDatetime(value.created_at),
-    updated_at: toIsoDatetime(value.updated_at)
+    simulationEnabled: value.simulationEnabled === true || value.simulation_enabled === true,
+    legsCount: Math.max(0, Math.trunc(asNumber(value.legsCount ?? value.legs_count))),
+    productsCount: Math.max(0, Math.trunc(asNumber(value.productsCount ?? value.products_count))),
+    createdAt: toIsoDatetime(value.createdAt ?? value.created_at),
+    updatedAt: toIsoDatetime(value.updatedAt ?? value.updated_at)
   };
 };
 
@@ -401,7 +396,7 @@ const normalizeShipmentDetail = (value: unknown): LogisticsShipmentDetail | null
   const legs = asArray(value.legs).
   map((leg, index) => normalizeShipmentLeg(leg, index)).
   filter((leg): leg is LogisticsShipmentLeg => leg !== null).
-  sort((a, b) => a.leg_order - b.leg_order);
+  sort((a, b) => a.legOrder - b.legOrder);
 
   const products = asArray(value.products).
   map((product, index) => normalizeShipmentProduct(product, index)).
@@ -409,7 +404,7 @@ const normalizeShipmentDetail = (value: unknown): LogisticsShipmentDetail | null
 
   return {
     ...summary,
-    company_id: asString(value.company_id),
+    companyId: asString(value.companyId ?? value.company_id),
     legs,
     products
   };
@@ -503,27 +498,27 @@ const normalizeMutationPayload = (payload: unknown): ShipmentMutationResult => {
     payload.status === undefined ?
     undefined :
     toShipmentStatus(payload.status),
-    updated_at:
-    payload.updated_at === undefined ?
+    updatedAt:
+    (payload.updatedAt ?? payload.updated_at) === undefined ?
     undefined :
-    toIsoDatetime(payload.updated_at),
-    created_at:
-    payload.created_at === undefined ?
+    toIsoDatetime(payload.updatedAt ?? payload.updated_at),
+    createdAt:
+    (payload.createdAt ?? payload.created_at) === undefined ?
     undefined :
-    toIsoDatetime(payload.created_at),
-    pending_until: normalizeTemporalValue(payload.pending_until),
-    estimated_arrival: toIsoDate(payload.estimated_arrival),
-    estimated_arrival_at: normalizeTemporalValue(
-      payload.estimated_arrival_at ?? payload.estimated_arrival
+    toIsoDatetime(payload.createdAt ?? payload.created_at),
+    pendingUntil: normalizeTemporalValue(payload.pendingUntil ?? payload.pending_until),
+    estimatedArrival: toIsoDate(payload.estimatedArrival ?? payload.estimated_arrival),
+    estimatedArrivalAt: normalizeTemporalValue(
+      payload.estimatedArrivalAt ?? payload.estimated_arrival_at ?? payload.estimatedArrival ?? payload.estimated_arrival
     ),
-    actual_arrival: toIsoDate(payload.actual_arrival),
-    actual_arrival_at: normalizeTemporalValue(
-      payload.actual_arrival_at ?? payload.actual_arrival
+    actualArrival: toIsoDate(payload.actualArrival ?? payload.actual_arrival),
+    actualArrivalAt: normalizeTemporalValue(
+      payload.actualArrivalAt ?? payload.actual_arrival_at ?? payload.actualArrival ?? payload.actual_arrival
     ),
-    simulation_enabled:
-    payload.simulation_enabled === undefined ?
+    simulationEnabled:
+    (payload.simulationEnabled ?? payload.simulation_enabled) === undefined ?
     undefined :
-    payload.simulation_enabled === true
+    (payload.simulationEnabled ?? payload.simulation_enabled) === true
   };
 };
 
@@ -683,10 +678,10 @@ destination: {lat: number;lng: number;}) =>
 };
 
 const resolveLegEmissionFactor = (leg: LogisticsShipmentLeg) => {
-  if (leg.emission_factor_used !== null && leg.emission_factor_used > 0) {
-    return leg.emission_factor_used;
+  if (leg.emissionFactorUsed !== null && leg.emissionFactorUsed > 0) {
+    return leg.emissionFactorUsed;
   }
-  return DEFAULT_EMISSION_FACTOR_BY_MODE[leg.transport_mode];
+  return DEFAULT_EMISSION_FACTOR_BY_MODE[leg.transportMode];
 };
 
 const resolveLegDistanceKm = (
@@ -695,8 +690,8 @@ fallbackDistanceKm: number,
 fallbackOrigin: {lat: number;lng: number;},
 fallbackDestination: {lat: number;lng: number;}) =>
 {
-  if (leg.distance_km > 0) {
-    return leg.distance_km;
+  if (leg.distanceKm > 0) {
+    return leg.distanceKm;
   }
 
   const geoDistanceKm = haversineDistanceKm(fallbackOrigin, fallbackDestination);
@@ -872,8 +867,8 @@ const buildBoundaryHubs = (shipment: LogisticsShipmentDetail) => {
   for (let boundaryIndex = 1; boundaryIndex < shipment.legs.length; boundaryIndex += 1) {
     const previousLeg = shipment.legs[boundaryIndex - 1];
     const nextLeg = shipment.legs[boundaryIndex];
-    const previousMode = previousLeg.transport_mode;
-    const nextMode = nextLeg.transport_mode;
+    const previousMode = previousLeg.transportMode;
+    const nextMode = nextLeg.transportMode;
 
     let modeForHub: LogisticsTransportMode | null = null;
     let useOriginSideHub = false;
@@ -945,7 +940,7 @@ const sanitizeTransitPlaceholder = (
 };
 
 const resolveLegProgressDistances = (shipment: LogisticsShipmentDetail) => {
-  const rawDistances = shipment.legs.map((leg) => Math.max(0, leg.distance_km));
+  const rawDistances = shipment.legs.map((leg) => Math.max(0, leg.distanceKm));
   const knownDistance = rawDistances.reduce((sum, distance) => sum + distance, 0);
   const unknownCount = rawDistances.filter((distance) => distance <= 0).length;
 
@@ -953,14 +948,14 @@ const resolveLegProgressDistances = (shipment: LogisticsShipmentDetail) => {
     return rawDistances;
   }
 
-  const remainingDistance = Math.max(0, shipment.total_distance_km - knownDistance);
+  const remainingDistance = Math.max(0, shipment.totalDistanceKm - knownDistance);
   const fallbackDistancePerUnknown =
   remainingDistance > 0 ?
   remainingDistance / unknownCount :
   knownDistance > 0 ?
   knownDistance / shipment.legs.length :
-  shipment.total_distance_km > 0 ?
-  shipment.total_distance_km / shipment.legs.length :
+  shipment.totalDistanceKm > 0 ?
+  shipment.totalDistanceKm / shipment.legs.length :
   1;
 
   return rawDistances.map((distance) =>
@@ -1026,22 +1021,22 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
 
   if (!shipment.legs.length) {
     const inferredDistanceKm =
-    shipment.total_distance_km > 0 && directRouteDistanceKm > 0 ?
-    Math.max(shipment.total_distance_km, directRouteDistanceKm) :
-    shipment.total_distance_km > 0 ?
-    shipment.total_distance_km :
+    shipment.totalDistanceKm > 0 && directRouteDistanceKm > 0 ?
+    Math.max(shipment.totalDistanceKm, directRouteDistanceKm) :
+    shipment.totalDistanceKm > 0 ?
+    shipment.totalDistanceKm :
     directRouteDistanceKm > 0 ?
     directRouteDistanceKm :
-    shipment.total_co2e > 0 ?
-    shipment.total_co2e / fallbackRoadFactor :
+    shipment.totalCo2e > 0 ?
+    shipment.totalCo2e / fallbackRoadFactor :
     0;
     const emissionFactor =
-    shipment.total_distance_km > 0 ?
-    shipment.total_co2e / shipment.total_distance_km :
+    shipment.totalDistanceKm > 0 ?
+    shipment.totalCo2e / shipment.totalDistanceKm :
     fallbackRoadFactor;
     const co2Kg =
-    shipment.total_co2e > 0 ?
-    shipment.total_co2e :
+    shipment.totalCo2e > 0 ?
+    shipment.totalCo2e :
     inferredDistanceKm * emissionFactor;
 
     return [
@@ -1090,8 +1085,8 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
   const shouldSynthesizeLegLabels =
   shipment.legs.length > 1 &&
   shipment.legs.every((leg) => {
-    const origin = asNullableString(leg.origin_location);
-    const destination = asNullableString(leg.destination_location);
+    const origin = asNullableString(leg.originLocation);
+    const destination = asNullableString(leg.destinationLocation);
     if (!origin || !destination) return false;
     return (
     locationLabelMatches(origin, shipment.origin) &&
@@ -1156,21 +1151,21 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
     const originCandidate =
     shouldSynthesizeLegLabels ?
     fallbackOriginName :
-    asNullableString(leg.origin_location) || fallbackOriginName;
+    asNullableString(leg.originLocation) || fallbackOriginName;
     const destinationCandidate =
     shouldSynthesizeLegLabels ?
     fallbackDestinationName :
-    asNullableString(leg.destination_location) || fallbackDestinationName;
+    asNullableString(leg.destinationLocation) || fallbackDestinationName;
 
     const originName =
     sanitizeTransitPlaceholder(originCandidate, fallbackOriginName) || fallbackOriginName;
     const destinationName =
     sanitizeTransitPlaceholder(destinationCandidate, fallbackDestinationName) || fallbackDestinationName;
 
-    const mode = modeToTransportLegMode(leg.transport_mode);
-    const routeType = modeToRouteType(leg.transport_mode);
+    const mode = modeToTransportLegMode(leg.transportMode);
+    const routeType = modeToRouteType(leg.transportMode);
     const fallbackDistancePerLeg =
-    shipment.total_distance_km > 0 ? shipment.total_distance_km / totalLegs : 0;
+    shipment.totalDistanceKm > 0 ? shipment.totalDistanceKm / totalLegs : 0;
     const emissionFactor = resolveLegEmissionFactor(leg);
     const distanceKm = resolveLegDistanceKm(
       leg,
@@ -1210,7 +1205,7 @@ export const toTransportLegs = (shipment: LogisticsShipmentDetail): TransportLeg
 
     return {
       id: leg.id || `${shipment.id}-leg-${index + 1}`,
-      legNumber: Math.max(1, leg.leg_order || index + 1),
+      legNumber: Math.max(1, leg.legOrder || index + 1),
       type: shipmentType,
       mode,
       origin: originLocation,
@@ -1241,18 +1236,18 @@ export const inferShipmentProgress = (
 shipment: LogisticsShipmentSummary | LogisticsShipmentDetail) =>
 estimateProgress(
   shipment.status,
-  shipment.created_at,
-  shipment.pending_until,
-  shipment.estimated_arrival_at,
-  shipment.estimated_arrival
+  shipment.createdAt,
+  shipment.pendingUntil,
+  shipment.estimatedArrivalAt,
+  shipment.estimatedArrival
 );
 
 export const resolveShipmentEta = (
 shipment: LogisticsShipmentSummary | LogisticsShipmentDetail) =>
-shipment.actual_arrival_at ||
-shipment.estimated_arrival_at ||
-shipment.actual_arrival ||
-shipment.estimated_arrival;
+shipment.actualArrivalAt ||
+shipment.estimatedArrivalAt ||
+shipment.actualArrival ||
+shipment.estimatedArrival;
 
 export const fetchLogisticsShipments = async (
 query: LogisticsShipmentListQuery = {})
@@ -1378,7 +1373,7 @@ query: Omit<LogisticsShipmentListQuery, "page" | "page_size"> = {})
     if (!isValidUuid(summary.id)) {
       return {
         ...summary,
-        company_id: "",
+        companyId: "",
         legs: [],
         products: []
       } as LogisticsShipmentDetail;
@@ -1388,7 +1383,7 @@ query: Omit<LogisticsShipmentListQuery, "page" | "page_size"> = {})
     } catch {
       return {
         ...summary,
-        company_id: "",
+        companyId: "",
         legs: [],
         products: []
       } as LogisticsShipmentDetail;
@@ -1460,21 +1455,21 @@ export const fetchLogisticsOverview = async (): Promise<LogisticsOverview> => {
   });
   if (!isObject(payload)) {
     return {
-      total_shipments: 0,
+      totalShipments: 0,
       pending: 0,
-      in_transit: 0,
+      inTransit: 0,
       delivered: 0,
       cancelled: 0,
-      total_co2e: 0
+      totalCo2e: 0
     };
   }
 
   return {
-    total_shipments: Math.max(0, Math.trunc(asNumber(payload.total_shipments))),
+    totalShipments: Math.max(0, Math.trunc(asNumber(payload.totalShipments ?? payload.total_shipments))),
     pending: Math.max(0, Math.trunc(asNumber(payload.pending))),
-    in_transit: Math.max(0, Math.trunc(asNumber(payload.in_transit))),
+    inTransit: Math.max(0, Math.trunc(asNumber(payload.inTransit ?? payload.in_transit))),
     delivered: Math.max(0, Math.trunc(asNumber(payload.delivered))),
     cancelled: Math.max(0, Math.trunc(asNumber(payload.cancelled))),
-    total_co2e: Math.max(0, asNumber(payload.total_co2e))
+    totalCo2e: Math.max(0, asNumber(payload.totalCo2e ?? payload.total_co2e))
   };
 };

@@ -37,30 +37,30 @@ fallbacks: {unknownCarrier: string;shipmentName: string;})
   shipment.status === "cancelled" ? 0 : inferShipmentProgress(shipment);
   const status = toTrackShipmentStatus(shipment.status);
   const carrier =
-  shipment.legs.find((leg) => leg.carrier_name.trim().length > 0)?.carrier_name ||
+  shipment.legs.find((leg) => leg.carrierName.trim().length > 0)?.carrierName ||
   fallbacks.unknownCarrier;
 
   return {
-    id: shipment.reference_number || shipment.id,
+    id: shipment.referenceNumber || shipment.id,
     shipmentId: shipment.id,
-    productId: firstProduct?.product_id || null,
+    productId: firstProduct?.productId || null,
     productName:
-    firstProduct?.product_name ||
-    shipment.reference_number ||
+    firstProduct?.productName ||
+    shipment.referenceNumber ||
     fallbacks.shipmentName,
-    sku: firstProduct?.sku || shipment.reference_number || shipment.id,
+    sku: firstProduct?.sku || shipment.referenceNumber || shipment.id,
     status,
-    simulationEnabled: shipment.simulation_enabled,
+    simulationEnabled: shipment.simulationEnabled,
     progress,
     origin: originLabel,
     destination: destinationLabel,
-    estimatedArrival: resolveShipmentEta(shipment) || shipment.updated_at,
-    departureDate: shipment.created_at,
+    estimatedArrival: resolveShipmentEta(shipment) || shipment.updatedAt,
+    departureDate: shipment.createdAt,
     currentLocation: status === "delivered" ? destinationLabel : originLabel,
     legs: toTransportLegs(shipment),
-    totalCO2: shipment.total_co2e,
+    totalCO2: shipment.totalCo2e,
     carrier,
-    containerNo: buildContainerNo(shipment.reference_number, shipment.id)
+    containerNo: buildContainerNo(shipment.referenceNumber, shipment.id)
   };
 };
 

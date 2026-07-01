@@ -1,10 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 
 interface DashboardContextType {
   title: string;
   subtitle?: string;
+  titlePath?: string;
   setPageTitle: (title: string, subtitle?: string) => void;
 }
 
@@ -15,14 +16,18 @@ const DashboardContext = createContext<DashboardContextType | undefined>(
 export function DashboardProvider({ children }: {children: React.ReactNode;}) {
   const [title, setTitle] = useState("Dashboard");
   const [subtitle, setSubtitle] = useState<string | undefined>();
+  const [titlePath, setTitlePath] = useState<string | undefined>();
 
-  const setPageTitle = (newTitle: string, newSubtitle?: string) => {
+  const setPageTitle = useCallback((newTitle: string, newSubtitle?: string) => {
     setTitle(newTitle);
     setSubtitle(newSubtitle);
-  };
+    setTitlePath(
+      typeof window === "undefined" ? undefined : window.location.pathname
+    );
+  }, []);
 
   return (
-    <DashboardContext.Provider value={{ title, subtitle, setPageTitle }}>
+    <DashboardContext.Provider value={{ title, subtitle, titlePath, setPageTitle }}>
       {children}
     </DashboardContext.Provider>);
 

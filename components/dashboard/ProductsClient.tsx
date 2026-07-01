@@ -494,8 +494,8 @@ const ProductsClient: React.FC = () => {
               };
             });
             const inferredDistance =
-            shipment.total_distance_km > 0 ?
-            shipment.total_distance_km :
+            shipment.totalDistanceKm > 0 ?
+            shipment.totalDistanceKm :
             mappedLegs.reduce(
               (sum, leg) => sum + (typeof leg.estimatedDistance === "number" ? leg.estimatedDistance : 0),
               0

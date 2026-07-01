@@ -420,7 +420,7 @@ const buildShipmentLegsFromProduct = (
 
 const shipmentContainsProduct = (
 shipment: {
-  products: Array<{product_id: string;sku: string;product_name: string;}>;
+  products: Array<{productId: string;sku: string;productName: string;}>;
 },
 productId: string,
 productCode: string,
@@ -431,9 +431,9 @@ productName: string)
   const nameLookup = normalizeLookupValue(productName);
 
   return shipment.products.some((shipmentProduct) => {
-    const shipmentProductId = normalizeLookupValue(shipmentProduct.product_id);
+    const shipmentProductId = normalizeLookupValue(shipmentProduct.productId);
     const shipmentSku = normalizeLookupValue(shipmentProduct.sku);
-    const shipmentName = normalizeLookupValue(shipmentProduct.product_name);
+    const shipmentName = normalizeLookupValue(shipmentProduct.productName);
 
     if (shipmentProductId && productIdLookup && shipmentProductId === productIdLookup) {
       return true;

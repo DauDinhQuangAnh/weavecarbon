@@ -408,10 +408,10 @@ const mapShipmentSummary = (
   const destination = mapLocation(shipment.destination, fallbackDestination);
   return {
     id: shipment.id,
-    referenceNumber: shipment.reference_number,
+    referenceNumber: shipment.referenceNumber,
     productName: "",
     sku: "",
-    quantity: shipment.products_count || 0,
+    quantity: shipment.productsCount || 0,
     origin,
     destination,
     originAddress: {
@@ -437,13 +437,13 @@ const mapShipmentSummary = (
       postalCode: ""
     },
     legs: [],
-    totalDistanceKm: shipment.total_distance_km,
-    totalCO2: shipment.total_co2e,
-    createdAt: shipment.created_at,
-    updatedAt: shipment.updated_at,
-    etaPlanned: shipment.estimated_arrival_at || shipment.estimated_arrival || shipment.updated_at,
+    totalDistanceKm: shipment.totalDistanceKm,
+    totalCO2: shipment.totalCo2e,
+    createdAt: shipment.createdAt,
+    updatedAt: shipment.updatedAt,
+    etaPlanned: shipment.estimatedArrivalAt || shipment.estimatedArrival || shipment.updatedAt,
     etaSource: "default_sla",
-    deliveredAt: shipment.actual_arrival_at || shipment.actual_arrival || undefined,
+    deliveredAt: shipment.actualArrivalAt || shipment.actualArrival || undefined,
     status: mapApiStatus(shipment.status),
     statusSource: "sla_estimate",
     progress: shipment.status === "delivered" ? 100 : shipment.status === "in_transit" ? 50 : 0,

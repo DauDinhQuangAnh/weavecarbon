@@ -71,6 +71,26 @@ const getTypeEmoji = (type: string) => {
 const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
   buildSupplyChainRouteGeometry(route);
 
+const OSM_RASTER_STYLE = {
+  version: 8 as const,
+  sources: {
+    osm: {
+      type: "raster" as const,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }
+  },
+  layers: [
+    {
+      id: "osm-tiles",
+      type: "raster" as const,
+      source: "osm"
+    }
+  ]
+};
+
 const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodes,
   routes,
@@ -100,22 +120,31 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     let loadTimeout: NodeJS.Timeout | undefined;
 
     try {
-      if (!hasMapboxPublicToken()) {
-        throw new Error(t("errors.missingToken"));
+      const hasToken = hasMapboxPublicToken();
+      if (hasToken) {
+        configureMapboxRuntime(mapboxgl);
+      } else {
+        mapboxgl.accessToken = "pk.placeholder";
+        if (typeof (mapboxgl as unknown as { setTelemetryEnabled?: (enabled: boolean) => void }).setTelemetryEnabled === "function") {
+          (mapboxgl as unknown as { setTelemetryEnabled: (enabled: boolean) => void }).setTelemetryEnabled(false);
+        }
       }
-
-      configureMapboxRuntime(mapboxgl);
+      // Prevent worker init errors in Turbopack/Next.js builds
+      if (typeof mapboxgl.workerCount === "number" && mapboxgl.workerCount > 2) {
+        mapboxgl.workerCount = 1;
+      }
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: hasToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
         center: [center[1], center[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
         zoom,
         antialias: true,
         pitch: 0,
         bearing: 0,
         maxPitch: 0,
-        projection: "mercator"
+        projection: "mercator",
+        attributionControl: !hasToken
       });
 
       loadTimeout = setTimeout(() => {
@@ -270,25 +299,25 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           try {
             const nodeTypeLabel = getNodeTypeLabel(node.type);
             const el = document.createElement("div");
-            el.className = "custom-marker";
-            el.innerHTML = `
-              <div style="
-                background-color: ${getMarkerColor(node.status)};
-                color: white;
-                border-radius: 50%;
-                width: 36px;
-                height: 36px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 16px;
-                border: 3px solid white;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                cursor: pointer;
-              ">
-                ${getTypeEmoji(node.type)}
-              </div>
-            `;
+            // Apply styles directly to el so Mapbox anchors at the true visual center
+            el.style.cssText = [
+              `background-color: ${getMarkerColor(node.status)}`,
+              "color: white",
+              "border-radius: 50%",
+              "width: 36px",
+              "height: 36px",
+              "box-sizing: border-box",
+              "display: flex",
+              "align-items: center",
+              "justify-content: center",
+              "font-size: 15px",
+              "font-weight: 700",
+              "border: 3px solid white",
+              "box-shadow: 0 2px 8px rgba(0,0,0,0.3)",
+              "cursor: pointer",
+              "user-select: none"
+            ].join("; ");
+            el.textContent = getTypeEmoji(node.type);
 
             const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
               <div style="padding: 8px; min-width: 220px;">
@@ -396,25 +425,25 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         <div className="space-y-1.5 text-xs">
           <div className="flex items-center gap-2">
             <svg width="20" height="6" viewBox="0 0 20 6">
-              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="3" strokeLinecap="round" />
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
             </svg>
             <span>{t("legend.seaRoute")}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg width="20" height="6" viewBox="0 0 20 6">
-              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="6 4" />
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="6 4" />
             </svg>
             <span>{t("legend.airRoute")}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg width="20" height="6" viewBox="0 0 20 6">
-              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="10 4 2 4" />
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#14b8a6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="10 4 2 4" />
             </svg>
             <span>{t.has("legend.railRoute") ? t("legend.railRoute") : "Rail route"}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg width="20" height="6" viewBox="0 0 20 6">
-              <line x1="0" y1="3" x2="20" y2="3" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />
+              <line x1="0" y1="3" x2="20" y2="3" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
             </svg>
             <span>{t("legend.roadRoute")}</span>
           </div>

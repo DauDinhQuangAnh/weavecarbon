@@ -36,11 +36,11 @@ type Risk = 'low' | 'medium' | 'high';
 
 interface GapRow {
   id: string;
-  data_group: string;
-  required_for_audit: boolean;
-  current_status: GapStatus;
-  risk_level: Risk;
-  required_action: string | null;
+  dataGroup: string;
+  requiredForAudit: boolean;
+  currentStatus: GapStatus;
+  riskLevel: Risk;
+  requiredAction: string | null;
   owner: string | null;
   deadline: string | null;
 }
@@ -69,10 +69,10 @@ const SEED_GROUPS = [
 ];
 
 const EMPTY_FORM = {
-  data_group: '',
-  current_status: 'missing' as GapStatus,
-  risk_level: 'high' as Risk,
-  required_action: '',
+  dataGroup: '',
+  currentStatus: 'missing' as GapStatus,
+  riskLevel: 'high' as Risk,
+  requiredAction: '',
   owner: '',
   deadline: '',
 };
@@ -115,14 +115,14 @@ export default function DataGapPage() {
   };
 
   const addRow = async () => {
-    if (!companyId || !form.data_group) return;
+    if (!companyId || !form.dataGroup) return;
     try {
       await api.post('/data-gaps', {
-        data_group: form.data_group,
-        required_for_audit: true,
-        current_status: form.current_status,
-        risk_level: form.risk_level,
-        required_action: form.required_action || null,
+        dataGroup: form.dataGroup,
+        requiredForAudit: true,
+        currentStatus: form.currentStatus,
+        riskLevel: form.riskLevel,
+        requiredAction: form.requiredAction || null,
         owner: form.owner || null,
         deadline: form.deadline || null,
       });
@@ -136,7 +136,7 @@ export default function DataGapPage() {
 
   const markUploaded = async (r: GapRow) => {
     try {
-      await api.put(`/data-gaps/${r.id}`, { current_status: 'uploaded', risk_level: 'low' });
+      await api.put(`/data-gaps/${r.id}`, { currentStatus: 'uploaded', riskLevel: 'low' });
       await load();
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi cập nhật', variant: 'destructive' });
@@ -145,11 +145,11 @@ export default function DataGapPage() {
 
   const total = rows.length || 1;
   const verifiedOrUploaded = rows.filter(
-    (r) => r.current_status === 'verified' || r.current_status === 'uploaded'
+    (r) => r.currentStatus === 'verified' || r.currentStatus === 'uploaded'
   ).length;
-  const proxyCount = rows.filter((r) => r.current_status === 'proxy').length;
+  const proxyCount = rows.filter((r) => r.currentStatus === 'proxy').length;
   const missingCount = rows.filter(
-    (r) => r.current_status === 'missing'
+    (r) => r.currentStatus === 'missing'
   ).length;
   const score = Math.round((verifiedOrUploaded / total) * 100);
   const primaryPct = Math.round((verifiedOrUploaded / total) * 100);
@@ -228,18 +228,18 @@ export default function DataGapPage() {
                   <div>
                     <Label>Nhóm dữ liệu</Label>
                     <Input
-                      value={form.data_group}
+                      value={form.dataGroup}
                       onChange={(e) =>
-                        setForm({ ...form, data_group: e.target.value })
+                        setForm({ ...form, dataGroup: e.target.value })
                       }
                     />
                   </div>
                   <div>
                     <Label>Trạng thái</Label>
                     <Select
-                      value={form.current_status}
+                      value={form.currentStatus}
                       onValueChange={(v) =>
-                        setForm({ ...form, current_status: v as GapStatus })
+                        setForm({ ...form, currentStatus: v as GapStatus })
                       }
                     >
                       <SelectTrigger>
@@ -259,9 +259,9 @@ export default function DataGapPage() {
                   <div>
                     <Label>Mức rủi ro</Label>
                     <Select
-                      value={form.risk_level}
+                      value={form.riskLevel}
                       onValueChange={(v) =>
-                        setForm({ ...form, risk_level: v as Risk })
+                        setForm({ ...form, riskLevel: v as Risk })
                       }
                     >
                       <SelectTrigger>
@@ -279,9 +279,9 @@ export default function DataGapPage() {
                   <div>
                     <Label>Hành động yêu cầu</Label>
                     <Input
-                      value={form.required_action}
+                      value={form.requiredAction}
                       onChange={(e) =>
-                        setForm({ ...form, required_action: e.target.value })
+                        setForm({ ...form, requiredAction: e.target.value })
                       }
                     />
                   </div>
@@ -343,9 +343,9 @@ export default function DataGapPage() {
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.id} className="border-b last:border-0">
-                      <td className="py-3 font-medium">{r.data_group}</td>
+                      <td className="py-3 font-medium">{r.dataGroup}</td>
                       <td>
-                        {r.required_for_audit ? (
+                        {r.requiredForAudit ? (
                           <Badge>Bắt buộc</Badge>
                         ) : (
                           <Badge variant="outline">Tuỳ chọn</Badge>
@@ -353,17 +353,17 @@ export default function DataGapPage() {
                       </td>
                       <td>
                         <Badge variant="outline">
-                          {STATUS_LABEL[r.current_status]}
+                          {STATUS_LABEL[r.currentStatus]}
                         </Badge>
                       </td>
                       <td>
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${RISK_COLOR[r.risk_level]}`}
+                          className={`px-2 py-1 rounded text-xs font-medium ${RISK_COLOR[r.riskLevel]}`}
                         >
-                          {r.risk_level.toUpperCase()}
+                          {r.riskLevel.toUpperCase()}
                         </span>
                       </td>
-                      <td className="text-xs">{r.required_action || '—'}</td>
+                      <td className="text-xs">{r.requiredAction || '—'}</td>
                       <td className="text-xs">
                         {r.owner || (
                           <span className="text-muted-foreground">—</span>
@@ -377,8 +377,8 @@ export default function DataGapPage() {
                         )}
                       </td>
                       <td>
-                        {r.current_status !== 'verified' &&
-                          r.current_status !== 'uploaded' && (
+                        {r.currentStatus !== 'verified' &&
+                          r.currentStatus !== 'uploaded' && (
                             <Button
                               size="sm"
                               variant="outline"

@@ -5,7 +5,11 @@ const DEFAULT_MAPBOX_DIRECTIONS_BASE_URL =
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
-export const MAPBOX_PUBLIC_TOKEN = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "").trim();
+export const MAPBOX_PUBLIC_TOKEN = (
+  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+  ""
+).trim();
 
 const rawMapboxGeocodingBaseUrl = (
   process.env.NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL ||

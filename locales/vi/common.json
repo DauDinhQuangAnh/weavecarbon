@@ -2213,6 +2213,7 @@
       "searchPlaceholder": "Tìm địa chỉ...",
       "currentLocation": "Vị trí hiện tại",
       "mapHint": "Nhấn vào bản đồ hoặc kéo điểm đánh dấu để chọn vị trí chính xác",
+      "fallbackMapHint": "Bản đồ đang dùng chế độ OpenStreetMap. Hãy tìm địa chỉ hoặc dùng nút vị trí hiện tại để đặt tọa độ chính xác.",
       "mapUnavailable": "Bản đồ không khả dụng. Vui lòng nhập địa chỉ thủ công."
     },
     "materialCombobox": {

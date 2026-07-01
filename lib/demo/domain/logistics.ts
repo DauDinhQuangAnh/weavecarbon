@@ -35,7 +35,7 @@ const syncProductShipmentLinks = (dataset: DemoDataset) => {
   for (const rawShipment of dataset.shipments) {
     const shipment = asDetail(rawShipment);
     for (const product of shipment.products) {
-      shipmentIdsByProductId.set(product.product_id, shipment.id);
+      shipmentIdsByProductId.set(product.productId, shipment.id);
     }
   }
 
@@ -50,17 +50,17 @@ const syncProductShipmentLinks = (dataset: DemoDataset) => {
 };
 
 const recalculateShipment = (shipment: LogisticsShipmentDetail): LogisticsShipmentDetail => {
-  const totalDistance = shipment.legs.reduce((sum, leg) => sum + Math.max(0, leg.distance_km), 0);
+  const totalDistance = shipment.legs.reduce((sum, leg) => sum + Math.max(0, leg.distanceKm), 0);
   const totalCo2e = shipment.legs.reduce((sum, leg) => sum + Math.max(0, leg.co2e), 0);
-  const totalWeight = shipment.products.reduce((sum, product) => sum + Math.max(0, product.weight_kg), 0);
+  const totalWeight = shipment.products.reduce((sum, product) => sum + Math.max(0, product.weightKg), 0);
   return {
     ...shipment,
-    total_distance_km: totalDistance,
-    total_co2e: totalCo2e,
-    total_weight_kg: totalWeight,
-    legs_count: shipment.legs.length,
-    products_count: shipment.products.length,
-    updated_at: new Date().toISOString(),
+    totalDistanceKm: totalDistance,
+    totalCo2e: totalCo2e,
+    totalWeightKg: totalWeight,
+    legsCount: shipment.legs.length,
+    productsCount: shipment.products.length,
+    updatedAt: new Date().toISOString(),
   };
 };
 
@@ -77,48 +77,48 @@ const buildShipmentDetail = (
     ) as Record<string, unknown> | undefined;
     return {
       id: createId(),
-      product_id: product.product_id,
+      productId: product.product_id,
       quantity: product.quantity,
-      weight_kg: product.weight_kg,
-      allocated_co2e: product.allocated_co2e,
+      weightKg: product.weight_kg,
+      allocatedCo2e: product.allocated_co2e,
       sku: String(matchedProduct?.productCode || matchedProduct?.product_code || ""),
-      product_name: String(matchedProduct?.productName || matchedProduct?.product_name || ""),
+      productName: String(matchedProduct?.productName || matchedProduct?.product_name || ""),
     };
   });
 
   const detail: LogisticsShipmentDetail = {
     id: shipmentId,
-    reference_number:
-      payload.reference_number?.trim() || existing?.reference_number || `SHIP-${Date.now().toString().slice(-6)}`,
+    referenceNumber:
+      payload.reference_number?.trim() || existing?.referenceNumber || `SHIP-${Date.now().toString().slice(-6)}`,
     status: existing?.status || "pending",
     origin: normalizeLocation(payload.origin),
     destination: normalizeLocation(payload.destination),
-    total_weight_kg: 0,
-    total_distance_km: 0,
-    total_co2e: 0,
-    pending_until: null,
-    estimated_arrival: payload.estimated_arrival || existing?.estimated_arrival || null,
-    estimated_arrival_at: existing?.estimated_arrival_at || null,
-    actual_arrival: existing?.actual_arrival || null,
-    actual_arrival_at: existing?.actual_arrival_at || null,
-    simulation_enabled: false,
-    legs_count: 0,
-    products_count: 0,
-    created_at: existing?.created_at || now,
-    updated_at: now,
-    company_id: dataset.company.id,
+    totalWeightKg: 0,
+    totalDistanceKm: 0,
+    totalCo2e: 0,
+    pendingUntil: null,
+    estimatedArrival: payload.estimated_arrival || existing?.estimatedArrival || null,
+    estimatedArrivalAt: existing?.estimatedArrivalAt || null,
+    actualArrival: existing?.actualArrival || null,
+    actualArrivalAt: existing?.actualArrivalAt || null,
+    simulationEnabled: false,
+    legsCount: 0,
+    productsCount: 0,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+    companyId: dataset.company.id,
     legs: payload.legs.map((leg) => ({
       id: createId(),
-      leg_order: leg.leg_order,
-      transport_mode: leg.transport_mode,
-      origin_location: leg.origin_location,
-      destination_location: leg.destination_location,
-      distance_km: leg.distance_km,
-      duration_hours: leg.duration_hours || null,
+      legOrder: leg.leg_order,
+      transportMode: leg.transport_mode,
+      originLocation: leg.origin_location,
+      destinationLocation: leg.destination_location,
+      distanceKm: leg.distance_km,
+      durationHours: leg.duration_hours || null,
       co2e: leg.co2e,
-      emission_factor_used: leg.emission_factor_used || null,
-      carrier_name: leg.carrier_name || "",
-      vehicle_type: leg.vehicle_type || "",
+      emissionFactorUsed: leg.emission_factor_used || null,
+      carrierName: leg.carrier_name || "",
+      vehicleType: leg.vehicle_type || "",
     })),
     products,
   };
@@ -140,18 +140,18 @@ export const listDemoShipments = (
     if (query.status && query.status !== "all" && shipment.status !== query.status) {
       return false;
     }
-    if (query.transport_mode && !shipment.legs.some((leg) => leg.transport_mode === query.transport_mode)) {
+    if (query.transport_mode && !shipment.legs.some((leg) => leg.transportMode === query.transport_mode)) {
       return false;
     }
     if (!search) return true;
     return (
-      shipment.reference_number.toLowerCase().includes(search) ||
+      shipment.referenceNumber.toLowerCase().includes(search) ||
       shipment.origin.city.toLowerCase().includes(search) ||
       shipment.destination.city.toLowerCase().includes(search) ||
       shipment.products.some(
         (product) =>
           product.sku.toLowerCase().includes(search) ||
-          product.product_name.toLowerCase().includes(search)
+          product.productName.toLowerCase().includes(search)
       )
     );
   });
@@ -161,23 +161,23 @@ export const listDemoShipments = (
   const page = Math.min(safePage, totalPages);
   const slice = items.slice((page - 1) * pageSize, page * pageSize).map((shipment) => ({
     id: shipment.id,
-    reference_number: shipment.reference_number,
+    referenceNumber: shipment.referenceNumber,
     status: shipment.status,
     origin: shipment.origin,
     destination: shipment.destination,
-    total_weight_kg: shipment.total_weight_kg,
-    total_distance_km: shipment.total_distance_km,
-    total_co2e: shipment.total_co2e,
-    pending_until: shipment.pending_until,
-    estimated_arrival: shipment.estimated_arrival,
-    estimated_arrival_at: shipment.estimated_arrival_at,
-    actual_arrival: shipment.actual_arrival,
-    actual_arrival_at: shipment.actual_arrival_at,
-    simulation_enabled: shipment.simulation_enabled,
-    legs_count: shipment.legs_count,
-    products_count: shipment.products_count,
-    created_at: shipment.created_at,
-    updated_at: shipment.updated_at,
+    totalWeightKg: shipment.totalWeightKg,
+    totalDistanceKm: shipment.totalDistanceKm,
+    totalCo2e: shipment.totalCo2e,
+    pendingUntil: shipment.pendingUntil,
+    estimatedArrival: shipment.estimatedArrival,
+    estimatedArrivalAt: shipment.estimatedArrivalAt,
+    actualArrival: shipment.actualArrival,
+    actualArrivalAt: shipment.actualArrivalAt,
+    simulationEnabled: shipment.simulationEnabled,
+    legsCount: shipment.legsCount,
+    productsCount: shipment.productsCount,
+    createdAt: shipment.createdAt,
+    updatedAt: shipment.updatedAt,
   }));
 
   return {
@@ -209,14 +209,14 @@ export const createDemoShipment = (
   return {
     id: shipment.id,
     status: shipment.status,
-    created_at: shipment.created_at,
-    updated_at: shipment.updated_at,
-    pending_until: shipment.pending_until,
-    estimated_arrival: shipment.estimated_arrival,
-    estimated_arrival_at: shipment.estimated_arrival_at,
-    actual_arrival: shipment.actual_arrival,
-    actual_arrival_at: shipment.actual_arrival_at,
-    simulation_enabled: shipment.simulation_enabled,
+    createdAt: shipment.createdAt,
+    updatedAt: shipment.updatedAt,
+    pendingUntil: shipment.pendingUntil,
+    estimatedArrival: shipment.estimatedArrival,
+    estimatedArrivalAt: shipment.estimatedArrivalAt,
+    actualArrival: shipment.actualArrival,
+    actualArrivalAt: shipment.actualArrivalAt,
+    simulationEnabled: shipment.simulationEnabled,
   };
 };
 
@@ -230,10 +230,10 @@ export const updateDemoShipment = (
     if (shipment.id !== shipmentId) return shipment;
     return recalculateShipment({
       ...shipment,
-      reference_number: payload.reference_number || shipment.reference_number,
+      referenceNumber: payload.reference_number || shipment.referenceNumber,
       origin: payload.origin ? normalizeLocation(payload.origin) : shipment.origin,
       destination: payload.destination ? normalizeLocation(payload.destination) : shipment.destination,
-      estimated_arrival: payload.estimated_arrival || shipment.estimated_arrival,
+      estimatedArrival: payload.estimated_arrival || shipment.estimatedArrival,
     });
   }) as unknown as DemoDataset["shipments"];
   syncProductShipmentLinks(dataset);
@@ -241,13 +241,13 @@ export const updateDemoShipment = (
   return {
     id: shipment.id,
     status: shipment.status,
-    updated_at: shipment.updated_at,
-    pending_until: shipment.pending_until,
-    estimated_arrival: shipment.estimated_arrival,
-    estimated_arrival_at: shipment.estimated_arrival_at,
-    actual_arrival: shipment.actual_arrival,
-    actual_arrival_at: shipment.actual_arrival_at,
-    simulation_enabled: shipment.simulation_enabled,
+    updatedAt: shipment.updatedAt,
+    pendingUntil: shipment.pendingUntil,
+    estimatedArrival: shipment.estimatedArrival,
+    estimatedArrivalAt: shipment.estimatedArrivalAt,
+    actualArrival: shipment.actualArrival,
+    actualArrivalAt: shipment.actualArrivalAt,
+    simulationEnabled: shipment.simulationEnabled,
   };
 };
 
@@ -263,22 +263,22 @@ export const updateDemoShipmentStatus = (
     return {
       ...shipment,
       status,
-      actual_arrival: actualArrival || shipment.actual_arrival,
-      actual_arrival_at: actualArrival || shipment.actual_arrival_at,
-      updated_at: new Date().toISOString(),
+      actualArrival: actualArrival || shipment.actualArrival,
+      actualArrivalAt: actualArrival || shipment.actualArrivalAt,
+      updatedAt: new Date().toISOString(),
     };
   }) as unknown as DemoDataset["shipments"];
   const shipment = getDemoShipmentById(dataset, shipmentId);
   return {
     id: shipment.id,
     status: shipment.status,
-    updated_at: shipment.updated_at,
-    pending_until: shipment.pending_until,
-    estimated_arrival: shipment.estimated_arrival,
-    estimated_arrival_at: shipment.estimated_arrival_at,
-    actual_arrival: shipment.actual_arrival,
-    actual_arrival_at: shipment.actual_arrival_at,
-    simulation_enabled: shipment.simulation_enabled,
+    updatedAt: shipment.updatedAt,
+    pendingUntil: shipment.pendingUntil,
+    estimatedArrival: shipment.estimatedArrival,
+    estimatedArrivalAt: shipment.estimatedArrivalAt,
+    actualArrival: shipment.actualArrival,
+    actualArrivalAt: shipment.actualArrivalAt,
+    simulationEnabled: shipment.simulationEnabled,
   };
 };
 
@@ -294,16 +294,16 @@ export const replaceDemoShipmentLegs = (
       ...shipment,
       legs: legs.map((leg) => ({
         id: createId(),
-        leg_order: leg.leg_order,
-        transport_mode: leg.transport_mode,
-        origin_location: leg.origin_location,
-        destination_location: leg.destination_location,
-        distance_km: leg.distance_km,
-        duration_hours: leg.duration_hours || null,
+        legOrder: leg.leg_order,
+        transportMode: leg.transport_mode,
+        originLocation: leg.origin_location,
+        destinationLocation: leg.destination_location,
+        distanceKm: leg.distance_km,
+        durationHours: leg.duration_hours || null,
         co2e: leg.co2e,
-        emission_factor_used: leg.emission_factor_used || null,
-        carrier_name: leg.carrier_name || "",
-        vehicle_type: leg.vehicle_type || "",
+        emissionFactorUsed: leg.emission_factor_used || null,
+        carrierName: leg.carrier_name || "",
+        vehicleType: leg.vehicle_type || "",
       })),
     });
   }) as unknown as DemoDataset["shipments"];
@@ -311,13 +311,13 @@ export const replaceDemoShipmentLegs = (
   return {
     id: shipment.id,
     status: shipment.status,
-    updated_at: shipment.updated_at,
-    pending_until: shipment.pending_until,
-    estimated_arrival: shipment.estimated_arrival,
-    estimated_arrival_at: shipment.estimated_arrival_at,
-    actual_arrival: shipment.actual_arrival,
-    actual_arrival_at: shipment.actual_arrival_at,
-    simulation_enabled: shipment.simulation_enabled,
+    updatedAt: shipment.updatedAt,
+    pendingUntil: shipment.pendingUntil,
+    estimatedArrival: shipment.estimatedArrival,
+    estimatedArrivalAt: shipment.estimatedArrivalAt,
+    actualArrival: shipment.actualArrival,
+    actualArrivalAt: shipment.actualArrivalAt,
+    simulationEnabled: shipment.simulationEnabled,
   };
 };
 
@@ -337,12 +337,12 @@ export const replaceDemoShipmentProducts = (
         ) as Record<string, unknown> | undefined;
         return {
           id: createId(),
-          product_id: product.product_id,
+          productId: product.product_id,
           quantity: product.quantity,
-          weight_kg: product.weight_kg,
-          allocated_co2e: product.allocated_co2e,
+          weightKg: product.weight_kg,
+          allocatedCo2e: product.allocated_co2e,
           sku: String(matchedProduct?.productCode || matchedProduct?.product_code || ""),
-          product_name: String(matchedProduct?.productName || matchedProduct?.product_name || ""),
+          productName: String(matchedProduct?.productName || matchedProduct?.product_name || ""),
         };
       }),
     };
@@ -353,13 +353,13 @@ export const replaceDemoShipmentProducts = (
   return {
     id: shipment.id,
     status: shipment.status,
-    updated_at: shipment.updated_at,
-    pending_until: shipment.pending_until,
-    estimated_arrival: shipment.estimated_arrival,
-    estimated_arrival_at: shipment.estimated_arrival_at,
-    actual_arrival: shipment.actual_arrival,
-    actual_arrival_at: shipment.actual_arrival_at,
-    simulation_enabled: shipment.simulation_enabled,
+    updatedAt: shipment.updatedAt,
+    pendingUntil: shipment.pendingUntil,
+    estimatedArrival: shipment.estimatedArrival,
+    estimatedArrivalAt: shipment.estimatedArrivalAt,
+    actualArrival: shipment.actualArrival,
+    actualArrivalAt: shipment.actualArrivalAt,
+    simulationEnabled: shipment.simulationEnabled,
   };
 };
 
@@ -367,7 +367,7 @@ export const cascadeProductRemovalFromShipments = (dataset: DemoDataset, product
   dataset.shipments = asShipmentArray(dataset.shipments)
     .map((rawShipment) => {
       const shipment = asDetail(rawShipment);
-      const nextProducts = shipment.products.filter((product) => product.product_id !== productId);
+      const nextProducts = shipment.products.filter((product) => product.productId !== productId);
       return recalculateShipment({
         ...shipment,
         products: nextProducts,
@@ -380,11 +380,11 @@ export const cascadeProductRemovalFromShipments = (dataset: DemoDataset, product
 export const getDemoLogisticsOverview = (dataset: DemoDataset): LogisticsOverview => {
   const shipments = getDemoShipmentDetails(dataset);
   return {
-    total_shipments: shipments.length,
+    totalShipments: shipments.length,
     pending: shipments.filter((shipment) => shipment.status === "pending").length,
-    in_transit: shipments.filter((shipment) => shipment.status === "in_transit").length,
+    inTransit: shipments.filter((shipment) => shipment.status === "in_transit").length,
     delivered: shipments.filter((shipment) => shipment.status === "delivered").length,
     cancelled: shipments.filter((shipment) => shipment.status === "cancelled").length,
-    total_co2e: shipments.reduce((sum, shipment) => sum + shipment.total_co2e, 0),
+    totalCo2e: shipments.reduce((sum, shipment) => sum + shipment.totalCo2e, 0),
   };
 };

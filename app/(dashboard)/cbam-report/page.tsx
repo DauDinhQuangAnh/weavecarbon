@@ -66,12 +66,12 @@ interface EvidenceDoc {
 
 interface CarbonCalc {
   id: string;
-  product_id: string | null;
-  total_co2e: number;
-  materials_co2e: number | null;
-  production_co2e: number | null;
-  transport_co2e: number | null;
-  packaging_co2e: number | null;
+  productId: string | null;
+  totalCo2e: number;
+  materialsCo2e: number | null;
+  productionCo2e: number | null;
+  transportCo2e: number | null;
+  packagingCo2e: number | null;
 }
 
 interface CompanyData {
@@ -231,14 +231,14 @@ export default function CbamReportPage() {
 
   const productSummary = useMemo(() => {
     return products.map((p) => {
-      const calc = calcs.find((c) => c.product_id === p.id);
-      const total = calc?.total_co2e ?? p.co2 ?? 0;
-      const s1 = (calc?.production_co2e ?? 0) * 0.2 || total * 0.05;
-      const s2 = (calc?.production_co2e ?? 0) * 0.8 || total * 0.25;
+      const calc = calcs.find((c) => c.productId === p.id);
+      const total = calc?.totalCo2e ?? p.co2 ?? 0;
+      const s1 = (calc?.productionCo2e ?? 0) * 0.2 || total * 0.05;
+      const s2 = (calc?.productionCo2e ?? 0) * 0.8 || total * 0.25;
       const s3 =
-        (calc?.materials_co2e ?? 0) +
-          (calc?.transport_co2e ?? 0) +
-          (calc?.packaging_co2e ?? 0) ||
+        (calc?.materialsCo2e ?? 0) +
+          (calc?.transportCo2e ?? 0) +
+          (calc?.packagingCo2e ?? 0) ||
         total * 0.7;
       return {
         id: p.id,

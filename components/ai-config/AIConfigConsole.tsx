@@ -23,14 +23,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { getGlobalAiRuntimeConfig, saveGlobalAiRuntimeConfig } from "@/lib/aiConfigApi";import {
+import { getGlobalAiRuntimeConfig, saveGlobalAiRuntimeConfig } from "@/lib/aiConfigApi";
+import {
   checkRagHealth,
   createRagCollection,
   deleteRagCollection,
   fetchRagCollectionsWithDetails,
   getCollectionDescription,
   getDefaultRagRuntimeConfig,
-  ingestRagCsv,
+  ingestRagDocument,
   queryRagCollection,
   testRagDatabase,
   updateRagCollection,
@@ -49,6 +50,7 @@ interface ServiceStatus {
 interface QueryState {
   answer: string;
   retrievedData: string;
+  citations: string;
   error: string;
 }
 
@@ -148,12 +150,13 @@ const AIConfigConsole: React.FC = () => {
   const [editCollectionName, setEditCollectionName] = React.useState("");
   const [editCollectionDescription, setEditCollectionDescription] = React.useState("");
   const [ingestCollectionName, setIngestCollectionName] = React.useState("");
-  const [indexColumn, setIndexColumn] = React.useState("Question");
+  const [chunkingProfile, setChunkingProfile] = React.useState("hybrid");
   const [ingestFile, setIngestFile] = React.useState<File | null>(null);
   const [testQuery, setTestQuery] = React.useState("");
   const [queryState, setQueryState] = React.useState<QueryState>({
     answer: "",
     retrievedData: "",
+    citations: "",
     error: ""
   });
   const [healthStatus, setHealthStatus] = React.useState<ServiceStatus>(unknownStatus());
@@ -317,16 +320,12 @@ const AIConfigConsole: React.FC = () => {
 
   const saveRuntime = async () => {
     const columns = parseColumns(columnsInput);
-    if (columns.length === 0) {
-      toast.error("Enter at least one column to answer.");
-      return;
-    }
 
     setSavingRuntime(true);
     try {
       const savedConfig = await saveGlobalAiRuntimeConfig({
         ...runtimeConfig,
-        columnsToAnswer: columns
+        columnsToAnswer: columns.length > 0 ? columns : ["chunk"]
       });
       applyRuntimeConfig(savedConfig);
       toast.success("Global AI runtime saved.");
@@ -441,7 +440,7 @@ const AIConfigConsole: React.FC = () => {
 
   const runIngest = async () => {
     if (!ingestFile) {
-      toast.error("Choose a CSV file before ingesting.");
+      toast.error("Choose a PDF, DOCX, TXT, or TEXT file before ingesting.");
       return;
     }
 
@@ -451,25 +450,19 @@ const AIConfigConsole: React.FC = () => {
       return;
     }
 
-    const indexName = indexColumn.trim();
-    if (!indexName) {
-      toast.error("Index column is required.");
-      return;
-    }
-
     setIngesting(true);
     try {
-      const result = await ingestRagCsv(runtimeConfig.baseUrl, {
+      const result = await ingestRagDocument(runtimeConfig.baseUrl, {
         file: ingestFile,
-        indexColumn: indexName,
-        collectionName
+        collectionName,
+        chunkingProfile
       });
       toast.success(
-        `Ingested ${result.rows} rows and ${result.chunks} chunks into "${result.collection_name}".`
+        `Ingested ${result.rows} source blocks and ${result.chunks} chunks into "${result.collection_name}".`
       );
       await refreshWorkspace(runtimeConfig.baseUrl);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to ingest CSV.");
+      toast.error(error instanceof Error ? error.message : "Failed to ingest knowledge document.");
     } finally {
       setIngesting(false);
     }
@@ -482,12 +475,6 @@ const AIConfigConsole: React.FC = () => {
       return;
     }
 
-    const columns = parseColumns(columnsInput);
-    if (columns.length === 0) {
-      toast.error("Enter at least one column to answer.");
-      return;
-    }
-
     if (!runtimeConfig.collectionName.trim()) {
       toast.error("Runtime collection is required.");
       return;
@@ -497,6 +484,7 @@ const AIConfigConsole: React.FC = () => {
     setQueryState({
       answer: "",
       retrievedData: "",
+      citations: "",
       error: ""
     });
 
@@ -506,7 +494,6 @@ const AIConfigConsole: React.FC = () => {
         runtimeConfig.collectionName,
         {
           query: prompt,
-          columns_to_answer: columns,
           number_docs_retrieval: runtimeConfig.numberDocsRetrieval
         },
         runtimeConfig.timeoutMs
@@ -515,6 +502,18 @@ const AIConfigConsole: React.FC = () => {
       setQueryState({
         answer: result.answer,
         retrievedData: result.retrieved_data,
+        citations: result.citations
+          .map((citation) =>
+            [
+              citation.source,
+              citation.page_number ? `page ${citation.page_number}` : "",
+              citation.section_title,
+              citation.snippet
+            ]
+              .filter(Boolean)
+              .join(" | ")
+          )
+          .join("\n\n"),
         error: ""
       });
       toast.success("Test query completed.");
@@ -523,6 +522,7 @@ const AIConfigConsole: React.FC = () => {
       setQueryState({
         answer: "",
         retrievedData: "",
+        citations: "",
         error: message
       });
       toast.error(message);
@@ -569,7 +569,7 @@ const AIConfigConsole: React.FC = () => {
                 Live collection: {runtimeConfig.collectionName || "Not set"}
               </Badge>
               <Badge variant="outline" className="border-white/15 bg-white/10 text-white">
-                Columns: {columnsInput || "Not set"}
+                Retrieval: {runtimeConfig.numberDocsRetrieval} chunks
               </Badge>
               <Button
                 variant="outline"
@@ -625,11 +625,11 @@ const AIConfigConsole: React.FC = () => {
                       placeholder="weaveCarbon_1"
                     />
                   </Field>
-                  <Field label="columns_to_answer" hint="Comma-separated list of response columns.">
+                  <Field label="Legacy columns" hint="Only kept for backward compatibility. New PDF RAG uses document chunks.">
                     <Input
                       value={columnsInput}
                       onChange={(event) => setColumnsInput(event.target.value)}
-                      placeholder="Question"
+                      placeholder="chunk"
                     />
                   </Field>
                   <div className="grid gap-5 sm:grid-cols-2">
@@ -799,7 +799,7 @@ const AIConfigConsole: React.FC = () => {
                                     </p>
                                   </div>
                                   <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700">
-                                    {collection.count} docs
+                                    {collection.count} chunks
                                   </Badge>
                                 </div>
                                 <div className="mt-4 flex flex-wrap gap-2">
@@ -907,8 +907,8 @@ const AIConfigConsole: React.FC = () => {
               <CardHeader className="space-y-5">
                 <SectionHeader
                   icon={Upload}
-                  title="CSV ingest"
-                  description="Push new dataset rows into the selected RAG collection."
+                  title="Knowledge document ingest"
+                  description="Upload PDF, DOCX, TXT, or TEXT knowledge files into the selected RAG collection."
                 />
               </CardHeader>
               <CardContent className="space-y-5">
@@ -919,17 +919,17 @@ const AIConfigConsole: React.FC = () => {
                     placeholder="weaveCarbon_1"
                   />
                 </Field>
-                <Field label="Index column" hint="Used by the RAG ingest endpoint for indexing.">
+                <Field label="Chunking profile" hint="Hybrid keeps document structure when possible; semantic is the simpler fallback.">
                   <Input
-                    value={indexColumn}
-                    onChange={(event) => setIndexColumn(event.target.value)}
-                    placeholder="Question"
+                    value={chunkingProfile}
+                    onChange={(event) => setChunkingProfile(event.target.value)}
+                    placeholder="hybrid"
                   />
                 </Field>
-                <Field label="CSV file">
+                <Field label="Knowledge file">
                   <Input
                     type="file"
-                    accept=".csv,text/csv"
+                    accept=".pdf,.docx,.txt,.text,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                     onChange={(event) => setIngestFile(event.target.files?.[0] || null)}
                   />
                 </Field>
@@ -992,6 +992,14 @@ const AIConfigConsole: React.FC = () => {
                     className="min-h-[160px] bg-slate-50"
                   />
                 </Field>
+                <Field label="Citations">
+                  <Textarea
+                    value={queryState.citations}
+                    readOnly
+                    placeholder="Source citations will appear here."
+                    className="min-h-[120px] bg-slate-50"
+                  />
+                </Field>
               </CardContent>
             </Card>
 
@@ -1011,7 +1019,7 @@ const AIConfigConsole: React.FC = () => {
                   Saving runtime here changes the configuration used by dashboard chatbot messages globally.
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  Collections, ingest, and query tools use the current runtime base URL directly from the browser.
+                  Collections, ingest, and query tools go through the backend proxy, so RAG internal API keys stay server-side.
                 </div>
               </CardContent>
             </Card>

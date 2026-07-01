@@ -63,6 +63,26 @@ const getMarkerColor = (status?: string) => {
 const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
   buildSupplyChainRouteGeometry(route);
 
+const OSM_RASTER_STYLE = {
+  version: 8 as const,
+  sources: {
+    osm: {
+      type: "raster" as const,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }
+  },
+  layers: [
+    {
+      id: "osm-tiles",
+      type: "raster" as const,
+      source: "osm"
+    }
+  ]
+};
+
 const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
   nodes,
   routes,
@@ -97,19 +117,25 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
     }, 10000);
 
     try {
-      if (!hasMapboxPublicToken()) {
-        throw new Error(t("errors.loadFailed"));
+      const hasToken = hasMapboxPublicToken();
+      if (hasToken) {
+        configureMapboxRuntime(mapboxgl);
+      } else {
+        mapboxgl.accessToken = "pk.placeholder";
+        if (typeof (mapboxgl as unknown as { setTelemetryEnabled?: (enabled: boolean) => void }).setTelemetryEnabled === "function") {
+          (mapboxgl as unknown as { setTelemetryEnabled: (enabled: boolean) => void }).setTelemetryEnabled(false);
+        }
       }
-      configureMapboxRuntime(mapboxgl);
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: hasToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
         center: [center[1], center[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
         zoom,
         pitch: 45,
         bearing: -17.6,
-        antialias: true
+        antialias: true,
+        attributionControl: !hasToken
       });
 
       map.addControl(new mapboxgl.NavigationControl());

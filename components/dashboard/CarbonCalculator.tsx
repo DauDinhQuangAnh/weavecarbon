@@ -24,9 +24,12 @@ import {
   Factory,
   Info,
   Leaf,
+  Loader2,
   Package,
+  Sparkles,
   Truck,
 } from 'lucide-react';
+import { api } from '@/lib/apiClient';
 
 const MATERIAL_FACTORS: Record<string, number> = {
   cotton: 5.9,
@@ -39,16 +42,9 @@ const MATERIAL_FACTORS: Record<string, number> = {
   hemp: 2.3,
 };
 
-const ROUTE_EMISSIONS: Record<string, { distance: number; factor: number }> = {
-  vnEu: { distance: 15000, factor: 0.00016 },
-  vnUs: { distance: 12500, factor: 0.00016 },
-  vnJp: { distance: 3800, factor: 0.00016 },
-  vnDomestic: { distance: 500, factor: 0.00025 },
-  vnKr: { distance: 3200, factor: 0.00016 },
-};
-
 const MANUFACTURING_FACTOR = 2.5;
 const PACKAGING_FACTOR = 0.3;
+const TRANSPORT_FACTOR = 0.00016;
 
 interface EmissionBreakdown {
   material: number;
@@ -69,13 +65,17 @@ const MATERIAL_LABELS: Record<string, string> = {
   hemp: 'Hemp',
 };
 
-const ROUTE_LABELS: Record<string, string> = {
-  vnEu: 'Việt Nam - EU (đường biển, khoảng 15.000 km)',
-  vnUs: 'Việt Nam - Mỹ (đường biển, khoảng 12.500 km)',
-  vnJp: 'Việt Nam - Nhật Bản (đường biển, khoảng 3.800 km)',
-  vnKr: 'Việt Nam - Hàn Quốc (đường biển, khoảng 3.200 km)',
-  vnDomestic: 'Nội địa (khoảng 500 km, xe tải)',
-};
+const DESTINATION_OPTIONS = [
+  { value: 'japan', label: 'Nhật Bản', distanceKm: 3800 },
+  { value: 'korea', label: 'Hàn Quốc', distanceKm: 3200 },
+  { value: 'china', label: 'Trung Quốc', distanceKm: 1800 },
+  { value: 'asean', label: 'ASEAN', distanceKm: 1500 },
+  { value: 'eu', label: 'Liên minh Châu Âu', distanceKm: 15000 },
+  { value: 'us', label: 'Hoa Kỳ', distanceKm: 12500 },
+  { value: 'uk', label: 'Vương quốc Anh', distanceKm: 14500 },
+  { value: 'australia', label: 'Úc', distanceKm: 6800 },
+  { value: 'domestic', label: 'Nội địa Việt Nam', distanceKm: 500 },
+] as const;
 
 const BREAKDOWN_META = [
   { key: 'material', icon: Leaf, label: 'Vật liệu', color: 'text-green-600' },
@@ -87,22 +87,73 @@ const BREAKDOWN_META = [
 const pct = (value: number, total: number) =>
   total > 0 ? (value / total) * 100 : 0;
 
+const getDestinationLabel = (value: string) =>
+  DESTINATION_OPTIONS.find((option) => option.value === value)?.label ?? value;
+
+function buildAssessmentPrompt(context: {
+  weight: string;
+  material: string;
+  destination: string;
+  transportDistance: string;
+  emissions: EmissionBreakdown;
+}): string {
+  const materialLabel = MATERIAL_LABELS[context.material] ?? context.material;
+  const destinationLabel = getDestinationLabel(context.destination);
+  const materialFactor = MATERIAL_FACTORS[context.material] ?? 0;
+
+  return `Bạn là chuyên gia tư vấn carbon footprint cho sản phẩm dệt may.
+
+Hãy đánh giá ngắn gọn kết quả tính carbon proxy dưới đây bằng tiếng Việt, tập trung vào quyết định vận hành:
+- Nêu nhận định chính về mức phát thải và nhóm đóng góp lớn nhất.
+- Chỉ ra 2-3 nguyên nhân có khả năng làm phát thải cao.
+- Đề xuất 3 hành động giảm phát thải theo thứ tự ưu tiên.
+- Nêu rõ đây là ước tính proxy, không thay thế dữ liệu sơ cấp/audit.
+- Trả lời có cấu trúc, thực tế, không hỏi lại người dùng.
+
+Dữ liệu đầu vào:
+- Khối lượng sản phẩm: ${context.weight} kg
+- Vật liệu chính: ${materialLabel}
+- Hệ số vật liệu: ${materialFactor} kg CO2e/kg
+- Điểm đến vận chuyển: ${destinationLabel}
+- Khoảng cách vận chuyển: ${context.transportDistance} km
+- Hệ số vận chuyển proxy: ${TRANSPORT_FACTOR} kg CO2e/kg.km
+- Hệ số sản xuất proxy: ${MANUFACTURING_FACTOR} kg CO2e/kg
+- Hệ số đóng gói proxy: ${PACKAGING_FACTOR} kg CO2e/kg
+
+Kết quả:
+- Tổng phát thải: ${context.emissions.total.toFixed(2)} kg CO2e/sản phẩm
+- Vật liệu: ${context.emissions.material.toFixed(2)} kg CO2e (${pct(context.emissions.material, context.emissions.total).toFixed(0)}%)
+- Sản xuất: ${context.emissions.manufacturing.toFixed(2)} kg CO2e (${pct(context.emissions.manufacturing, context.emissions.total).toFixed(0)}%)
+- Vận chuyển: ${context.emissions.transport.toFixed(2)} kg CO2e (${pct(context.emissions.transport, context.emissions.total).toFixed(0)}%)
+- Đóng gói: ${context.emissions.packaging.toFixed(2)} kg CO2e (${pct(context.emissions.packaging, context.emissions.total).toFixed(0)}%)`;
+}
+
 export default function CarbonCalculator() {
   const [weight, setWeight] = useState('');
   const [material, setMaterial] = useState('');
-  const [route, setRoute] = useState('');
+  const [destination, setDestination] = useState('');
+  const [transportDistance, setTransportDistance] = useState('');
   const [emissions, setEmissions] = useState<EmissionBreakdown | null>(null);
+  const [assessment, setAssessment] = useState<string | null>(null);
+  const [isAssessing, setIsAssessing] = useState(false);
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
+
+  const resetDerivedState = () => {
+    setEmissions(null);
+    setAssessment(null);
+    setAssessmentError(null);
+  };
 
   const calculate = () => {
-    if (!weight || !material || !route) return;
+    if (!weight || !material || !destination || !transportDistance) return;
 
     const kg = parseFloat(weight);
-    const routeData = ROUTE_EMISSIONS[route];
-    if (Number.isNaN(kg) || kg <= 0 || !routeData) return;
+    const distanceKm = parseFloat(transportDistance);
+    if (Number.isNaN(kg) || kg <= 0 || Number.isNaN(distanceKm) || distanceKm <= 0) return;
 
     const materialEmission = kg * (MATERIAL_FACTORS[material] ?? 0);
     const manufacturingEmission = kg * MANUFACTURING_FACTOR;
-    const transportEmission = kg * routeData.distance * routeData.factor;
+    const transportEmission = kg * distanceKm * TRANSPORT_FACTOR;
     const packagingEmission = kg * PACKAGING_FACTOR;
     const total =
       materialEmission +
@@ -117,9 +168,41 @@ export default function CarbonCalculator() {
       packaging: packagingEmission,
       total,
     });
+    setAssessment(null);
+    setAssessmentError(null);
   };
 
-  const canCalculate = weight && material && route;
+  const canCalculate = Boolean(weight && material && destination && transportDistance);
+
+  const requestAssessment = async () => {
+    if (!emissions || isAssessing) return;
+
+    setIsAssessing(true);
+    setAssessmentError(null);
+    setAssessment(null);
+
+    try {
+      const prompt = buildAssessmentPrompt({
+        weight,
+        material,
+        destination,
+        transportDistance,
+        emissions,
+      });
+      const data = await api.post<{ answer?: string }>('/chat/direct', { query: prompt });
+      if (!data.answer?.trim()) {
+        throw new Error('AI không trả về nội dung đánh giá.');
+      }
+
+      setAssessment(data.answer.trim());
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Không thể tạo đánh giá lúc này.';
+      setAssessmentError(message);
+    } finally {
+      setIsAssessing(false);
+    }
+  };
 
   return (
     <div className="flex-1 p-6 space-y-6">
@@ -156,13 +239,22 @@ export default function CarbonCalculator() {
                 min="0.01"
                 placeholder="0.25"
                 value={weight}
-                onChange={(event) => setWeight(event.target.value)}
+                onChange={(event) => {
+                  setWeight(event.target.value);
+                  resetDerivedState();
+                }}
               />
             </div>
 
             <div className="space-y-1.5">
               <Label>Loại vật liệu chính</Label>
-              <Select value={material} onValueChange={setMaterial}>
+              <Select
+                value={material}
+                onValueChange={(value) => {
+                  setMaterial(value);
+                  resetDerivedState();
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn vật liệu" />
                 </SelectTrigger>
@@ -181,20 +273,58 @@ export default function CarbonCalculator() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Tuyến vận chuyển xuất khẩu</Label>
-              <Select value={route} onValueChange={setRoute}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn tuyến" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ROUTE_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Điểm đến xuất khẩu</Label>
+                <Select
+                  value={destination}
+                  onValueChange={(value) => {
+                    const selectedDestination = DESTINATION_OPTIONS.find(
+                      (option) => option.value === value
+                    );
+                    setDestination(value);
+                    setTransportDistance(
+                      selectedDestination?.distanceKm.toString() ?? ''
+                    );
+                    resetDerivedState();
+                  }}
+                >
+                  <SelectTrigger id="destination">
+                    <SelectValue placeholder="Chọn điểm đến" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DESTINATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span className="flex items-center gap-2">
+                          {option.label}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (~{option.distanceKm.toLocaleString('vi-VN')} km)
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="transportDistance">Số km vận chuyển</Label>
+                <Input
+                  id="transportDistance"
+                  type="number"
+                  step="1"
+                  min="1"
+                  placeholder="3800"
+                  value={transportDistance}
+                  onChange={(event) => {
+                    setTransportDistance(event.target.value);
+                    resetDerivedState();
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Dùng hệ số proxy vận chuyển đường biển {TRANSPORT_FACTOR} kg CO2e/kg.km.
+                </p>
+              </div>
             </div>
 
             <Button
@@ -270,6 +400,54 @@ export default function CarbonCalculator() {
                   <p>
                     {emissions.total.toFixed(2)} kg CO2e / sản phẩm là ước tính proxy Scope 1+2+3. Để đạt chuẩn kiểm toán, hãy tải chứng từ lên Evidence để hệ thống nâng cấp độ tin cậy.
                   </p>
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-violet-100 bg-violet-50/50 p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Đánh giá kết quả
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        AI sẽ phân tích các tham số vừa tính và gợi ý hướng giảm phát thải.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={requestAssessment}
+                      disabled={isAssessing}
+                      className="shrink-0 border-violet-200 bg-white text-violet-700 hover:bg-violet-100"
+                    >
+                      {isAssessing ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 mr-2" />
+                      )}
+                      {assessment ? 'Đánh giá lại' : 'Đánh giá'}
+                    </Button>
+                  </div>
+
+                  {isAssessing && (
+                    <div className="flex items-center gap-2 rounded-md bg-white/70 px-3 py-2 text-xs text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
+                      Đang tạo đánh giá...
+                    </div>
+                  )}
+
+                  {assessmentError && (
+                    <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{assessmentError}</span>
+                    </div>
+                  )}
+
+                  {assessment && !isAssessing && (
+                    <div className="rounded-md bg-white px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+                      {assessment}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

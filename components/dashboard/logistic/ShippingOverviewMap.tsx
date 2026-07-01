@@ -176,7 +176,7 @@ shipment: LogisticsShipmentSummary | LogisticsShipmentDetail)
   }
   return {
     ...shipment,
-    company_id: "",
+    companyId: "",
     legs: [],
     products: []
   };
@@ -207,20 +207,20 @@ fallbacks: {shipmentName: string;unknownCarrier: string;})
 
   return {
     shipmentId: detailLike.id,
-    id: detailLike.reference_number || detailLike.id,
-    productId: firstProduct?.product_id || null,
+    id: detailLike.referenceNumber || detailLike.id,
+    productId: firstProduct?.productId || null,
     productName:
-    firstProduct?.product_name ||
-    detailLike.reference_number ||
+    firstProduct?.productName ||
+    detailLike.referenceNumber ||
     fallbacks.shipmentName,
-    sku: firstProduct?.sku || detailLike.reference_number || detailLike.id,
+    sku: firstProduct?.sku || detailLike.referenceNumber || detailLike.id,
     status,
-    simulationEnabled: detailLike.simulation_enabled,
+    simulationEnabled: detailLike.simulationEnabled,
     progress,
     origin: originLabel,
     destination: destinationLabel,
-    estimatedArrival: resolveShipmentEta(detailLike) || detailLike.updated_at,
-    createdAt: detailLike.created_at,
+    estimatedArrival: resolveShipmentEta(detailLike) || detailLike.updatedAt,
+    createdAt: detailLike.createdAt,
     currentLocation: {
       lat: fallbackLocation.lat,
       lng: fallbackLocation.lng,
@@ -228,9 +228,9 @@ fallbacks: {shipmentName: string;unknownCarrier: string;})
     },
     legs,
     legsHydrated: hasHydratedShipmentDetail(shipment),
-    totalCO2: detailLike.total_co2e,
+    totalCO2: detailLike.totalCo2e,
     carrier:
-    detailLike.legs.find((leg) => leg.carrier_name.trim().length > 0)?.carrier_name ||
+    detailLike.legs.find((leg) => leg.carrierName.trim().length > 0)?.carrierName ||
     fallbacks.unknownCarrier
   };
 };

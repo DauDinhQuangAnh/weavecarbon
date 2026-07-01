@@ -7,6 +7,8 @@ export type RouteMarketScope =
   | "korea"
   | "japan"
   | "china"
+  | "asean"
+  | "australia"
   | "other"
   | "global";
 
@@ -50,6 +52,8 @@ const ALL_EXPORT_MARKETS: RouteMarketScope[] = [
   "korea",
   "japan",
   "china",
+  "asean",
+  "australia",
   "other"
 ];
 
@@ -269,6 +273,141 @@ export const VIETNAM_TRANSFER_HUBS: RouteHub[] = [
     kind: "rail_terminal",
     lat: 16.0602,
     lng: 108.1988,
+    countryCode: "VN",
+    region: "vietnam_central",
+    clusterId: "danang",
+    marketScope: ["vietnam", "global"]
+  }),
+  // Additional Vietnam domestic airports for central/highland coverage
+  createHub({
+    id: "VIN",
+    label: "Vinh Airport",
+    kind: "airport",
+    lat: 18.7376,
+    lng: 105.6706,
+    countryCode: "VN",
+    region: "vietnam_central_north",
+    clusterId: "vinh",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "HUI",
+    label: "Phu Bai Airport",
+    kind: "airport",
+    lat: 16.4015,
+    lng: 107.7028,
+    countryCode: "VN",
+    region: "vietnam_central",
+    clusterId: "hue",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "PXU",
+    label: "Pleiku Airport",
+    kind: "airport",
+    lat: 14.0045,
+    lng: 108.0169,
+    countryCode: "VN",
+    region: "vietnam_central_highlands",
+    clusterId: "pleiku",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "BMV",
+    label: "Buon Ma Thuot Airport",
+    kind: "airport",
+    lat: 12.668,
+    lng: 108.1202,
+    countryCode: "VN",
+    region: "vietnam_central_highlands",
+    clusterId: "buon_ma_thuot",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "UIH",
+    label: "Phu Cat Airport",
+    kind: "airport",
+    lat: 13.9548,
+    lng: 109.042,
+    countryCode: "VN",
+    region: "vietnam_central",
+    clusterId: "binh_dinh",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "VCL",
+    label: "Chu Lai Airport",
+    kind: "airport",
+    lat: 15.4033,
+    lng: 108.7056,
+    countryCode: "VN",
+    region: "vietnam_central",
+    clusterId: "quang_nam",
+    marketScope: ["vietnam", "global"]
+  }),
+  // Additional Vietnam domestic ports
+  createHub({
+    id: "VAN_PHONG",
+    label: "Van Phong Port",
+    kind: "port",
+    lat: 12.6316,
+    lng: 109.3673,
+    countryCode: "VN",
+    region: "vietnam_central",
+    clusterId: "khanh_hoa",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "VUNG_TAU",
+    label: "Vung Tau Port",
+    kind: "port",
+    lat: 10.3464,
+    lng: 107.0843,
+    countryCode: "VN",
+    region: "vietnam_south",
+    clusterId: "vung_tau",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "MY_THO",
+    label: "My Tho River Port",
+    kind: "port",
+    lat: 10.3643,
+    lng: 106.3645,
+    countryCode: "VN",
+    region: "mekong_delta",
+    clusterId: "my_tho",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "CAN_THO_PORT",
+    label: "Can Tho Port",
+    kind: "port",
+    lat: 10.0374,
+    lng: 105.7888,
+    countryCode: "VN",
+    region: "mekong_delta",
+    clusterId: "can_tho",
+    marketScope: ["vietnam", "global"]
+  }),
+  // Vietnam rail terminals for highlands connectivity
+  createHub({
+    id: "VINH_RAIL",
+    label: "Vinh Rail Terminal",
+    kind: "rail_terminal",
+    lat: 18.6697,
+    lng: 105.6839,
+    countryCode: "VN",
+    region: "vietnam_central_north",
+    clusterId: "vinh",
+    marketScope: ["vietnam", "global"]
+  }),
+  createHub({
+    id: "DANANG_ICD",
+    label: "Da Nang ICD",
+    kind: "rail_terminal",
+    lat: 16.0541,
+    lng: 108.2068,
     countryCode: "VN",
     region: "vietnam_central",
     clusterId: "danang",
@@ -719,7 +858,27 @@ const EU_DESTINATION_HUBS: RouteHub[] = [
     region: "europe_west",
     clusterId: "lyon",
     marketScope: ["eu"]
-  })
+  }),
+  // EU airports
+  createHub({ id: "MXP", label: "Milan Malpensa", kind: "airport", lat: 45.6306, lng: 8.7281, countryCode: "IT", region: "europe_south", clusterId: "milan", marketScope: ["eu"] }),
+  createHub({ id: "FCO", label: "Rome Fiumicino", kind: "airport", lat: 41.7999, lng: 12.2462, countryCode: "IT", region: "europe_south", clusterId: "rome", marketScope: ["eu"] }),
+  createHub({ id: "BCN", label: "Barcelona El Prat", kind: "airport", lat: 41.2971, lng: 2.0785, countryCode: "ES", region: "europe_south", clusterId: "barcelona", marketScope: ["eu"] }),
+  createHub({ id: "MUC", label: "Munich Airport", kind: "airport", lat: 48.3537, lng: 11.7749, countryCode: "DE", region: "europe_central", clusterId: "munich", marketScope: ["eu"] }),
+  createHub({ id: "VIE", label: "Vienna Airport", kind: "airport", lat: 48.1102, lng: 16.5697, countryCode: "AT", region: "europe_central", clusterId: "vienna", marketScope: ["eu"] }),
+  createHub({ id: "WAW", label: "Warsaw Chopin", kind: "airport", lat: 52.1657, lng: 20.9671, countryCode: "PL", region: "europe_central", clusterId: "warsaw", marketScope: ["eu"] }),
+  createHub({ id: "CPH", label: "Copenhagen Airport", kind: "airport", lat: 55.618, lng: 12.6561, countryCode: "DK", region: "europe_north", clusterId: "copenhagen", marketScope: ["eu"] }),
+  // EU southern + western ports
+  createHub({ id: "PORT_GENOA", label: "Port of Genoa", kind: "port", lat: 44.4056, lng: 8.9124, countryCode: "IT", region: "europe_south", clusterId: "genoa", marketScope: ["eu"] }),
+  createHub({ id: "PORT_MARSEILLE", label: "Port of Marseille Fos", kind: "port", lat: 43.3304, lng: 5.0397, countryCode: "FR", region: "europe_south", clusterId: "marseille", marketScope: ["eu"] }),
+  createHub({ id: "PORT_BARCELONA", label: "Port of Barcelona", kind: "port", lat: 41.3579, lng: 2.1719, countryCode: "ES", region: "europe_south", clusterId: "barcelona", marketScope: ["eu"] }),
+  createHub({ id: "PORT_FELIXSTOWE", label: "Port of Felixstowe", kind: "port", lat: 51.9545, lng: 1.3513, countryCode: "GB", region: "europe_west", clusterId: "felixstowe", marketScope: ["eu"] }),
+  createHub({ id: "PORT_LE_HAVRE", label: "Port of Le Havre", kind: "port", lat: 49.4817, lng: 0.1078, countryCode: "FR", region: "europe_west", clusterId: "le_havre", marketScope: ["eu"] }),
+  createHub({ id: "PORT_GDANSK", label: "Port of Gdansk", kind: "port", lat: 54.3794, lng: 18.6615, countryCode: "PL", region: "europe_north", clusterId: "gdansk", marketScope: ["eu"] }),
+  createHub({ id: "PORT_ALGECIRAS", label: "Port of Algeciras", kind: "port", lat: 36.1332, lng: -5.4449, countryCode: "ES", region: "europe_south", clusterId: "algeciras", marketScope: ["eu"] }),
+  // EU rail
+  createHub({ id: "MILAN_RAIL", label: "Milan Segrate Rail Terminal", kind: "rail_terminal", lat: 45.4895, lng: 9.2815, countryCode: "IT", region: "europe_south", clusterId: "milan", marketScope: ["eu"] }),
+  createHub({ id: "BARCELONA_RAIL", label: "Barcelona ZAL Port Rail", kind: "rail_terminal", lat: 41.3427, lng: 2.1258, countryCode: "ES", region: "europe_south", clusterId: "barcelona", marketScope: ["eu"] }),
+  createHub({ id: "WARSAW_RAIL", label: "Warsaw Praga Freight Terminal", kind: "rail_terminal", lat: 52.257, lng: 21.0593, countryCode: "PL", region: "europe_central", clusterId: "warsaw", marketScope: ["eu"] })
 ];
 const KOREA_DESTINATION_HUBS: RouteHub[] = [
   createHub({
@@ -1033,6 +1192,37 @@ const JAPAN_DESTINATION_HUBS: RouteHub[] = [
     clusterId: "sapporo",
     marketScope: ["japan"]
   })
+];
+
+const ASEAN_DESTINATION_HUBS: RouteHub[] = [
+  createHub({ id: "BKK_A", label: "Bangkok Suvarnabhumi", kind: "airport", lat: 13.69, lng: 100.7501, countryCode: "TH", region: "southeast_asia", clusterId: "bangkok", marketScope: ["asean"] }),
+  createHub({ id: "LAEM_CHABANG_D", label: "Laem Chabang Port", kind: "port", lat: 13.0817, lng: 100.8812, countryCode: "TH", region: "southeast_asia", clusterId: "bangkok", marketScope: ["asean"] }),
+  createHub({ id: "CGK_D", label: "Jakarta Soekarno-Hatta", kind: "airport", lat: -6.1256, lng: 106.6559, countryCode: "ID", region: "southeast_asia", clusterId: "jakarta", marketScope: ["asean"] }),
+  createHub({ id: "PORT_PRIOK_D", label: "Tanjung Priok Port Jakarta", kind: "port", lat: -6.1076, lng: 106.8819, countryCode: "ID", region: "southeast_asia", clusterId: "jakarta", marketScope: ["asean"] }),
+  createHub({ id: "KUL_D", label: "Kuala Lumpur Intl", kind: "airport", lat: 2.7456, lng: 101.7072, countryCode: "MY", region: "southeast_asia", clusterId: "kuala_lumpur", marketScope: ["asean"] }),
+  createHub({ id: "PORT_KLANG_D", label: "Port Klang", kind: "port", lat: 2.9914, lng: 101.3969, countryCode: "MY", region: "southeast_asia", clusterId: "kuala_lumpur", marketScope: ["asean"] }),
+  createHub({ id: "MNL_D", label: "Manila Ninoy Aquino Intl", kind: "airport", lat: 14.5086, lng: 121.0194, countryCode: "PH", region: "southeast_asia", clusterId: "manila", marketScope: ["asean"] }),
+  createHub({ id: "PORT_MANILA_D", label: "Manila Intl Container Terminal", kind: "port", lat: 14.5867, lng: 120.9655, countryCode: "PH", region: "southeast_asia", clusterId: "manila", marketScope: ["asean"] }),
+  createHub({ id: "SIN_D", label: "Singapore Changi", kind: "airport", lat: 1.3644, lng: 103.9915, countryCode: "SG", region: "southeast_asia", clusterId: "singapore", marketScope: ["asean"] }),
+  createHub({ id: "PORT_SIN_D", label: "Port of Singapore", kind: "port", lat: 1.2644, lng: 103.84, countryCode: "SG", region: "southeast_asia", clusterId: "singapore", marketScope: ["asean"] }),
+  createHub({ id: "RGN_D", label: "Yangon Intl", kind: "airport", lat: 16.9073, lng: 96.1332, countryCode: "MM", region: "southeast_asia", clusterId: "yangon", marketScope: ["asean"] }),
+  createHub({ id: "REP", label: "Siem Reap Angkor Intl", kind: "airport", lat: 13.4107, lng: 103.8129, countryCode: "KH", region: "southeast_asia", clusterId: "siem_reap", marketScope: ["asean"] }),
+  createHub({ id: "PNH", label: "Phnom Penh Intl", kind: "airport", lat: 11.5466, lng: 104.8441, countryCode: "KH", region: "southeast_asia", clusterId: "phnom_penh", marketScope: ["asean"] }),
+  createHub({ id: "VTE", label: "Wattay Intl Vientiane", kind: "airport", lat: 17.9883, lng: 102.563, countryCode: "LA", region: "southeast_asia", clusterId: "vientiane", marketScope: ["asean"] }),
+  createHub({ id: "UIWANG_ASEAN", label: "Bangkok Rail Terminal Lat Krabang", kind: "rail_terminal", lat: 13.7305, lng: 100.7769, countryCode: "TH", region: "southeast_asia", clusterId: "bangkok", marketScope: ["asean"] })
+];
+
+const AUSTRALIA_DESTINATION_HUBS: RouteHub[] = [
+  createHub({ id: "SYD_D", label: "Sydney Kingsford Smith", kind: "airport", lat: -33.9399, lng: 151.175, countryCode: "AU", region: "oceania", clusterId: "sydney", marketScope: ["australia"] }),
+  createHub({ id: "PORT_BOTANY_D", label: "Port Botany Sydney", kind: "port", lat: -33.9657, lng: 151.2284, countryCode: "AU", region: "oceania", clusterId: "sydney", marketScope: ["australia"] }),
+  createHub({ id: "MEL_D", label: "Melbourne Tullamarine", kind: "airport", lat: -37.6633, lng: 144.8433, countryCode: "AU", region: "oceania", clusterId: "melbourne", marketScope: ["australia"] }),
+  createHub({ id: "PORT_MEL_D", label: "Port of Melbourne", kind: "port", lat: -37.8258, lng: 144.9235, countryCode: "AU", region: "oceania", clusterId: "melbourne", marketScope: ["australia"] }),
+  createHub({ id: "BNE_D", label: "Brisbane Airport", kind: "airport", lat: -27.3841, lng: 153.1175, countryCode: "AU", region: "oceania", clusterId: "brisbane", marketScope: ["australia"] }),
+  createHub({ id: "PORT_BNE_D", label: "Port of Brisbane", kind: "port", lat: -27.3926, lng: 153.1703, countryCode: "AU", region: "oceania", clusterId: "brisbane", marketScope: ["australia"] }),
+  createHub({ id: "PER", label: "Perth Airport", kind: "airport", lat: -31.9402, lng: 115.9669, countryCode: "AU", region: "oceania", clusterId: "perth", marketScope: ["australia"] }),
+  createHub({ id: "PORT_FREMANTLE", label: "Port of Fremantle Perth", kind: "port", lat: -32.0479, lng: 115.7495, countryCode: "AU", region: "oceania", clusterId: "perth", marketScope: ["australia"] }),
+  createHub({ id: "AKL_D", label: "Auckland Airport", kind: "airport", lat: -37.0082, lng: 174.7919, countryCode: "NZ", region: "oceania", clusterId: "auckland", marketScope: ["australia"] }),
+  createHub({ id: "PORT_AKL_D", label: "Port of Auckland", kind: "port", lat: -36.843, lng: 174.7633, countryCode: "NZ", region: "oceania", clusterId: "auckland", marketScope: ["australia"] })
 ];
 
 const CHINA_DESTINATION_HUBS: RouteHub[] = [
@@ -1500,6 +1690,340 @@ const GLOBAL_TRANSSHIPMENT_HUBS_INTERNAL: RouteHub[] = [
     region: "middle_east",
     clusterId: "tehran",
     marketScope: ["global", "other"]
+  }),
+  // ── Southeast Asia ────────────────────────────────────────────────
+  createHub({
+    id: "LAEM_CHABANG",
+    label: "Laem Chabang Port",
+    kind: "port",
+    lat: 13.0817,
+    lng: 100.8812,
+    countryCode: "TH",
+    region: "southeast_asia",
+    clusterId: "bangkok",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "DMK",
+    label: "Don Mueang Cargo Bangkok",
+    kind: "airport",
+    lat: 13.9126,
+    lng: 100.6069,
+    countryCode: "TH",
+    region: "southeast_asia",
+    clusterId: "bangkok",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "CGK",
+    label: "Soekarno-Hatta Intl Jakarta",
+    kind: "airport",
+    lat: -6.1256,
+    lng: 106.6559,
+    countryCode: "ID",
+    region: "southeast_asia",
+    clusterId: "jakarta",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "PORT_TANJUNG_PRIOK",
+    label: "Tanjung Priok Port Jakarta",
+    kind: "port",
+    lat: -6.1076,
+    lng: 106.8819,
+    countryCode: "ID",
+    region: "southeast_asia",
+    clusterId: "jakarta",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "KUL",
+    label: "Kuala Lumpur Intl",
+    kind: "airport",
+    lat: 2.7456,
+    lng: 101.7072,
+    countryCode: "MY",
+    region: "southeast_asia",
+    clusterId: "kuala_lumpur",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "PEN",
+    label: "Penang Airport",
+    kind: "airport",
+    lat: 5.2977,
+    lng: 100.2765,
+    countryCode: "MY",
+    region: "southeast_asia",
+    clusterId: "penang",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "PORT_PENANG",
+    label: "Port of Penang",
+    kind: "port",
+    lat: 5.4211,
+    lng: 100.3385,
+    countryCode: "MY",
+    region: "southeast_asia",
+    clusterId: "penang",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "MNL",
+    label: "Manila Ninoy Aquino Intl",
+    kind: "airport",
+    lat: 14.5086,
+    lng: 121.0194,
+    countryCode: "PH",
+    region: "southeast_asia",
+    clusterId: "manila",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "PORT_MANILA",
+    label: "Manila Intl Container Terminal",
+    kind: "port",
+    lat: 14.5867,
+    lng: 120.9655,
+    countryCode: "PH",
+    region: "southeast_asia",
+    clusterId: "manila",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "RGN",
+    label: "Yangon Intl Airport",
+    kind: "airport",
+    lat: 16.9073,
+    lng: 96.1332,
+    countryCode: "MM",
+    region: "southeast_asia",
+    clusterId: "yangon",
+    marketScope: ["global", "asean", "other"]
+  }),
+  createHub({
+    id: "PORT_YANGON",
+    label: "Yangon Port",
+    kind: "port",
+    lat: 16.7667,
+    lng: 96.1667,
+    countryCode: "MM",
+    region: "southeast_asia",
+    clusterId: "yangon",
+    marketScope: ["global", "asean", "other"]
+  }),
+  // ── South Asia ────────────────────────────────────────────────────
+  createHub({
+    id: "BOM",
+    label: "Mumbai Chhatrapati Shivaji Intl",
+    kind: "airport",
+    lat: 19.0896,
+    lng: 72.8656,
+    countryCode: "IN",
+    region: "south_asia",
+    clusterId: "mumbai",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "PORT_JNPT",
+    label: "Jawaharlal Nehru Port Mumbai",
+    kind: "port",
+    lat: 18.9497,
+    lng: 72.9442,
+    countryCode: "IN",
+    region: "south_asia",
+    clusterId: "mumbai",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "DEL",
+    label: "Delhi Indira Gandhi Intl",
+    kind: "airport",
+    lat: 28.5562,
+    lng: 77.1,
+    countryCode: "IN",
+    region: "south_asia",
+    clusterId: "delhi",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "MAA",
+    label: "Chennai Intl",
+    kind: "airport",
+    lat: 12.9941,
+    lng: 80.1709,
+    countryCode: "IN",
+    region: "south_asia",
+    clusterId: "chennai",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "PORT_CHENNAI",
+    label: "Chennai Port",
+    kind: "port",
+    lat: 13.0906,
+    lng: 80.2922,
+    countryCode: "IN",
+    region: "south_asia",
+    clusterId: "chennai",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "CGP",
+    label: "Shah Amanat Intl Chittagong",
+    kind: "airport",
+    lat: 22.2496,
+    lng: 91.8133,
+    countryCode: "BD",
+    region: "south_asia",
+    clusterId: "chittagong",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "PORT_CHITTAGONG",
+    label: "Chittagong Port",
+    kind: "port",
+    lat: 22.3372,
+    lng: 91.8244,
+    countryCode: "BD",
+    region: "south_asia",
+    clusterId: "chittagong",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "BLR",
+    label: "Bengaluru Kempegowda Intl",
+    kind: "airport",
+    lat: 13.1986,
+    lng: 77.7066,
+    countryCode: "IN",
+    region: "south_asia",
+    clusterId: "bangalore",
+    marketScope: ["global", "other"]
+  }),
+  // ── Middle East extended ──────────────────────────────────────────
+  createHub({
+    id: "AUH",
+    label: "Abu Dhabi Intl",
+    kind: "airport",
+    lat: 24.4331,
+    lng: 54.6511,
+    countryCode: "AE",
+    region: "middle_east",
+    clusterId: "abu_dhabi",
+    marketScope: ["global", "other"]
+  }),
+  createHub({
+    id: "PORT_JEDDAH",
+    label: "Jeddah Islamic Port",
+    kind: "port",
+    lat: 21.4895,
+    lng: 39.1706,
+    countryCode: "SA",
+    region: "middle_east",
+    clusterId: "jeddah",
+    marketScope: ["global", "other", "eu"]
+  }),
+  createHub({
+    id: "PORT_SALALAH",
+    label: "Port of Salalah",
+    kind: "port",
+    lat: 16.9408,
+    lng: 54.0082,
+    countryCode: "OM",
+    region: "middle_east",
+    clusterId: "salalah",
+    marketScope: ["global", "other"]
+  }),
+  // ── Australia / Oceania ──────────────────────────────────────────
+  createHub({
+    id: "SYD",
+    label: "Sydney Kingsford Smith",
+    kind: "airport",
+    lat: -33.9399,
+    lng: 151.175,
+    countryCode: "AU",
+    region: "oceania",
+    clusterId: "sydney",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "PORT_BOTANY",
+    label: "Port Botany Sydney",
+    kind: "port",
+    lat: -33.9657,
+    lng: 151.2284,
+    countryCode: "AU",
+    region: "oceania",
+    clusterId: "sydney",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "MEL",
+    label: "Melbourne Tullamarine",
+    kind: "airport",
+    lat: -37.6633,
+    lng: 144.8433,
+    countryCode: "AU",
+    region: "oceania",
+    clusterId: "melbourne",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "PORT_MELBOURNE",
+    label: "Port of Melbourne",
+    kind: "port",
+    lat: -37.8258,
+    lng: 144.9235,
+    countryCode: "AU",
+    region: "oceania",
+    clusterId: "melbourne",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "BNE",
+    label: "Brisbane Airport",
+    kind: "airport",
+    lat: -27.3841,
+    lng: 153.1175,
+    countryCode: "AU",
+    region: "oceania",
+    clusterId: "brisbane",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "PORT_BRISBANE",
+    label: "Port of Brisbane",
+    kind: "port",
+    lat: -27.3926,
+    lng: 153.1703,
+    countryCode: "AU",
+    region: "oceania",
+    clusterId: "brisbane",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "AKL",
+    label: "Auckland Airport",
+    kind: "airport",
+    lat: -37.0082,
+    lng: 174.7919,
+    countryCode: "NZ",
+    region: "oceania",
+    clusterId: "auckland",
+    marketScope: ["global", "australia", "other"]
+  }),
+  createHub({
+    id: "PORT_TAURANGA",
+    label: "Port of Tauranga NZ",
+    kind: "port",
+    lat: -37.6508,
+    lng: 176.1671,
+    countryCode: "NZ",
+    region: "oceania",
+    clusterId: "tauranga",
+    marketScope: ["global", "australia", "other"]
   })
 ];
 
@@ -1511,6 +2035,8 @@ export const DESTINATION_HUBS_BY_MARKET: Record<string, RouteHub[]> = {
   korea: KOREA_DESTINATION_HUBS,
   japan: JAPAN_DESTINATION_HUBS,
   china: CHINA_DESTINATION_HUBS,
+  asean: ASEAN_DESTINATION_HUBS,
+  australia: AUSTRALIA_DESTINATION_HUBS,
   other: GLOBAL_TRANSSHIPMENT_HUBS_INTERNAL
 };
 
@@ -2008,5 +2534,113 @@ export const EXPORT_CORRIDORS: ExportCorridor[] = [
     marketScope: ["other"],
     bidirectional: true,
     handlingHours: 14
-  })
+  }),
+
+  // === Vietnam → SE Asia (sea) ===
+  createCorridor({ id: "sea-vn-asean-caimepp-laemchabang", mode: "sea", fromHubId: "CAI_MEP", toHubId: "LAEM_CHABANG", marketScope: ["asean", "global"], bidirectional: false, handlingHours: 24 }),
+  createCorridor({ id: "sea-vn-asean-caimepp-tanjung", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_TANJUNG_PRIOK", marketScope: ["asean", "global"], bidirectional: false, handlingHours: 30 }),
+  createCorridor({ id: "sea-vn-asean-tien-sa-laemchabang", mode: "sea", fromHubId: "TIEN_SA", toHubId: "LAEM_CHABANG", marketScope: ["asean"], bidirectional: false, handlingHours: 22 }),
+  createCorridor({ id: "sea-vn-asean-lach-huyen-laemchabang", mode: "sea", fromHubId: "LACH_HUYEN", toHubId: "LAEM_CHABANG", marketScope: ["asean", "global"], bidirectional: false, handlingHours: 26 }),
+  createCorridor({ id: "sea-vn-asean-cat-lai-klang", mode: "sea", fromHubId: "CAT_LAI", toHubId: "PORT_KLANG", marketScope: ["asean"], bidirectional: false, handlingHours: 28 }),
+  createCorridor({ id: "sea-vn-asean-cai-mep-penang", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_PENANG", marketScope: ["asean"], bidirectional: false, handlingHours: 30 }),
+  createCorridor({ id: "sea-vn-asean-cat-lai-manila", mode: "sea", fromHubId: "CAT_LAI", toHubId: "PORT_MANILA", marketScope: ["asean"], bidirectional: false, handlingHours: 36 }),
+  createCorridor({ id: "sea-vn-asean-lach-huyen-yangon", mode: "sea", fromHubId: "LACH_HUYEN", toHubId: "PORT_YANGON", marketScope: ["asean"], bidirectional: false, handlingHours: 42 }),
+  createCorridor({ id: "sea-vn-asean-caimepp-sin", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_SIN", marketScope: ["asean", "global", ...ALL_EXPORT_MARKETS], bidirectional: false, handlingHours: 18 }),
+
+  // === Vietnam → SE Asia (air) ===
+  createCorridor({ id: "air-sgn-bkk", mode: "air", fromHubId: "SGN", toHubId: "BKK_A", marketScope: ["asean"], bidirectional: true, handlingHours: 6 }),
+  createCorridor({ id: "air-sgn-kul", mode: "air", fromHubId: "SGN", toHubId: "KUL", marketScope: ["asean", "global"], bidirectional: true, handlingHours: 6 }),
+  createCorridor({ id: "air-sgn-cgk", mode: "air", fromHubId: "SGN", toHubId: "CGK", marketScope: ["asean"], bidirectional: true, handlingHours: 7 }),
+  createCorridor({ id: "air-sgn-mni", mode: "air", fromHubId: "SGN", toHubId: "MNL", marketScope: ["asean"], bidirectional: true, handlingHours: 6 }),
+  createCorridor({ id: "air-han-kul", mode: "air", fromHubId: "HAN", toHubId: "KUL", marketScope: ["asean", "global"], bidirectional: true, handlingHours: 6 }),
+  createCorridor({ id: "air-han-bkk", mode: "air", fromHubId: "HAN", toHubId: "BKK_A", marketScope: ["asean"], bidirectional: true, handlingHours: 6 }),
+  createCorridor({ id: "air-han-sin-asean", mode: "air", fromHubId: "HAN", toHubId: "SIN", marketScope: ["asean", "global", ...ALL_EXPORT_MARKETS], bidirectional: true, handlingHours: 7 }),
+  createCorridor({ id: "air-sgn-rgn", mode: "air", fromHubId: "SGN", toHubId: "RGN", marketScope: ["asean"], bidirectional: true, handlingHours: 6 }),
+
+  // === SE Asia intra-hub (sea) ===
+  createCorridor({ id: "sea-laemchabang-sin", mode: "sea", fromHubId: "LAEM_CHABANG", toHubId: "PORT_SIN", marketScope: ["asean", "global", ...ALL_EXPORT_MARKETS], bidirectional: false, handlingHours: 20 }),
+  createCorridor({ id: "sea-tanjung-priok-sin", mode: "sea", fromHubId: "PORT_TANJUNG_PRIOK", toHubId: "PORT_SIN", marketScope: ["asean", "global", ...ALL_EXPORT_MARKETS], bidirectional: false, handlingHours: 18 }),
+  createCorridor({ id: "sea-klang-sin", mode: "sea", fromHubId: "PORT_KLANG", toHubId: "PORT_SIN", marketScope: ["global", ...ALL_EXPORT_MARKETS], bidirectional: false, handlingHours: 12 }),
+
+  // === South Asia corridors (sea) ===
+  createCorridor({ id: "sea-sin-jnpt", mode: "sea", fromHubId: "PORT_SIN", toHubId: "PORT_JNPT", marketScope: ["other"], bidirectional: true, handlingHours: 28 }),
+  createCorridor({ id: "sea-colombo-jnpt", mode: "sea", fromHubId: "COLOMBO", toHubId: "PORT_JNPT", marketScope: ["other"], bidirectional: true, handlingHours: 22 }),
+  createCorridor({ id: "sea-jnpt-jebel-ali", mode: "sea", fromHubId: "PORT_JNPT", toHubId: "JEBEL_ALI", marketScope: ["eu", "other"], bidirectional: true, handlingHours: 26 }),
+  createCorridor({ id: "sea-colombo-jebel-ali", mode: "sea", fromHubId: "COLOMBO", toHubId: "JEBEL_ALI", marketScope: ["eu", "other"], bidirectional: true, handlingHours: 24 }),
+  createCorridor({ id: "sea-chittagong-sin", mode: "sea", fromHubId: "PORT_CHITTAGONG", toHubId: "PORT_SIN", marketScope: ["global", ...ALL_EXPORT_MARKETS], bidirectional: false, handlingHours: 34 }),
+  createCorridor({ id: "sea-jnpt-chennai", mode: "sea", fromHubId: "PORT_JNPT", toHubId: "PORT_CHENNAI", marketScope: ["other"], bidirectional: true, handlingHours: 20 }),
+
+  // === Middle East → EU (sea) ===
+  createCorridor({ id: "sea-jebel-ali-rotterdam", mode: "sea", fromHubId: "JEBEL_ALI", toHubId: "ROTTERDAM", marketScope: ["eu"], bidirectional: false, handlingHours: 32 }),
+  createCorridor({ id: "sea-jebel-ali-hamburg", mode: "sea", fromHubId: "JEBEL_ALI", toHubId: "HAMBURG", marketScope: ["eu"], bidirectional: false, handlingHours: 34 }),
+  createCorridor({ id: "sea-jebel-ali-antwerp", mode: "sea", fromHubId: "JEBEL_ALI", toHubId: "ANTWERP", marketScope: ["eu"], bidirectional: false, handlingHours: 33 }),
+  createCorridor({ id: "sea-jebel-ali-genoa", mode: "sea", fromHubId: "JEBEL_ALI", toHubId: "PORT_GENOA", marketScope: ["eu"], bidirectional: false, handlingHours: 26 }),
+  createCorridor({ id: "sea-jebel-ali-marseille", mode: "sea", fromHubId: "JEBEL_ALI", toHubId: "PORT_MARSEILLE", marketScope: ["eu"], bidirectional: false, handlingHours: 27 }),
+  createCorridor({ id: "sea-jebel-ali-barcelona", mode: "sea", fromHubId: "JEBEL_ALI", toHubId: "PORT_BARCELONA", marketScope: ["eu"], bidirectional: false, handlingHours: 28 }),
+  createCorridor({ id: "sea-jeddah-rotterdam", mode: "sea", fromHubId: "PORT_JEDDAH", toHubId: "ROTTERDAM", marketScope: ["eu"], bidirectional: false, handlingHours: 28 }),
+  createCorridor({ id: "sea-jeddah-genoa", mode: "sea", fromHubId: "PORT_JEDDAH", toHubId: "PORT_GENOA", marketScope: ["eu"], bidirectional: false, handlingHours: 22 }),
+  createCorridor({ id: "sea-jeddah-marseille", mode: "sea", fromHubId: "PORT_JEDDAH", toHubId: "PORT_MARSEILLE", marketScope: ["eu"], bidirectional: false, handlingHours: 22 }),
+  createCorridor({ id: "sea-salalah-rotterdam", mode: "sea", fromHubId: "PORT_SALALAH", toHubId: "ROTTERDAM", marketScope: ["eu"], bidirectional: false, handlingHours: 30 }),
+
+  // === Vietnam & SE Asia → EU southern ports (sea) ===
+  createCorridor({ id: "sea-cai-mep-genoa", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_GENOA", marketScope: ["eu"], bidirectional: false, handlingHours: 32 }),
+  createCorridor({ id: "sea-cai-mep-marseille", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_MARSEILLE", marketScope: ["eu"], bidirectional: false, handlingHours: 32 }),
+  createCorridor({ id: "sea-cai-mep-barcelona", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_BARCELONA", marketScope: ["eu"], bidirectional: false, handlingHours: 33 }),
+  createCorridor({ id: "sea-cai-mep-le-havre", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_LE_HAVRE", marketScope: ["eu"], bidirectional: false, handlingHours: 33 }),
+  createCorridor({ id: "sea-piraeus-rotterdam", mode: "sea", fromHubId: "PIRAEUS", toHubId: "ROTTERDAM", marketScope: ["eu"], bidirectional: true, handlingHours: 14 }),
+  createCorridor({ id: "sea-piraeus-genoa", mode: "sea", fromHubId: "PIRAEUS", toHubId: "PORT_GENOA", marketScope: ["eu"], bidirectional: true, handlingHours: 10 }),
+  createCorridor({ id: "sea-genoa-antwerp", mode: "sea", fromHubId: "PORT_GENOA", toHubId: "ANTWERP", marketScope: ["eu"], bidirectional: true, handlingHours: 12 }),
+  createCorridor({ id: "sea-marseille-rotterdam", mode: "sea", fromHubId: "PORT_MARSEILLE", toHubId: "ROTTERDAM", marketScope: ["eu"], bidirectional: true, handlingHours: 14 }),
+  createCorridor({ id: "sea-barcelona-antwerp", mode: "sea", fromHubId: "PORT_BARCELONA", toHubId: "ANTWERP", marketScope: ["eu"], bidirectional: true, handlingHours: 12 }),
+  createCorridor({ id: "sea-algeciras-rotterdam", mode: "sea", fromHubId: "PORT_ALGECIRAS", toHubId: "ROTTERDAM", marketScope: ["eu", "usa"], bidirectional: false, handlingHours: 12 }),
+  createCorridor({ id: "sea-felixstowe-rotterdam", mode: "sea", fromHubId: "PORT_FELIXSTOWE", toHubId: "ROTTERDAM", marketScope: ["eu"], bidirectional: true, handlingHours: 8 }),
+  createCorridor({ id: "sea-le-havre-antwerp", mode: "sea", fromHubId: "PORT_LE_HAVRE", toHubId: "ANTWERP", marketScope: ["eu"], bidirectional: true, handlingHours: 8 }),
+
+  // === Vietnam & SE Asia → Australia (sea) ===
+  createCorridor({ id: "sea-sin-sydney", mode: "sea", fromHubId: "PORT_SIN", toHubId: "PORT_BOTANY", marketScope: ["australia"], bidirectional: false, handlingHours: 48 }),
+  createCorridor({ id: "sea-sin-melbourne", mode: "sea", fromHubId: "PORT_SIN", toHubId: "PORT_MELBOURNE", marketScope: ["australia"], bidirectional: false, handlingHours: 50 }),
+  createCorridor({ id: "sea-sin-brisbane", mode: "sea", fromHubId: "PORT_SIN", toHubId: "PORT_BRISBANE", marketScope: ["australia"], bidirectional: false, handlingHours: 52 }),
+  createCorridor({ id: "sea-tanjung-sydney", mode: "sea", fromHubId: "PORT_TANJUNG_PRIOK", toHubId: "PORT_BOTANY", marketScope: ["australia"], bidirectional: false, handlingHours: 54 }),
+  createCorridor({ id: "sea-colombo-sydney", mode: "sea", fromHubId: "COLOMBO", toHubId: "PORT_BOTANY", marketScope: ["australia"], bidirectional: false, handlingHours: 58 }),
+  createCorridor({ id: "sea-cai-mep-sydney", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_BOTANY", marketScope: ["australia"], bidirectional: false, handlingHours: 60 }),
+  createCorridor({ id: "sea-cai-mep-melbourne", mode: "sea", fromHubId: "CAI_MEP", toHubId: "PORT_MELBOURNE", marketScope: ["australia"], bidirectional: false, handlingHours: 62 }),
+  createCorridor({ id: "sea-hkg-sydney", mode: "sea", fromHubId: "PORT_HKG", toHubId: "PORT_BOTANY", marketScope: ["australia"], bidirectional: false, handlingHours: 52 }),
+
+  // === Air → Australia ===
+  createCorridor({ id: "air-sin-syd", mode: "air", fromHubId: "SIN", toHubId: "SYD_D", marketScope: ["australia"], bidirectional: true, handlingHours: 9 }),
+  createCorridor({ id: "air-sin-mel", mode: "air", fromHubId: "SIN", toHubId: "MEL_D", marketScope: ["australia"], bidirectional: true, handlingHours: 10 }),
+  createCorridor({ id: "air-sin-bne", mode: "air", fromHubId: "SIN", toHubId: "BNE_D", marketScope: ["australia"], bidirectional: true, handlingHours: 9 }),
+  createCorridor({ id: "air-dxb-syd", mode: "air", fromHubId: "DXB", toHubId: "SYD_D", marketScope: ["australia"], bidirectional: true, handlingHours: 12 }),
+  createCorridor({ id: "air-hkg-syd", mode: "air", fromHubId: "HKG", toHubId: "SYD_D", marketScope: ["australia"], bidirectional: true, handlingHours: 10 }),
+  createCorridor({ id: "air-sgn-syd", mode: "air", fromHubId: "SGN", toHubId: "SYD_D", marketScope: ["australia"], bidirectional: false, handlingHours: 11 }),
+  createCorridor({ id: "air-sgn-mel", mode: "air", fromHubId: "SGN", toHubId: "MEL_D", marketScope: ["australia"], bidirectional: false, handlingHours: 11 }),
+
+  // === Air → EU southern hubs ===
+  createCorridor({ id: "air-sin-mxp", mode: "air", fromHubId: "SIN", toHubId: "MXP", marketScope: ["eu"], bidirectional: true, handlingHours: 12 }),
+  createCorridor({ id: "air-dxb-mxp", mode: "air", fromHubId: "DXB", toHubId: "MXP", marketScope: ["eu"], bidirectional: true, handlingHours: 9 }),
+  createCorridor({ id: "air-dxb-bcn", mode: "air", fromHubId: "DXB", toHubId: "BCN", marketScope: ["eu"], bidirectional: true, handlingHours: 9 }),
+  createCorridor({ id: "air-han-ams", mode: "air", fromHubId: "HAN", toHubId: "AMS", marketScope: ["eu"], bidirectional: false, handlingHours: 12 }),
+  createCorridor({ id: "air-sgn-fra", mode: "air", fromHubId: "SGN", toHubId: "FRA", marketScope: ["eu"], bidirectional: false, handlingHours: 12 }),
+  createCorridor({ id: "air-sgn-cdg", mode: "air", fromHubId: "SGN", toHubId: "CDG", marketScope: ["eu"], bidirectional: false, handlingHours: 12 }),
+  createCorridor({ id: "air-hkg-fra", mode: "air", fromHubId: "HKG", toHubId: "FRA", marketScope: ["eu"], bidirectional: true, handlingHours: 11 }),
+
+  // === Air → USA additional ===
+  createCorridor({ id: "air-han-jfk", mode: "air", fromHubId: "HAN", toHubId: "JFK", marketScope: ["usa"], bidirectional: false, handlingHours: 14 }),
+  createCorridor({ id: "air-han-ord", mode: "air", fromHubId: "HAN", toHubId: "ORD", marketScope: ["usa"], bidirectional: false, handlingHours: 14 }),
+  createCorridor({ id: "air-sgn-ord", mode: "air", fromHubId: "SGN", toHubId: "ORD", marketScope: ["usa"], bidirectional: false, handlingHours: 13 }),
+  createCorridor({ id: "air-hkg-jfk", mode: "air", fromHubId: "HKG", toHubId: "JFK", marketScope: ["usa"], bidirectional: true, handlingHours: 13 }),
+  createCorridor({ id: "air-hkg-lax", mode: "air", fromHubId: "HKG", toHubId: "LAX", marketScope: ["usa"], bidirectional: true, handlingHours: 12 }),
+
+  // === South Asia air feeder ===
+  createCorridor({ id: "air-sgn-bom", mode: "air", fromHubId: "SGN", toHubId: "BOM", marketScope: ["other"], bidirectional: true, handlingHours: 9 }),
+  createCorridor({ id: "air-han-del", mode: "air", fromHubId: "HAN", toHubId: "DEL", marketScope: ["other"], bidirectional: true, handlingHours: 9 }),
+  createCorridor({ id: "air-sin-bom", mode: "air", fromHubId: "SIN", toHubId: "BOM", marketScope: ["other"], bidirectional: true, handlingHours: 7 }),
+  createCorridor({ id: "air-dxb-del", mode: "air", fromHubId: "DXB", toHubId: "DEL", marketScope: ["other"], bidirectional: true, handlingHours: 6 }),
+  createCorridor({ id: "air-dxb-bom", mode: "air", fromHubId: "DXB", toHubId: "BOM", marketScope: ["other"], bidirectional: true, handlingHours: 6 }),
+
+  // === EU intra-rail ===
+  createCorridor({ id: "rail-duisburg-milan", mode: "rail", fromHubId: "DUISBURG", toHubId: "MILAN_RAIL", marketScope: ["eu"], bidirectional: true, handlingHours: 10 }),
+  createCorridor({ id: "rail-vienna-milan", mode: "rail", fromHubId: "VIENNA_SOUTH", toHubId: "MILAN_RAIL", marketScope: ["eu"], bidirectional: true, handlingHours: 10 }),
+  createCorridor({ id: "rail-warsaw-milan", mode: "rail", fromHubId: "WARSAW_RAIL", toHubId: "MILAN_RAIL", marketScope: ["eu"], bidirectional: false, handlingHours: 12 }),
+  createCorridor({ id: "rail-milan-barcelona", mode: "rail", fromHubId: "MILAN_RAIL", toHubId: "BARCELONA_RAIL", marketScope: ["eu"], bidirectional: true, handlingHours: 12 })
 ];

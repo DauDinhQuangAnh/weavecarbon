@@ -433,20 +433,20 @@ fallbackCreatedAt: string)
   if (shipmentLegs.length === 0) return null;
 
   const matchedProduct = shipment.products.find(
-    (item) => item.product_id.trim() === productId.trim()
+    (item) => item.productId.trim() === productId.trim()
   );
-  const allocatedCo2 = matchedProduct?.allocated_co2e ?? 0;
+  const allocatedCo2 = matchedProduct?.allocatedCo2e ?? 0;
   const matchedQuantity = matchedProduct?.quantity ?? 0;
   const shipmentLegCo2 = shipmentLegs.reduce(
     (sum, leg) => sum + Math.max(0, leg.co2Kg),
     0
   );
   const baseShipmentCo2 =
-  shipment.total_co2e > 0 ?
-  shipment.total_co2e :
+  shipment.totalCo2e > 0 ?
+  shipment.totalCo2e :
   shipmentLegCo2;
   const totalAllocatedCo2 = shipment.products.reduce(
-    (sum, item) => sum + Math.max(0, item.allocated_co2e),
+    (sum, item) => sum + Math.max(0, item.allocatedCo2e),
     0
   );
   const totalQuantity = shipment.products.reduce(
@@ -481,8 +481,8 @@ fallbackCreatedAt: string)
   shipmentLegs;
 
   const totalDistanceKm =
-  shipment.total_distance_km > 0 ?
-  shipment.total_distance_km :
+  shipment.totalDistanceKm > 0 ?
+  shipment.totalDistanceKm :
   scaledLegs.reduce((sum, leg) => sum + Math.max(0, leg.distanceKm), 0);
 
   return {
@@ -492,7 +492,7 @@ fallbackCreatedAt: string)
     totalDistanceKm,
     totalCO2Kg: targetTotalCo2,
     confidenceLevel: 70,
-    createdAt: fallbackCreatedAt || shipment.created_at,
+    createdAt: fallbackCreatedAt || shipment.createdAt,
     createdBy: "System"
   };
 }
@@ -605,7 +605,7 @@ product: ProductRecord)
     return Array.from(candidateMap.values()).
     sort(
       (a, b) =>
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
   };
 
@@ -616,7 +616,7 @@ product: ProductRecord)
       filter((summary) => isValidUuid(summary.id)).
       sort(
         (a, b) =>
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
     } catch {
       return [];
@@ -627,9 +627,9 @@ product: ProductRecord)
     let bestScore = 0;
 
     for (const shipmentProduct of detail.products) {
-      const shipmentProductId = shipmentProduct.product_id.trim().toLowerCase();
+      const shipmentProductId = shipmentProduct.productId.trim().toLowerCase();
       const shipmentSku = normalizeLookupValue(shipmentProduct.sku || "");
-      const shipmentName = normalizeLookupValue(shipmentProduct.product_name || "");
+      const shipmentName = normalizeLookupValue(shipmentProduct.productName || "");
 
       if (shipmentProductId && shipmentProductId === productIdLookup) {
         bestScore = Math.max(bestScore, 300);
@@ -731,7 +731,7 @@ identifier: string)
     const lookup = normalized.toLowerCase();
     const matched = summaries.find((summary) =>
     summary.id.trim().toLowerCase() === lookup ||
-    summary.reference_number.trim().toLowerCase() === lookup
+    summary.referenceNumber.trim().toLowerCase() === lookup
     );
 
     if (!matched) return null;
@@ -813,7 +813,7 @@ const PassportClient: React.FC = () => {
           try {
             const shipment = await fetchLogisticsShipmentById(normalizedProductId);
             apiShipment = shipment;
-            const shipmentProductId = shipment.products[0]?.product_id?.trim();
+            const shipmentProductId = shipment.products[0]?.productId?.trim();
             if (shipmentProductId && isValidProductId(shipmentProductId)) {
               apiProduct = await fetchProductById(shipmentProductId);
             }
@@ -842,7 +842,7 @@ const PassportClient: React.FC = () => {
       }
 
       if (!apiProduct && apiShipment) {
-        const shipmentProductId = apiShipment.products[0]?.product_id?.trim();
+        const shipmentProductId = apiShipment.products[0]?.productId?.trim();
         if (shipmentProductId && isValidProductId(shipmentProductId)) {
           try {
             apiProduct = await fetchProductById(shipmentProductId);
