@@ -54,8 +54,6 @@ const DOC_TYPES: { value: string; label: string }[] = [
 
 const ACCEPT =
   '.pdf,.xml,.jpg,.jpeg,.png,.xlsx,.csv,application/pdf,application/xml,image/*';
-const RAG_DOCUMENT_ACCEPT =
-  '.pdf,.docx,.txt,.text,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
 const MAX_SIZE = 20 * 1024 * 1024;
 
 const STATUS_LABEL: Record<string, string> = {
@@ -107,8 +105,6 @@ export default function EvidencePage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewDoc, setReviewDoc] = useState<EvDoc | null>(null);
   const [reviewFields, setReviewFields] = useState<ExtractedField[]>([]);
-  const [ingestingId, setIngestingId] = useState<string | null>(null);
-  const [ingestedIds, setIngestedIds] = useState<Set<string>>(new Set());
 
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState('electricity_bill');
@@ -202,29 +198,6 @@ export default function EvidencePage() {
     }
   };
 
-  const ingestToRag = async (doc: EvDoc, ragFile: File) => {
-    setIngestingId(doc.id);
-    try {
-      const form = new FormData();
-      form.append('file', ragFile);
-      form.append('chunking_profile', 'hybrid');
-      const data = await api.post<{ rows?: number; chunks?: number }>(
-        `/evidence/${doc.id}/rag-ingest`,
-        form
-      );
-      setIngestedIds((current) => new Set([...current, doc.id]));
-      toast({
-        title: `Đã đưa ${data.rows ?? 0} khối nguồn vào RAG (${data.chunks ?? 0} chunks)`,
-      });
-    } catch (error) {
-      toast({
-        title: error instanceof Error ? error.message : 'Lỗi ingest RAG',
-        variant: 'destructive',
-      });
-    } finally {
-      setIngestingId(null);
-    }
-  };
 
   return (
     <div className="flex-1 p-6 space-y-6">
@@ -316,7 +289,7 @@ export default function EvidencePage() {
                         {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -324,36 +297,11 @@ export default function EvidencePage() {
                           >
                             Xem
                           </Button>
-                          {!ingestedIds.has(r.id) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              disabled={ingestingId === r.id}
-                              onClick={() => {
-                                const input = document.createElement('input');
-                                input.type = 'file';
-                                input.accept = RAG_DOCUMENT_ACCEPT;
-                                input.onchange = (event) => {
-                                  const selectedFile = (event.target as HTMLInputElement).files?.[0];
-                                  if (selectedFile) void ingestToRag(r, selectedFile);
-                                };
-                                input.click();
-                              }}
-                            >
-                              {ingestingId === r.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <BrainCircuit className="h-3.5 w-3.5 mr-1" />
-                              )}
-                              RAG
-                            </Button>
-                          )}
-                          {ingestedIds.has(r.id) && (
-                            <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200">
-                              RAG
+                          {r.status === 'ocr_parsed' || r.status === 'logic_checked' || r.status === 'source_matched' || r.status === 'cross_checked' || r.status === 'verified' || r.status === 'locked' ? (
+                            <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200 gap-1">
+                              <BrainCircuit className="h-3 w-3" /> RAG
                             </Badge>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>
