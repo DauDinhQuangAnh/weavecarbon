@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,8 +30,11 @@ import {
   AlertTriangle,
   FileText,
   Loader2,
+  Trash2,
   Upload,
+  Download,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
@@ -51,6 +55,154 @@ const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'packing_list', label: 'Packing list' },
   { value: 'other', label: 'Khác' },
 ];
+
+// Template data: [headers[], ...sampleRows[], ...instructionRows[]]
+const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | number)[][] }> = {
+  electricity_bill: {
+    sheet: 'Hoa_don_dien',
+    rows: [
+      ['Kỳ thanh toán', 'Cơ sở / Nhà máy', 'Lượng điện (kWh)', 'Hệ số phát thải (kg CO₂e/kWh)', 'Nguồn hệ số phát thải', 'CO₂e (kg) = kWh × EF'],
+      ['2024-Q2', 'Nhà máy Bình Dương', 12500, 0.4290, 'VN Ministry of Natural Resources 2024', 5362.5],
+      ['2024-Q3', 'Nhà máy Bình Dương', 11800, 0.4290, 'VN Ministry of Natural Resources 2024', 5062.2],
+      ['* Ghi chú: Kỳ có thể là 2024-Q1, 2024-01, hoặc tháng cụ thể. CO₂e được tính tự động bởi hệ thống.', '', '', '', '', ''],
+    ],
+  },
+  fuel_receipt: {
+    sheet: 'Hoa_don_nhien_lieu',
+    rows: [
+      ['Kỳ thanh toán', 'Loại nhiên liệu', 'Lượng (lít)', 'Hệ số phát thải (kg CO₂e/lít)', 'CO₂e (kg) = lít × EF', 'Ghi chú'],
+      ['2024-Q2', 'diesel', 500, 2.688, 1344, 'Máy phát điện dự phòng'],
+      ['2024-Q2', 'lpg', 200, 1.629, 325.8, 'Lò hơi'],
+      ['* Loại NL hợp lệ: diesel | petrol | lpg | cng | coal | biomass | other', '', '', '', '', ''],
+      ['* EF mặc định: diesel=2.688, petrol=2.352, lpg=1.629, cng=2.740, coal=2.420, biomass=0', '', '', '', '', ''],
+    ],
+  },
+  bom: {
+    sheet: 'BOM',
+    rows: [
+      ['SKU sản phẩm', 'Tên nguyên liệu', 'Thành phần / Mô tả', 'Tỷ lệ (%)', 'Khối lượng (kg/sản phẩm)', 'Nhà cung ứng', 'Xuất xứ', 'Chứng chỉ (nếu có)'],
+      ['SKU-SHIRT-001', 'Cotton 100%', 'Vải cotton chải kỹ', 60, 0.18, 'Công ty Bông Việt', 'VN', 'GOTS'],
+      ['SKU-SHIRT-001', 'Polyester tái chế', 'Sợi tái chế GRS', 30, 0.09, 'Toray VN', 'JP', 'GRS'],
+      ['SKU-SHIRT-001', 'Chỉ may + Phụ liệu', 'Nút, nhãn, bao bì', 10, 0.03, 'Nhiều NCC', 'VN', ''],
+    ],
+  },
+  material_invoice: {
+    sheet: 'Hoa_don_nguyen_lieu',
+    rows: [
+      ['Số hóa đơn', 'Ngày', 'Nhà cung ứng', 'Mã hàng', 'Tên nguyên liệu', 'Số lượng', 'Đơn vị', 'Đơn giá (VNĐ)', 'Thành tiền (VNĐ)', 'Ghi chú'],
+      ['HD-2024-001', '2024-04-15', 'Bông Việt JSC', 'BV-COT-001', 'Vải cotton 32/1 OE', 500, 'kg', 85000, 42500000, ''],
+      ['HD-2024-002', '2024-04-20', 'Toray VN', 'TR-PET-002', 'Sợi Polyester DTY 150D', 300, 'kg', 62000, 18600000, 'GRS certified'],
+    ],
+  },
+  warehouse_receipt: {
+    sheet: 'Phieu_kho',
+    rows: [
+      ['Số phiếu', 'Ngày', 'Loại (Nhập/Xuất)', 'Mã hàng', 'Tên hàng', 'Số lượng', 'Đơn vị', 'Kho', 'Lô/Batch', 'Ghi chú'],
+      ['PNK-2024-001', '2024-04-15', 'Nhập', 'BV-COT-001', 'Vải cotton', 500, 'kg', 'Kho A - Nguyên liệu', 'LOT-240415', ''],
+      ['PXK-2024-010', '2024-04-25', 'Xuất', 'SKU-SHIRT-001', 'Áo thun SKU-SHIRT-001', 1000, 'cái', 'Kho B - Thành phẩm', 'LOT-240425', 'Xuất cho đơn ORD-001'],
+    ],
+  },
+  supplier_certificate: {
+    sheet: 'Chung_chi_NCC',
+    rows: [
+      ['Tên nhà cung ứng', 'Loại chứng chỉ', 'Số chứng chỉ', 'Ngày cấp', 'Ngày hết hạn', 'Phạm vi / Sản phẩm', 'Cơ quan cấp', 'Link xác minh'],
+      ['Bông Việt JSC', 'GOTS', 'GOTS-VN-2024-1234', '2024-01-15', '2025-01-14', 'Cotton yarn & fabric', 'Control Union', 'https://global-standard.org/...'],
+      ['Toray VN', 'GRS', 'GRS-VN-2024-5678', '2024-03-01', '2025-02-28', 'Recycled polyester fiber', 'Bureau Veritas', 'https://textileexchange.org/...'],
+    ],
+  },
+  supplier_declaration: {
+    sheet: 'To_khai_NCC',
+    rows: [
+      ['Tên nhà cung ứng', 'Nguyên liệu / Sản phẩm', 'CO₂e (kg/đơn vị)', 'Đơn vị', 'Phương pháp tính', 'Kỳ tính', 'Người khai', 'Ngày khai', 'Ghi chú'],
+      ['Bông Việt JSC', 'Cotton yarn 32/1', 3.2, 'kg CO₂e/kg', 'Cradle-to-gate (LCA)', '2023', 'Nguyễn Văn A - GĐ KT', '2024-03-15', 'ISO 14067:2018'],
+      ['Toray VN', 'Recycled polyester DTY 150D', 1.8, 'kg CO₂e/kg', 'Mass balance, GRS', '2023', 'Tran Thi B - Env Manager', '2024-03-20', 'GRS certified'],
+    ],
+  },
+  logistics_invoice: {
+    sheet: 'Hoa_don_van_chuyen',
+    rows: [
+      ['Số hóa đơn', 'Ngày', 'Đơn vị vận chuyển', 'Loại vận tải', 'Điểm đi', 'Điểm đến', 'Trọng lượng (kg)', 'Khoảng cách (km)', 'CO₂e (kg)', 'Ghi chú'],
+      ['VC-2024-001', '2024-05-10', 'Gemadept Logistics', 'Đường bộ', 'Bình Dương', 'Cảng Cát Lái', 5000, 45, 18.5, ''],
+      ['VC-2024-002', '2024-05-12', 'Maersk VN', 'Đường biển', 'Cảng Cát Lái', 'Hamburg DE', 8000, 10800, 1080, 'FCL 40HC'],
+      ['* EF tham khảo: Xe tải 0.09–0.15 kg/tấn.km | Đường biển 0.012 kg/tấn.km | Hàng không 0.602 kg/tấn.km', '', '', '', '', '', '', '', '', ''],
+    ],
+  },
+  bill_of_lading: {
+    sheet: 'Bill_of_Lading',
+    rows: [
+      ['Số B/L', 'Ngày phát hành', 'Hãng tàu', 'Tàu / Chuyến', 'Cảng xếp hàng', 'Cảng dỡ hàng', 'Hàng hóa (mô tả)', 'Số container', 'Loại cont', 'Trọng lượng (kg)', 'Số kiện'],
+      ['MAEU2024123456', '2024-05-15', 'Maersk', 'MSC MAYA / V.024W', 'Cat Lai, HCMC, VN', 'Hamburg, DE', 'Woven garments - 100% Cotton', 'MSKU1234567', '40HC', 18500, 850],
+      ['COSCO20240789', '2024-05-20', 'COSCO', 'COSCO GLORY / E.018', 'Hai Phong, VN', 'Rotterdam, NL', 'Knitted apparel - Mixed fabric', 'CSNU9876543', '20GP', 12000, 600],
+    ],
+  },
+  air_waybill: {
+    sheet: 'Air_Waybill',
+    rows: [
+      ['Số AWB', 'Ngày', 'Hãng bay', 'Sân bay xuất (IATA)', 'Sân bay đến (IATA)', 'Mô tả hàng hóa', 'Trọng lượng (kg)', 'Số kiện', 'Ghi chú'],
+      ['125-12345678', '2024-05-18', 'Vietnam Airlines', 'SGN', 'FRA', 'Garment samples - urgency', 250, 10, 'DDP Incoterms'],
+      ['618-98765432', '2024-05-22', 'Singapore Airlines Cargo', 'SGN', 'CDG', 'Fashion accessories - NVD', 180, 8, 'CIP Incoterms'],
+      ['* EF hàng không ≈ 0.602 kg CO₂e / tấn.km (ICAO 2023). Cần tránh tối đa vận chuyển hàng không.', '', '', '', '', '', '', '', ''],
+    ],
+  },
+  export_invoice: {
+    sheet: 'Hoa_don_xuat_khau',
+    rows: [
+      ['Số hóa đơn', 'Ngày', 'Người bán', 'Người mua', 'Nước nhập khẩu', 'Điều kiện TM (Incoterms)', 'Mã HS', 'Mô tả hàng', 'Số lượng', 'Đơn vị', 'Đơn giá (USD)', 'Tổng (USD)', 'Trọng lượng (kg)'],
+      ['EXP-2024-001', '2024-05-20', 'WeaveCarbon Co., Ltd', 'Fashion GmbH', 'DE', 'FOB HCMC', '6109.10.90', "Men's T-shirt 100% Cotton", 5000, 'pcs', 4.5, 22500, 1250],
+      ['EXP-2024-002', '2024-05-22', 'WeaveCarbon Co., Ltd', 'Moda SRL', 'IT', 'CIF Genova', '6104.43.00', "Women's knitted dress Polyester", 2000, 'pcs', 12.8, 25600, 1400],
+    ],
+  },
+  packing_list: {
+    sheet: 'Packing_List',
+    rows: [
+      ['Số kiện', 'Loại kiện', 'Mã hàng (SKU)', 'Mô tả hàng', 'Số lượng/kiện', 'Đơn vị', 'Trọng lượng cả bì (kg)', 'Trọng lượng tịnh (kg)', 'Kích thước D×R×C (cm)', 'Ghi chú'],
+      [1, 'Carton', 'SKU-SHIRT-001', "Men's T-shirt S/M/L - Cotton", 120, 'pcs', 8.5, 7.8, '60×40×50', 'PO#2024-EU-001'],
+      [2, 'Carton', 'SKU-SHIRT-001', "Men's T-shirt S/M/L - Cotton", 120, 'pcs', 8.5, 7.8, '60×40×50', 'PO#2024-EU-001'],
+      ['...', '', '', '', '', '', '', '', '', ''],
+      ['Tổng cộng', '', '', '', 10000, 'pcs', 710, 650, '', '850 cartons'],
+    ],
+  },
+  other: {
+    sheet: 'Chung_tu_khac',
+    rows: [
+      ['Tên tài liệu', 'Ngày', 'Người phát hành', 'Mô tả nội dung', 'Số tham chiếu', 'Ghi chú'],
+      ['Biên bản kiểm định lò hơi', '2024-03-10', 'Trung tâm Đo lường Chất lượng', 'Kiểm định an toàn lò hơi 2 tấn/h', 'KD-2024-BD-0021', 'Hiệu lực 12 tháng'],
+      ['Báo cáo LCA nội bộ', '2024-04-01', 'WeaveCarbon R&D', 'LCA tóm tắt SKU-SHIRT-001 theo ISO 14067', 'LCA-2024-001', 'Draft, chưa kiểm toán'],
+    ],
+  },
+};
+
+function downloadTemplate(kind: string, label: string) {
+  const tpl = DOC_TEMPLATES[kind] ?? DOC_TEMPLATES['other'];
+  const ws = XLSX.utils.aoa_to_sheet(tpl.rows);
+
+  // Style header row width (approximate)
+  const colWidths = tpl.rows[0].map((h) => ({ wch: Math.max(String(h).length + 4, 16) }));
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, tpl.sheet);
+
+  // Add instructions sheet
+  const infoWs = XLSX.utils.aoa_to_sheet([
+    ['WeaveCarbon — File mẫu chứng từ'],
+    [''],
+    ['Loại chứng từ:', label],
+    ['Mục đích:', 'Cung cấp dữ liệu có cấu trúc để hệ thống AI đọc và tính carbon chính xác hơn.'],
+    ['Định dạng tải lên:', 'PDF, XML, JPG, PNG, XLSX, CSV (tối đa 20 MB)'],
+    [''],
+    ['Lưu ý:'],
+    ['- Dòng đầu tiên trong sheet dữ liệu là tiêu đề cột, không thay đổi thứ tự.'],
+    ['- Xóa các dòng mẫu và điền dữ liệu thực của bạn.'],
+    ['- Xóa các dòng ghi chú (bắt đầu bằng *) trước khi tải lên.'],
+    ['- Tải file này lên cùng với chứng từ gốc (PDF/XML) để tăng độ chính xác.'],
+    [''],
+    ['Hỗ trợ:', 'support@weavecarbon.com'],
+  ]);
+  XLSX.utils.book_append_sheet(wb, infoWs, 'Huong_dan');
+
+  XLSX.writeFile(wb, `WeaveCarbon_Mau_${kind}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
 
 const ACCEPT =
   '.pdf,.xml,.jpg,.jpeg,.png,.xlsx,.csv,application/pdf,application/xml,image/*';
@@ -97,6 +249,9 @@ interface ExtractedField {
 const PAGE_SIZE = 50;
 
 export default function EvidencePage() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('highlight');
+
   const [rows, setRows] = useState<EvDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -113,6 +268,19 @@ export default function EvidencePage() {
   const [supplier, setSupplier] = useState('');
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // Electricity bill structured fields → synced to electricity_invoices (CBAM Scope 2)
+  const [elecFacilityName, setElecFacilityName] = useState('Main Facility');
+  const [elecBillingPeriod, setElecBillingPeriod] = useState('');
+  const [elecKwh, setElecKwh] = useState('');
+  const [elecEF, setElecEF] = useState('0.4290');
+  const [elecEFSource, setElecEFSource] = useState('VN Ministry of Natural Resources 2024');
+
+  // Fuel receipt structured fields → synced to fuel_invoices (CBAM Scope 1)
+  const [fuelBillingPeriod, setFuelBillingPeriod] = useState('');
+  const [fuelType, setFuelType] = useState('diesel');
+  const [fuelQtyLiters, setFuelQtyLiters] = useState('');
+  const [fuelEF, setFuelEF] = useState('');
 
   const load = useCallback(async (p = 1) => {
     setLoading(true);
@@ -136,6 +304,29 @@ export default function EvidencePage() {
 
   useEffect(() => { load(page); }, [page, load]);
 
+  useEffect(() => {
+    if (highlightId && rows.length > 0) {
+      document.getElementById(`ev-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightId, rows]);
+
+  const resetUploadForm = () => {
+    setFile(null);
+    setSupplier('');
+    setNotes('');
+    setPeriodStart('');
+    setPeriodEnd('');
+    setElecFacilityName('Main Facility');
+    setElecBillingPeriod('');
+    setElecKwh('');
+    setElecEF('0.4290');
+    setElecEFSource('VN Ministry of Natural Resources 2024');
+    setFuelBillingPeriod('');
+    setFuelType('diesel');
+    setFuelQtyLiters('');
+    setFuelEF('');
+  };
+
   const handleUpload = async () => {
     if (!file)
       return toast({ title: 'Vui lòng chọn file', variant: 'destructive' });
@@ -151,14 +342,37 @@ export default function EvidencePage() {
       if (supplier) formData.append('supplierName', supplier);
       if (notes) formData.append('notes', notes);
 
-      await api.post('/evidence/upload', formData);
+      const uploadResult = await api.post<EvDoc>('/evidence/upload', formData);
+      const evidenceId = uploadResult?.id;
+
+      // Sync structured data to CBAM invoice tables
+      if (evidenceId && docType === 'electricity_bill' && elecBillingPeriod && elecKwh) {
+        try {
+          await api.post('/electricity-invoices', {
+            facility_name: elecFacilityName || 'Main Facility',
+            billing_period: elecBillingPeriod,
+            kwh: parseFloat(elecKwh),
+            emission_factor_kg_per_kwh: parseFloat(elecEF) || 0.4290,
+            emission_factor_source: elecEFSource || 'VN Ministry of Natural Resources 2024',
+            evidence_document_id: evidenceId,
+          });
+        } catch { /* non-fatal */ }
+      } else if (evidenceId && docType === 'fuel_receipt' && fuelBillingPeriod && fuelQtyLiters) {
+        try {
+          const fuelPayload: Record<string, unknown> = {
+            billing_period: fuelBillingPeriod,
+            fuel_type: fuelType,
+            quantity_liters: parseFloat(fuelQtyLiters),
+            evidence_document_id: evidenceId,
+          };
+          if (fuelEF) fuelPayload.emission_factor_kg_per_liter = parseFloat(fuelEF);
+          await api.post('/fuel-invoices', fuelPayload);
+        } catch { /* non-fatal */ }
+      }
+
       toast({ title: 'Đã tải lên. AI đang đọc chứng từ — kết quả hiện sau 5-10 giây.' });
       setUploadOpen(false);
-      setFile(null);
-      setSupplier('');
-      setNotes('');
-      setPeriodStart('');
-      setPeriodEnd('');
+      resetUploadForm();
       setPage(1);
       await load(1);
       // Auto-refresh after AI extraction completes (~8s)
@@ -179,6 +393,18 @@ export default function EvidencePage() {
       setReviewFields([]);
     }
     setReviewOpen(true);
+  };
+
+  const handleDeleteDoc = async (doc: EvDoc) => {
+    const label = DOC_TYPES.find((d) => d.value === doc.kind)?.label ?? doc.kind;
+    if (!window.confirm(`Xoá "${doc.fileName || doc.documentName}" (${label})?\nHóa đơn liên kết (điện/nhiên liệu) cũng sẽ bị xoá.`)) return;
+    try {
+      await api.delete(`/evidence/${doc.id}`);
+      toast({ title: 'Đã xoá chứng từ.' });
+      await load(page);
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi xoá', variant: 'destructive' });
+    }
   };
 
   const confirmReview = async () => {
@@ -264,7 +490,8 @@ export default function EvidencePage() {
                   {rows.map((r) => (
                     <tr
                       key={r.id}
-                      className="border-t hover:bg-slate-50"
+                      id={`ev-${r.id}`}
+                      className={`border-t hover:bg-slate-50 ${r.id === highlightId ? 'bg-sky-50 ring-1 ring-sky-300' : ''}`}
                     >
                       <td className="p-3 font-medium">{r.fileName || r.documentName}</td>
                       <td className="p-3">
@@ -302,6 +529,14 @@ export default function EvidencePage() {
                               <BrainCircuit className="h-3 w-3" /> RAG
                             </Badge>
                           ) : null}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteDoc(r)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -353,7 +588,21 @@ export default function EvidencePage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Loại chứng từ</Label>
+              <div className="flex items-center justify-between">
+                <Label>Loại chứng từ</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-sky-600 hover:text-sky-700"
+                  onClick={() => {
+                    const label = DOC_TYPES.find((d) => d.value === docType)?.label ?? docType;
+                    downloadTemplate(docType, label);
+                  }}
+                >
+                  <Download className="h-3 w-3 mr-1" /> Tải file mẫu
+                </Button>
+              </div>
               <Select value={docType} onValueChange={setDocType}>
                 <SelectTrigger>
                   <SelectValue />
@@ -393,6 +642,119 @@ export default function EvidencePage() {
                 placeholder="EVN HCMC, Petrolimex…"
               />
             </div>
+
+            {/* Electricity bill → electricity_invoices (CBAM Scope 2) */}
+            {docType === 'electricity_bill' && (
+              <div className="space-y-3 rounded-md border border-sky-200 bg-sky-50 p-3">
+                <p className="text-xs font-medium text-sky-800">
+                  Dữ liệu hóa đơn điện — tự động đồng bộ vào Báo cáo CBAM (Scope 2)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Cơ sở / Nhà máy</Label>
+                    <Input
+                      value={elecFacilityName}
+                      onChange={(e) => setElecFacilityName(e.target.value)}
+                      placeholder="Main Facility"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Kỳ thanh toán</Label>
+                    <Input
+                      value={elecBillingPeriod}
+                      onChange={(e) => setElecBillingPeriod(e.target.value)}
+                      placeholder="2024-Q2 hoặc 2024-05"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Lượng điện (kWh) *</Label>
+                    <Input
+                      type="number"
+                      value={elecKwh}
+                      onChange={(e) => setElecKwh(e.target.value)}
+                      placeholder="12500"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Hệ số phát thải (kg CO₂e/kWh)</Label>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      value={elecEF}
+                      onChange={(e) => setElecEF(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nguồn hệ số phát thải</Label>
+                  <Input
+                    value={elecEFSource}
+                    onChange={(e) => setElecEFSource(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Fuel receipt → fuel_invoices (CBAM Scope 1) */}
+            {docType === 'fuel_receipt' && (
+              <div className="space-y-3 rounded-md border border-orange-200 bg-orange-50 p-3">
+                <p className="text-xs font-medium text-orange-800">
+                  Dữ liệu hóa đơn nhiên liệu — tự động đồng bộ vào Báo cáo CBAM (Scope 1)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Kỳ thanh toán</Label>
+                    <Input
+                      value={fuelBillingPeriod}
+                      onChange={(e) => setFuelBillingPeriod(e.target.value)}
+                      placeholder="2024-Q2 hoặc 2024-05"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Loại nhiên liệu</Label>
+                    <Select value={fuelType} onValueChange={setFuelType}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="diesel">Diesel</SelectItem>
+                        <SelectItem value="petrol">Xăng (Petrol)</SelectItem>
+                        <SelectItem value="lpg">LPG</SelectItem>
+                        <SelectItem value="cng">CNG</SelectItem>
+                        <SelectItem value="coal">Than đá (Coal)</SelectItem>
+                        <SelectItem value="biomass">Sinh khối (Biomass)</SelectItem>
+                        <SelectItem value="other">Khác</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Lượng nhiên liệu (lít) *</Label>
+                    <Input
+                      type="number"
+                      value={fuelQtyLiters}
+                      onChange={(e) => setFuelQtyLiters(e.target.value)}
+                      placeholder="500"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      Hệ số phát thải (kg CO₂e/lít){' '}
+                      <span className="font-normal text-slate-400">(tự tính từ loại NL)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      value={fuelEF}
+                      onChange={(e) => setFuelEF(e.target.value)}
+                      placeholder="Để trống = tự động"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>
                 File (PDF, XML, JPG, PNG, XLSX, CSV — tối đa 20MB)
@@ -413,7 +775,7 @@ export default function EvidencePage() {
             </div>
           </div>
           <DialogFooter className="pt-2">
-            <Button variant="ghost" onClick={() => setUploadOpen(false)}>
+            <Button variant="ghost" onClick={() => { setUploadOpen(false); resetUploadForm(); }}>
               Huỷ
             </Button>
             <Button

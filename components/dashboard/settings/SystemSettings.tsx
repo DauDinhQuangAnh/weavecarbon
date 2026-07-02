@@ -57,6 +57,9 @@ import { toast } from "sonner";interface CompanyData {
   domestic_market?: string | null;
   target_markets: string[] | null;
   current_plan: string;
+  address?: string | null;
+  tax_id?: string | null;
+  phone?: string | null;
   created_at?: string;
 }
 
@@ -174,7 +177,10 @@ const SystemSettings: React.FC = () => {
     name: "",
     business_type: "brand" as "shop_online" | "brand" | "factory",
     domestic_market: "VN",
-    target_markets: [] as string[]
+    target_markets: [] as string[],
+    address: "",
+    tax_id: "",
+    phone: ""
   });
 
   const businessTypeLabel =
@@ -200,7 +206,10 @@ const SystemSettings: React.FC = () => {
         company?.domestic_market,
         company?.target_markets || []
       ),
-      target_markets: normalizeTargetMarkets(company?.target_markets || [])
+      target_markets: normalizeTargetMarkets(company?.target_markets || []),
+      address: company?.address || "",
+      tax_id: company?.tax_id || "",
+      phone: company?.phone || ""
     });
   };
 
@@ -284,7 +293,10 @@ const SystemSettings: React.FC = () => {
               companyData?.domestic_market,
               companyData?.target_markets || []
             ),
-            target_markets: normalizeTargetMarkets(companyData?.target_markets || [])
+            target_markets: normalizeTargetMarkets(companyData?.target_markets || []),
+            address: companyData?.address || "",
+            tax_id: companyData?.tax_id || "",
+            phone: companyData?.phone || ""
           }));
         } else {
           setCompany(null);
@@ -624,7 +636,10 @@ const SystemSettings: React.FC = () => {
         name: formData.name,
         business_type: formData.business_type,
         domestic_market: selectedDomesticMarket,
-        target_markets: effectiveTargetMarkets
+        target_markets: effectiveTargetMarkets,
+        address: formData.address || null,
+        tax_id: formData.tax_id || null,
+        phone: formData.phone || null
       });
 
       toast.success(t("updateSuccess"));
@@ -636,7 +651,10 @@ const SystemSettings: React.FC = () => {
           name: formData.name,
           business_type: formData.business_type,
           domestic_market: selectedDomesticMarket,
-          target_markets: effectiveTargetMarkets
+          target_markets: effectiveTargetMarkets,
+          address: formData.address || null,
+          tax_id: formData.tax_id || null,
+          phone: formData.phone || null
         } :
       null
       );
@@ -993,6 +1011,54 @@ const SystemSettings: React.FC = () => {
                   <p className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-800">
                     {isTrialPlan ? t("trialDomesticOnlyHint") : t("targetMarketsEmpty")}
                   </p>
+              }
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>Địa chỉ nhà máy / cơ sở</Label>
+              {editMode ?
+              <Input
+                value={formData.address}
+                className="border-slate-300 bg-white"
+                placeholder="VD: 123 Đường ABC, Quận 1, TP.HCM"
+                onChange={(e) =>
+                setFormData((prev) => ({ ...prev, address: e.target.value }))
+                } /> :
+              <p className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-800">
+                  {company?.address || <span className="text-slate-400 italic">{t("notUpdated")}</span>}
+                </p>
+              }
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Mã số thuế / EORI</Label>
+              {editMode ?
+              <Input
+                value={formData.tax_id}
+                className="border-slate-300 bg-white"
+                placeholder="VD: 0123456789"
+                onChange={(e) =>
+                setFormData((prev) => ({ ...prev, tax_id: e.target.value }))
+                } /> :
+              <p className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-800">
+                  {company?.tax_id || <span className="text-slate-400 italic">{t("notUpdated")}</span>}
+                </p>
+              }
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Số điện thoại</Label>
+              {editMode ?
+              <Input
+                value={formData.phone}
+                className="border-slate-300 bg-white"
+                placeholder="VD: 028 1234 5678"
+                onChange={(e) =>
+                setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                } /> :
+              <p className="rounded border border-slate-300 bg-slate-100 px-3 py-1.5 text-sm text-slate-800">
+                  {company?.phone || <span className="text-slate-400 italic">{t("notUpdated")}</span>}
+                </p>
               }
             </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -27,6 +27,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -34,6 +36,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Building2,
   CheckCircle2,
@@ -43,8 +53,12 @@ import {
   FileBarChart,
   FileText,
   Link2,
+  Loader2,
   Package2,
+  Pencil,
   ShieldAlert,
+  Trash2,
+  Upload,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -58,6 +72,7 @@ interface ElectricityInvoice {
   emission_factor_source: string | null;
   scope2_co2e_kg: number;
   status: string;
+  evidence_document_id: string | null;
 }
 
 interface FuelInvoice {
@@ -68,6 +83,7 @@ interface FuelInvoice {
   emission_factor_kg_per_liter: number | null;
   scope1_co2e_kg: number | null;
   status: string;
+  evidence_document_id: string | null;
 }
 
 interface EvidenceDoc {
@@ -191,6 +207,22 @@ export default function CbamReportPage() {
   const [evidence, setEvidence]       = useState<EvidenceDoc[]>([]);
   const [calcs, setCalcs]             = useState<CarbonCalc[]>([]);
   const [exporting, setExporting]     = useState(false);
+  const [saving, setSaving]           = useState(false);
+
+  // Electricity invoice CRUD modal
+  type ElecForm = { facility_name: string; billing_period: string; kwh: string; emission_factor_kg_per_kwh: string; emission_factor_source: string };
+  const defaultElecForm: ElecForm = { facility_name: 'Main Facility', billing_period: '', kwh: '', emission_factor_kg_per_kwh: '0.4290', emission_factor_source: 'VN Ministry of Natural Resources 2024' };
+  const [elecModalOpen, setElecModalOpen] = useState(false);
+  const [elecEditing, setElecEditing]     = useState<ElectricityInvoice | null>(null);
+  const [elecForm, setElecForm]           = useState<ElecForm>(defaultElecForm);
+
+  // Fuel invoice CRUD modal
+  type FuelForm = { billing_period: string; fuel_type: string; quantity_liters: string; emission_factor_kg_per_liter: string };
+  const defaultFuelForm: FuelForm = { billing_period: '', fuel_type: 'diesel', quantity_liters: '', emission_factor_kg_per_liter: '' };
+  const [fuelModalOpen, setFuelModalOpen] = useState(false);
+  const [fuelEditing, setFuelEditing]     = useState<FuelInvoice | null>(null);
+  const [fuelForm, setFuelForm]           = useState<FuelForm>(defaultFuelForm);
+
 
   const [selectedYear, setSelectedYear]       = useState(CURRENT_YEAR);
   const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
@@ -202,6 +234,15 @@ export default function CbamReportPage() {
   useEffect(() => {
     setPageTitle('Báo cáo CBAM-style', 'Cấu trúc 6 tab phỏng theo EU CBAM communication template.');
   }, [setPageTitle]);
+
+  const loadInvoices = useCallback(async () => {
+    const [e, f] = await Promise.allSettled([
+      api.get<ElectricityInvoice[]>('/electricity-invoices'),
+      api.get<FuelInvoice[]>('/fuel-invoices'),
+    ]);
+    if (e.status === 'fulfilled') setElectricity(e.value ?? []);
+    if (f.status === 'fulfilled') setFuels(f.value ?? []);
+  }, []);
 
   useEffect(() => {
     api.get<{ company?: CompanyData }>('/account')
@@ -227,15 +268,66 @@ export default function CbamReportPage() {
     });
   }, []);
 
+  // ── Electricity CRUD ────────────────────────────────────────────────────────
+  const openEditElec = (inv: ElectricityInvoice) => {
+    setElecEditing(inv);
+    setElecForm({ facility_name: inv.facility_name, billing_period: inv.billing_period, kwh: String(inv.kwh), emission_factor_kg_per_kwh: String(inv.emission_factor_kg_per_kwh), emission_factor_source: inv.emission_factor_source ?? '' });
+    setElecModalOpen(true);
+  };
+  const handleSaveElec = async () => {
+    if (!elecForm.billing_period || !elecForm.kwh) return;
+    setSaving(true);
+    try {
+      const payload = { facility_name: elecForm.facility_name || 'Main Facility', billing_period: elecForm.billing_period, kwh: parseFloat(elecForm.kwh), emission_factor_kg_per_kwh: parseFloat(elecForm.emission_factor_kg_per_kwh) || 0.4290, emission_factor_source: elecForm.emission_factor_source };
+      if (elecEditing) await api.put(`/electricity-invoices/${elecEditing.id}`, payload);
+      else await api.post('/electricity-invoices', payload);
+      setElecModalOpen(false);
+      await loadInvoices();
+    } catch { /* ignore */ } finally { setSaving(false); }
+  };
+  const handleDeleteElec = async (id: string) => {
+    if (!window.confirm('Xoá hóa đơn điện này? Chứng từ liên kết cũng sẽ bị xoá.')) return;
+    const inv = electricity.find((e) => e.id === id);
+    await api.delete(`/electricity-invoices/${id}`).catch(() => {});
+    if (inv?.evidence_document_id) await api.delete(`/evidence/${inv.evidence_document_id}`).catch(() => {});
+    await loadInvoices();
+  };
+
+  // ── Fuel CRUD ───────────────────────────────────────────────────────────────
+  const openEditFuel = (inv: FuelInvoice) => {
+    setFuelEditing(inv);
+    setFuelForm({ billing_period: inv.billing_period, fuel_type: inv.fuel_type, quantity_liters: String(inv.quantity_liters), emission_factor_kg_per_liter: inv.emission_factor_kg_per_liter ? String(inv.emission_factor_kg_per_liter) : '' });
+    setFuelModalOpen(true);
+  };
+  const handleSaveFuel = async () => {
+    if (!fuelForm.billing_period || !fuelForm.quantity_liters) return;
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = { billing_period: fuelForm.billing_period, fuel_type: fuelForm.fuel_type, quantity_liters: parseFloat(fuelForm.quantity_liters) };
+      if (fuelForm.emission_factor_kg_per_liter) payload.emission_factor_kg_per_liter = parseFloat(fuelForm.emission_factor_kg_per_liter);
+      if (fuelEditing) await api.put(`/fuel-invoices/${fuelEditing.id}`, payload);
+      else await api.post('/fuel-invoices', payload);
+      setFuelModalOpen(false);
+      await loadInvoices();
+    } catch { /* ignore */ } finally { setSaving(false); }
+  };
+  const handleDeleteFuel = async (id: string) => {
+    if (!window.confirm('Xoá hóa đơn nhiên liệu này? Chứng từ liên kết cũng sẽ bị xoá.')) return;
+    const inv = fuels.find((f) => f.id === id);
+    await api.delete(`/fuel-invoices/${id}`).catch(() => {});
+    if (inv?.evidence_document_id) await api.delete(`/evidence/${inv.evidence_document_id}`).catch(() => {});
+    await loadInvoices();
+  };
+
   const totals = useMemo(() => {
-    const scope1 = fuels.reduce((s, f) => s + (f.scope1_co2e_kg ?? 0), 0);
-    const scope2 = electricity.reduce((s, e) => s + (e.scope2_co2e_kg ?? 0), 0);
+    const scope1 = fuels.reduce((s, f) => s + (Number(f.scope1_co2e_kg) || 0), 0);
+    const scope2 = electricity.reduce((s, e) => s + (Number(e.scope2_co2e_kg) || 0), 0);
     // Scope 3: actual upstream breakdown from carbon_calculations
     const scope3 = calcs.reduce(
-      (s, c) => s + (c.materialsCo2e ?? 0) + (c.transportCo2e ?? 0) + (c.packagingCo2e ?? 0),
+      (s, c) => s + (Number(c.materialsCo2e) || 0) + (Number(c.transportCo2e) || 0) + (Number(c.packagingCo2e) || 0),
       0,
     );
-    const totalKwh = electricity.reduce((s, e) => s + (e.kwh ?? 0), 0);
+    const totalKwh = electricity.reduce((s, e) => s + (Number(e.kwh) || 0), 0);
     return { scope1, scope2, scope3, total: scope1 + scope2 + scope3, totalKwh };
   }, [fuels, electricity, calcs]);
 
@@ -482,8 +574,8 @@ export default function CbamReportPage() {
         <TabsContent value="energy" className="space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard label="Tổng điện tiêu thụ"        value={`${totals.totalKwh.toLocaleString()} kWh`} />
-            <KpiCard label="Scope 1 (nhiên liệu)"       value={`${totals.scope1.toFixed(1)} kg CO₂e`}  link="/evidence" />
-            <KpiCard label="Scope 2 (điện lưới)"        value={`${totals.scope2.toFixed(1)} kg CO₂e`}  link="/evidence" />
+            <KpiCard label="Scope 1 (nhiên liệu)"       value={`${totals.scope1.toFixed(1)} kg CO₂e`} />
+            <KpiCard label="Scope 2 (điện lưới)"        value={`${totals.scope2.toFixed(1)} kg CO₂e`} />
             <KpiCard
               label="Tổng phát thải cơ sở (S1+S2)"
               value={`${(totals.scope1 + totals.scope2).toFixed(1)} kg CO₂e`}
@@ -491,45 +583,67 @@ export default function CbamReportPage() {
             />
           </div>
 
+          {/* Electricity invoices */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Hóa đơn điện — Scope 2</CardTitle>
-              <CardDescription>Hệ số EVN từ Bộ TN&amp;MT 2024. Mỗi dòng có thể truy vết về chứng từ gốc.</CardDescription>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base">Hóa đơn điện — Scope 2</CardTitle>
+                  <CardDescription className="mt-0.5">Hệ số EVN từ Bộ TN&amp;MT 2024. Mỗi dòng truy vết về chứng từ gốc.</CardDescription>
+                </div>
+                <Link href="/evidence" className="shrink-0">
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1" asChild={false}>
+                    <Upload className="w-3 h-3" /> Tải chứng từ
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Kỳ</TableHead>
-                    <TableHead>kWh (Activity Data)</TableHead>
+                    <TableHead>Cơ sở</TableHead>
+                    <TableHead>kWh</TableHead>
                     <TableHead>EF (kg/kWh)</TableHead>
-                    <TableHead>Công thức</TableHead>
                     <TableHead>CO₂e (kg)</TableHead>
                     <TableHead>Chứng từ</TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {electricity.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground text-sm">
-                        Chưa có hóa đơn điện.{' '}
-                        <Link href="/evidence" className="text-primary underline">Tải chứng từ</Link>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-6">
+                        Chưa có hóa đơn điện. Nhấn <strong>Thêm hóa đơn</strong> hoặc <strong>Tải chứng từ</strong> để bắt đầu.
                       </TableCell>
                     </TableRow>
                   )}
                   {electricity.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell className="text-xs">{e.billing_period ?? '—'}</TableCell>
-                      <TableCell className="font-mono text-xs">{e.kwh ?? 0}</TableCell>
-                      <TableCell className="font-mono text-xs">{e.emission_factor_kg_per_kwh ?? 0.6766}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        kWh × EF · {e.emission_factor_source ?? 'EVN 2024'}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{(e.scope2_co2e_kg ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-xs font-medium">{e.billing_period ?? '—'}</TableCell>
+                      <TableCell className="text-xs">{e.facility_name ?? '—'}</TableCell>
+                      <TableCell className="font-mono text-xs">{Number(e.kwh).toLocaleString()}</TableCell>
+                      <TableCell className="font-mono text-xs">{e.emission_factor_kg_per_kwh ?? 0.4290}</TableCell>
+                      <TableCell className="font-mono text-xs font-semibold">{(Number(e.scope2_co2e_kg) || 0).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Link href="/evidence" className="text-primary text-xs inline-flex items-center gap-1">
-                          <Link2 className="w-3 h-3" />{e.status}
-                        </Link>
+                        {e.evidence_document_id ? (
+                          <Link href={`/evidence?highlight=${e.evidence_document_id}`} className="text-primary text-xs inline-flex items-center gap-1">
+                            <Link2 className="w-3 h-3" />{e.status}
+                          </Link>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">{e.status}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditElec(e)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteElec(e.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -538,45 +652,67 @@ export default function CbamReportPage() {
             </CardContent>
           </Card>
 
+          {/* Fuel invoices */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Hóa đơn nhiên liệu — Scope 1</CardTitle>
-              <CardDescription>Than, gas, sinh khối… Hệ số DEFRA 2024 / IPCC 2006.</CardDescription>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base">Hóa đơn nhiên liệu — Scope 1</CardTitle>
+                  <CardDescription className="mt-0.5">Than, gas, sinh khối… Hệ số DEFRA 2024 / IPCC 2006.</CardDescription>
+                </div>
+                <Link href="/evidence" className="shrink-0">
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1" asChild={false}>
+                    <Upload className="w-3 h-3" /> Tải chứng từ
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Kỳ</TableHead>
-                    <TableHead>Loại</TableHead>
+                    <TableHead>Loại NL</TableHead>
                     <TableHead>Lượng (L)</TableHead>
                     <TableHead>EF (kg/L)</TableHead>
-                    <TableHead>Công thức</TableHead>
                     <TableHead>CO₂e (kg)</TableHead>
                     <TableHead>Chứng từ</TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {fuels.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground text-sm">
-                        Chưa có hóa đơn nhiên liệu.{' '}
-                        <Link href="/evidence" className="text-primary underline">Tải chứng từ</Link>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground text-sm py-6">
+                        Chưa có hóa đơn nhiên liệu. Nhấn <strong>Thêm hóa đơn</strong> hoặc <strong>Tải chứng từ</strong> để bắt đầu.
                       </TableCell>
                     </TableRow>
                   )}
                   {fuels.map((f) => (
                     <TableRow key={f.id}>
-                      <TableCell className="text-xs">{f.billing_period ?? '—'}</TableCell>
+                      <TableCell className="text-xs font-medium">{f.billing_period ?? '—'}</TableCell>
                       <TableCell className="text-xs">{f.fuel_type ?? '—'}</TableCell>
-                      <TableCell className="font-mono text-xs">{f.quantity_liters ?? 0} L</TableCell>
-                      <TableCell className="font-mono text-xs">{f.emission_factor_kg_per_liter ?? 0}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">L × EF</TableCell>
-                      <TableCell className="font-mono text-xs">{(f.scope1_co2e_kg ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-xs">{Number(f.quantity_liters).toLocaleString()} L</TableCell>
+                      <TableCell className="font-mono text-xs">{f.emission_factor_kg_per_liter ?? '—'}</TableCell>
+                      <TableCell className="font-mono text-xs font-semibold">{(Number(f.scope1_co2e_kg) || 0).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Link href="/evidence" className="text-primary text-xs inline-flex items-center gap-1">
-                          <Link2 className="w-3 h-3" />{f.status}
-                        </Link>
+                        {f.evidence_document_id ? (
+                          <Link href={`/evidence?highlight=${f.evidence_document_id}`} className="text-primary text-xs inline-flex items-center gap-1">
+                            <Link2 className="w-3 h-3" />{f.status}
+                          </Link>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">{f.status}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditFuel(f)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteFuel(f.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -774,6 +910,15 @@ export default function CbamReportPage() {
                   để có tính toán Embedded Emissions chính xác.
                 </p>
               )}
+              {productSummary.some((p) => p.embeddedPerTonne == null) && (
+                <p className="text-xs text-red-600 mt-2">
+                  {productSummary.filter((p) => p.embeddedPerTonne == null).length} SKU hiển thị{' '}
+                  <strong>—</strong> ở cột Embedded vì chưa có khối lượng sản phẩm.
+                  Cập nhật trường <em>Khối lượng (kg)</em> tại{' '}
+                  <Link href="/products" className="underline text-primary">trang Sản phẩm</Link>{' '}
+                  để tính được chỉ số CBAM này.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -791,6 +936,16 @@ export default function CbamReportPage() {
             <CardContent className="space-y-4 text-sm">
               <Section title="Thông tin cơ sở">
                 <p>{company?.name ?? '—'} · {company?.business_type ?? '—'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {company?.address
+                    ? <span>Địa chỉ: {company.address} · </span>
+                    : <span className="text-red-500">Địa chỉ: Chưa cập nhật · </span>
+                  }
+                  {company?.tax_id
+                    ? <span>MST: {company.tax_id}</span>
+                    : <span className="text-red-500">MST / EORI: Chưa cập nhật</span>
+                  }
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Kỳ báo cáo: {reportingPeriod} ({periodStart} → {periodEnd}) ·
                   Thị trường: {(company?.target_markets ?? []).join(', ') || '—'}
@@ -875,6 +1030,117 @@ export default function CbamReportPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ── Electricity invoice modal (Add / Edit) ────────────────────────── */}
+      <Dialog open={elecModalOpen} onOpenChange={setElecModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{elecEditing ? 'Sửa hóa đơn điện' : 'Thêm hóa đơn điện'}</DialogTitle>
+            <DialogDescription className="text-xs">Dữ liệu sẽ tính tự động CO₂e (Scope 2) = kWh × EF</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Kỳ thanh toán *</Label>
+                <Input placeholder="2024-Q2 hoặc 2024-05" value={elecForm.billing_period}
+                  onChange={(e) => setElecForm((f) => ({ ...f, billing_period: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cơ sở / Nhà máy</Label>
+                <Input placeholder="Main Facility" value={elecForm.facility_name}
+                  onChange={(e) => setElecForm((f) => ({ ...f, facility_name: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Lượng điện (kWh) *</Label>
+                <Input type="number" placeholder="12500" value={elecForm.kwh}
+                  onChange={(e) => setElecForm((f) => ({ ...f, kwh: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Hệ số EF (kg CO₂e/kWh)</Label>
+                <Input type="number" step="0.0001" value={elecForm.emission_factor_kg_per_kwh}
+                  onChange={(e) => setElecForm((f) => ({ ...f, emission_factor_kg_per_kwh: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nguồn hệ số phát thải</Label>
+              <Input value={elecForm.emission_factor_source}
+                onChange={(e) => setElecForm((f) => ({ ...f, emission_factor_source: e.target.value }))} />
+            </div>
+            {elecForm.kwh && elecForm.emission_factor_kg_per_kwh && (
+              <p className="text-xs text-emerald-700 bg-emerald-50 rounded p-2">
+                CO₂e ≈ <strong>{(parseFloat(elecForm.kwh) * parseFloat(elecForm.emission_factor_kg_per_kwh)).toFixed(2)} kg</strong>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setElecModalOpen(false)}>Huỷ</Button>
+            <Button onClick={handleSaveElec} disabled={saving || !elecForm.billing_period || !elecForm.kwh}
+              className="bg-emerald-600 hover:bg-emerald-700">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              {elecEditing ? 'Lưu thay đổi' : 'Thêm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Fuel invoice modal (Add / Edit) ──────────────────────────────── */}
+      <Dialog open={fuelModalOpen} onOpenChange={setFuelModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{fuelEditing ? 'Sửa hóa đơn nhiên liệu' : 'Thêm hóa đơn nhiên liệu'}</DialogTitle>
+            <DialogDescription className="text-xs">Để trống EF → hệ thống dùng hệ số chuẩn theo loại nhiên liệu (DEFRA 2024)</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Kỳ thanh toán *</Label>
+                <Input placeholder="2024-Q2 hoặc 2024-05" value={fuelForm.billing_period}
+                  onChange={(e) => setFuelForm((f) => ({ ...f, billing_period: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Loại nhiên liệu</Label>
+                <Select value={fuelForm.fuel_type} onValueChange={(v) => setFuelForm((f) => ({ ...f, fuel_type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[['diesel','Diesel (2.688)'],['petrol','Xăng / Petrol (2.352)'],['lpg','LPG (1.629)'],['cng','CNG (2.740)'],['coal','Than đá / Coal (2.420)'],['biomass','Sinh khối / Biomass (0)'],['other','Khác (2.500)']].map(([v,l]) => (
+                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Lượng (lít) *</Label>
+                <Input type="number" placeholder="500" value={fuelForm.quantity_liters}
+                  onChange={(e) => setFuelForm((f) => ({ ...f, quantity_liters: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">EF tùy chỉnh (kg/lít) <span className="text-slate-400 font-normal">(tuỳ chọn)</span></Label>
+                <Input type="number" step="0.0001" placeholder="Tự động từ loại NL" value={fuelForm.emission_factor_kg_per_liter}
+                  onChange={(e) => setFuelForm((f) => ({ ...f, emission_factor_kg_per_liter: e.target.value }))} />
+              </div>
+            </div>
+            {fuelForm.quantity_liters && (() => {
+              const EF_MAP: Record<string,number> = { diesel:2.688, petrol:2.352, lpg:1.629, cng:2.740, coal:2.420, biomass:0, other:2.500 };
+              const ef = fuelForm.emission_factor_kg_per_liter ? parseFloat(fuelForm.emission_factor_kg_per_liter) : (EF_MAP[fuelForm.fuel_type] ?? 2.5);
+              const co2e = parseFloat(fuelForm.quantity_liters) * ef;
+              return <p className="text-xs text-orange-700 bg-orange-50 rounded p-2">CO₂e ≈ <strong>{co2e.toFixed(2)} kg</strong> ({parseFloat(fuelForm.quantity_liters).toLocaleString()} L × {ef} kg/L)</p>;
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setFuelModalOpen(false)}>Huỷ</Button>
+            <Button onClick={handleSaveFuel} disabled={saving || !fuelForm.billing_period || !fuelForm.quantity_liters}
+              className="bg-emerald-600 hover:bg-emerald-700">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              {fuelEditing ? 'Lưu thay đổi' : 'Thêm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
