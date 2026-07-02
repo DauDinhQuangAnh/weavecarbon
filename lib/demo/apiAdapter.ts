@@ -810,7 +810,15 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       }
 
       if (method === "GET" && pathname === "/evidence") {
-        const allDocuments = getDemoEvidenceDocuments(getDemoDataset());
+        const dataset = getDemoDataset();
+        const deletedIds = new Set<string>(
+          Array.isArray(dataset.uiState.deletedEvidenceIds)
+            ? (dataset.uiState.deletedEvidenceIds as string[])
+            : []
+        );
+        const allDocuments = getDemoEvidenceDocuments(dataset).filter(
+          (d) => !deletedIds.has(d.id)
+        );
         const page = searchParams.get("page") ? Number(searchParams.get("page")) : 1;
         const pageSize = searchParams.get("page_size") ? Number(searchParams.get("page_size")) : allDocuments.length;
         const safePage = Number.isFinite(page) && page > 0 ? page : 1;
@@ -866,17 +874,21 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       }
 
       if (method === "GET" && pathname === "/electricity-invoices") {
-        return {
-          handled: true,
-          value: getDemoElectricityInvoices(getDemoDataset()),
-        };
+        const dataset = getDemoDataset();
+        const ds = dataset as Record<string, unknown>;
+        const list = Array.isArray(ds.electricityInvoices)
+          ? (ds.electricityInvoices as Record<string, unknown>[])
+          : getDemoElectricityInvoices(dataset);
+        return { handled: true, value: list };
       }
 
       if (method === "GET" && pathname === "/fuel-invoices") {
-        return {
-          handled: true,
-          value: getDemoFuelInvoices(getDemoDataset()),
-        };
+        const dataset = getDemoDataset();
+        const ds = dataset as Record<string, unknown>;
+        const list = Array.isArray(ds.fuelInvoices)
+          ? (ds.fuelInvoices as Record<string, unknown>[])
+          : getDemoFuelInvoices(dataset);
+        return { handled: true, value: list };
       }
 
       if (method === "GET" && pathname === "/carbon-calculations") {
@@ -885,75 +897,13 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
           value: getDemoCarbonCalculations(getDemoDataset()),
         };
       }
-      // ── Audit Trail ────────────────────────────────────────────
-      if (method === "GET" && pathname === "/audit-trail") {
-        return {
-          handled: true,
-          value: [
-            { id: "at-1", action: "product.create", resource_type: "product", resource_id: "prod-1", resource_name: "Organic Cotton Tee", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-20T08:12:00.000Z", meta: {} },
-            { id: "at-2", action: "product.publish", resource_type: "product", resource_id: "prod-1", resource_name: "Organic Cotton Tee", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-20T09:00:00.000Z", meta: {} },
-            { id: "at-3", action: "evidence.upload", resource_type: "evidence", resource_id: "ev-1", resource_name: "EVN-Invoice-May2026.pdf", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-21T10:30:00.000Z", meta: {} },
-            { id: "at-4", action: "product.create", resource_type: "product", resource_id: "prod-2", resource_name: "Recycled Polyester Shirt", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-22T08:00:00.000Z", meta: {} },
-            { id: "at-5", action: "report.generate", resource_type: "report", resource_id: "rep-1", resource_name: "CBAM Q2/2026 Report", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-23T14:00:00.000Z", meta: {} },
-            { id: "at-6", action: "shipment.create", resource_type: "shipment", resource_id: "ship-1", resource_name: "LOT-EU-2026-001 → Hamburg", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-24T11:15:00.000Z", meta: {} },
-            { id: "at-7", action: "evidence.verify", resource_type: "evidence", resource_id: "ev-1", resource_name: "EVN-Invoice-May2026.pdf", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-25T09:45:00.000Z", meta: {} },
-            { id: "at-8", action: "supplier.invite", resource_type: "supplier", resource_id: "sup-1", resource_name: "Viet Thang Textile Co.", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-26T13:00:00.000Z", meta: {} },
-            { id: "at-9", action: "product.update", resource_type: "product", resource_id: "prod-2", resource_name: "Recycled Polyester Shirt", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-27T10:00:00.000Z", meta: {} },
-            { id: "at-10", action: "report.generate", resource_type: "report", resource_id: "rep-2", resource_name: "Audit Pack Q2/2026", actor_email: "demo.b2b@weavecarbon.com", actor_name: "Demo B2B Admin", created_at: "2026-06-28T08:30:00.000Z", meta: {} },
-          ],
-        };
-      }
-
-      // ── Suppliers ──────────────────────────────────────────────
-      if (method === "GET" && pathname === "/suppliers") {
-        return {
-          handled: true,
-          value: [
-            { id: "sup-1", company_id: "00000000-0000-4000-8000-000000000001", name: "Viet Thang Textile Co.", email: "contact@vietthangtex.vn", phone: "028-3812-5500", address: "123 Nguyen Van Cu, Q.5, TP.HCM", tier: "tier1", status: "active", carbon_score: 72, invited_at: "2026-05-10T08:00:00.000Z", responded_at: "2026-05-12T09:00:00.000Z" },
-            { id: "sup-2", company_id: "00000000-0000-4000-8000-000000000001", name: "Green Dye Factory", email: "info@greendye.vn", phone: "0251-3920-111", address: "KCN Long Binh, Bien Hoa, Dong Nai", tier: "tier2", status: "pending", carbon_score: null, invited_at: "2026-06-01T08:00:00.000Z", responded_at: null },
-            { id: "sup-3", company_id: "00000000-0000-4000-8000-000000000001", name: "EcoSpin Cotton Yarn", email: "supply@ecospinvn.com", phone: "0236-3888-999", address: "KCN Da Nang, Lien Chieu, Da Nang", tier: "tier1", status: "active", carbon_score: 85, invited_at: "2026-04-15T08:00:00.000Z", responded_at: "2026-04-18T14:00:00.000Z" },
-            { id: "sup-4", company_id: "00000000-0000-4000-8000-000000000001", name: "Pacific Shipping Lines", email: "ops@pacificshipping.com", phone: "028-3914-2200", address: "Cang Cat Lai, Q.2, TP.HCM", tier: "tier3", status: "active", carbon_score: 61, invited_at: "2026-03-20T08:00:00.000Z", responded_at: "2026-03-25T10:00:00.000Z" },
-          ],
-        };
-      }
-
-      if (method === "POST" && pathname === "/suppliers") {
-        const payload = getBodyObject(body);
-        return {
-          handled: true,
-          value: { id: `sup-${Date.now()}`, company_id: "00000000-0000-4000-8000-000000000001", status: "pending", carbon_score: null, invited_at: new Date().toISOString(), responded_at: null, ...payload },
-        };
-      }
-
+      // ── Suppliers CRUD ─────────────────────────────────────────
       if (method === "PUT" && /^\/suppliers\/[^/]+$/.test(pathname)) {
         const payload = getBodyObject(body);
         return { handled: true, value: { ...payload, updated_at: new Date().toISOString() } };
       }
 
-      // ── Evidence ───────────────────────────────────────────────
-      if (method === "GET" && pathname === "/evidence") {
-        return {
-          handled: true,
-          value: {
-            data: [
-              { id: "ev-1", company_id: "00000000-0000-4000-8000-000000000001", kind: "electricity_bill", status: "verified", file_name: "EVN-Invoice-May2026.pdf", storage_path: "demo/ev-1.pdf", mime_type: "application/pdf", ocr_confidence: 94, ocr_error: null, created_at: "2026-06-21T10:30:00.000Z", extracted: { supplier: "EVN HCMC", period_start: "2026-05-01", period_end: "2026-05-31", kwh_total: 48200, amount_vnd: 96400000 } },
-              { id: "ev-2", company_id: "00000000-0000-4000-8000-000000000001", kind: "fuel_receipt", status: "extracted", file_name: "Diesel-Receipt-Jun2026.pdf", storage_path: "demo/ev-2.pdf", mime_type: "application/pdf", ocr_confidence: 88, ocr_error: null, created_at: "2026-06-25T08:00:00.000Z", extracted: { supplier: "Petrolimex", period_start: "2026-06-01", period_end: "2026-06-30", liters: 3200, amount_vnd: 72000000 } },
-              { id: "ev-3", company_id: "00000000-0000-4000-8000-000000000001", kind: "transport_bol", status: "pending", file_name: "BOL-LOT-EU-2026-001.pdf", storage_path: "demo/ev-3.pdf", mime_type: "application/pdf", ocr_confidence: null, ocr_error: null, created_at: "2026-06-28T07:00:00.000Z", extracted: {} },
-            ],
-            total: 3,
-            page: 1,
-            page_size: 20,
-          },
-        };
-      }
-
-      if (method === "POST" && pathname === "/evidence/upload") {
-        return {
-          handled: true,
-          value: { id: `ev-demo-${Date.now()}`, company_id: "00000000-0000-4000-8000-000000000001", kind: "other", status: "processing", file_name: "demo-upload.pdf", storage_path: "demo/pending.pdf", mime_type: "application/pdf", ocr_confidence: null, ocr_error: null, created_at: new Date().toISOString(), extracted: {} },
-        };
-      }
-
+      // ── Evidence CRUD ──────────────────────────────────────────
       if (method === "PATCH" && /^\/evidence\/[^/]+\/fields$/.test(pathname)) {
         return { handled: true, value: { success: true } };
       }
@@ -966,21 +916,22 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         return { handled: true, value: { success: true } };
       }
 
-      // ── Data Gaps ──────────────────────────────────────────────
-      if (method === "GET" && pathname === "/data-gaps") {
+      if (method === "DELETE" && /^\/evidence\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/evidence\/([^/]+)$/), pathname);
+        const evidenceId = decodeURIComponent(match[1]);
         return {
           handled: true,
-          value: [
-            { id: "dg-1", company_id: "00000000-0000-4000-8000-000000000001", data_group: "Dyeing supplier energy data", required_for_audit: true, current_status: "uploaded", risk_level: "low", required_action: "Tải hóa đơn điện từ nhà máy nhuộm", owner: "Phòng Mua Hàng", deadline: "2026-07-15" },
-            { id: "dg-2", company_id: "00000000-0000-4000-8000-000000000001", data_group: "Diesel/thermal process evidence", required_for_audit: true, current_status: "verified", risk_level: "low", required_action: "Biên lai nhiên liệu tháng 5-6/2026", owner: "Phòng Kỹ Thuật", deadline: "2026-07-20" },
-            { id: "dg-3", company_id: "00000000-0000-4000-8000-000000000001", data_group: "Sea freight document (LOT-EU-2026-001)", required_for_audit: true, current_status: "missing", risk_level: "high", required_action: "Liên hệ Pacific Shipping để lấy vận đơn", owner: "Phòng Xuất Nhập Khẩu", deadline: "2026-07-10" },
-            { id: "dg-4", company_id: "00000000-0000-4000-8000-000000000001", data_group: "BOM and electricity invoice", required_for_audit: true, current_status: "uploaded", risk_level: "medium", required_action: "Xác nhận BOM Q2 với phòng sản xuất", owner: "Phòng Sản Xuất", deadline: "2026-07-30" },
-            { id: "dg-5", company_id: "00000000-0000-4000-8000-000000000001", data_group: "GOTS certification for cotton lot 2026", required_for_audit: false, current_status: "proxy", risk_level: "medium", required_action: "Yêu cầu EcoSpin cung cấp chứng chỉ GOTS", owner: "Phòng QC", deadline: "2026-08-01" },
-            { id: "dg-6", company_id: "00000000-0000-4000-8000-000000000001", data_group: "Scope 1 fuel emission factor verification", required_for_audit: true, current_status: "self_declared", risk_level: "low", required_action: "Đối chiếu với hệ số DEFRA 2024", owner: "Phòng Môi Trường", deadline: "2026-07-25" },
-          ],
+          value: await mutateDemoResult((dataset) => {
+            const existing = Array.isArray(dataset.uiState.deletedEvidenceIds)
+              ? (dataset.uiState.deletedEvidenceIds as string[])
+              : [];
+            dataset.uiState = { ...dataset.uiState, deletedEvidenceIds: [...existing, evidenceId] };
+            return { deleted: true };
+          }),
         };
       }
 
+      // ── Data Gaps CRUD ─────────────────────────────────────────
       if (method === "POST" && pathname === "/data-gaps/seed") {
         return { handled: true, value: { seeded: 6, message: "Demo seed data already loaded." } };
       }
@@ -998,47 +949,117 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         return { handled: true, value: { ...payload, updated_at: new Date().toISOString() } };
       }
 
-      // ── Electricity Invoices ───────────────────────────────────
-      if (method === "GET" && pathname === "/electricity-invoices") {
-        return {
-          handled: true,
-          value: [
-            { id: "elec-1", company_id: "00000000-0000-4000-8000-000000000001", provider: "EVN HCMC", invoice_number: "EVN-HCM-052026-00142", period_start: "2026-05-01", period_end: "2026-05-31", kwh_total: 48200, amount_vnd: 96400000, co2_kg: 21209, emission_factor: 0.44, created_at: "2026-06-05T08:00:00.000Z" },
-            { id: "elec-2", company_id: "00000000-0000-4000-8000-000000000001", provider: "EVN HCMC", invoice_number: "EVN-HCM-042026-00098", period_start: "2026-04-01", period_end: "2026-04-30", kwh_total: 45800, amount_vnd: 91600000, co2_kg: 20152, emission_factor: 0.44, created_at: "2026-05-06T08:00:00.000Z" },
-            { id: "elec-3", company_id: "00000000-0000-4000-8000-000000000001", provider: "EVN HCMC", invoice_number: "EVN-HCM-032026-00071", period_start: "2026-03-01", period_end: "2026-03-31", kwh_total: 43100, amount_vnd: 86200000, co2_kg: 18964, emission_factor: 0.44, created_at: "2026-04-04T08:00:00.000Z" },
-          ],
-        };
-      }
-
+      // ── Electricity Invoices CRUD ──────────────────────────────
       if (method === "POST" && pathname === "/electricity-invoices") {
         const payload = getBodyObject(body);
-        return { handled: true, value: { id: `elec-${Date.now()}`, company_id: "00000000-0000-4000-8000-000000000001", created_at: new Date().toISOString(), ...payload } };
-      }
-
-      // ── Fuel Invoices ──────────────────────────────────────────
-      if (method === "GET" && pathname === "/fuel-invoices") {
         return {
           handled: true,
-          value: [
-            { id: "fuel-1", company_id: "00000000-0000-4000-8000-000000000001", provider: "Petrolimex", invoice_number: "PL-HCM-062026-3821", fuel_type: "diesel", period_start: "2026-06-01", period_end: "2026-06-30", liters: 3200, amount_vnd: 72000000, co2_kg: 8448, emission_factor: 2.64, created_at: "2026-07-02T08:00:00.000Z" },
-            { id: "fuel-2", company_id: "00000000-0000-4000-8000-000000000001", provider: "Petrolimex", invoice_number: "PL-HCM-052026-3105", fuel_type: "diesel", period_start: "2026-05-01", period_end: "2026-05-31", liters: 2900, amount_vnd: 65250000, co2_kg: 7656, emission_factor: 2.64, created_at: "2026-06-03T08:00:00.000Z" },
-          ],
+          value: await mutateDemoResult((dataset) => {
+            const ds = dataset as Record<string, unknown>;
+            const current = Array.isArray(ds.electricityInvoices)
+              ? (ds.electricityInvoices as Record<string, unknown>[])
+              : getDemoElectricityInvoices(dataset);
+            const newItem = { id: `elec-${Date.now()}`, created_at: new Date().toISOString(), ...payload };
+            ds.electricityInvoices = [...current, newItem];
+            return newItem;
+          }),
         };
       }
 
-      if (method === "POST" && pathname === "/fuel-invoices") {
+      if (method === "PUT" && /^\/electricity-invoices\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/electricity-invoices\/([^/]+)$/), pathname);
+        const invoiceId = decodeURIComponent(match[1]);
         const payload = getBodyObject(body);
-        return { handled: true, value: { id: `fuel-${Date.now()}`, company_id: "00000000-0000-4000-8000-000000000001", created_at: new Date().toISOString(), ...payload } };
-      }
-
-      // ── Carbon Calculations ────────────────────────────────────
-      if (method === "GET" && pathname === "/carbon-calculations") {
         return {
           handled: true,
-          value: [
-            { id: "calc-1", company_id: "00000000-0000-4000-8000-000000000001", product_id: "00000000-0000-4000-8000-000000000100", product_name: "Organic Cotton Tee", scope1_kg: 312, scope2_kg: 21209, scope3_kg: 4820, total_kg: 26341, confidence_score: 88, methodology: "ISO 14067", calculated_at: "2026-06-20T09:00:00.000Z" },
-            { id: "calc-2", company_id: "00000000-0000-4000-8000-000000000001", product_id: "00000000-0000-4000-8000-000000000101", product_name: "Recycled Polyester Shirt", scope1_kg: 280, scope2_kg: 18900, scope3_kg: 6100, total_kg: 25280, confidence_score: 81, methodology: "ISO 14067", calculated_at: "2026-06-22T10:00:00.000Z" },
-          ],
+          value: await mutateDemoResult((dataset) => {
+            const ds = dataset as Record<string, unknown>;
+            const current = Array.isArray(ds.electricityInvoices)
+              ? (ds.electricityInvoices as Record<string, unknown>[])
+              : getDemoElectricityInvoices(dataset);
+            let updated: Record<string, unknown> | null = null;
+            ds.electricityInvoices = current.map((item) => {
+              if (String((item as Record<string, unknown>).id) !== invoiceId) return item;
+              updated = { ...(item as Record<string, unknown>), ...payload, id: invoiceId, updated_at: new Date().toISOString() };
+              return updated;
+            });
+            return updated ?? { id: invoiceId, ...payload, updated_at: new Date().toISOString() };
+          }),
+        };
+      }
+
+      if (method === "DELETE" && /^\/electricity-invoices\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/electricity-invoices\/([^/]+)$/), pathname);
+        const invoiceId = decodeURIComponent(match[1]);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            const ds = dataset as Record<string, unknown>;
+            const current = Array.isArray(ds.electricityInvoices)
+              ? (ds.electricityInvoices as Record<string, unknown>[])
+              : getDemoElectricityInvoices(dataset);
+            ds.electricityInvoices = current.filter(
+              (item) => String((item as Record<string, unknown>).id) !== invoiceId
+            );
+            return { deleted: true };
+          }),
+        };
+      }
+
+      // ── Fuel Invoices CRUD ─────────────────────────────────────
+      if (method === "POST" && pathname === "/fuel-invoices") {
+        const payload = getBodyObject(body);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            const ds = dataset as Record<string, unknown>;
+            const current = Array.isArray(ds.fuelInvoices)
+              ? (ds.fuelInvoices as Record<string, unknown>[])
+              : getDemoFuelInvoices(dataset);
+            const newItem = { id: `fuel-${Date.now()}`, created_at: new Date().toISOString(), ...payload };
+            ds.fuelInvoices = [...current, newItem];
+            return newItem;
+          }),
+        };
+      }
+
+      if (method === "PUT" && /^\/fuel-invoices\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/fuel-invoices\/([^/]+)$/), pathname);
+        const invoiceId = decodeURIComponent(match[1]);
+        const payload = getBodyObject(body);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            const ds = dataset as Record<string, unknown>;
+            const current = Array.isArray(ds.fuelInvoices)
+              ? (ds.fuelInvoices as Record<string, unknown>[])
+              : getDemoFuelInvoices(dataset);
+            let updated: Record<string, unknown> | null = null;
+            ds.fuelInvoices = current.map((item) => {
+              if (String((item as Record<string, unknown>).id) !== invoiceId) return item;
+              updated = { ...(item as Record<string, unknown>), ...payload, id: invoiceId, updated_at: new Date().toISOString() };
+              return updated;
+            });
+            return updated ?? { id: invoiceId, ...payload, updated_at: new Date().toISOString() };
+          }),
+        };
+      }
+
+      if (method === "DELETE" && /^\/fuel-invoices\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/fuel-invoices\/([^/]+)$/), pathname);
+        const invoiceId = decodeURIComponent(match[1]);
+        return {
+          handled: true,
+          value: await mutateDemoResult((dataset) => {
+            const ds = dataset as Record<string, unknown>;
+            const current = Array.isArray(ds.fuelInvoices)
+              ? (ds.fuelInvoices as Record<string, unknown>[])
+              : getDemoFuelInvoices(dataset);
+            ds.fuelInvoices = current.filter(
+              (item) => String((item as Record<string, unknown>).id) !== invoiceId
+            );
+            return { deleted: true };
+          }),
         };
       }
 

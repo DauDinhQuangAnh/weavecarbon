@@ -109,111 +109,118 @@ export const getDemoEvidenceDocuments = (dataset: DemoDataset) => {
   const exportShipment = shipments.find((shipment) => asString(shipment.referenceNumber).includes("EU")) || shipments[0] || {};
   const supplier = getDemoSuppliers(dataset)[0];
 
+  // Returns camelCase to match BE formatEvidence() output
   return [
     {
       id: "ev-demo-electricity",
-      product_id: asString(firstProduct.id),
-      file_name: "EVN-Invoice-Factory-Monthly.pdf",
       kind: "electricity_bill",
+      documentName: "EVN-Invoice-Factory-Monthly.pdf",
+      fileName: "EVN-Invoice-Factory-Monthly.pdf",
+      productId: asString(firstProduct.id),
       status: "source_matched",
-      trust_score: 92,
-      verification_level: 4,
-      created_at: fromSeed(dataset, -7, 10),
-      file_hash_sha256: hashFor("evn-electricity"),
-      warnings: [],
-      extracted: {
+      verificationLevel: 4,
+      trustScore: 92,
+      checksumSha256: hashFor("evn-electricity"),
+      warnings: [] as string[],
+      extractedJson: {
         supplier: "EVN HCMC",
         billing_period: dateOnly(dataset, -30).slice(0, 7),
         kwh: 48200,
         amount_vnd: 96400000,
         emission_factor: 0.44,
       },
+      createdAt: fromSeed(dataset, -7, 10),
     },
     {
       id: "ev-demo-fuel",
-      product_id: asString(firstProduct.id),
-      file_name: "Petrolimex-Diesel-Receipt.pdf",
       kind: "fuel_receipt",
+      documentName: "Petrolimex-Diesel-Receipt.pdf",
+      fileName: "Petrolimex-Diesel-Receipt.pdf",
+      productId: asString(firstProduct.id),
       status: "verified",
-      trust_score: 86,
-      verification_level: 3,
-      created_at: fromSeed(dataset, -6, 11),
-      file_hash_sha256: hashFor("fuel-receipt"),
+      verificationLevel: 3,
+      trustScore: 86,
+      checksumSha256: hashFor("fuel-receipt"),
       warnings: ["Supplier total reconciled with monthly fuel log; no third-party verification yet."],
-      extracted: {
+      extractedJson: {
         supplier: "Petrolimex",
         billing_period: dateOnly(dataset, -20).slice(0, 7),
         liters: 3200,
         emission_factor: 2.64,
       },
+      createdAt: fromSeed(dataset, -6, 11),
     },
     {
       id: "ev-demo-bol",
-      shipment_id: asString(exportShipment.id),
-      file_name: `${asString(exportShipment.referenceNumber, "SHIP-EU-DEMO")}-Bill-of-Lading.pdf`,
       kind: "bill_of_lading",
+      documentName: `${asString(exportShipment.referenceNumber, "SHIP-EU-DEMO")}-Bill-of-Lading.pdf`,
+      fileName: `${asString(exportShipment.referenceNumber, "SHIP-EU-DEMO")}-Bill-of-Lading.pdf`,
+      shipmentId: asString(exportShipment.id),
       status: "ocr_parsed",
-      trust_score: 74,
-      verification_level: 2,
-      created_at: fromSeed(dataset, -5, 14),
-      file_hash_sha256: hashFor("bill-of-lading"),
+      verificationLevel: 2,
+      trustScore: 74,
+      checksumSha256: hashFor("bill-of-lading"),
       warnings: ["Carrier emission factor still uses default sea freight factor."],
-      extracted: {
+      extractedJson: {
         carrier: "Ocean Network Express",
         reference_number: asString(exportShipment.referenceNumber),
         destination: asString(asRecord(exportShipment.destination).city),
         distance_km: asNumber(exportShipment.totalDistanceKm),
       },
+      createdAt: fromSeed(dataset, -5, 14),
     },
     {
       id: "ev-demo-grs",
-      product_id: asString(products.find((product) => asString(product.productName).toLowerCase().includes("recycled"))?.id),
-      file_name: "GRS-Certificate-Recycled-Polyester.pdf",
       kind: "supplier_certificate",
+      documentName: "GRS-Certificate-Recycled-Polyester.pdf",
+      fileName: "GRS-Certificate-Recycled-Polyester.pdf",
+      productId: asString(products.find((product) => asString(product.productName).toLowerCase().includes("recycled"))?.id),
       status: "third_party_verified",
-      trust_score: 97,
-      verification_level: 5,
-      created_at: fromSeed(dataset, -4, 9),
-      file_hash_sha256: hashFor("grs-certificate"),
-      warnings: [],
-      extracted: {
+      verificationLevel: 5,
+      trustScore: 97,
+      checksumSha256: hashFor("grs-certificate"),
+      warnings: [] as string[],
+      extractedJson: {
         supplier: "RePoly Korea",
         certificate: "GRS",
         valid_to: dateOnly(dataset, 320),
       },
+      createdAt: fromSeed(dataset, -4, 9),
     },
     {
       id: "ev-demo-bom",
-      product_id: asString(firstProduct.id),
-      file_name: "BOM-WC-TEE-001-v2.xlsx",
       kind: "bom",
-      status: "ready_for_calculation",
-      trust_score: 89,
-      verification_level: 4,
-      created_at: fromSeed(dataset, -3, 16),
-      file_hash_sha256: hashFor("bom-tee"),
-      warnings: [],
-      extracted: {
+      documentName: "BOM-WC-TEE-001-v2.xlsx",
+      fileName: "BOM-WC-TEE-001-v2.xlsx",
+      productId: asString(firstProduct.id),
+      status: "locked",
+      verificationLevel: 4,
+      trustScore: 89,
+      checksumSha256: hashFor("bom-tee"),
+      warnings: [] as string[],
+      extractedJson: {
         sku: asString(firstProduct.productCode),
         material_count: asArray(firstProduct.materials).length,
         quantity: asNumber(firstProduct.quantity),
       },
+      createdAt: fromSeed(dataset, -3, 16),
     },
     {
       id: "ev-demo-supplier",
-      file_name: "Supplier-Declaration-Viet-Thang.pdf",
       kind: "supplier_declaration",
+      documentName: "Supplier-Declaration-Viet-Thang.pdf",
+      fileName: "Supplier-Declaration-Viet-Thang.pdf",
       status: "needs_review",
-      trust_score: 68,
-      verification_level: 2,
-      created_at: fromSeed(dataset, -2, 13),
-      file_hash_sha256: hashFor("supplier-declaration"),
+      verificationLevel: 2,
+      trustScore: 68,
+      checksumSha256: hashFor("supplier-declaration"),
       warnings: [`${supplier.supplier_name} has not confirmed primary energy split yet.`],
-      extracted: {
+      extractedJson: {
         supplier: supplier.supplier_name,
         material: supplier.material_supplied,
         requested_data: supplier.required_data.join(", "),
       },
+      createdAt: fromSeed(dataset, -2, 13),
     },
   ];
 };
@@ -221,14 +228,14 @@ export const getDemoEvidenceDocuments = (dataset: DemoDataset) => {
 export const getDemoEvidenceFields = (dataset: DemoDataset, evidenceId: string) => {
   const doc = getDemoEvidenceDocuments(dataset).find((item) => item.id === evidenceId);
   if (!doc) return [];
-  const extracted = asRecord(doc.extracted);
+  const extracted = asRecord(doc.extractedJson);
   return Object.entries(extracted).map(([fieldKey, value], index) => ({
     id: `${doc.id}-field-${index + 1}`,
     field_key: fieldKey,
     label: fieldKey,
     ai_value: String(value ?? ""),
     confirmed_value: String(value ?? ""),
-    confidence: Math.max(0.72, Math.min(0.98, asNumber(doc.trust_score) / 100 - index * 0.015)),
+    confidence: Math.max(0.72, Math.min(0.98, asNumber(doc.trustScore) / 100 - index * 0.015)),
   }));
 };
 
@@ -329,8 +336,8 @@ export const getDemoAuditTrail = (dataset: DemoDataset) => {
     ["product.published", asString(products[0]?.productCode), "draft", "published", "Published first product with BOM and EVN evidence", null],
     ["supplier_request.sent", "Viet Thang Textile Co.", "draft", "waiting", "Requested energy mix and material origin", null],
     ["shipment.created", asString(shipments[0]?.referenceNumber), null, "in_transit", "Created linked logistics route for export shipment", null],
-    ["evidence.uploaded", asString(evidence[0]?.file_name), null, "source_matched", "Uploaded and matched EVN invoice", asString(evidence[0]?.id)],
-    ["evidence.uploaded", asString(evidence[2]?.file_name), null, "ocr_parsed", "OCR parsed bill of lading for shipment route", asString(evidence[2]?.id)],
+    ["evidence.uploaded", asString(evidence[0]?.fileName), null, "source_matched", "Uploaded and matched EVN invoice", asString(evidence[0]?.id)],
+    ["evidence.uploaded", asString(evidence[2]?.fileName), null, "ocr_parsed", "OCR parsed bill of lading for shipment route", asString(evidence[2]?.id)],
     ["data_gap.updated", "Sea freight BOL evidence", "missing", "proxy", "Marked route as proxy pending carrier confirmation", null],
     ["product.updated", asString(products[4]?.productCode), "73 confidence", "80 confidence", "Linked GRS certificate to recycled material", null],
     ["report.generated", "EU export readiness pack", "processing", "completed", "Generated compliance report for buyer review", null],
@@ -420,20 +427,19 @@ export const getDemoFuelInvoices = (dataset: DemoDataset) => [
 export const getDemoCarbonCalculations = (dataset: DemoDataset) =>
   getProducts(dataset).map((product, index) => ({
     id: `calc-demo-${index + 1}`,
-    product_id: asString(product.id),
-    product_name: asString(product.productName),
-    total_co2e: getProductBatchCo2(product),
-    materials_co2e: round(getProductPerCo2(product, "materials") * asNumber(product.quantity, 1), 2),
-    production_co2e: round(
+    // camelCase matching BE formatCalc() output
+    productId: asString(product.id),
+    totalCo2e: getProductBatchCo2(product),
+    materialsCo2e: round(getProductPerCo2(product, "materials") * asNumber(product.quantity, 1), 2),
+    productionCo2e: round(
       (getProductPerCo2(product, "production") + getProductPerCo2(product, "energy")) *
         asNumber(product.quantity, 1),
       2
     ),
-    transport_co2e: round(getProductPerCo2(product, "transport") * asNumber(product.quantity, 1), 2),
-    packaging_co2e: round(getProductPerCo2(product, "packaging") * asNumber(product.quantity, 1), 2),
+    transportCo2e: round(getProductPerCo2(product, "transport") * asNumber(product.quantity, 1), 2),
+    packagingCo2e: round(getProductPerCo2(product, "packaging") * asNumber(product.quantity, 1), 2),
     methodology: "ISO 14067 demo",
-    confidence_score: asNumber(asRecord(product.carbonResults).confidenceScore, 0),
-    calculated_at: fromSeed(dataset, -5 + index, 9),
+    createdAt: fromSeed(dataset, -5 + index, 9),
   }));
 
 export const getDemoOperationalCounts = (dataset: DemoDataset) => ({

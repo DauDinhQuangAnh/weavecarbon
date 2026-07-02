@@ -107,7 +107,7 @@ describe("B2B demo dataset", () => {
       )
     );
     const calculationProductIds = new Set(
-      getDemoCarbonCalculations(dataset).map((calculation) => asString(calculation.product_id))
+      getDemoCarbonCalculations(dataset).map((calculation) => asString(calculation.productId))
     );
 
     expect(publishedProducts.length).toBeGreaterThanOrEqual(8);
