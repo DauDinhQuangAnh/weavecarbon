@@ -23,6 +23,64 @@ interface EvidenceRow {
   extracted: Record<string, unknown>;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const asString = (value: unknown, fallback = '') =>
+  typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback;
+
+const asNullableNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const extractEvidenceItems = (payload: unknown): unknown[] => {
+  if (Array.isArray(payload)) return payload;
+  if (!isRecord(payload)) return [];
+
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.rows)) return payload.rows;
+  if (Array.isArray(payload.data)) return payload.data;
+
+  if (isRecord(payload.data)) {
+    if (Array.isArray(payload.data.items)) return payload.data.items;
+    if (Array.isArray(payload.data.rows)) return payload.data.rows;
+  }
+
+  return [];
+};
+
+const normalizeEvidenceRow = (value: unknown): EvidenceRow | null => {
+  if (!isRecord(value)) return null;
+
+  const id = asString(value.id);
+  if (!id) return null;
+
+  const fileName = asString(
+    value.file_name ?? value.fileName ?? value.documentName ?? value.document_name,
+    'Evidence document'
+  );
+  const checksum = asString(value.checksumSha256 ?? value.checksum_sha256);
+
+  return {
+    id,
+    kind: asString(value.kind, 'other'),
+    status: asString(value.status, 'pending'),
+    file_name: fileName,
+    storage_path: asString(value.storage_path ?? value.storagePath, checksum),
+    ocr_confidence: asNullableNumber(value.ocr_confidence ?? value.ocrConfidence),
+    created_at: asString(value.created_at ?? value.createdAt, new Date().toISOString()),
+    extracted: isRecord(value.extracted)
+      ? value.extracted
+      : isRecord(value.extractedJson)
+        ? value.extractedJson
+        : {},
+  };
+};
+
+const normalizeEvidenceRows = (payload: unknown): EvidenceRow[] =>
+  extractEvidenceItems(payload)
+    .map(normalizeEvidenceRow)
+    .filter((row): row is EvidenceRow => row !== null);
+
 const KIND_LABEL: Record<string, string> = {
   electricity_bill: 'Hóa đơn điện (EVN)',
   fuel_receipt: 'Hóa đơn nhiên liệu',
@@ -52,9 +110,9 @@ const ProductEvidenceList: React.FC<Props> = ({ productId }) => {
       return;
     }
     let cancelled = false;
-    apiRequest<EvidenceRow[]>(`/evidence?productId=${productId}`)
+    apiRequest<unknown>(`/evidence?productId=${productId}`)
       .then((data) => {
-        if (!cancelled) setRows(data);
+        if (!cancelled) setRows(normalizeEvidenceRows(data));
       })
       .catch(() => {
         /* fail silently — empty list is fine */
