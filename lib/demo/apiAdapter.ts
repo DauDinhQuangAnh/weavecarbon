@@ -792,19 +792,19 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
           handled: true,
           value: {
             id: `sup-${Date.now()}`,
-            company_id: "00000000-0000-4000-8000-000000000001",
-            supplier_name: String(payload.supplier_name || payload.name || "New demo supplier"),
-            supplier_email: String(payload.supplier_email || payload.email || "supplier@example.com"),
-            material_supplied: String(payload.material_supplied || "Material evidence"),
-            required_data: Array.isArray(payload.required_data)
+            supplierName: String(payload.supplierName || payload.supplier_name || "New demo supplier"),
+            supplierEmail: String(payload.supplierEmail || payload.supplier_email || "supplier@example.com"),
+            materialSupplied: String(payload.materialSupplied || payload.material_supplied || null),
+            requiredData: Array.isArray(payload.requiredData)
+              ? payload.requiredData
+              : Array.isArray(payload.required_data)
               ? payload.required_data
               : ["Emission factor", "Invoice", "Certificate"],
             deadline: String(
               payload.deadline || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
             ),
-            status: String(payload.status || "pending"),
-            created_at: new Date().toISOString(),
-            ...payload,
+            status: String(payload.status || "draft"),
+            createdAt: new Date().toISOString(),
           },
         };
       }
@@ -841,19 +841,16 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
           handled: true,
           value: {
             id: `ev-demo-${Date.now()}`,
-            company_id: "00000000-0000-4000-8000-000000000001",
             kind: "supplier_declaration",
+            documentName: "demo-upload.pdf",
+            fileName: "demo-upload.pdf",
             status: "processing",
-            file_name: "demo-upload.pdf",
-            storage_path: "demo/pending.pdf",
-            mime_type: "application/pdf",
-            ocr_confidence: null,
-            trust_score: 61,
-            verification_level: "pending",
-            file_hash_sha256: "pending-demo-upload-hash",
+            verificationLevel: 0,
+            trustScore: 61,
+            checksumSha256: "pending-demo-upload-hash",
             warnings: ["OCR processing in demo mode"],
-            created_at: new Date().toISOString(),
-            extracted: {},
+            extractedJson: {},
+            createdAt: new Date().toISOString(),
           },
         };
       }
@@ -940,13 +937,20 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         const payload = getBodyObject(body);
         return {
           handled: true,
-          value: { id: `dg-${Date.now()}`, company_id: "00000000-0000-4000-8000-000000000001", required_for_audit: true, ...payload },
+          value: {
+            id: `dg-${Date.now()}`,
+            requiredForAudit: true,
+            currentStatus: "missing",
+            riskLevel: "medium",
+            ...payload,
+            createdAt: new Date().toISOString(),
+          },
         };
       }
 
       if (method === "PUT" && /^\/data-gaps\/[^/]+$/.test(pathname)) {
         const payload = getBodyObject(body);
-        return { handled: true, value: { ...payload, updated_at: new Date().toISOString() } };
+        return { handled: true, value: { ...payload, updatedAt: new Date().toISOString() } };
       }
 
       // ── Electricity Invoices CRUD ──────────────────────────────
