@@ -335,7 +335,7 @@ export const getDemoAuditTrail = (dataset: DemoDataset) => {
     ["demo.seeded", "Demo workspace", null, "12 SKU + linked evidence", "Seeded judging-ready B2B dataset", null],
     ["product.published", asString(products[0]?.productCode), "draft", "published", "Published first product with BOM and EVN evidence", null],
     ["supplier_request.sent", "Viet Thang Textile Co.", "draft", "waiting", "Requested energy mix and material origin", null],
-    ["shipment.created", asString(shipments[0]?.referenceNumber), null, "in_transit", "Created linked logistics route for export shipment", null],
+    ["shipment.created", asString(shipments[0]?.referenceNumber) || "SHIP-EU-2304", null, "in_transit", "Created linked logistics route for export shipment", null],
     ["evidence.uploaded", asString(evidence[0]?.fileName), null, "source_matched", "Uploaded and matched EVN invoice", asString(evidence[0]?.id)],
     ["evidence.uploaded", asString(evidence[2]?.fileName), null, "ocr_parsed", "OCR parsed bill of lading for shipment route", asString(evidence[2]?.id)],
     ["data_gap.updated", "Sea freight BOL evidence", "missing", "proxy", "Marked route as proxy pending carrier confirmation", null],

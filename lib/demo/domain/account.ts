@@ -48,10 +48,14 @@ export const getDemoCompanyMembersPayload = (dataset: DemoDataset) =>
     const user = asRecord(rawUser);
     const isRoot = String(user.id || dataset.user.id) === dataset.user.id || index === 0;
     const role = isRoot ? "admin" : String(user.role || "member");
+    const uid = String(user.user_id || user.id || `demo-member-${index + 1}`);
+    const name = String(user.full_name || user.name || `Demo Member ${index + 1}`);
     return {
-      id: String(user.id || `demo-member-${index + 1}`),
-      user_id: String(user.user_id || user.id || `demo-member-${index + 1}`),
-      full_name: String(user.full_name || user.name || `Demo Member ${index + 1}`),
+      id: String(user.id || uid),
+      user_id: uid,
+      userId: uid,
+      full_name: name,
+      fullName: name,
       email: String(user.email || `member${index + 1}@weavecarbon.demo`),
       role: role === "viewer" || role === "member" || role === "editor" || role === "admin" ? role : "member",
       status: String(user.status || "active"),
