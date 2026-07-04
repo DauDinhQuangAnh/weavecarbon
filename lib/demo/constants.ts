@@ -1,4 +1,4 @@
-export const DEMO_DATA_VERSION = 4;
+export const DEMO_DATA_VERSION = 5;
 export const DEMO_SCENARIO = "b2b_standard_20" as const;
 export const DEMO_DATASET_STORAGE_KEY = `weavecarbon_demo_v${DEMO_DATA_VERSION}_dataset`;
 export const DEMO_SESSION_STORAGE_KEY = `weavecarbon_demo_v${DEMO_DATA_VERSION}_session`;

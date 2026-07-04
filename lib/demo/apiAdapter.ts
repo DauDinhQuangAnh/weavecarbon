@@ -166,7 +166,7 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         };
       }
 
-      if (method === "GET" && pathname === "/company/members") {
+      if (method === "GET" && (pathname === "/company/members" || pathname === "/company-members")) {
         return {
           handled: true,
           value: getDemoCompanyMembersPayload(getDemoDataset()),

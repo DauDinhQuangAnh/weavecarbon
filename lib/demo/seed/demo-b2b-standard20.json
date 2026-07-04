@@ -23,7 +23,10 @@
       "US"
     ],
     "current_plan": "standard",
-    "standard_sku_limit": 20
+    "standard_sku_limit": 20,
+    "address": "Lô C-3A, KCN Bình Dương, TP. Thủ Dầu Một, Bình Dương, Việt Nam",
+    "tax_id": "3702123456",
+    "phone": "0274 3822 999"
   },
   "products": [
     {
