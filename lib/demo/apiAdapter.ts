@@ -70,6 +70,18 @@ import {
   getDemoFuelInvoices,
   getDemoSuppliers,
 } from "@/lib/demo/domain/operations";
+import {
+  createDemoB2CDonation,
+  getDemoB2CAccount,
+  getDemoB2CCollectionPoints,
+  getDemoB2CCoupons,
+  getDemoB2CDashboard,
+  getDemoB2CDonationById,
+  getDemoB2CDonations,
+  getDemoB2CImageAnalysis,
+  getDemoB2CMaterialRewards,
+  getDemoB2CRewardTransactions,
+} from "@/lib/demo/domain/b2c";
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -321,6 +333,23 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         return {
           handled: true,
           value: getDemoProductById(getDemoDataset(), decodeURIComponent(match[1])),
+        };
+      }
+
+      // ── Public passport ────────────────────────────────────────
+      if (method === "GET" && /^\/passport\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(pathname.match(/^\/passport\/([^/]+)$/), pathname);
+        const productId = decodeURIComponent(match[1]);
+        const dataset = getDemoDataset();
+        const product = getDemoProductById(dataset, productId);
+        const shipments = listDemoShipments(dataset, {});
+        const relatedShipment = shipments.items.find((s) => {
+          const ids = [s.referenceNumber, s.id];
+          return ids.some((v) => v === productId);
+        }) ?? shipments.items[0] ?? null;
+        return {
+          handled: true,
+          value: { product, shipment: relatedShipment },
         };
       }
 
@@ -1067,6 +1096,27 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         };
       }
 
+      // ── Chat / AI direct ───────────────────────────────────────
+      if (method === "POST" && pathname === "/chat/direct") {
+        const payload = getBodyObject(body);
+        const query = String(payload.query || "").toLowerCase();
+        let answer =
+          "**Nhận định:** Mức phát thải này ở ngưỡng trung bình ngành dệt may xuất khẩu Việt Nam.\n\n" +
+          "**Nguyên nhân chính:**\n- Hệ số vật liệu nguyên sinh cao (cotton, polyester)\n- Khoảng cách vận chuyển đường dài sang EU/US\n- Chưa tối ưu tỷ lệ vật liệu tái chế trong BOM\n\n" +
+          "**Đề xuất giảm phát thải (theo thứ tự ưu tiên):**\n1. Chuyển sang cotton hữu cơ hoặc polyester tái chế (GRS) — giảm 35–40% phát thải vật liệu\n2. Gộp lô hàng để tăng fill-rate container — giảm phát thải vận chuyển trên mỗi sản phẩm\n3. Điện mặt trời tại nhà máy để giảm phát thải Scope 2\n\n" +
+          "_Lưu ý: Đây là ước tính proxy. Tải chứng từ lên Evidence để hệ thống nâng độ tin cậy lên dữ liệu sơ cấp._";
+
+        if (query.includes("wool") || query.includes("len")) {
+          answer =
+            "**Nhận định:** Len có hệ số phát thải cao nhất trong các vật liệu dệt (10.1 kg CO2e/kg) do chuỗi cung ứng từ chăn nuôi.\n\n" +
+            "**Nguyên nhân:**\n- Phát thải CH₄ từ cừu (Scope 3 upstream)\n- Xử lý hóa chất tẩy trắng và nhuộm\n- Vận chuyển nguyên liệu thô quốc tế\n\n" +
+            "**Đề xuất:**\n1. Chứng nhận RWS (Responsible Wool Standard) để traceability\n2. Blend với cotton hữu cơ để giảm hệ số trung bình\n3. Sourcing len từ nhà cung ứng gần thị trường đích\n\n" +
+            "_Ước tính proxy — thay bằng dữ liệu sơ cấp từ nhà cung ứng để báo cáo audit._";
+        }
+
+        return { handled: true, value: { answer } };
+      }
+
       // ── Account profile update ─────────────────────────────────
       if (method === "PUT" && pathname === "/account/profile") {
         const payload = getBodyObject(body);
@@ -1134,6 +1184,161 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
           status: 400,
           code: "DEMO_REQUEST_FAILED",
         }),
+      };
+    }
+
+    return {
+      handled: true,
+      error: createUnhandledEndpointError(pathname, method),
+    };
+  }) as ApiRequestAdapter;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// B2C Demo Adapter
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const createDemoB2CApiRequestAdapter = (): ApiRequestAdapter => {
+  return (async ({ path, method, body }) => {
+    const requestUrl = parseRequestUrl(path);
+    const pathname = requestUrl.pathname;
+    const searchParams = requestUrl.searchParams;
+
+    try {
+      // ── Auth / account (B2C user) ────────────────────────────────
+      if (
+        method === "GET" &&
+        (pathname === "/account" ||
+          pathname === "/auth/session" ||
+          pathname === "/account/profile")
+      ) {
+        return { handled: true, value: getDemoB2CAccount() };
+      }
+
+      if (method === "GET" && pathname === "/company/check") {
+        return {
+          handled: true,
+          value: { is_b2b: false, has_company: false, user_type: "b2c" },
+        };
+      }
+
+      // ── B2C Dashboard ────────────────────────────────────────────
+      if (method === "GET" && pathname === "/b2c/dashboard") {
+        return { handled: true, value: getDemoB2CDashboard() };
+      }
+
+      // ── Collection points ────────────────────────────────────────
+      if (method === "GET" && pathname.startsWith("/b2c/collection-points/nearby")) {
+        return {
+          handled: true,
+          value: getDemoB2CCollectionPoints({
+            lat: Number(searchParams.get("lat") ?? ""),
+            lng: Number(searchParams.get("lng") ?? ""),
+            category: (searchParams.get("category") as "charity" | "recycle") ?? undefined,
+            limit: Number(searchParams.get("limit") || 12),
+          }),
+        };
+      }
+
+      if (method === "GET" && pathname.startsWith("/b2c/collection-points")) {
+        return {
+          handled: true,
+          value: getDemoB2CCollectionPoints({
+            search: searchParams.get("search") ?? undefined,
+            city: searchParams.get("city") ?? undefined,
+            category: (searchParams.get("category") as "charity" | "recycle") ?? undefined,
+            limit: Number(searchParams.get("limit") || 20),
+          }),
+        };
+      }
+
+      // ── Material rewards ─────────────────────────────────────────
+      if (method === "GET" && pathname === "/b2c/material-rewards") {
+        return { handled: true, value: getDemoB2CMaterialRewards() };
+      }
+
+      // ── Coupons ──────────────────────────────────────────────────
+      if (method === "GET" && pathname.startsWith("/b2c/coupons")) {
+        return {
+          handled: true,
+          value: getDemoB2CCoupons({
+            search: searchParams.get("search") ?? undefined,
+            category: searchParams.get("category") ?? undefined,
+            limit: Number(searchParams.get("limit") || 48),
+          }),
+        };
+      }
+
+      // ── Donations ────────────────────────────────────────────────
+      if (method === "POST" && pathname === "/b2c/donations") {
+        const parsed =
+          body instanceof FormData
+            ? JSON.parse(body.get("payload") as string)
+            : getBodyObject(body);
+        return { handled: true, value: createDemoB2CDonation(parsed as Record<string, unknown>) };
+      }
+
+      if (method === "GET" && /^\/b2c\/donations\/[^/]+$/.test(pathname)) {
+        const match = ensurePathMatches(
+          pathname.match(/^\/b2c\/donations\/([^/]+)$/),
+          pathname
+        );
+        const donation = getDemoB2CDonationById(decodeURIComponent(match[1]));
+        if (!donation) {
+          return {
+            handled: true,
+            error: new ApiError("Donation not found.", { status: 404, code: "NOT_FOUND" }),
+          };
+        }
+        return { handled: true, value: donation };
+      }
+
+      if (method === "GET" && pathname === "/b2c/donations") {
+        return {
+          handled: true,
+          value: getDemoB2CDonations(Number(searchParams.get("limit") || 20)),
+        };
+      }
+
+      if (method === "GET" && /^\/b2c\/donations\/[^/]+\/image$/.test(pathname)) {
+        return {
+          handled: true,
+          error: new ApiError("Image not available in demo.", { status: 404, code: "NOT_FOUND" }),
+        };
+      }
+
+      // ── Reward transactions ──────────────────────────────────────
+      if (method === "GET" && pathname === "/b2c/reward-transactions") {
+        return {
+          handled: true,
+          value: getDemoB2CRewardTransactions(Number(searchParams.get("limit") || 30)),
+        };
+      }
+
+      // ── Camera AI image analysis ─────────────────────────────────
+      if (method === "POST" && pathname === "/b2c/analyze-donation-image") {
+        return { handled: true, value: getDemoB2CImageAnalysis() };
+      }
+
+      // ── Chat / AI ────────────────────────────────────────────────
+      if (method === "POST" && pathname === "/chat/direct") {
+        return {
+          handled: true,
+          value: {
+            answer:
+              "Với lượng điểm hiện tại bạn có thể đổi coupon cà phê hoặc giảm giá mua sắm. Tiếp tục tặng quần áo để tích thêm điểm và leo hạng lên **Eco Champion**!",
+          },
+        };
+      }
+
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return { handled: true, error };
+      }
+      const message = error instanceof Error ? error.message : "Demo B2C request failed.";
+      return {
+        handled: true,
+        error: new ApiError(message, { status: 400, code: "DEMO_B2C_REQUEST_FAILED" }),
       };
     }
 
