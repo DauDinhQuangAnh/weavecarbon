@@ -869,6 +869,153 @@
       "shipmentId": "00000000-0000-4000-8000-000000000336",
       "createdAt": "2026-02-17T03:00:00.000Z",
       "updatedAt": "2026-03-03T08:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000112",
+      "productCode": "WC-SCF-013",
+      "productName": "Recycled Wool Scarf",
+      "productType": "accessories",
+      "weightPerUnit": 420,
+      "quantity": 640,
+      "materials": [
+        {
+          "id": "mat-12-0",
+          "materialType": "recycled_polyester",
+          "percentage": 25,
+          "source": "imported",
+          "certifications": ["grs", "rcs"]
+        },
+        {
+          "id": "mat-12-1",
+          "materialType": "cotton",
+          "percentage": 75,
+          "source": "domestic",
+          "certifications": ["bci"]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": ["cutting_sewing", "finishing"],
+      "energySources": [
+        { "id": "ene-12", "source": "grid", "percentage": 100 }
+      ],
+      "manufacturingLocation": "Long An",
+      "wasteRecovery": "high",
+      "destinationMarket": "eu",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Duc Hoa Hub",
+        "ward": "",
+        "district": "",
+        "city": "Long An",
+        "stateRegion": "Long An",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.87,
+        "lng": 106.42
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Hamburg Port",
+        "ward": "",
+        "district": "",
+        "city": "Hamburg",
+        "stateRegion": "Hamburg",
+        "country": "Germany",
+        "postalCode": "",
+        "lat": 53.55,
+        "lng": 9.99
+      },
+      "transportLegs": [
+        { "id": "leg-12-0", "mode": "road", "estimatedDistance": 65, "emissionFactor": 0.089, "co2Kg": 1.34 },
+        { "id": "leg-12-1", "mode": "sea", "estimatedDistance": 10840, "emissionFactor": 0.016, "co2Kg": 5.94 }
+      ],
+      "estimatedTotalDistance": 10905,
+      "carbonResults": {
+        "perProduct": { "materials": 3.1, "production": 0.62, "energy": 0.41, "transport": 0.28, "packaging": 0.04, "total": 4.45 },
+        "totalBatch": { "materials": 1984, "production": 396.8, "energy": 262.4, "transport": 179.2, "packaging": 25.6, "total": 2848 },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.72,
+        "scope2": 0.41,
+        "scope3": 3.38
+      },
+      "status": "draft",
+      "version": 1,
+      "shipmentId": null,
+      "createdAt": "2026-02-27T09:00:00.000Z",
+      "updatedAt": "2026-02-27T09:00:00.000Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000113",
+      "productCode": "WC-GLV-014",
+      "productName": "Organic Cotton Glove Set",
+      "productType": "accessories",
+      "weightPerUnit": 260,
+      "quantity": 450,
+      "materials": [
+        {
+          "id": "mat-13-0",
+          "materialType": "cotton",
+          "percentage": 100,
+          "source": "domestic",
+          "certifications": ["ocs"]
+        }
+      ],
+      "accessories": [],
+      "productionProcesses": ["cutting_sewing", "finishing"],
+      "energySources": [
+        { "id": "ene-13", "source": "solar", "percentage": 100 }
+      ],
+      "manufacturingLocation": "Long An",
+      "wasteRecovery": "high",
+      "destinationMarket": "eu",
+      "originAddress": {
+        "streetNumber": "",
+        "street": "Duc Hoa Hub",
+        "ward": "",
+        "district": "",
+        "city": "Long An",
+        "stateRegion": "Long An",
+        "country": "Vietnam",
+        "postalCode": "",
+        "lat": 10.87,
+        "lng": 106.42
+      },
+      "destinationAddress": {
+        "streetNumber": "",
+        "street": "Hamburg Port",
+        "ward": "",
+        "district": "",
+        "city": "Hamburg",
+        "stateRegion": "Hamburg",
+        "country": "Germany",
+        "postalCode": "",
+        "lat": 53.55,
+        "lng": 9.99
+      },
+      "transportLegs": [
+        { "id": "leg-13-0", "mode": "road", "estimatedDistance": 30, "emissionFactor": 0.089, "co2Kg": 0.4 },
+        { "id": "leg-13-1", "mode": "sea", "estimatedDistance": 10840, "emissionFactor": 0.016, "co2Kg": 4.7 }
+      ],
+      "estimatedTotalDistance": 10870,
+      "carbonResults": {
+        "perProduct": { "materials": 2.15, "production": 0.4, "energy": 0.25, "transport": 0.22, "packaging": 0.04, "total": 3.06 },
+        "totalBatch": { "materials": 967.5, "production": 180, "energy": 112.5, "transport": 99, "packaging": 18, "total": 1377 },
+        "confidenceLevel": "high",
+        "confidenceScore": 88,
+        "proxyUsed": false,
+        "proxyNotes": [],
+        "scope1": 0.5,
+        "scope2": 0.25,
+        "scope3": 2.37
+      },
+      "status": "draft",
+      "version": 1,
+      "shipmentId": null,
+      "createdAt": "2026-02-27T09:00:00.000Z",
+      "updatedAt": "2026-02-27T09:00:00.000Z"
     }
   ],
   "batches": [
@@ -980,20 +1127,20 @@
       "items": [
         {
           "id": "bi3",
-          "productId": "00000000-0000-4000-8000-000000000101",
-          "productCode": "WC-DEN-002",
-          "productName": "Recycled Denim Jeans",
-          "productType": "pants",
+          "productId": "00000000-0000-4000-8000-000000000112",
+          "productCode": "WC-SCF-013",
+          "productName": "Recycled Wool Scarf",
+          "productType": "accessories",
           "quantity": 640,
           "weightKg": 0.42,
           "co2PerUnit": 4.45
         },
         {
           "id": "bi4",
-          "productId": "00000000-0000-4000-8000-000000000103",
-          "productCode": "WC-BAG-004",
-          "productName": "Canvas Tote Bag",
-          "productType": "bag",
+          "productId": "00000000-0000-4000-8000-000000000113",
+          "productCode": "WC-GLV-014",
+          "productName": "Organic Cotton Glove Set",
+          "productType": "accessories",
           "quantity": 450,
           "weightKg": 0.26,
           "co2PerUnit": 3.06
