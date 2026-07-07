@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { TransportLeg, TransportLocation } from "@/types/transport";
 import { configureMapboxRuntime } from "@/lib/mapbox";
+import { addVietnamSovereigntyLabels } from "@/lib/vietnamSovereigntyLabels";
 import {
   isRoadTransportMode,
   type RoadRoutePointSource
@@ -143,6 +144,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const animationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<number | null>(null);
@@ -297,6 +299,11 @@ const TransportMap: React.FC<TransportMapProps> = ({
         map.addControl(new mapboxgl.NavigationControl());
         map.on("load", onMapLoad);
         map.on("error", onMapError);
+        map.once("load", () => {
+          if (!isCancelled && sovereigntyMarkersRef.current.length === 0) {
+            sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(mapboxgl, map);
+          }
+        });
 
         if (isCancelled) {
           map.off("load", onMapLoad);
@@ -321,6 +328,8 @@ const TransportMap: React.FC<TransportMapProps> = ({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
+      sovereigntyMarkersRef.current = [];
       if (createdMap) {
         createdMap.off("load", onMapLoad);
         createdMap.off("error", onMapError);

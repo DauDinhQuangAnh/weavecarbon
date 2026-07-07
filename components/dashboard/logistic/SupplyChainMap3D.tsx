@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buildSupplyChainRouteGeometry } from "@/lib/transportRouteGeometry";
 import type { SupplyChainNode, SupplyChainRoute } from "./SupplyChainMap";
 import { configureMapboxRuntime, hasMapboxPublicToken } from "@/lib/mapbox";
+import { addVietnamSovereigntyLabels } from "@/lib/vietnamSovereigntyLabels";
 
 interface SupplyChainMap3DProps {
   nodes: SupplyChainNode[];
@@ -96,6 +97,7 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const getNodeTypeLabel = useCallback((nodeType: SupplyChainNode["type"]) =>
@@ -147,6 +149,9 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
           mapRef.current = map;
           setIsLoading(false);
         }
+        if (sovereigntyMarkersRef.current.length === 0) {
+          sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(mapboxgl, map);
+        }
       });
 
       map.on("error", () => {
@@ -162,6 +167,8 @@ const SupplyChainMap3D: React.FC<SupplyChainMap3DProps> = ({
         isMounted = false;
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
+        sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
+        sovereigntyMarkersRef.current = [];
         if (mapRef.current) {
           mapRef.current.remove();
           mapRef.current = null;

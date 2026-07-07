@@ -6,6 +6,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { configureMapboxRuntime, hasMapboxPublicToken } from "@/lib/mapbox";
 import { buildSupplyChainRouteGeometry } from "@/lib/transportRouteGeometry";
+import { addVietnamSovereigntyLabels } from "@/lib/vietnamSovereigntyLabels";
 import type { SupplyChainNode, SupplyChainRoute } from "./SupplyChainMap";
 
 interface SupplyChainMapContentProps {
@@ -104,8 +105,10 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const usedTokenRef = useRef(false);
   const getNodeTypeLabel = useCallback((nodeType: SupplyChainNode["type"]) =>
   t.has(`popup.nodeTypes.${nodeType}`) ?
   t(`popup.nodeTypes.${nodeType}`) :
@@ -121,6 +124,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
     try {
       const hasToken = hasMapboxPublicToken();
+      usedTokenRef.current = hasToken;
       if (hasToken) {
         configureMapboxRuntime(mapboxgl);
       } else {
@@ -161,9 +165,23 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           setIsLoading(false);
           setError(null);
         }
+        if (sovereigntyMarkersRef.current.length === 0) {
+          sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(mapboxgl, map);
+        }
       };
 
-      const handleError = () => {
+      const handleError = (event: mapboxgl.ErrorEvent) => {
+        // Mapbox GL fires "error" for per-tile fetch failures (rate limits,
+        // transient network blips on the OSM raster fallback) as well as for
+        // genuinely fatal style/init errors. A single failed tile shouldn't
+        // tear down a map that already rendered — only surface the fatal
+        // error screen when the map never got past its initial style load.
+        const sourceScoped = Boolean((event as unknown as { sourceId?: string }).sourceId);
+        if (sourceScoped || map.loaded()) {
+          console.warn("Map tile error (non-fatal):", event.error);
+          return;
+        }
+
         if (loadTimeout) clearTimeout(loadTimeout);
         if (isMounted) {
           setError(t("errors.loadFailed"));
@@ -178,6 +196,8 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       return () => {
         isMounted = false;
         if (loadTimeout) clearTimeout(loadTimeout);
+        sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
+        sovereigntyMarkersRef.current = [];
         if (map) {
           map.off("load", handleLoad);
           map.off("error", handleError);
@@ -397,7 +417,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           </p>
           <p className="text-xs text-muted-foreground">{error}</p>
           <p className="text-xs text-muted-foreground mt-2">
-            {t("addTokenHint")}
+            {usedTokenRef.current ? t("addTokenHint") : t("networkHint")}
           </p>
         </div>
       </div>);

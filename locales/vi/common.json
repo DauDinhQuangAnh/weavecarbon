@@ -1663,6 +1663,7 @@
       },
       "errorTitle": "Lỗi",
       "addTokenHint": "Thêm NEXT_PUBLIC_MAPBOX_TOKEN vào .env.local",
+      "networkHint": "Không thể kết nối tới máy chủ bản đồ OpenStreetMap. Kiểm tra kết nối mạng, hoặc thêm NEXT_PUBLIC_MAPBOX_TOKEN vào .env.local để dùng bản đồ Mapbox ổn định hơn.",
       "loading": "Đang tải bản đồ...",
       "legend": {
         "title": "Chú thích",
