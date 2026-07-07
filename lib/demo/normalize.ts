@@ -41,6 +41,60 @@ const getShipmentProductId = (value: unknown) =>
 const getBatchItemProductId = (value: unknown) =>
   asString(asRecord(value).productId ?? asRecord(value).product_id).trim();
 
+// Seed JSON ships shipment sub-records (products/legs) in snake_case, but every
+// consumer (domain/logistics.ts, domain/products.ts, the LogisticsShipmentDetail
+// type) reads them as camelCase. Without canonicalizing here, functions like
+// syncProductShipmentLinks silently treat every seeded shipment's product link
+// as missing (product.productId is undefined), which wipes shipmentId off all
+// pre-seeded published products the moment any shipment is created or updated
+// (e.g. publishing a new product) — a real desync between /demo/products and
+// /demo/logistics, not just a display issue.
+const normalizeShipmentProductEntry = (rawProduct: unknown): DemoRecord => {
+  const product = asRecord(rawProduct);
+  const productId = getShipmentProductId(product);
+  return {
+    ...product,
+    id: asString(product.id) || (productId ? `sp-${productId}` : ""),
+    productId,
+    quantity: asNumber(product.quantity),
+    weightKg: asNumber(product.weightKg ?? product.weight_kg),
+    allocatedCo2e: asNumber(product.allocatedCo2e ?? product.allocated_co2e),
+    sku: asString(product.sku),
+    productName: asString(product.productName ?? product.product_name),
+  };
+};
+
+const normalizeShipmentLegEntry = (rawLeg: unknown, index: number): DemoRecord => {
+  const leg = asRecord(rawLeg);
+  return {
+    ...leg,
+    id: asString(leg.id, `leg-${index + 1}`),
+    legOrder: asNumber(leg.legOrder ?? leg.leg_order, index + 1),
+    transportMode: asString(leg.transportMode ?? leg.transport_mode, "road"),
+    originLocation: asString(leg.originLocation ?? leg.origin_location),
+    destinationLocation: asString(leg.destinationLocation ?? leg.destination_location),
+    distanceKm: asNumber(leg.distanceKm ?? leg.distance_km),
+    durationHours: leg.durationHours ?? leg.duration_hours ?? null,
+    co2e: asNumber(leg.co2e),
+    emissionFactorUsed: leg.emissionFactorUsed ?? leg.emission_factor_used ?? null,
+    carrierName: asString(leg.carrierName ?? leg.carrier_name),
+    vehicleType: asString(leg.vehicleType ?? leg.vehicle_type),
+  };
+};
+
+const normalizeShipmentFields = (rawShipment: unknown): DemoRecord => {
+  const shipment = asRecord(rawShipment);
+  return {
+    ...shipment,
+    referenceNumber: asString(shipment.referenceNumber ?? shipment.reference_number),
+    companyId: asString(shipment.companyId ?? shipment.company_id),
+    createdAt: asString(shipment.createdAt ?? shipment.created_at),
+    updatedAt: asString(shipment.updatedAt ?? shipment.updated_at),
+    estimatedArrival: shipment.estimatedArrival ?? shipment.estimated_arrival ?? null,
+    actualArrival: shipment.actualArrival ?? shipment.actual_arrival ?? null,
+  };
+};
+
 const syncBatchSummary = (batch: DemoRecord) => {
   const items = Array.isArray(batch.items) ? batch.items.map(asRecord) : [];
   const totalQuantity = items.reduce((sum, item) => sum + asNumber(item.quantity), 0);
@@ -67,25 +121,25 @@ const syncBatchSummary = (batch: DemoRecord) => {
   };
 };
 
-const syncShipmentSummary = (shipment: DemoRecord) => {
-  const products = Array.isArray(shipment.products) ? shipment.products.map(asRecord) : [];
-  const totalWeight = products.reduce((sum, product) => sum + asNumber(product.weight_kg), 0);
+const syncShipmentSummary = (rawShipment: DemoRecord) => {
+  const shipment = normalizeShipmentFields(rawShipment);
+  const products = Array.isArray(shipment.products)
+    ? shipment.products.map(normalizeShipmentProductEntry)
+    : [];
+  const totalWeight = products.reduce((sum, product) => sum + asNumber(product.weightKg), 0);
   const totalAllocatedCo2e = products.reduce(
-    (sum, product) => sum + asNumber(product.allocated_co2e),
+    (sum, product) => sum + asNumber(product.allocatedCo2e),
     0
   );
-  const previousTotalCo2e = asNumber(shipment.total_co2e, totalAllocatedCo2e);
+  const previousTotalCo2e = asNumber(shipment.totalCo2e ?? shipment.total_co2e, totalAllocatedCo2e);
   const co2Ratio =
     previousTotalCo2e > 0 && totalAllocatedCo2e > 0 ? totalAllocatedCo2e / previousTotalCo2e : 1;
-  const legs = Array.isArray(shipment.legs)
-    ? shipment.legs.map((rawLeg) => {
-        const leg = asRecord(rawLeg);
-        return {
-          ...leg,
-          co2e: roundNumber(asNumber(leg.co2e) * co2Ratio, 3),
-        };
-      })
-    : [];
+  const rawLegs = Array.isArray(shipment.legs) ? shipment.legs.map(normalizeShipmentLegEntry) : [];
+  const legs = rawLegs.map((leg) => ({
+    ...leg,
+    co2e: roundNumber(asNumber(leg.co2e) * co2Ratio, 3),
+  }));
+  const totalDistance = rawLegs.reduce((sum, leg) => sum + asNumber(leg.distanceKm), 0);
   const totalCo2e = roundNumber(
     legs.reduce((sum, leg) => sum + asNumber(leg.co2e), 0) || totalAllocatedCo2e,
     3
@@ -95,10 +149,11 @@ const syncShipmentSummary = (shipment: DemoRecord) => {
     ...shipment,
     legs,
     products,
-    total_weight_kg: roundNumber(totalWeight, 3),
-    total_co2e: totalCo2e,
-    products_count: products.length,
-    legs_count: legs.length,
+    totalWeightKg: roundNumber(totalWeight, 3),
+    totalDistanceKm: roundNumber(totalDistance, 3),
+    totalCo2e: totalCo2e,
+    productsCount: products.length,
+    legsCount: legs.length,
   };
 };
 
