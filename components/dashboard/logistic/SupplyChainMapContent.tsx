@@ -72,6 +72,43 @@ const getTypeEmoji = (type: string) => {
 const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
   buildSupplyChainRouteGeometry(route);
 
+interface NodeCluster {
+  key: string;
+  lat: number;
+  lng: number;
+  nodes: SupplyChainNode[];
+}
+
+// Grid cell shrinks as the user zooms in so nearby markers separate again
+// instead of staying merged once you've zoomed past the region they're in.
+const CLUSTER_GRID_BASE_DEGREES = 45;
+const CLUSTER_MIN_GRID_DEGREES = 0.05;
+
+const clusterNodesByZoom = (nodes: SupplyChainNode[], zoom: number): NodeCluster[] => {
+  const cellSize = Math.max(
+    CLUSTER_GRID_BASE_DEGREES / Math.pow(2, zoom),
+    CLUSTER_MIN_GRID_DEGREES
+  );
+  const groups = new Map<string, SupplyChainNode[]>();
+
+  nodes.forEach((node) => {
+    const cellKey = `${Math.round(node.lat / cellSize)}:${Math.round(node.lng / cellSize)}`;
+    const bucket = groups.get(cellKey);
+    if (bucket) {
+      bucket.push(node);
+    } else {
+      groups.set(cellKey, [node]);
+    }
+  });
+
+  return Array.from(groups.entries()).map(([key, members]) => ({
+    key,
+    lat: members.reduce((sum, n) => sum + n.lat, 0) / members.length,
+    lng: members.reduce((sum, n) => sum + n.lng, 0) / members.length,
+    nodes: members
+  }));
+};
+
 const OSM_RASTER_STYLE = {
   version: 8 as const,
   sources: {
@@ -221,19 +258,17 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     const map = mapRef.current;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const addRoutesAndMarkers = () => {
+    const addRoutes = () => {
       if (!mapRef.current || mapRef.current !== map) {
         return;
       }
 
       if (!map.loaded() || !map.getCanvas()) {
-        retryTimer = setTimeout(addRoutesAndMarkers, 100);
+        retryTimer = setTimeout(addRoutes, 100);
         return;
       }
 
       try {
-        markersRef.current.forEach((marker) => marker.remove());
-        markersRef.current = [];
         const routeBounds = new mapboxgl.LngLatBounds();
         let hasRouteBounds = false;
 
@@ -315,8 +350,71 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           }
         });
 
-        nodes.forEach((node) => {
+        if (hasRouteBounds || nodes.length > 1) {
           try {
+            const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
+            if (!hasRouteBounds) {
+              nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
+            }
+            map.fitBounds(bounds, { padding: 50, maxZoom: 10 });
+          } catch {
+
+          }
+        }
+      } catch {
+
+      }
+    };
+
+    if (map.loaded()) {
+      addRoutes();
+    } else {
+      const onMapLoad = () => {
+        addRoutes();
+        map.off("load", onMapLoad);
+      };
+      map.once("load", onMapLoad);
+
+      return () => {
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+        }
+        map.off("load", onMapLoad);
+      };
+    }
+
+    return () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
+  }, [nodes, routes, onNodeClick, onRouteClick, t]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const renderMarkers = () => {
+      if (!mapRef.current || mapRef.current !== map) {
+        return;
+      }
+
+      if (!map.loaded() || !map.getCanvas()) {
+        retryTimer = setTimeout(renderMarkers, 100);
+        return;
+      }
+
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+
+      const clusters = clusterNodesByZoom(nodes, map.getZoom());
+
+      clusters.forEach((cluster) => {
+        try {
+          if (cluster.nodes.length === 1) {
+            const node = cluster.nodes[0];
             const nodeTypeLabel = getNodeTypeLabel(node.type);
             const el = document.createElement("div");
             // Apply styles directly to el so Mapbox anchors at the true visual center
@@ -350,60 +448,78 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
               </div>
             `);
 
-            const marker = new mapboxgl.Marker(el).
-            setLngLat([node.lng, node.lat]).
-            setPopup(popup).
-            addTo(map);
+            const marker = new mapboxgl.Marker(el)
+              .setLngLat([node.lng, node.lat])
+              .setPopup(popup)
+              .addTo(map);
 
             if (onNodeClick) {
               el.addEventListener("click", () => onNodeClick(node));
             }
 
             markersRef.current.push(marker);
-          } catch {
+          } else {
+            const count = cluster.nodes.length;
+            const size = Math.min(52, 34 + Math.round(Math.sqrt(count) * 6));
+            const el = document.createElement("div");
+            el.style.cssText = [
+              "background-color: #334155",
+              "color: white",
+              "border-radius: 50%",
+              `width: ${size}px`,
+              `height: ${size}px`,
+              "box-sizing: border-box",
+              "display: flex",
+              "align-items: center",
+              "justify-content: center",
+              "font-size: 14px",
+              "font-weight: 700",
+              "border: 3px solid white",
+              "box-shadow: 0 2px 8px rgba(0,0,0,0.35)",
+              "cursor: pointer",
+              "user-select: none"
+            ].join("; ");
+            el.textContent = String(count);
+            el.title = t.has("cluster.expandHint")
+              ? t("cluster.expandHint")
+              : "Click to zoom in";
 
+            el.addEventListener("click", () => {
+              const currentZoom = map.getZoom();
+              map.easeTo({
+                center: [cluster.lng, cluster.lat],
+                zoom: Math.min(currentZoom + 3, 12)
+              });
+            });
+
+            const marker = new mapboxgl.Marker(el)
+              .setLngLat([cluster.lng, cluster.lat])
+              .addTo(map);
+
+            markersRef.current.push(marker);
           }
-        });
+        } catch {
 
-        if (hasRouteBounds || nodes.length > 1) {
-          try {
-            const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
-            if (!hasRouteBounds) {
-              nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
-            }
-            map.fitBounds(bounds, { padding: 50, maxZoom: 10 });
-          } catch {
-
-          }
         }
-      } catch {
-
-      }
+      });
     };
 
-    if (map.loaded()) {
-      addRoutesAndMarkers();
-    } else {
-      const onMapLoad = () => {
-        addRoutesAndMarkers();
-        map.off("load", onMapLoad);
-      };
-      map.once("load", onMapLoad);
+    const onZoomEnd = () => renderMarkers();
 
-      return () => {
-        if (retryTimer) {
-          clearTimeout(retryTimer);
-        }
-        map.off("load", onMapLoad);
-      };
+    if (map.loaded()) {
+      renderMarkers();
+    } else {
+      map.once("load", renderMarkers);
     }
+    map.on("zoomend", onZoomEnd);
 
     return () => {
       if (retryTimer) {
         clearTimeout(retryTimer);
       }
+      map.off("zoomend", onZoomEnd);
     };
-  }, [nodes, routes, onNodeClick, onRouteClick, t, getNodeTypeLabel]);
+  }, [nodes, onNodeClick, t, getNodeTypeLabel]);
 
   if (error) {
     return (

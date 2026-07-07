@@ -1,21 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-const SHIPMENT_COLORS = [
-  "#3b82f6",
-  "#f97316",
-  "#10b981",
-  "#8b5cf6",
-  "#ef4444",
-  "#06b6d4",
-  "#84cc16",
-  "#ec4899",
-  "#f59e0b",
-  "#14b8a6",
-  "#6366f1",
-  "#a855f7",
-];
+import { getShipmentColor } from "@/lib/shipmentColors";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -814,9 +800,11 @@ const ShippingOverviewMap: React.FC = () => {
 
   const allRoutes = useMemo(
     (): SupplyChainRoute[] =>
-    paginatedShipments.flatMap((shipment, shipmentIndex) =>
-    shipment.legs.map((leg) => ({
-      id: `${getShipmentIdentityKey(shipment) || shipment.id}-${leg.id}`,
+    paginatedShipments.flatMap((shipment) => {
+      const shipmentKey = getShipmentIdentityKey(shipment) || shipment.id;
+      const shipmentColor = getShipmentColor(shipmentKey);
+      return shipment.legs.map((leg) => ({
+      id: `${shipmentKey}-${leg.id}`,
       from: {
         lat: leg.origin.lat,
         lng: leg.origin.lng,
@@ -844,9 +832,9 @@ const ShippingOverviewMap: React.FC = () => {
       co2Kg: leg.co2Kg,
       distanceKm: leg.distanceKm,
       geometry: leg.geometry,
-      color: SHIPMENT_COLORS[shipmentIndex % SHIPMENT_COLORS.length],
-    }))
-    ),
+      color: shipmentColor,
+      }));
+    }),
     [paginatedShipments]
   );
 

@@ -56,6 +56,7 @@ import SupplyChainMap, {
   type SupplyChainNode,
   type SupplyChainRoute,
 } from "./logistic/SupplyChainMap";
+import { getShipmentColor } from "@/lib/shipmentColors";
 import MobileDataCard from "@/components/mobile/MobileDataCard";
 import ProductQRCode from "./ProductQRCode";
 
@@ -312,9 +313,27 @@ const LogisticsClient: React.FC = () => {
   }, [shipments, activeTab, searchQuery, marketFilter]);
 
   /* Map data */
+  // Lets the user narrow the map to a single shipment's route instead of
+  // always rendering every filtered shipment's route at once.
+  const [mapFocusId, setMapFocusId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mapFocusId && !filteredShipments.some((s) => s.id === mapFocusId)) {
+      setMapFocusId(null);
+    }
+  }, [mapFocusId, filteredShipments]);
+
+  const mapSourceShipments = useMemo(
+    () =>
+      mapFocusId
+        ? filteredShipments.filter((s) => s.id === mapFocusId)
+        : filteredShipments,
+    [mapFocusId, filteredShipments]
+  );
+
   const mapNodes = useMemo<SupplyChainNode[]>(() => {
     const seen = new Set<string>();
-    return filteredShipments.flatMap((s) => {
+    return mapSourceShipments.flatMap((s) => {
       const nodes: SupplyChainNode[] = [];
       if (s.origin.lat && s.origin.lng) {
         const key = `${s.origin.lat?.toFixed(1)},${s.origin.lng?.toFixed(1)}`;
@@ -353,10 +372,10 @@ const LogisticsClient: React.FC = () => {
       }
       return nodes;
     });
-  }, [filteredShipments]);
+  }, [mapSourceShipments]);
 
   const mapRoutes = useMemo<SupplyChainRoute[]>(() => {
-    return filteredShipments
+    return mapSourceShipments
       .filter(
         (s) =>
           s.origin.lat && s.origin.lng && s.destination.lat && s.destination.lng
@@ -382,8 +401,9 @@ const LogisticsClient: React.FC = () => {
             : ("pending" as const),
         co2Kg: s.totalCo2e,
         distanceKm: s.totalDistanceKm,
+        color: getShipmentColor(s.id),
       }));
-  }, [filteredShipments]);
+  }, [mapSourceShipments]);
 
   const activeCount = shipments.filter(
     (s) => s.status === "pending" || s.status === "in_transit"
@@ -659,10 +679,35 @@ const LogisticsClient: React.FC = () => {
           {mapNodes.length > 0 && (
             <Card className="overflow-hidden">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <Globe className="h-4 w-4 text-primary" />
-                  Bản đồ vận chuyển
-                </CardTitle>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Bản đồ vận chuyển
+                  </CardTitle>
+                  {filteredShipments.length > 1 && (
+                    <Select
+                      value={mapFocusId ?? "all"}
+                      onValueChange={(value) =>
+                        setMapFocusId(value === "all" ? null : value)
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[220px] text-xs">
+                        <SelectValue placeholder="Tất cả lô hàng" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          Tất cả lô hàng ({filteredShipments.length})
+                        </SelectItem>
+                        {filteredShipments.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.referenceNumber || s.id}: {s.origin.city} →{" "}
+                            {s.destination.city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="p-2 md:p-4">
                 <SupplyChainMap
