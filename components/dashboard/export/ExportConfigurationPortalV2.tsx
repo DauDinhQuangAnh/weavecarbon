@@ -351,36 +351,60 @@ const ExportConfigurationPortalV2: React.FC = () => {
   };
 
   const handleSaveConfig = async () => {
+    if (isDemoRuntime) {
+      toast.success("Đã lưu cấu hình xuất khẩu (chế độ demo — chỉ lưu tạm trên trình duyệt).");
+      return;
+    }
+
     setSaving(true);
     try {
       await saveExportConfigurationV2(cfg);
       toast.success("Đã lưu cấu hình xuất khẩu");
-    } catch {
-      toast.info("Đang dùng cấu hình local/demo, BE chưa sẵn sàng hoặc chưa đăng nhập.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message.trim()
+          ? `Lưu cấu hình thất bại: ${error.message}`
+          : "Lưu cấu hình thất bại. Vui lòng thử lại."
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleLockDpp = async () => {
+    if (!isDemoRuntime && !useRealProducts) {
+      toast.error("Chưa có sản phẩm nào được đánh giá carbon. Vui lòng thêm và xuất bản ít nhất 1 sản phẩm trước khi khóa số liệu & sinh QR DPP.");
+      return;
+    }
+
     setLocking(true);
     try {
-      await handleSaveConfig();
       const localPayload = await buildDppPayloadV2(selectedSku, cfg);
       setDpp(localPayload);
+
+      if (isDemoRuntime) {
+        toast.success("Đã khóa số liệu & sinh QR DPP (chế độ demo — dữ liệu mẫu, chưa lưu lên server).");
+        return;
+      }
+
+      await handleSaveConfig();
       try {
         const remoteLock = await createDppLockV2(
-          useRealProducts && selectedProduct ? { productId: selectedProduct.id } : { sku: selectedSku.sku }
+          selectedProduct ? { productId: selectedProduct.id } : { sku: selectedSku.sku }
         );
         setDpp({
           ...localPayload,
           payloadSha256: remoteLock.payloadSha256 || localPayload.payloadSha256,
           decentralizedUrl: remoteLock.decentralizedUrl || localPayload.decentralizedUrl
         });
-      } catch {
-        // Product may be demo-only. Local signed payload remains usable for preview/printing.
+        toast.success("Đã khóa số liệu & sinh QR DPP");
+      } catch (error) {
+        toast.error(
+          error instanceof Error && error.message.trim()
+            ? `Khóa số liệu thất bại: ${error.message}`
+            : "Khóa số liệu thất bại. Vui lòng thử lại."
+        );
       }
-      toast.success("Đã khóa số liệu & sinh QR DPP");
     } finally {
       setLocking(false);
     }
@@ -432,6 +456,55 @@ const ExportConfigurationPortalV2: React.FC = () => {
     downloadText(filename, buildAuditRowsCsvV2(auditPayload), "text/csv;charset=utf-8");
   };
 
+  const DOCUMENT_TYPE_LABELS: Record<"commercial-invoice" | "packing-list" | "bill-of-lading", string> = {
+    "commercial-invoice": "Commercial Invoice",
+    "packing-list": "Packing List",
+    "bill-of-lading": "Bill of Lading"
+  };
+
+  const buildDemoDocumentCsv = (type: "commercial-invoice" | "packing-list" | "bill-of-lading") => {
+    const header = ["Document", "SKU", "HS Code", "Units", "kg CO2e/pc", "Total (tCO2e)", "PO/Contract", "B/L No", "Container No"];
+    const rows = breakdowns.map((item) => [
+      DOCUMENT_TYPE_LABELS[type],
+      item.sku.sku,
+      item.sku.cnCode,
+      String(item.sku.units),
+      item.embeddedKgPerUnit.toFixed(3),
+      item.embeddedTonnesBatch.toFixed(4),
+      cfg.poContractId,
+      cfg.billOfLadingNo,
+      cfg.containerNo
+    ]);
+    return [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  };
+
+  const handleDownloadDocument = async (type: "commercial-invoice" | "packing-list" | "bill-of-lading") => {
+    if (isDemoRuntime) {
+      downloadText(
+        `${type}_demo_${cfg.poContractId}.csv`,
+        buildDemoDocumentCsv(type),
+        "text/csv;charset=utf-8"
+      );
+      toast.info(`${DOCUMENT_TYPE_LABELS[type]}: chế độ demo tải bản CSV dữ liệu mẫu (bản XLSX đầy đủ chỉ có ở tài khoản thật).`);
+      return;
+    }
+
+    if (!useRealProducts) {
+      toast.error("Chưa có sản phẩm nào được đánh giá carbon. Vui lòng thêm và xuất bản ít nhất 1 sản phẩm trước khi tải chứng từ.");
+      return;
+    }
+
+    try {
+      await downloadExportDocumentV2(type);
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message.trim()
+          ? `Tải ${DOCUMENT_TYPE_LABELS[type]} thất bại: ${error.message}`
+          : `Tải ${DOCUMENT_TYPE_LABELS[type]} thất bại. Vui lòng thử lại.`
+      );
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div>
@@ -453,6 +526,15 @@ const ExportConfigurationPortalV2: React.FC = () => {
           <p className="text-sm text-slate-600">
             Đồng bộ số liệu carbon nhúng với Commercial Invoice / Packing List / B/L, sinh DPP QR và payload webhook cho ERP của nhà mua hàng.
           </p>
+          {!isDemoRuntime && !useRealProducts && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Công ty bạn chưa có sản phẩm nào được đánh giá carbon — dữ liệu SKU hiển thị bên dưới chỉ là dữ liệu mẫu minh họa.
+                Hãy thêm và xuất bản sản phẩm trước khi khóa số liệu hoặc tải chứng từ thật.
+              </span>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
@@ -687,7 +769,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
                 <div key={item.type} className="rounded-xl border border-emerald-100 p-4">
                   <div className="flex items-center gap-2 font-semibold"><Icon className="h-4 w-4 text-emerald-800" />{item.title}</div>
                   <p className="mt-1 text-xs text-slate-600">{item.copy}</p>
-                  <Button size="sm" variant="outline" className="mt-3" onClick={() => void downloadExportDocumentV2(item.type)}>
+                  <Button size="sm" variant="outline" className="mt-3" onClick={() => void handleDownloadDocument(item.type)}>
                     <Download className="mr-2 h-4 w-4" />Tải XLSX
                   </Button>
                 </div>
