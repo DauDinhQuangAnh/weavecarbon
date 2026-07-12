@@ -375,7 +375,9 @@ const toShipmentLocationInput = (
 
 const buildShipmentLegsFromProduct = (
   payload: ProductAssessmentData,
-  unknownLocationLabel = ""
+  unknownLocationLabel = "",
+  totalWeightKg = 0,
+  totalTransportCo2e = 0
 ) => {
   const explicitLegs = (payload.transportLegs || []).filter((leg) => Boolean(leg.mode));
 
@@ -390,7 +392,7 @@ const buildShipmentLegsFromProduct = (
       payload.estimatedTotalDistance / explicitLegs.length :
       0;
 
-  return explicitLegs.map((leg, index) => {
+  const normalizedLegs = explicitLegs.map((leg) => {
     const distanceKm =
       hasPositiveDistance(leg.estimatedDistance) &&
       hasUsableRoadDistance(leg) ?
@@ -407,10 +409,22 @@ const buildShipmentLegsFromProduct = (
         DEFAULT_TRANSPORT_FACTOR_BY_MODE[leg.mode] ||
         DEFAULT_TRANSPORT_FACTOR_BY_MODE.road;
 
+    return {
+      distanceKm,
+      emissionFactor,
+      leg,
+      weighting: Math.max(0, distanceKm * emissionFactor)
+    };
+  });
+
+  const totalLegWeighting = normalizedLegs.reduce((sum, leg) => sum + leg.weighting, 0);
+  const shipmentWeightTonnes = totalWeightKg > 0 ? totalWeightKg / 1000 : 0;
+
+  return normalizedLegs.map(({ distanceKm, emissionFactor, leg, weighting }, index) => {
     const co2Kg =
-      typeof leg.co2Kg === "number" && Number.isFinite(leg.co2Kg) && leg.co2Kg > 0 ?
-        leg.co2Kg :
-        Math.max(0, distanceKm * emissionFactor);
+      totalTransportCo2e > 0 && totalLegWeighting > 0 ?
+        totalTransportCo2e * (weighting / totalLegWeighting) :
+        Math.max(0, distanceKm * emissionFactor * (shipmentWeightTonnes || 1));
 
     return {
       leg_order: index + 1,
@@ -1304,16 +1318,6 @@ export default function AssessmentClient({
         return null;
       }
 
-      const existingShipmentId = await findExistingShipmentForProduct(product);
-      if (existingShipmentId) {
-        return existingShipmentId;
-      }
-
-      const shipmentLegs = buildShipmentLegsFromProduct(payload, unknownLocationLabel);
-      if (shipmentLegs.length === 0) {
-        return null;
-      }
-
       const safeQuantity =
         typeof payload.quantity === "number" &&
         Number.isFinite(payload.quantity) &&
@@ -1339,6 +1343,20 @@ export default function AssessmentClient({
         payload.carbonResults.totalBatch.transport > 0 ?
           payload.carbonResults.totalBatch.transport :
           Number((transportPerProductCo2 * safeQuantity).toFixed(4));
+      const existingShipmentId = await findExistingShipmentForProduct(product);
+      if (existingShipmentId) {
+        return existingShipmentId;
+      }
+
+      const shipmentLegs = buildShipmentLegsFromProduct(
+        payload,
+        unknownLocationLabel,
+        productWeightKg,
+        totalTransportCo2
+      );
+      if (shipmentLegs.length === 0) {
+        return null;
+      }
 
       const created = await createLogisticsShipment({
         reference_number: `PRD-${(payload.productCode || product.id).slice(0, 18)}-${Date.now().toString().slice(-6)}`,

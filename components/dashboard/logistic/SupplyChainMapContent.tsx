@@ -152,6 +152,30 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodeType, [t]);
 
   useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    const resizeMap = () => {
+      mapRef.current?.resize();
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ?
+      new ResizeObserver(resizeMap) :
+      null;
+
+    resizeObserver?.observe(container);
+    const animationFrame = window.requestAnimationFrame(resizeMap);
+    window.addEventListener("resize", resizeMap);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", resizeMap);
+      resizeObserver?.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) {
       return;
     }
@@ -541,11 +565,13 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   }
 
   return (
-    <div className="relative rounded-lg overflow-hidden border border-border">
+    <div
+      className="relative isolate w-full max-w-full overflow-hidden rounded-lg border border-border"
+      style={{ height, contain: "layout paint" }}
+    >
       <div
         ref={mapContainerRef}
-        style={{ height, width: "100%" }}
-        className="z-0" />
+        className="absolute inset-0 z-0 h-full w-full overflow-hidden" />
 
       {isLoading &&
       <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">

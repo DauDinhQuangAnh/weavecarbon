@@ -677,7 +677,7 @@ const LogisticsClient: React.FC = () => {
 
           {/* Map */}
           {mapNodes.length > 0 && (
-            <Card className="overflow-hidden">
+            <Card className="relative z-0 overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-sm md:text-base">
@@ -709,25 +709,27 @@ const LogisticsClient: React.FC = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="p-2 md:p-4">
-                <SupplyChainMap
-                  nodes={mapNodes}
-                  routes={mapRoutes}
-                  center={[20, 100]}
-                  zoom={2}
-                  height="360px"
-                  onNodeClick={(node) => {
-                    const hit = filteredShipments.find(
-                      (s) =>
-                        s.origin.city === node.name ||
-                        s.destination.city === node.name
-                    );
-                    if (hit)
-                      setSelectedShipment(
-                        selectedShipment?.id === hit.id ? null : hit
+              <CardContent className="relative overflow-hidden p-2 md:p-4">
+                <div className="relative isolate w-full max-w-full overflow-hidden">
+                  <SupplyChainMap
+                    nodes={mapNodes}
+                    routes={mapRoutes}
+                    center={[20, 100]}
+                    zoom={2}
+                    height="360px"
+                    onNodeClick={(node) => {
+                      const hit = filteredShipments.find(
+                        (s) =>
+                          s.origin.city === node.name ||
+                          s.destination.city === node.name
                       );
-                  }}
-                />
+                      if (hit)
+                        setSelectedShipment(
+                          selectedShipment?.id === hit.id ? null : hit
+                        );
+                    }}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}
