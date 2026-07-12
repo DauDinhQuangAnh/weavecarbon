@@ -118,7 +118,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
   const displayLocale = "vi-VN";
   const trialDomesticOnlyBatchWarning: string =
     locale === "vi"
-      ? "Gói Trial chềEcho phép lô hàng nội địa. Lô hiện tại có sản phẩm ngoài nội địa nên không thềExuất bản."
+      ? "Gói Trial chỉ cho phép lô hàng nội địa. Lô hiện tại có sản phẩm ngoài nội địa nên không thể xuất bản."
       : "Trial plan supports domestic batches only. This batch contains non-domestic products and cannot be published.";
   const normalizedStarterDomesticMarket =
   normalizeDestinationMarket(starterDomesticMarket);
@@ -346,7 +346,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
         selectedProductIds.length - selectedProducts.length;
         if (starterDomesticOnly && skippedByStarter > 0) {
           toast.warning(
-            `Gói Trial: bềEqua ${skippedByStarter} sản phẩm không thuộc thềEtrường nội địa.`
+            `Gói Trial: bỏ qua ${skippedByStarter} sản phẩm không thuộc thị trường nội địa.`
           );
         }
         let addedCount = 0;
@@ -409,7 +409,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
       return;
     }
     if (!isStarterDomesticProduct(product)) {
-      toast.error("Gói Trial chềEcho phép sản phẩm nội địa.");
+      toast.error("Gói Trial chỉ cho phép sản phẩm nội địa.");
       return;
     }
 
@@ -458,7 +458,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
       return;
     }
     if (selectedBatchHasNonDomesticProduct) {
-      toast.error("Gói Trial chềEcho phép lô hàng gồm sản phẩm nội địa.");
+      toast.error("Gói Trial chỉ cho phép lô hàng gồm sản phẩm nội địa.");
       return;
     }
 
@@ -687,7 +687,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
               }
                 {selectedBatchHasNonDomesticProduct && trialDomesticOnlyBatchWarning === "__legacy__" &&
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                    Gói Trial chềEcho phép lô hàng nội địa. Lô hiện tại có sản phẩm ngoài nội địa nên không thềExuất bản.
+                    Gói Trial chỉ cho phép lô hàng nội địa. Lô hiện tại có sản phẩm ngoài nội địa nên không thể xuất bản.
                   </div>
               }
                 {selectedBatchHasNonDomesticProduct &&

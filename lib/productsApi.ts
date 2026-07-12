@@ -1,9 +1,6 @@
 import {
   api,
-  apiRequest,
-  authTokenStore,
   invalidateApiResponseCache,
-  resolveApiUrl,
   isApiError,
   type ApiError } from
 "@/lib/apiClient";
@@ -1862,25 +1859,6 @@ saveMode?: ProductSaveMode) =>
   return payload;
 };
 
-const parseErrorResponse = async (response: Response) => {
-  try {
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      const payload = (await response.json()) as unknown;
-      if (isObject(payload)) {
-        const error = payload.error;
-        if (isObject(error) && typeof error.message === "string") {
-          return error.message;
-        }
-      }
-    }
-  } catch {
-
-  }
-
-  return response.statusText || "Request failed";
-};
-
 const resolvePublishedStatusForApi = () => "published";
 
 const isEmptyProductListResult = (result: ProductListResult) =>
@@ -2166,60 +2144,6 @@ saveMode: ProductSaveMode = "draft")
   });
   invalidateProductCaches("products-bulk-imported");
   return normalizeBulkImportPayload(payload);
-};
-
-export const importProductsBulkFile = async (
-file: File,
-saveMode: ProductSaveMode = "draft")
-: Promise<BulkImportResult> => {
-  const body = new FormData();
-  body.append("file", file);
-  body.append("save_mode", saveMode);
-
-  const payload = await apiRequest<unknown>("/products/bulk-import/file", {
-    method: "POST",
-    body
-  });
-
-  invalidateProductCaches("products-bulk-file-imported");
-  return normalizeBulkImportPayload(payload);
-};
-
-export const downloadProductsBulkTemplate = async (
-format: "xlsx" | "csv" = "xlsx") =>
-{
-  const token = authTokenStore.getAccessToken();
-  const response = await fetch(
-    resolveApiUrl(`/products/bulk-template?format=${encodeURIComponent(format)}`),
-    {
-      method: "GET",
-      credentials: "include",
-      headers: token ?
-      {
-        Authorization: `Bearer ${token}`
-      } :
-      undefined
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(await parseErrorResponse(response));
-  }
-
-  const blob = await response.blob();
-  const disposition = response.headers.get("content-disposition") || "";
-  const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
-  const rawFilename = filenameMatch?.[1] || filenameMatch?.[2];
-  const filename = rawFilename ?
-  decodeURIComponent(rawFilename) :
-  `products_import_template.${format}`;
-
-  const href = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = href;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(href);
 };
 
 const toBatchStatus = (value: unknown): ProductBatchStatus => {

@@ -1260,7 +1260,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           <div className="space-y-6">
             {starterDomesticOnly &&
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-                Gói Trial chềEhềEtrợ dữ liệu nội địa. Nếu file có dòng xuất khẩu, hềEthống sẽ chuyển vềEnội địa.
+                Gói Trial chỉ hỗ trợ dữ liệu nội địa. Nếu file có dòng xuất khẩu, hệ thống sẽ chuyển về nội địa.
               </div>
             }
             <div className="bg-muted/50 rounded-lg p-4 border border-dashed">

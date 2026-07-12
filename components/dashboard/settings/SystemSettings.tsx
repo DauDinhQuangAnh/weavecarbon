@@ -1178,7 +1178,7 @@ const SystemSettings: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Chọn gói SKU Standard</DialogTitle>
           <DialogDescription>
-            Chọn sềElượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
+            Chọn số lượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
           </DialogDescription>
         </DialogHeader>
 

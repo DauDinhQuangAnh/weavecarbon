@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
+import * as XLSX from '@e965/xlsx';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useProducts } from '@/contexts/ProductContext';

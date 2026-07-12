@@ -997,8 +997,8 @@ const OverviewPage: React.FC = () => {
             </p>
             <p className="text-xs leading-relaxed text-amber-700">
               {locale === "vi"
-                ? "Các kết quả phát thải CO₂e hiển thềEtrên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. SềEliệu sử dụng hềEsềEphát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám BềETN&MT Việt Nam. Một sềEdữ liệu đầu vào vẫn là dữ liệu proxy  Ecần bềEsung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc đềEđạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
-                : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data  Eoriginal invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
+                ? "Các kết quả phát thải CO₂e hiển thị trên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. Số liệu sử dụng hệ số phát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Bộ TN&MT Việt Nam. Một số dữ liệu đầu vào vẫn là dữ liệu proxy — cần bổ sung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc để đạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
+                : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data — original invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
             </p>
           </div>
           <button
