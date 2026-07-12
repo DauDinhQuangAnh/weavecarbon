@@ -328,8 +328,22 @@ const buildAddressLabel = (
 const hasPositiveDistance = (value: number | undefined): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 
-const hasResolvedRoadDistance = (leg: ProductAssessmentData["transportLegs"][number]) =>
-  leg.mode !== "road" || (leg.routeResolved === true && hasPositiveDistance(leg.estimatedDistance));
+const hasUsableRoadDistance = (leg: ProductAssessmentData["transportLegs"][number]) => {
+  if (leg.mode !== "road") {
+    return true;
+  }
+
+  if (!hasPositiveDistance(leg.estimatedDistance)) {
+    return false;
+  }
+
+  return (
+    leg.routeResolved === true ||
+    leg.distanceSource === "manual" ||
+    leg.distanceStatus === "manual" ||
+    leg.distanceStatus === "estimated"
+  );
+};
 
 const toShipmentLocationInput = (
   address: AddressInput,
@@ -379,7 +393,7 @@ const buildShipmentLegsFromProduct = (
   return explicitLegs.map((leg, index) => {
     const distanceKm =
       hasPositiveDistance(leg.estimatedDistance) &&
-      hasResolvedRoadDistance(leg) ?
+      hasUsableRoadDistance(leg) ?
         leg.estimatedDistance :
       leg.mode !== "road" && fallbackDistancePerLeg > 0 ?
         fallbackDistancePerLeg :
@@ -1166,8 +1180,8 @@ export default function AssessmentClient({
     isTrialPlan &&
     (isAddressOutsideTrialDomestic(productData.originAddress.country, starterDomesticMarket) ||
       isAddressOutsideTrialDomestic(productData.destinationAddress.country, starterDomesticMarket));
-  const hasUnresolvedRoadTransportLegs = productData.transportLegs.some(
-    (leg) => !hasResolvedRoadDistance(leg)
+  const hasUnusableRoadTransportLegs = productData.transportLegs.some(
+    (leg) => !hasUsableRoadDistance(leg)
   );
 
   const canProceed = () => {
@@ -1199,7 +1213,7 @@ export default function AssessmentClient({
           !!productData.destinationMarket &&
           productData.transportLegs.length > 0 &&
           !hasTrialDomesticAddressMismatch &&
-          !hasUnresolvedRoadTransportLegs
+          !hasUnusableRoadTransportLegs
         );
       default:
         return true;
@@ -1286,7 +1300,7 @@ export default function AssessmentClient({
           Number.isFinite(payload.estimatedTotalDistance) &&
           payload.estimatedTotalDistance > 0);
       if (!hasLogisticsInput) return null;
-      if (payload.transportLegs.some((leg) => !hasResolvedRoadDistance(leg))) {
+      if (payload.transportLegs.some((leg) => !hasUsableRoadDistance(leg))) {
         return null;
       }
 
@@ -1571,7 +1585,7 @@ export default function AssessmentClient({
       setCurrentStep(4);
       return;
     }
-    if (hasUnresolvedRoadTransportLegs) {
+    if (hasUnusableRoadTransportLegs) {
       toast.warning(t("toast.roadRouteRequired"));
       setCurrentStep(4);
       return;
