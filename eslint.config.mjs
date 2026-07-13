@@ -13,11 +13,14 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-      "react-hooks/refs": "off",
-      "react-hooks/purity": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/static-components": "off"
+      // Downgraded from the default "error" to "warn": these flag real
+      // setState-in-effect / ref-during-render patterns across ~17 files
+      // that need per-component fixes and browser verification, not a
+      // mechanical bulk change. Warn keeps them visible without blocking CI.
+      "react-hooks/refs": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/static-components": "warn"
     }
   }
 ]);
