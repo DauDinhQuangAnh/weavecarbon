@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useAppRuntime } from "@/lib/demo/routes";
+import { env } from "@/lib/env";
 
 const normalizePublicBaseUrl = (value?: string | null) => {
   const trimmed = String(value || "").trim();
@@ -33,8 +34,8 @@ const normalizePublicBaseUrl = (value?: string | null) => {
 
 const resolvePublicOrigin = () => {
   const configuredOrigin =
-    normalizePublicBaseUrl(process.env.NEXT_PUBLIC_APP_PUBLIC_URL) ||
-    normalizePublicBaseUrl(process.env.NEXT_PUBLIC_SITE_URL);
+    normalizePublicBaseUrl(env.NEXT_PUBLIC_APP_PUBLIC_URL) ||
+    normalizePublicBaseUrl(env.NEXT_PUBLIC_SITE_URL);
 
   if (configuredOrigin) {
     return configuredOrigin;

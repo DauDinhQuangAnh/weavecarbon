@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { ArrowRight, LayoutDashboard, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AUTH_DISABLED } from "@/lib/env";
 import {
   buildCheckEmailUrl,
   normalizeAuthUserTypeOrNull,
@@ -49,7 +50,7 @@ const AuthForm: React.FC = () => {
   const tUserType = useTranslations("userType");
   const { signUp, signIn, signInWithGoogle, signInDemo, startLocalDemo, signOut, user, loading } =
   useAuth();
-  const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "1";
+  const authDisabled = AUTH_DISABLED;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, authTokenStore } from "@/lib/apiClient";
+import { ACCOUNT_ENDPOINT_ENABLED } from "@/lib/env";
 import {
   Card,
   CardContent,
@@ -30,9 +31,6 @@ interface AccountData {
     created_at?: string;
   } | null;
 }
-
-const ACCOUNT_ENDPOINT_ENABLED =
-process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
 
 const toInitials = (value: string) => {
   const cleaned = value.trim();

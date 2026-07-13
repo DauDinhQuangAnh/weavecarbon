@@ -1,4 +1,5 @@
 import { api } from "@/lib/apiClient";
+import { env } from "@/lib/env";
 
 const RAG_CONFIG_STORAGE_KEY = "weavecarbon_rag_runtime_config_v1";
 
@@ -107,28 +108,28 @@ const parseLegacyWeaveyEndpoint = (value: string | undefined | null) => {
   }
 };
 
-const legacyEndpointConfig = parseLegacyWeaveyEndpoint(process.env.NEXT_PUBLIC_WEAVEY_API_URL);
+const legacyEndpointConfig = parseLegacyWeaveyEndpoint(env.NEXT_PUBLIC_WEAVEY_API_URL);
 
 const envDefaultBaseUrl = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_RAG_API_BASE_URL ||
+  env.NEXT_PUBLIC_RAG_API_BASE_URL ||
     legacyEndpointConfig?.baseUrl ||
     DEFAULT_RAG_BASE_URL
 );
 const envDefaultCollection = asString(
-  process.env.NEXT_PUBLIC_RAG_COLLECTION || legacyEndpointConfig?.collectionName || "",
+  env.NEXT_PUBLIC_RAG_COLLECTION || legacyEndpointConfig?.collectionName || "",
   ""
 );
 const envDefaultColumns = parseCommaSeparatedColumns(
-  process.env.NEXT_PUBLIC_RAG_COLUMNS_TO_ANSWER || DEFAULT_COLUMNS.join(",")
+  env.NEXT_PUBLIC_RAG_COLUMNS_TO_ANSWER || DEFAULT_COLUMNS.join(",")
 );
 const envDefaultDocsRetrieval = clampInteger(
-  process.env.NEXT_PUBLIC_RAG_NUMBER_DOCS_RETRIEVAL,
+  env.NEXT_PUBLIC_RAG_NUMBER_DOCS_RETRIEVAL,
   DEFAULT_NUMBER_DOCS_RETRIEVAL,
   1,
   50
 );
 const envDefaultTimeoutMs = clampInteger(
-  process.env.NEXT_PUBLIC_RAG_TIMEOUT_MS,
+  env.NEXT_PUBLIC_RAG_TIMEOUT_MS,
   DEFAULT_TIMEOUT_MS,
   1000,
   120000

@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { api, authTokenStore } from "@/lib/apiClient";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
+import { ACCOUNT_ENDPOINT_ENABLED } from "@/lib/env";
 import {
   TARGET_MARKET_OPTIONS,
   formatTargetMarketLabel,
@@ -111,8 +112,6 @@ const SKU_TIERS: { value: 20 | 35 | 50; label: string; price: string }[] = [
   { value: 50, label: '+50 SKU', price: '1,499,000 VND/tháng' },
 ];
 
-const ACCOUNT_ENDPOINT_ENABLED =
-process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
 const TRIAL_PRODUCTS_LIMIT = 5;
 const TRIAL_MEMBERS_LIMIT = 1;
 

@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { env } from "@/lib/env";
 
 const DEFAULT_API_BASE_URL = "/api";
 const HEALTH_PATH = "/health";
@@ -37,7 +38,7 @@ const resolveHealthUrl = async () => {
   }
 
   const normalizedApiBase = normalizeApiBaseUrl(
-    process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL
+    env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL
   );
   const backendBase = normalizedApiBase.replace(/\/api$/, "");
 

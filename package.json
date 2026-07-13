@@ -11,7 +11,7 @@
     "check": "npm run lint && npm run typecheck",
     "clean:local": "node scripts/clean-local.mjs",
     "test": "vitest run",
-    "test:carbon": "vitest run"
+    "test:carbon": "vitest run lib/carbon"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1009.0",
@@ -54,12 +54,16 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.182.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.1.6",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.4"

@@ -1,3 +1,5 @@
+import { env } from "@/lib/env";
+
 const DEFAULT_MAPBOX_GEOCODING_BASE_URL =
   "https://api.mapbox.com/geocoding/v5/mapbox.places";
 const DEFAULT_MAPBOX_DIRECTIONS_BASE_URL =
@@ -6,17 +8,17 @@ const DEFAULT_MAPBOX_DIRECTIONS_BASE_URL =
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
 export const MAPBOX_PUBLIC_TOKEN = (
-  process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+  env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+  env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   ""
 ).trim();
 
 const rawMapboxGeocodingBaseUrl = (
-  process.env.NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL ||
+  env.NEXT_PUBLIC_MAPBOX_GEOCODING_BASE_URL ||
   DEFAULT_MAPBOX_GEOCODING_BASE_URL
 ).trim();
 const rawMapboxDirectionsBaseUrl = (
-  process.env.NEXT_PUBLIC_MAPBOX_DIRECTIONS_BASE_URL ||
+  env.NEXT_PUBLIC_MAPBOX_DIRECTIONS_BASE_URL ||
   DEFAULT_MAPBOX_DIRECTIONS_BASE_URL
 ).trim();
 

@@ -5,6 +5,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
 import { getSubscriptionApiPayload } from "@/lib/subscriptionApi";
+import { ACCOUNT_ENDPOINT_ENABLED } from "@/lib/env";
 import {
   resolveSubscriptionState,
   type SubscriptionApiPayload
@@ -15,9 +16,6 @@ import { Company } from "@/types/app.type";
 interface DashboardSidebarShellProps {
   company: Company | null;
 }
-
-const ACCOUNT_ENDPOINT_ENABLED =
-process.env.NEXT_PUBLIC_ACCOUNT_ENDPOINT !== "0";
 
 type AccountPayload = {
   company?: Company | null;
