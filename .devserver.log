@@ -1,0 +1,13 @@
+
+> weavecarbon_frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.233.116.108:3000
+- Environments: .env
+✓ Ready in 2.7s
+
+○ Compiling / ...
+ GET / 200 in 8.7s (next.js: 7.8s, proxy.ts: 234ms, application-code: 623ms)
+ GET /auth 200 in 957ms (next.js: 834ms, proxy.ts: 5ms, application-code: 118ms)

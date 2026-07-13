@@ -39,7 +39,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { isApiError, isUnauthorizedApiError } from "@/lib/apiClient";import {
+import { isUnauthorizedApiError } from "@/lib/apiClient";
+import {
   approveComplianceDocument,
   fetchComplianceMarkets,
   getComplianceDocumentObjectUrl,
@@ -50,168 +51,29 @@ import { resolveComplianceDocumentGroup, type ComplianceDocumentGroup } from "@/
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
-import type { DocumentStatus, MarketCode, MarketCompliance } from "./types";
+import type { MarketCode, MarketCompliance } from "./types";
 import { computeMarketDocumentReadinessScore } from "./readiness";
 import ComplianceDetailModal from "./ComplianceDetailModal";
 import ExportConfigurationPortalV2 from "./ExportConfigurationPortalV2";
-
-interface SummaryDocument {
-  id: string;
-  documentId: string;
-  market: MarketCode;
-  marketName: string;
-  name: string;
-  status: DocumentStatus;
-  group: ComplianceDocumentGroup;
-  expires: string | null;
-  downloadUrl?: string;
-}
-
-interface UploadTarget {
-  key: string;
-  market: MarketCode;
-  marketName: string;
-  documentId: string;
-  documentName: string;
-  required: boolean;
-  status: DocumentStatus;
-  group: ComplianceDocumentGroup;
-}
-
-type UploadMarketFilter = "ALL" | MarketCode;
-type UploadModalMode = "create" | "edit";
-interface UploadFormDocumentOption {
-  id: string;
-  name: string;
-}
-
-const getUploadTargetKey = (market: MarketCode, documentId: string) => `${market}::${documentId}`;
-const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
-const DOCUMENT_GROUPS: ComplianceDocumentGroup[] = ["export_compliance", "material_certification"];
-const DEFAULT_GROUP_SEARCH: Record<ComplianceDocumentGroup, string> = {
-  export_compliance: "",
-  material_certification: ""
-};
-const DEFAULT_GROUP_MARKET_FILTER: Record<ComplianceDocumentGroup, UploadMarketFilter> = {
-  export_compliance: "ALL",
-  material_certification: "ALL"
-};
-
-const getReadinessColor = (score: number): string => {
-  if (score >= 80) {
-    return "bg-green-50 text-green-700 border border-green-200";
-  }
-  if (score >= 50) {
-    return "bg-yellow-50 text-yellow-700 border border-yellow-200";
-  }
-  return "bg-red-50 text-red-700 border border-red-200";
-};
-
-const getMarketTone = (score: number) => {
-  if (score >= 80) {
-    return {
-      cardClassName: "border-slate-200 bg-white",
-      iconClassName: "bg-emerald-100 text-emerald-700",
-      barClassName: "bg-emerald-500",
-      statClassName: "border-slate-200 bg-slate-50"
-    };
-  }
-  if (score >= 50) {
-    return {
-      cardClassName: "border-slate-200 bg-white",
-      iconClassName: "bg-amber-100 text-amber-700",
-      barClassName: "bg-amber-500",
-      statClassName: "border-slate-200 bg-slate-50"
-    };
-  }
-  return {
-    cardClassName: "border-slate-200 bg-white",
-    iconClassName: "bg-rose-100 text-rose-700",
-    barClassName: "bg-rose-500",
-    statClassName: "border-slate-200 bg-slate-50"
-  };
-};
-
-const DOCUMENT_GROUP_THEME: Record<
-  ComplianceDocumentGroup,
-  {
-    sectionClassName: string;
-    statCardClassName: string;
-    iconWrapClassName: string;
-  }
-> = {
-  export_compliance: {
-    sectionClassName: "border-slate-200 bg-white",
-    statCardClassName: "border-slate-200 bg-slate-50",
-    iconWrapClassName: "bg-emerald-100 text-emerald-700"
-  },
-  material_certification: {
-    sectionClassName: "border-slate-200 bg-white",
-    statCardClassName: "border-slate-200 bg-slate-50",
-    iconWrapClassName: "bg-amber-100 text-amber-700"
-  }
-};
-
-const getManagerDocumentTone = (status: DocumentStatus) => {
-  if (status === "approved") {
-    return "border-slate-200 bg-white";
-  }
-  if (status === "uploaded") {
-    return "border-slate-200 bg-white";
-  }
-  if (status === "expired") {
-    return "border-slate-200 bg-white";
-  }
-  return "border-slate-200 bg-white";
-};
-
-const isPlanRestrictionError = (error: unknown) => {
-  if (!isApiError(error) || error.status !== 403) return false;
-
-  const normalizedCode = String(error.code || "").trim().toLowerCase();
-  const normalizedMessage = String(error.message || "").trim().toLowerCase();
-
-  if (normalizedCode.includes("plan") || normalizedCode.includes("subscription")) {
-    return true;
-  }
-
-  return (
-    normalizedMessage.includes("standard plan") ||
-    normalizedMessage.includes("upgrade") ||
-    normalizedMessage.includes("export and reports")
-  );
-};
-
-const isPdfFile = (file: File) => {
-  const mimeType = String(file.type || "").toLowerCase();
-  const fileName = String(file.name || "").toLowerCase();
-  return mimeType === "application/pdf" || fileName.endsWith(".pdf");
-};
-
-const getDocumentStatusMeta = (status: DocumentStatus) => {
-  if (status === "approved") {
-    return {
-      label: "\u0110\u00e3 duy\u1ec7t",
-      className: "border border-green-200 bg-green-50 text-green-700"
-    };
-  }
-  if (status === "uploaded") {
-    return {
-      label: "M\u1edbi upload",
-      className: "border border-blue-200 bg-blue-50 text-blue-700"
-    };
-  }
-  if (status === "expired") {
-    return {
-      label: "H\u1ebft h\u1ea1n",
-      className: "border border-orange-200 bg-orange-50 text-orange-700"
-    };
-  }
-  return {
-    label: "Ch\u01b0a c\u00f3",
-    className: "border border-slate-200 bg-slate-100 text-slate-700"
-  };
-};
+import {
+  DEFAULT_GROUP_MARKET_FILTER,
+  DEFAULT_GROUP_SEARCH,
+  DOCUMENT_GROUP_THEME,
+  DOCUMENT_GROUPS,
+  PRICING_MODAL_OPEN_EVENT,
+  getDocumentStatusMeta,
+  getManagerDocumentTone,
+  getMarketTone,
+  getReadinessColor,
+  getUploadTargetKey,
+  isPdfFile,
+  isPlanRestrictionError,
+  type SummaryDocument,
+  type UploadFormDocumentOption,
+  type UploadMarketFilter,
+  type UploadModalMode,
+  type UploadTarget
+} from "./exportPageHelpers";
 
 const ExportPage: React.FC = () => {
   const locale = "vi";
