@@ -39,13 +39,6 @@ const getRouteWeight = (mode: string, status: string) => {
   return base * 0.65;
 };
 
-const getRouteDashArray = (mode: string, status: string) => {
-  if (status === "pending") return "6,6";
-  if (mode === "air") return "8,5";
-  if (mode === "rail") return "14,5,3,5";
-  return undefined;
-};
-
 const getMarkerColor = (status?: string) => {
   if (status === "completed") return "#22c55e";
   if (status === "pending") return "#eab308";
@@ -71,6 +64,10 @@ const getTypeEmoji = (type: string) => {
 
 const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
   buildSupplyChainRouteGeometry(route);
+
+const ROUTE_SOURCE_ID = "shipment-routes";
+const ROUTE_CASING_LAYER_ID = "shipment-routes-casing";
+const ROUTE_LINE_LAYER_ID = "shipment-routes-line";
 
 interface NodeCluster {
   key: string;
@@ -145,7 +142,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const usedTokenRef = useRef(false);
+  const usedToken = hasMapboxPublicToken();
   const getNodeTypeLabel = useCallback((nodeType: SupplyChainNode["type"]) =>
   t.has(`popup.nodeTypes.${nodeType}`) ?
   t(`popup.nodeTypes.${nodeType}`) :
@@ -182,11 +179,10 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
     let isMounted = true;
     let loadTimeout: NodeJS.Timeout | undefined;
+    let errorStateTimer: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      const hasToken = hasMapboxPublicToken();
-      usedTokenRef.current = hasToken;
-      if (hasToken) {
+      if (usedToken) {
         configureMapboxRuntime(mapboxgl);
       } else {
         mapboxgl.accessToken = "pk.placeholder";
@@ -201,7 +197,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: hasToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
+        style: usedToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
         center: [center[1], center[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
         zoom,
         antialias: true,
@@ -209,7 +205,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         bearing: 0,
         maxPitch: 0,
         projection: "mercator",
-        attributionControl: !hasToken
+        attributionControl: !usedToken
       });
 
       loadTimeout = setTimeout(() => {
@@ -257,6 +253,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       return () => {
         isMounted = false;
         if (loadTimeout) clearTimeout(loadTimeout);
+        if (errorStateTimer) clearTimeout(errorStateTimer);
         sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
         sovereigntyMarkersRef.current = [];
         if (map) {
@@ -268,19 +265,25 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       };
     } catch (err) {
       if (loadTimeout) clearTimeout(loadTimeout);
-      if (isMounted) {
+      errorStateTimer = setTimeout(() => {
+        if (!isMounted) return;
         const message = err instanceof Error ? err.message : t("errors.unknown");
         setError(message);
         setIsLoading(false);
-      }
+      }, 0);
     }
-  }, [center, zoom, t]);
+  }, [center, zoom, t, usedToken]);
 
   useEffect(() => {
     if (!mapRef.current) return;
 
     const map = mapRef.current;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let routeClickHandler: ((
+      event: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }
+    ) => void) | null = null;
+    let routeMouseEnterHandler: (() => void) | null = null;
+    let routeMouseLeaveHandler: (() => void) | null = null;
 
     const addRoutes = () => {
       if (!mapRef.current || mapRef.current !== map) {
@@ -296,23 +299,24 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         const routeBounds = new mapboxgl.LngLatBounds();
         let hasRouteBounds = false;
 
-        routes.forEach((_, idx) => {
-          const lineId = `route-line-${idx}`;
-          const sourceId = `route-source-${idx}`;
-          try {
-            if (map.getLayer(lineId)) map.removeLayer(lineId);
-            if (map.getSource(sourceId)) map.removeSource(sourceId);
-          } catch {
-
+        try {
+          if (map.getLayer(ROUTE_LINE_LAYER_ID)) {
+            map.removeLayer(ROUTE_LINE_LAYER_ID);
           }
-        });
+          if (map.getLayer(ROUTE_CASING_LAYER_ID)) {
+            map.removeLayer(ROUTE_CASING_LAYER_ID);
+          }
+          if (map.getSource(ROUTE_SOURCE_ID)) {
+            map.removeSource(ROUTE_SOURCE_ID);
+          }
+        } catch {
 
-        routes.forEach((route, idx) => {
-          const sourceId = `route-source-${idx}`;
-          const lineId = `route-line-${idx}`;
+        }
+
+        const routeFeatures = routes.flatMap((route) => {
           const routeCoordinates = getRenderableRouteCoordinates(route);
           if (!routeCoordinates || routeCoordinates.length < 2) {
-            return;
+            return [];
           }
 
           routeCoordinates.forEach((coordinate) => {
@@ -320,59 +324,81 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           });
           hasRouteBounds = true;
 
+          return [{
+            type: "Feature" as const,
+            properties: {
+              routeId: route.id,
+              color: getRouteColor(route.mode, route.status, route.color),
+              width: getRouteWeight(route.mode, route.status),
+              opacity: route.status === "pending" ? 0.55 : 0.9
+            },
+            geometry: {
+              type: "LineString" as const,
+              coordinates: routeCoordinates
+            }
+          }];
+        });
+
+        if (routeFeatures.length > 0) {
           try {
-            map.addSource(sourceId, {
+            map.addSource(ROUTE_SOURCE_ID, {
               type: "geojson",
               data: {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: routeCoordinates
-
-                }
-              } as GeoJSON.Feature
+                type: "FeatureCollection",
+                features: routeFeatures
+              }
             });
 
-            const color = getRouteColor(route.mode, route.status, route.color);
-            const weight = getRouteWeight(route.mode, route.status);
-            const dashArray = getRouteDashArray(route.mode, route.status);
-
             map.addLayer({
-              id: lineId,
+              id: ROUTE_CASING_LAYER_ID,
               type: "line",
-              source: sourceId,
+              source: ROUTE_SOURCE_ID,
               layout: {
                 "line-join": "round",
                 "line-cap": "round"
               },
               paint: {
-                "line-color": color,
-                "line-width": weight,
-                "line-opacity": route.status === "pending" ? 0.5 : 0.8,
-                ...(dashArray && {
-                  "line-dasharray": dashArray.
-                  split(",").
-                  map((v) => parseInt(v))
-                })
+                "line-color": "#ffffff",
+                "line-width": ["+", ["get", "width"], 4],
+                "line-opacity": 0.75
               }
             });
 
-            map.on("click", lineId, () => {
-              if (onRouteClick) onRouteClick(route);
+            map.addLayer({
+              id: ROUTE_LINE_LAYER_ID,
+              type: "line",
+              source: ROUTE_SOURCE_ID,
+              layout: {
+                "line-join": "round",
+                "line-cap": "round"
+              },
+              paint: {
+                "line-color": ["get", "color"],
+                "line-width": ["get", "width"],
+                "line-opacity": ["get", "opacity"]
+              }
             });
 
-            map.on("mouseenter", lineId, () => {
+            routeClickHandler = (event) => {
+              if (!onRouteClick) return;
+              const routeId = event.features?.[0]?.properties?.routeId;
+              const hit = routes.find((route) => route.id === routeId);
+              if (hit) onRouteClick(hit);
+            };
+            routeMouseEnterHandler = () => {
               map.getCanvas().style.cursor = "pointer";
-            });
-
-            map.on("mouseleave", lineId, () => {
+            };
+            routeMouseLeaveHandler = () => {
               map.getCanvas().style.cursor = "";
-            });
+            };
+
+            map.on("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
+            map.on("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
+            map.on("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
           } catch {
 
           }
-        });
+        }
 
         if (hasRouteBounds || nodes.length > 1) {
           try {
@@ -380,7 +406,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
             if (!hasRouteBounds) {
               nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
             }
-            map.fitBounds(bounds, { padding: 50, maxZoom: 10 });
+            map.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 0 });
           } catch {
 
           }
@@ -410,6 +436,15 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     return () => {
       if (retryTimer) {
         clearTimeout(retryTimer);
+      }
+      if (routeClickHandler) {
+        map.off("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
+      }
+      if (routeMouseEnterHandler) {
+        map.off("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
+      }
+      if (routeMouseLeaveHandler) {
+        map.off("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
       }
     };
   }, [nodes, routes, onNodeClick, onRouteClick, t]);
@@ -557,7 +592,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           </p>
           <p className="text-xs text-muted-foreground">{error}</p>
           <p className="text-xs text-muted-foreground mt-2">
-            {usedTokenRef.current ? t("addTokenHint") : t("networkHint")}
+            {usedToken ? t("addTokenHint") : t("networkHint")}
           </p>
         </div>
       </div>);
