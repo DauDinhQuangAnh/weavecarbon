@@ -138,7 +138,7 @@ export const buildTransportRouteGeometry = ({
       destinationType
     });
 
-    if (resolved?.geometry.length) {
+    if (resolved && resolved.geometry.length >= 2) {
       return resolved.geometry;
     }
   }
@@ -151,7 +151,7 @@ export const buildTransportRouteGeometry = ({
       destinationType
     });
 
-    if (resolved?.geometry.length) {
+    if (resolved && resolved.geometry.length >= 2) {
       return resolved.geometry;
     }
   }
