@@ -57,6 +57,7 @@ import SupplyChainMap, {
   type SupplyChainRoute,
 } from "./logistic/SupplyChainMap";
 import { getShipmentColor } from "@/lib/shipmentColors";
+import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeometry";
 import MobileDataCard from "@/components/mobile/MobileDataCard";
 import ProductQRCode from "./ProductQRCode";
 
@@ -396,10 +397,14 @@ const LogisticsClient: React.FC = () => {
           lng: s.destination.lng!,
           name: s.destination.city || s.destination.country,
         },
-        // Shipment summaries don't carry per-leg transport mode, so this
-        // overview map always draws a direct line rather than guessing a
-        // mode and routing it through the sea/rail pathfinding graphs.
-        mode: "truck" as const,
+        // Shipment summaries don't carry per-leg transport mode. Same-country
+        // legs are drawn as road (and resolved to a real driving route
+        // below); cross-border legs fall back to the sea pathfinding graph,
+        // which itself falls back to a straight line when no path resolves.
+        mode:
+          s.origin.country && s.origin.country === s.destination.country
+            ? ("truck" as const)
+            : ("ship" as const),
         status:
           s.status === "delivered"
             ? ("completed" as const)
@@ -411,6 +416,25 @@ const LogisticsClient: React.FC = () => {
         color: getShipmentColor(s.id),
       }));
   }, [mapSourceShipments]);
+
+  const { geometryById: resolvedRoadGeometryById } = useResolvedRoadRouteGeometry(
+    mapRoutes,
+    {
+      getDestination: (route) => ({ lat: route.to.lat, lng: route.to.lng }),
+      getId: (route) => route.id,
+      getOrigin: (route) => ({ lat: route.from.lat, lng: route.from.lng }),
+      isRoadRoute: (route) => route.mode === "truck"
+    }
+  );
+
+  const renderableMapRoutes = useMemo<SupplyChainRoute[]>(
+    () =>
+      mapRoutes.map((route) => ({
+        ...route,
+        geometry: resolvedRoadGeometryById[route.id] || route.geometry
+      })),
+    [mapRoutes, resolvedRoadGeometryById]
+  );
 
   const handleMapNodeClick = useCallback(
     (node: SupplyChainNode) => {
@@ -732,7 +756,7 @@ const LogisticsClient: React.FC = () => {
                 <div className="relative isolate w-full max-w-full overflow-hidden">
                   <SupplyChainMap
                     nodes={mapNodes}
-                    routes={mapRoutes}
+                    routes={renderableMapRoutes}
                     center={MAP_CENTER}
                     zoom={2}
                     height="360px"

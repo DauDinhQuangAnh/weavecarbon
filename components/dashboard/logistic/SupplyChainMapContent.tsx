@@ -75,7 +75,9 @@ interface NodeCluster {
 
 // Grid cell shrinks as the user zooms in so nearby markers separate again
 // instead of staying merged once you've zoomed past the region they're in.
-const CLUSTER_GRID_BASE_DEGREES = 45;
+// Kept small enough that cities a few hundred km apart (e.g. within Vietnam)
+// don't collapse into one cluster bubble at the map's default overview zoom.
+const CLUSTER_GRID_BASE_DEGREES = 16;
 const CLUSTER_MIN_GRID_DEGREES = 0.05;
 
 const clusterNodesByZoom = (nodes: SupplyChainNode[], zoom: number): NodeCluster[] => {
