@@ -154,6 +154,12 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const lastFitBoundsKeyRef = useRef<string | null>(null);
+  // OSM's free tile server (the no-token fallback) intermittently rejects
+  // requests, which used to surface as a permanent error screen. Transient
+  // init failures now trigger a couple of automatic re-creations before the
+  // error screen (with a manual retry button) is shown.
+  const autoRetriesLeftRef = useRef(2);
+  const [mapEpoch, setMapEpoch] = useState(0);
   // The map is created exactly once for the component's lifetime. center/zoom
   // are only the initial viewport (fitBounds takes over once data arrives), so
   // they are captured at mount time instead of being effect dependencies —
@@ -205,6 +211,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     let isMounted = true;
     let loadTimeout: ReturnType<typeof setTimeout> | undefined;
     let errorStateTimer: ReturnType<typeof setTimeout> | undefined;
+    let autoRetryTimer: ReturnType<typeof setTimeout> | undefined;
 
     try {
       if (usedToken) {
@@ -234,16 +241,41 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         attributionControl: !usedToken
       });
 
-      loadTimeout = setTimeout(() => {
-        if (isMounted && mapRef.current) {
-          setIsLoading(false);
+      const failInitialLoad = () => {
+        if (autoRetriesLeftRef.current > 0) {
+          autoRetriesLeftRef.current -= 1;
+          autoRetryTimer = setTimeout(() => {
+            if (isMounted) {
+              setMapEpoch((epoch) => epoch + 1);
+            }
+          }, 1500);
+          return;
         }
-      }, 8000);
+
+        setError(tRef.current("errors.loadFailed"));
+        setIsLoading(false);
+      };
+
+      // Watchdog: if every initial tile request fails (offline, OSM rate
+      // limiting), mapbox-gl never fires "load" and never re-requests the
+      // failed tiles — the map would sit blank forever. Recreating it is the
+      // only way to recover, so treat a stalled initial load as a failure.
+      // Note: map.loaded() can report true here (errored tiles count as
+      // "finished"), so only the actual "load" event counts.
+      let didLoad = false;
+      loadTimeout = setTimeout(() => {
+        if (!isMounted || mapRef.current !== map || didLoad) {
+          return;
+        }
+        failInitialLoad();
+      }, 12000);
 
       map.addControl(new mapboxgl.NavigationControl());
 
       const handleLoad = () => {
+        didLoad = true;
         clearTimeout(loadTimeout);
+        autoRetriesLeftRef.current = 2;
         if (isMounted) {
           setIsLoading(false);
           setError(null);
@@ -267,10 +299,8 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         }
 
         if (loadTimeout) clearTimeout(loadTimeout);
-        if (isMounted) {
-          setError(tRef.current("errors.loadFailed"));
-          setIsLoading(false);
-        }
+        if (!isMounted) return;
+        failInitialLoad();
       };
 
       map.on("load", handleLoad);
@@ -281,6 +311,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         isMounted = false;
         if (loadTimeout) clearTimeout(loadTimeout);
         if (errorStateTimer) clearTimeout(errorStateTimer);
+        if (autoRetryTimer) clearTimeout(autoRetryTimer);
         sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
         sovereigntyMarkersRef.current = [];
         map.off("load", handleLoad);
@@ -302,7 +333,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         if (errorStateTimer) clearTimeout(errorStateTimer);
       };
     }
-  }, [usedToken]);
+  }, [usedToken, mapEpoch]);
 
   useEffect(() => {
     const map = readyMap;
@@ -576,6 +607,18 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           <p className="text-xs text-muted-foreground mt-2">
             {usedToken ? t("addTokenHint") : t("networkHint")}
           </p>
+          <button
+            type="button"
+            className="mt-4 inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-xs font-medium shadow-sm transition-colors hover:bg-muted"
+            onClick={() => {
+              autoRetriesLeftRef.current = 2;
+              setError(null);
+              setIsLoading(true);
+              setMapEpoch((epoch) => epoch + 1);
+            }}
+          >
+            {t.has("retry") ? t("retry") : "Thử lại"}
+          </button>
         </div>
       </div>);
 
