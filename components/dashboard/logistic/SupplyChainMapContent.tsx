@@ -62,9 +62,6 @@ const getTypeEmoji = (type: string) => {
   }
 };
 
-const getRenderableRouteCoordinates = (route: SupplyChainRoute) =>
-  buildSupplyChainRouteGeometry(route);
-
 const ROUTE_SOURCE_ID = "shipment-routes";
 const ROUTE_CASING_LAYER_ID = "shipment-routes-casing";
 const ROUTE_LINE_LAYER_ID = "shipment-routes-line";
@@ -126,6 +123,22 @@ const OSM_RASTER_STYLE = {
   ]
 };
 
+const removeRouteLayers = (map: mapboxgl.Map) => {
+  try {
+    if (map.getLayer(ROUTE_LINE_LAYER_ID)) {
+      map.removeLayer(ROUTE_LINE_LAYER_ID);
+    }
+    if (map.getLayer(ROUTE_CASING_LAYER_ID)) {
+      map.removeLayer(ROUTE_CASING_LAYER_ID);
+    }
+    if (map.getSource(ROUTE_SOURCE_ID)) {
+      map.removeSource(ROUTE_SOURCE_ID);
+    }
+  } catch {
+
+  }
+};
+
 const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   nodes,
   routes,
@@ -140,6 +153,18 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const lastFitBoundsKeyRef = useRef<string | null>(null);
+  // The map is created exactly once for the component's lifetime. center/zoom
+  // are only the initial viewport (fitBounds takes over once data arrives), so
+  // they are captured at mount time instead of being effect dependencies —
+  // otherwise parents passing inline `center={[a, b]}` arrays would tear the
+  // whole map down on every render.
+  const initialViewRef = useRef({ center, zoom });
+  const tRef = useRef(t);
+  tRef.current = t;
+  // Route/marker effects must run only against a fully loaded style, so the
+  // instance is published to state from the map's "load" event.
+  const [readyMap, setReadyMap] = useState<mapboxgl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const usedToken = hasMapboxPublicToken();
@@ -178,7 +203,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     }
 
     let isMounted = true;
-    let loadTimeout: NodeJS.Timeout | undefined;
+    let loadTimeout: ReturnType<typeof setTimeout> | undefined;
     let errorStateTimer: ReturnType<typeof setTimeout> | undefined;
 
     try {
@@ -195,11 +220,12 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         mapboxgl.workerCount = 1;
       }
 
+      const { center: initialCenter, zoom: initialZoom } = initialViewRef.current;
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: usedToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
-        center: [center[1], center[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
-        zoom,
+        center: [initialCenter[1], initialCenter[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
+        zoom: initialZoom,
         antialias: true,
         pitch: 0,
         bearing: 0,
@@ -221,6 +247,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         if (isMounted) {
           setIsLoading(false);
           setError(null);
+          setReadyMap(map);
         }
         if (sovereigntyMarkersRef.current.length === 0) {
           sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(mapboxgl, map);
@@ -241,7 +268,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 
         if (loadTimeout) clearTimeout(loadTimeout);
         if (isMounted) {
-          setError(t("errors.loadFailed"));
+          setError(tRef.current("errors.loadFailed"));
           setIsLoading(false);
         }
       };
@@ -256,215 +283,175 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         if (errorStateTimer) clearTimeout(errorStateTimer);
         sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
         sovereigntyMarkersRef.current = [];
-        if (map) {
-          map.off("load", handleLoad);
-          map.off("error", handleError);
-          map.remove();
-          mapRef.current = null;
-        }
+        map.off("load", handleLoad);
+        map.off("error", handleError);
+        map.remove();
+        mapRef.current = null;
+        setReadyMap(null);
       };
     } catch (err) {
       if (loadTimeout) clearTimeout(loadTimeout);
       errorStateTimer = setTimeout(() => {
         if (!isMounted) return;
-        const message = err instanceof Error ? err.message : t("errors.unknown");
+        const message = err instanceof Error ? err.message : tRef.current("errors.unknown");
         setError(message);
         setIsLoading(false);
       }, 0);
+      return () => {
+        isMounted = false;
+        if (errorStateTimer) clearTimeout(errorStateTimer);
+      };
     }
-  }, [center, zoom, t, usedToken]);
+  }, [usedToken]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    const map = readyMap;
+    if (!map) return;
 
-    const map = mapRef.current;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let routeClickHandler: ((
       event: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }
     ) => void) | null = null;
     let routeMouseEnterHandler: (() => void) | null = null;
     let routeMouseLeaveHandler: (() => void) | null = null;
 
-    const addRoutes = () => {
-      if (!mapRef.current || mapRef.current !== map) {
-        return;
-      }
+    try {
+      const routeBounds = new mapboxgl.LngLatBounds();
+      let hasRouteBounds = false;
 
-      if (!map.loaded() || !map.getCanvas()) {
-        retryTimer = setTimeout(addRoutes, 100);
-        return;
-      }
+      removeRouteLayers(map);
 
-      try {
-        const routeBounds = new mapboxgl.LngLatBounds();
-        let hasRouteBounds = false;
-
-        try {
-          if (map.getLayer(ROUTE_LINE_LAYER_ID)) {
-            map.removeLayer(ROUTE_LINE_LAYER_ID);
-          }
-          if (map.getLayer(ROUTE_CASING_LAYER_ID)) {
-            map.removeLayer(ROUTE_CASING_LAYER_ID);
-          }
-          if (map.getSource(ROUTE_SOURCE_ID)) {
-            map.removeSource(ROUTE_SOURCE_ID);
-          }
-        } catch {
-
+      const routeFeatures = routes.flatMap((route) => {
+        const routeCoordinates = buildSupplyChainRouteGeometry(route);
+        if (!routeCoordinates || routeCoordinates.length < 2) {
+          return [];
         }
 
-        const routeFeatures = routes.flatMap((route) => {
-          const routeCoordinates = getRenderableRouteCoordinates(route);
-          if (!routeCoordinates || routeCoordinates.length < 2) {
-            return [];
+        routeCoordinates.forEach((coordinate) => {
+          routeBounds.extend(coordinate);
+        });
+        hasRouteBounds = true;
+
+        return [{
+          type: "Feature" as const,
+          properties: {
+            routeId: route.id,
+            color: getRouteColor(route.mode, route.status, route.color),
+            width: getRouteWeight(route.mode, route.status),
+            opacity: route.status === "pending" ? 0.55 : 0.9
+          },
+          geometry: {
+            type: "LineString" as const,
+            coordinates: routeCoordinates
           }
+        }];
+      });
 
-          routeCoordinates.forEach((coordinate) => {
-            routeBounds.extend(coordinate);
-          });
-          hasRouteBounds = true;
-
-          return [{
-            type: "Feature" as const,
-            properties: {
-              routeId: route.id,
-              color: getRouteColor(route.mode, route.status, route.color),
-              width: getRouteWeight(route.mode, route.status),
-              opacity: route.status === "pending" ? 0.55 : 0.9
-            },
-            geometry: {
-              type: "LineString" as const,
-              coordinates: routeCoordinates
-            }
-          }];
+      if (routeFeatures.length > 0) {
+        map.addSource(ROUTE_SOURCE_ID, {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: routeFeatures
+          }
         });
 
-        if (routeFeatures.length > 0) {
-          try {
-            map.addSource(ROUTE_SOURCE_ID, {
-              type: "geojson",
-              data: {
-                type: "FeatureCollection",
-                features: routeFeatures
-              }
-            });
-
-            map.addLayer({
-              id: ROUTE_CASING_LAYER_ID,
-              type: "line",
-              source: ROUTE_SOURCE_ID,
-              layout: {
-                "line-join": "round",
-                "line-cap": "round"
-              },
-              paint: {
-                "line-color": "#ffffff",
-                "line-width": ["+", ["get", "width"], 4],
-                "line-opacity": 0.75
-              }
-            });
-
-            map.addLayer({
-              id: ROUTE_LINE_LAYER_ID,
-              type: "line",
-              source: ROUTE_SOURCE_ID,
-              layout: {
-                "line-join": "round",
-                "line-cap": "round"
-              },
-              paint: {
-                "line-color": ["get", "color"],
-                "line-width": ["get", "width"],
-                "line-opacity": ["get", "opacity"]
-              }
-            });
-
-            routeClickHandler = (event) => {
-              if (!onRouteClick) return;
-              const routeId = event.features?.[0]?.properties?.routeId;
-              const hit = routes.find((route) => route.id === routeId);
-              if (hit) onRouteClick(hit);
-            };
-            routeMouseEnterHandler = () => {
-              map.getCanvas().style.cursor = "pointer";
-            };
-            routeMouseLeaveHandler = () => {
-              map.getCanvas().style.cursor = "";
-            };
-
-            map.on("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
-            map.on("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
-            map.on("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
-          } catch {
-
+        map.addLayer({
+          id: ROUTE_CASING_LAYER_ID,
+          type: "line",
+          source: ROUTE_SOURCE_ID,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": ["+", ["get", "width"], 4],
+            "line-opacity": 0.75
           }
+        });
+
+        map.addLayer({
+          id: ROUTE_LINE_LAYER_ID,
+          type: "line",
+          source: ROUTE_SOURCE_ID,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round"
+          },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["get", "width"],
+            "line-opacity": ["get", "opacity"]
+          }
+        });
+
+        routeClickHandler = (event) => {
+          if (!onRouteClick) return;
+          const routeId = event.features?.[0]?.properties?.routeId;
+          const hit = routes.find((route) => route.id === routeId);
+          if (hit) onRouteClick(hit);
+        };
+        routeMouseEnterHandler = () => {
+          map.getCanvas().style.cursor = "pointer";
+        };
+        routeMouseLeaveHandler = () => {
+          map.getCanvas().style.cursor = "";
+        };
+
+        map.on("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
+        map.on("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
+        map.on("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
+      }
+
+      if (hasRouteBounds || nodes.length > 0) {
+        const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
+        if (!hasRouteBounds) {
+          nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
         }
 
-        if (hasRouteBounds || nodes.length > 1) {
-          try {
-            const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
-            if (!hasRouteBounds) {
-              nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
-            }
-            map.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 0 });
-          } catch {
+        if (!bounds.isEmpty()) {
+          // Refit only when the data's extent actually changes; otherwise a
+          // re-render (e.g. new callback identity from the parent) would
+          // yank the viewport away from wherever the user panned/zoomed.
+          const fitKey = [
+            bounds.getWest().toFixed(3),
+            bounds.getSouth().toFixed(3),
+            bounds.getEast().toFixed(3),
+            bounds.getNorth().toFixed(3)
+          ].join(",");
 
+          if (fitKey !== lastFitBoundsKeyRef.current) {
+            lastFitBoundsKeyRef.current = fitKey;
+            map.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 0 });
           }
+        }
+      }
+    } catch {
+
+    }
+
+    return () => {
+      try {
+        if (routeClickHandler) {
+          map.off("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
+        }
+        if (routeMouseEnterHandler) {
+          map.off("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
+        }
+        if (routeMouseLeaveHandler) {
+          map.off("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
         }
       } catch {
 
       }
     };
-
-    if (map.loaded()) {
-      addRoutes();
-    } else {
-      const onMapLoad = () => {
-        addRoutes();
-        map.off("load", onMapLoad);
-      };
-      map.once("load", onMapLoad);
-
-      return () => {
-        if (retryTimer) {
-          clearTimeout(retryTimer);
-        }
-        map.off("load", onMapLoad);
-      };
-    }
-
-    return () => {
-      if (retryTimer) {
-        clearTimeout(retryTimer);
-      }
-      if (routeClickHandler) {
-        map.off("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
-      }
-      if (routeMouseEnterHandler) {
-        map.off("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
-      }
-      if (routeMouseLeaveHandler) {
-        map.off("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
-      }
-    };
-  }, [nodes, routes, onNodeClick, onRouteClick, t]);
+  }, [readyMap, routes, nodes, onRouteClick]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    const map = mapRef.current;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const map = readyMap;
+    if (!map) return;
 
     const renderMarkers = () => {
-      if (!mapRef.current || mapRef.current !== map) {
-        return;
-      }
-
-      if (!map.loaded() || !map.getCanvas()) {
-        retryTimer = setTimeout(renderMarkers, 100);
-        return;
-      }
-
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
 
@@ -563,22 +550,17 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       });
     };
 
-    const onZoomEnd = () => renderMarkers();
+    renderMarkers();
 
-    if (map.loaded()) {
-      renderMarkers();
-    } else {
-      map.once("load", renderMarkers);
-    }
+    const onZoomEnd = () => renderMarkers();
     map.on("zoomend", onZoomEnd);
 
     return () => {
-      if (retryTimer) {
-        clearTimeout(retryTimer);
-      }
       map.off("zoomend", onZoomEnd);
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
     };
-  }, [nodes, onNodeClick, t, getNodeTypeLabel]);
+  }, [readyMap, nodes, onNodeClick, t, getNodeTypeLabel]);
 
   if (error) {
     return (
@@ -654,4 +636,3 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 };
 
 export default SupplyChainMapContent;
-

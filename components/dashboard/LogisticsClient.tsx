@@ -201,6 +201,10 @@ function getModeLabel(mode: LogisticsTransportMode): string {
 }
 
 /* ─── Component ────────────────────────────────────────────────────────── */
+// Hoisted so the map receives a stable reference; an inline array literal
+// would change identity on every render.
+const MAP_CENTER: [number, number] = [20, 100];
+
 const LogisticsClient: React.FC = () => {
   const t = useTranslations("logistics");
   const { setPageTitle } = useDashboardTitle();
@@ -392,7 +396,10 @@ const LogisticsClient: React.FC = () => {
           lng: s.destination.lng!,
           name: s.destination.city || s.destination.country,
         },
-        mode: "ship" as const,
+        // Shipment summaries don't carry per-leg transport mode, so this
+        // overview map always draws a direct line rather than guessing a
+        // mode and routing it through the sea/rail pathfinding graphs.
+        mode: "truck" as const,
         status:
           s.status === "delivered"
             ? ("completed" as const)
@@ -404,6 +411,18 @@ const LogisticsClient: React.FC = () => {
         color: getShipmentColor(s.id),
       }));
   }, [mapSourceShipments]);
+
+  const handleMapNodeClick = useCallback(
+    (node: SupplyChainNode) => {
+      const hit = filteredShipments.find(
+        (s) => s.origin.city === node.name || s.destination.city === node.name
+      );
+      if (hit) {
+        setSelectedShipment((current) => (current?.id === hit.id ? null : hit));
+      }
+    },
+    [filteredShipments]
+  );
 
   const activeCount = shipments.filter(
     (s) => s.status === "pending" || s.status === "in_transit"
@@ -714,20 +733,10 @@ const LogisticsClient: React.FC = () => {
                   <SupplyChainMap
                     nodes={mapNodes}
                     routes={mapRoutes}
-                    center={[20, 100]}
+                    center={MAP_CENTER}
                     zoom={2}
                     height="360px"
-                    onNodeClick={(node) => {
-                      const hit = filteredShipments.find(
-                        (s) =>
-                          s.origin.city === node.name ||
-                          s.destination.city === node.name
-                      );
-                      if (hit)
-                        setSelectedShipment(
-                          selectedShipment?.id === hit.id ? null : hit
-                        );
-                    }}
+                    onNodeClick={handleMapNodeClick}
                   />
                 </div>
               </CardContent>
