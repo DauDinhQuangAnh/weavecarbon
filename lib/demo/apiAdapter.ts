@@ -171,10 +171,18 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
     // (`signInDemo` → real tokens stored), route the evidence endpoints to the
     // REAL backend so uploads hit Gemini OCR and get a genuine audit trail /
     // verification level. Offline demo (no token) keeps the mocked responses.
+    // Wrapped in try/catch because getAccessToken reads sessionStorage, which is
+    // undefined in non-browser contexts (unit tests / SSR) — there we fall back
+    // to the mocked responses.
     if (pathname === "/evidence" || pathname.startsWith("/evidence/")) {
-      const hasRealSession = Boolean(
-        authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
-      );
+      let hasRealSession = false;
+      try {
+        hasRealSession = Boolean(
+          authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
+        );
+      } catch {
+        hasRealSession = false;
+      }
       if (hasRealSession) {
         return { handled: false };
       }
