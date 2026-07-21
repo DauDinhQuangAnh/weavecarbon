@@ -9,6 +9,7 @@ import { mutateDemoDataset, readDemoDataset } from "@/lib/demo/storage";
 import { getDemoAccountPayload, getDemoCheckCompanyPayload, getDemoCompanyMembersPayload } from "@/lib/demo/domain/account";
 import { getDemoSubscriptionPayload } from "@/lib/demo/domain/subscription";
 import {
+  getDemoCompanyRecommendations,
   getDemoOverviewPayload,
   saveDemoDashboardTarget
 } from "@/lib/demo/domain/overview";
@@ -20,6 +21,7 @@ import {
   deleteDemoProduct,
   getDemoBatchById,
   getDemoProductById,
+  getDemoProductSuggestions,
   importDemoBulkRows,
   listDemoBatches,
   listDemoProducts,
@@ -1093,6 +1095,26 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
             );
             return { deleted: true };
           }),
+        };
+      }
+
+      // ── Chat / AI company recommendations ──────────────────────
+      if (method === "POST" && pathname.startsWith("/chat/recommendations/company/")) {
+        const parts = pathname.split("/").filter(Boolean);
+        const companyId = decodeURIComponent(stripQuotes(parts[3] || ""));
+        return {
+          handled: true,
+          value: getDemoCompanyRecommendations(getDemoDataset(), companyId),
+        };
+      }
+
+      // ── Chat / AI product suggestions ──────────────────────────
+      if (method === "POST" && pathname.startsWith("/chat/recommendations/product/")) {
+        const parts = pathname.split("/").filter(Boolean);
+        const productId = decodeURIComponent(stripQuotes(parts[3] || ""));
+        return {
+          handled: true,
+          value: getDemoProductSuggestions(getDemoDataset(), productId),
         };
       }
 

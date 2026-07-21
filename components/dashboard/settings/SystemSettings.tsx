@@ -120,7 +120,7 @@ const SystemSettings: React.FC = () => {
   const tPricing = useTranslations("pricingModal");
   const router = useRouter();
   const displayLocale = "vi-VN";
-  const { user, updateUser, refreshUser } = useAuth();
+  const { user, updateUser, refreshUser, isDemoSession } = useAuth();
   const { canAccessSystemSettings } = usePermissions();
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [accountCreatedAt, setAccountCreatedAt] = useState<string | null>(null);
@@ -253,10 +253,12 @@ const SystemSettings: React.FC = () => {
       return;
     }
 
+    // Demo sessions have no real auth tokens; the demo API adapter serves the
+    // subscription/usage payload locally, so allow demo through the token gate.
     const hasToken = Boolean(
       authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
     );
-    if (!hasToken) {
+    if (!hasToken && !isDemoSession) {
       setUsageLimits(null);
       setLoading(false);
       return;
@@ -408,7 +410,7 @@ const SystemSettings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isDemoSession]);
 
   useEffect(() => {
     setPersonalForm({
@@ -1073,92 +1075,160 @@ const SystemSettings: React.FC = () => {
 
       <Card className="overflow-hidden border border-amber-200 border-l-4 border-l-amber-500 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
         <CardHeader className="rounded-t-[inherit] border-b border-amber-200 bg-amber-50 p-4 sm:p-5">
-          <CardTitle className="flex items-center gap-2 text-xl text-amber-900">
-            <Zap className="w-5 h-5 text-amber-700" />
-            {t("usageLimits")}
-          </CardTitle>
-          <CardDescription className="text-amber-800/80">
-            {t("usageLimitsDesc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-4">
-          <div className="mb-3">
-            <p className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">{subscriptionNoticeLabel}</p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl text-amber-900">
+                <Zap className="w-5 h-5 text-amber-700" />
+                {t("usageLimits")}
+              </CardTitle>
+              <CardDescription className="text-amber-800/80">
+                {t("usageLimitsDesc")}
+              </CardDescription>
+            </div>
+            <p className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 whitespace-nowrap">{subscriptionNoticeLabel}</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-slate-300 bg-slate-50 p-3">
-              <div className="mb-1.5 flex items-center justify-between">
-                <Label className="text-slate-700">{t("products")}</Label>
-                <span className="text-sm font-medium">
-                  {usageLimits ?
-                  `${usageLimits.productsUsed} / ${usageLimits.productsLimit}` :
-                  t("notUpdated")}
+        </CardHeader>
+        <CardContent className="p-4 pt-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Products Limit Card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📦</span>
+                  <h3 className="font-medium text-slate-900">{t("products")}</h3>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
+                  getUsagePercentage(usageLimits?.productsUsed || 0, usageLimits?.productsLimit || 0) > 80
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-emerald-100 text-emerald-700'
+                }`}>
+                  {getUsagePercentage(usageLimits?.productsUsed || 0, usageLimits?.productsLimit || 0) > 80 ? 'CAUTION' : 'OK'}
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-300">
+              <div className="mb-3 h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
-                  className="h-full bg-primary"
+                  className={`h-full transition-all ${
+                    getUsagePercentage(usageLimits?.productsUsed || 0, usageLimits?.productsLimit || 0) > 80
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                  }`}
                   style={{
                     width: `${getUsagePercentage(
                       usageLimits?.productsUsed || 0,
                       usageLimits?.productsLimit || 0
                     )}%`
-                  }} />
-
+                  }}
+                />
               </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-300 bg-slate-50 p-3">
-              <div className="mb-1.5 flex items-center justify-between">
-                <Label className="text-slate-700">{t("members")}</Label>
-                <span className="text-sm font-medium">
-                  {usageLimits ?
-                  `${usageLimits.membersUsed} / ${usageLimits.membersLimit}` :
-                  t("notUpdated")}
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-slate-600">
+                  <span className="font-semibold text-slate-900">{usageLimits?.productsUsed || 0}</span>
+                  <span className="text-slate-500"> / {usageLimits?.productsLimit || 0}</span>
+                </span>
+                <span className="font-medium text-slate-600">
+                  {Math.round(getUsagePercentage(usageLimits?.productsUsed || 0, usageLimits?.productsLimit || 0))}%
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-300">
+              <p className="text-xs text-slate-500">
+                Còn {Math.max(0, (usageLimits?.productsLimit || 0) - (usageLimits?.productsUsed || 0))} sản phẩm
+              </p>
+            </div>
+
+            {/* Members Limit Card */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">👥</span>
+                  <h3 className="font-medium text-slate-900">{t("members")}</h3>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
+                  getUsagePercentage(usageLimits?.membersUsed || 0, usageLimits?.membersLimit || 0) > 80
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-emerald-100 text-emerald-700'
+                }`}>
+                  {getUsagePercentage(usageLimits?.membersUsed || 0, usageLimits?.membersLimit || 0) > 80 ? 'CAUTION' : 'OK'}
+                </span>
+              </div>
+              <div className="mb-3 h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
-                  className="h-full bg-primary"
+                  className={`h-full transition-all ${
+                    getUsagePercentage(usageLimits?.membersUsed || 0, usageLimits?.membersLimit || 0) > 80
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                  }`}
                   style={{
                     width: `${getUsagePercentage(
                       usageLimits?.membersUsed || 0,
                       usageLimits?.membersLimit || 0
                     )}%`
-                  }} />
-
+                  }}
+                />
               </div>
-            </div>
-
-            {!isTrialPlan && (
-              <div className="rounded-lg border border-slate-300 bg-slate-50 p-3">
-              <div className="mb-1.5 flex items-center justify-between">
-                <Label className="text-slate-700">{t("apiCalls")}</Label>
-                <span className="text-sm font-medium">
-                  {usageLimits ?
-                  `${usageLimits.apiCallsUsed.toLocaleString(displayLocale)} / ${usageLimits.apiCallsLimit.toLocaleString(displayLocale)}` :
-                  t("notUpdated")}
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-slate-600">
+                  <span className="font-semibold text-slate-900">{usageLimits?.membersUsed || 0}</span>
+                  <span className="text-slate-500"> / {usageLimits?.membersLimit || 0}</span>
+                </span>
+                <span className="font-medium text-slate-600">
+                  {Math.round(getUsagePercentage(usageLimits?.membersUsed || 0, usageLimits?.membersLimit || 0))}%
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-300">
-                <div
-                  className="h-full bg-primary"
-                  style={{
-                    width: `${getUsagePercentage(
-                      usageLimits?.apiCallsUsed || 0,
-                      usageLimits?.apiCallsLimit || 0
-                    )}%`
-                  }} />
+              <p className="text-xs text-slate-500">
+                Còn {Math.max(0, (usageLimits?.membersLimit || 0) - (usageLimits?.membersUsed || 0))} thành viên
+              </p>
+            </div>
 
-              </div>
+            {/* API Calls Limit Card */}
+            {!isTrialPlan && (
+              <div className="rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">⚡</span>
+                    <h3 className="font-medium text-slate-900">{t("apiCalls")}</h3>
+                  </div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
+                    getUsagePercentage(usageLimits?.apiCallsUsed || 0, usageLimits?.apiCallsLimit || 0) > 80
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {getUsagePercentage(usageLimits?.apiCallsUsed || 0, usageLimits?.apiCallsLimit || 0) > 80 ? 'CAUTION' : 'OK'}
+                  </span>
+                </div>
+                <div className="mb-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className={`h-full transition-all ${
+                      getUsagePercentage(usageLimits?.apiCallsUsed || 0, usageLimits?.apiCallsLimit || 0) > 80
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{
+                      width: `${getUsagePercentage(
+                        usageLimits?.apiCallsUsed || 0,
+                        usageLimits?.apiCallsLimit || 0
+                      )}%`
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-slate-600">
+                    <span className="font-semibold text-slate-900">{(usageLimits?.apiCallsUsed || 0).toLocaleString(displayLocale)}</span>
+                    <span className="text-slate-500"> / {(usageLimits?.apiCallsLimit || 0).toLocaleString(displayLocale)}</span>
+                  </span>
+                  <span className="font-medium text-slate-600">
+                    {Math.round(getUsagePercentage(usageLimits?.apiCallsUsed || 0, usageLimits?.apiCallsLimit || 0))}%
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Còn {Math.max(0, (usageLimits?.apiCallsLimit || 0) - (usageLimits?.apiCallsUsed || 0)).toLocaleString(displayLocale)} API calls
+                </p>
               </div>
             )}
           </div>
 
-          <div className="mt-3 flex flex-col gap-3 rounded-lg border border-emerald-300 bg-emerald-100/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-6 flex flex-col gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium text-slate-900">{t("upgradeTitle")}</p>
-              <p className="text-sm text-slate-700">{t("upgradeDesc")}</p>
+              <p className="font-semibold text-slate-900">{t("upgradeTitle")}</p>
+              <p className="text-sm text-slate-600">{t("upgradeDesc")}</p>
             </div>
             <Button
               size="sm"

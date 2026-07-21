@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import PassportClient from "@/components/passport/PassportClient";
+import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
+import { DASHBOARD_PASSPORT_NAMESPACES } from "@/lib/i18n/namespaces";
 
 function PassportLoading() {
   return (
@@ -11,8 +13,10 @@ function PassportLoading() {
 
 export default function PassportPage() {
   return (
-    <Suspense fallback={<PassportLoading />}>
-      <PassportClient />
-    </Suspense>
+    <ScopedIntlProvider namespaces={DASHBOARD_PASSPORT_NAMESPACES}>
+      <Suspense fallback={<PassportLoading />}>
+        <PassportClient />
+      </Suspense>
+    </ScopedIntlProvider>
   );
 }

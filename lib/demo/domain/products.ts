@@ -724,6 +724,50 @@ export const getDemoProductById = (dataset: DemoDataset, productId: string) => {
   return product;
 };
 
+// AI product-level suggestions (served for the "Gợi ý cải thiện" button on the product
+// summary page). Shapes into the payload lib/chatApi.ts `generateProductSuggestions`
+// expects. Defensive: never throws if the product id can't be resolved.
+export const getDemoProductSuggestions = (dataset: DemoDataset, productId: string) => {
+  const product = getDemoProducts(dataset).find((item) => item.id === productId) as
+    | Record<string, unknown>
+    | undefined;
+  const productName =
+    (product?.productName as string) || (product?.product_name as string) || "sản phẩm";
+
+  const suggestions = [
+    {
+      id: `${productId}-sug-1`,
+      type: "material",
+      title: "Chuyển sang vật liệu tái chế / hữu cơ",
+      description: `Thay thế một phần vật liệu nguyên sinh của ${productName} bằng cotton hữu cơ hoặc polyester tái chế (GRS) để giảm hệ số phát thải đầu vào.`,
+      potentialReduction: 32,
+      difficulty: "medium",
+    },
+    {
+      id: `${productId}-sug-2`,
+      type: "energy",
+      title: "Điện tái tạo cho công đoạn sản xuất",
+      description: "Lắp đặt điện mặt trời áp mái hoặc mua chứng chỉ năng lượng tái tạo (REC) để giảm phát thải Scope 2 tại nhà máy.",
+      potentialReduction: 18,
+      difficulty: "hard",
+    },
+    {
+      id: `${productId}-sug-3`,
+      type: "logistics",
+      title: "Tối ưu tỷ lệ lấp đầy container",
+      description: "Gộp lô hàng và tăng fill-rate container theo tuyến để giảm phát thải vận chuyển trên mỗi sản phẩm.",
+      potentialReduction: 9,
+      difficulty: "easy",
+    },
+  ];
+
+  return {
+    product_id: productId,
+    suggestions,
+    config_source: "demo",
+  };
+};
+
 export const createDemoProduct = (
   dataset: DemoDataset,
   payload: ProductAssessmentData & { save_mode?: ProductSaveMode; status?: ProductStatus }

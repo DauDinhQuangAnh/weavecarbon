@@ -232,3 +232,25 @@ export const getDemoOverviewPayload = (dataset: DemoDataset) => {
     recommendations: getOverviewRecommendations(dataset),
   };
 };
+
+// AI company-level recommendations (served for the "Tạo khuyến nghị" button on the
+// overview dashboard). Shapes the demo dataset recommendations into the payload that
+// lib/chatApi.ts `generateCompanyRecommendations` expects.
+export const getDemoCompanyRecommendations = (
+  dataset: DemoDataset,
+  companyId: string
+) => {
+  const recommendations = getOverviewRecommendations(dataset).map((item, index) => ({
+    id: item.id || `recommendation-${index + 1}`,
+    title: item.title,
+    description: item.description,
+    impact: item.impactLevel,
+    reduction: `${item.reductionPercentage}%`,
+  }));
+
+  return {
+    company_id: companyId || dataset.company?.id || "",
+    recommendations,
+    config_source: "demo",
+  };
+};

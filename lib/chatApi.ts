@@ -317,6 +317,15 @@ export const deleteChatConversation = async (conversationId: string): Promise<vo
   await api.delete<unknown>(`/chat/conversations/${encodeURIComponent(conversationId)}`);
 };
 
+// Demo-only Weavey response. Routes through the `api` client so the demo API adapter
+// (lib/demo/apiAdapter.ts `/chat/direct`) serves a canned answer offline — no RAG
+// backend/collection required. Used by useWeaveyChat when in a demo session.
+export const requestDemoChatResponse = async (query: string): Promise<string> => {
+  const response = await api.post<unknown>("/chat/direct", { query });
+  const candidate = isObject(response) ? response : {};
+  return asString(candidate.answer, "");
+};
+
 export const sendChatMessage = async (payload: {
   conversationId?: string | null;
   content: string;

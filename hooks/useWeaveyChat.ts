@@ -5,6 +5,7 @@ import {
   deleteChatConversation as deletePersistedChatConversation,
   getChatConversation,
   listChatConversations,
+  requestDemoChatResponse,
   sendChatMessage as sendPersistedChatMessage,
   type ChatMessage,
   type ConversationSummary,
@@ -271,7 +272,9 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
       setIsLoading(true);
 
       try {
-        const assistantContent = await getWeaveyResponse(input);
+        const assistantContent = isDemoSession
+          ? await requestDemoChatResponse(input)
+          : await getWeaveyResponse(input);
         const assistantMessage = createLocalMessage(
           "assistant",
           sanitizeAssistantContent(assistantContent, localChatErrorMessage)
@@ -289,7 +292,7 @@ export function useWeaveyChat(options: UseWeaveyChatOptions = {}) {
         setIsLoading(false);
       }
     },
-    [localChatErrorMessage]
+    [isDemoSession, localChatErrorMessage]
   );
 
   const sendRemoteMessage = useCallback(
