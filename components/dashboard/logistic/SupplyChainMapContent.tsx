@@ -2,11 +2,15 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { configureMapboxRuntime, hasMapboxPublicToken } from "@/lib/mapbox";
+import maplibregl from "maplibre-gl";
+import type { GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { buildSupplyChainRouteGeometry } from "@/lib/transportRouteGeometry";
-import { addVietnamSovereigntyLabels } from "@/lib/vietnamSovereigntyLabels";
+import {
+  addVietnamSovereigntyLayers,
+  hideBaseSeaNameLayers,
+  VIETNAM_SOVEREIGNTY_BASE_LAYER_ID
+} from "@/lib/vietnamSovereigntyMapLayers";
 import type { SupplyChainNode, SupplyChainRoute } from "./SupplyChainMap";
 
 interface SupplyChainMapContentProps {
@@ -19,16 +23,28 @@ interface SupplyChainMapContentProps {
   onRouteClick?: (route: SupplyChainRoute) => void;
 }
 
+// OpenFreeMap serves OSM-based vector tiles with no API key, no usage cap and
+// commercial use allowed — unlike the raw OSM raster tile server (which blocks
+// production traffic and left this map blank) and unlike Mapbox (which needs a
+// token configured per environment).
+const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+
 const MODE_FALLBACK_COLORS: Record<string, string> = {
   ship: "#3b82f6",
   air: "#8b5cf6",
   rail: "#14b8a6",
-  truck: "#f59e0b",
+  truck: "#f59e0b"
 };
+
+const STATUS_COLORS = {
+  completed: "#22c55e",
+  pending: "#eab308",
+  active: "#3b82f6"
+} as const;
 
 const getRouteColor = (mode: string, status: string, color?: string) => {
   if (status === "pending") return color ? `${color}88` : "#9ca3af";
-  if (status === "completed") return color ?? "#22c55e";
+  if (status === "completed") return color ?? STATUS_COLORS.completed;
   return color ?? MODE_FALLBACK_COLORS[mode] ?? "#6b7280";
 };
 
@@ -39,13 +55,7 @@ const getRouteWeight = (mode: string, status: string) => {
   return base * 0.65;
 };
 
-const getMarkerColor = (status?: string) => {
-  if (status === "completed") return "#22c55e";
-  if (status === "pending") return "#eab308";
-  return "#3b82f6";
-};
-
-const getTypeEmoji = (type: string) => {
+const getTypeLetter = (type: string) => {
   switch (type) {
     case "factory":
       return "F";
@@ -62,82 +72,51 @@ const getTypeEmoji = (type: string) => {
   }
 };
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
 const ROUTE_SOURCE_ID = "shipment-routes";
 const ROUTE_CASING_LAYER_ID = "shipment-routes-casing";
-const ROUTE_LINE_LAYER_ID = "shipment-routes-line";
+const ROUTE_SOLID_LAYER_ID = "shipment-routes-solid";
+const ROUTE_AIR_LAYER_ID = "shipment-routes-air";
+const ROUTE_FLOW_LAYER_ID = "shipment-routes-flow";
 
-interface NodeCluster {
-  key: string;
-  lat: number;
-  lng: number;
-  nodes: SupplyChainNode[];
-}
+const NODES_SOURCE_ID = "shipment-nodes";
+const CLUSTER_CIRCLE_LAYER_ID = "shipment-nodes-cluster";
+const CLUSTER_COUNT_LAYER_ID = "shipment-nodes-cluster-count";
+const NODE_CIRCLE_LAYER_ID = "shipment-nodes-point";
+const NODE_LETTER_LAYER_ID = "shipment-nodes-letter";
 
-// Grid cell shrinks as the user zooms in so nearby markers separate again
-// instead of staying merged once you've zoomed past the region they're in.
-// Kept small enough that cities a few hundred km apart (e.g. within Vietnam)
-// don't collapse into one cluster bubble at the map's default overview zoom.
-const CLUSTER_GRID_BASE_DEGREES = 16;
-const CLUSTER_MIN_GRID_DEGREES = 0.05;
+// Classic "marching ants" cycle: successive dash phases of the same pattern.
+// Stepping through them makes dashes appear to travel along in-transit routes.
+const FLOW_DASH_PHASES: number[][] = [
+  [0, 4, 3],
+  [0.5, 4, 2.5],
+  [1, 4, 2],
+  [1.5, 4, 1.5],
+  [2, 4, 1],
+  [2.5, 4, 0.5],
+  [3, 4, 0]
+];
+const FLOW_STEP_MS = 90;
 
-const clusterNodesByZoom = (nodes: SupplyChainNode[], zoom: number): NodeCluster[] => {
-  const cellSize = Math.max(
-    CLUSTER_GRID_BASE_DEGREES / Math.pow(2, zoom),
-    CLUSTER_MIN_GRID_DEGREES
-  );
-  const groups = new Map<string, SupplyChainNode[]>();
-
-  nodes.forEach((node) => {
-    const cellKey = `${Math.round(node.lat / cellSize)}:${Math.round(node.lng / cellSize)}`;
-    const bucket = groups.get(cellKey);
-    if (bucket) {
-      bucket.push(node);
-    } else {
-      groups.set(cellKey, [node]);
-    }
-  });
-
-  return Array.from(groups.entries()).map(([key, members]) => ({
-    key,
-    lat: members.reduce((sum, n) => sum + n.lat, 0) / members.length,
-    lng: members.reduce((sum, n) => sum + n.lng, 0) / members.length,
-    nodes: members
-  }));
-};
-
-const OSM_RASTER_STYLE = {
-  version: 8 as const,
-  sources: {
-    osm: {
-      type: "raster" as const,
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }
-  },
-  layers: [
-    {
-      id: "osm-tiles",
-      type: "raster" as const,
-      source: "osm"
-    }
-  ]
-};
-
-const removeRouteLayers = (map: mapboxgl.Map) => {
+const removeShipmentLayers = (map: maplibregl.Map) => {
   try {
-    if (map.getLayer(ROUTE_LINE_LAYER_ID)) {
-      map.removeLayer(ROUTE_LINE_LAYER_ID);
+    for (const layerId of [
+      ROUTE_FLOW_LAYER_ID,
+      ROUTE_AIR_LAYER_ID,
+      ROUTE_SOLID_LAYER_ID,
+      ROUTE_CASING_LAYER_ID
+    ]) {
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
     }
-    if (map.getLayer(ROUTE_CASING_LAYER_ID)) {
-      map.removeLayer(ROUTE_CASING_LAYER_ID);
-    }
-    if (map.getSource(ROUTE_SOURCE_ID)) {
-      map.removeSource(ROUTE_SOURCE_ID);
-    }
+    if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
   } catch {
-
+    // Layer teardown racing a style reload is harmless.
   }
 };
 
@@ -152,34 +131,32 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
 }) => {
   const t = useTranslations("logistics.supplyChainMapContent");
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const lastFitBoundsKeyRef = useRef<string | null>(null);
-  // OSM's free tile server (the no-token fallback) intermittently rejects
-  // requests, which used to surface as a permanent error screen. Transient
-  // init failures now trigger a couple of automatic re-creations before the
-  // error screen (with a manual retry button) is shown.
+  // Transient init failures (offline, style CDN hiccup) trigger a couple of
+  // automatic re-creations before the error screen with a manual retry button.
   const autoRetriesLeftRef = useRef(2);
   const [mapEpoch, setMapEpoch] = useState(0);
-  // The map is created exactly once for the component's lifetime. center/zoom
-  // are only the initial viewport (fitBounds takes over once data arrives), so
-  // they are captured at mount time instead of being effect dependencies —
-  // otherwise parents passing inline `center={[a, b]}` arrays would tear the
-  // whole map down on every render.
+  // The map is created exactly once per epoch. center/zoom are only the
+  // initial viewport (fitBounds takes over once data arrives), so they are
+  // captured at mount time instead of being effect dependencies — otherwise
+  // parents passing inline `center={[a, b]}` arrays would tear the whole map
+  // down on every render.
   const initialViewRef = useRef({ center, zoom });
   const tRef = useRef(t);
   tRef.current = t;
   // Route/marker effects must run only against a fully loaded style, so the
   // instance is published to state from the map's "load" event.
-  const [readyMap, setReadyMap] = useState<mapboxgl.Map | null>(null);
+  const [readyMap, setReadyMap] = useState<maplibregl.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const usedToken = hasMapboxPublicToken();
-  const getNodeTypeLabel = useCallback((nodeType: SupplyChainNode["type"]) =>
-  t.has(`popup.nodeTypes.${nodeType}`) ?
-  t(`popup.nodeTypes.${nodeType}`) :
-  nodeType, [t]);
+
+  const getNodeTypeLabel = useCallback(
+    (nodeType: SupplyChainNode["type"]) =>
+      t.has(`popup.nodeTypes.${nodeType}`) ? t(`popup.nodeTypes.${nodeType}`) : nodeType,
+    [t]
+  );
 
   useEffect(() => {
     const container = mapContainerRef.current;
@@ -190,9 +167,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     };
 
     const resizeObserver =
-      typeof ResizeObserver !== "undefined" ?
-      new ResizeObserver(resizeMap) :
-      null;
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(resizeMap) : null;
 
     resizeObserver?.observe(container);
     const animationFrame = window.requestAnimationFrame(resizeMap);
@@ -211,119 +186,21 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     }
 
     let isMounted = true;
-    let loadTimeout: ReturnType<typeof setTimeout> | undefined;
     let errorStateTimer: ReturnType<typeof setTimeout> | undefined;
     let autoRetryTimer: ReturnType<typeof setTimeout> | undefined;
 
+    let map: maplibregl.Map;
     try {
-      if (usedToken) {
-        configureMapboxRuntime(mapboxgl);
-      } else {
-        mapboxgl.accessToken = "pk.placeholder";
-        if (typeof (mapboxgl as unknown as { setTelemetryEnabled?: (enabled: boolean) => void }).setTelemetryEnabled === "function") {
-          (mapboxgl as unknown as { setTelemetryEnabled: (enabled: boolean) => void }).setTelemetryEnabled(false);
-        }
-      }
-      // Prevent worker init errors in Turbopack/Next.js builds
-      if (typeof mapboxgl.workerCount === "number" && mapboxgl.workerCount > 2) {
-        mapboxgl.workerCount = 1;
-      }
-
       const { center: initialCenter, zoom: initialZoom } = initialViewRef.current;
-      const map = new mapboxgl.Map({
+      map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: usedToken ? "mapbox://styles/mapbox/streets-v12" : OSM_RASTER_STYLE,
-        center: [initialCenter[1], initialCenter[0]], // callers pass [lat, lng]; Mapbox needs [lng, lat]
+        style: MAP_STYLE_URL,
+        center: [initialCenter[1], initialCenter[0]], // callers pass [lat, lng]; MapLibre needs [lng, lat]
         zoom: initialZoom,
-        antialias: true,
-        pitch: 0,
-        bearing: 0,
-        maxPitch: 0,
-        projection: "mercator",
-        attributionControl: !usedToken
+        attributionControl: { compact: true }
       });
-
-      const failInitialLoad = () => {
-        if (autoRetriesLeftRef.current > 0) {
-          autoRetriesLeftRef.current -= 1;
-          autoRetryTimer = setTimeout(() => {
-            if (isMounted) {
-              setMapEpoch((epoch) => epoch + 1);
-            }
-          }, 1500);
-          return;
-        }
-
-        setError(tRef.current("errors.loadFailed"));
-        setIsLoading(false);
-      };
-
-      // Watchdog: if every initial tile request fails (offline, OSM rate
-      // limiting), mapbox-gl never fires "load" and never re-requests the
-      // failed tiles — the map would sit blank forever. Recreating it is the
-      // only way to recover, so treat a stalled initial load as a failure.
-      // Note: map.loaded() can report true here (errored tiles count as
-      // "finished"), so only the actual "load" event counts.
-      let didLoad = false;
-      loadTimeout = setTimeout(() => {
-        if (!isMounted || mapRef.current !== map || didLoad) {
-          return;
-        }
-        failInitialLoad();
-      }, 12000);
-
-      map.addControl(new mapboxgl.NavigationControl());
-
-      const handleLoad = () => {
-        didLoad = true;
-        clearTimeout(loadTimeout);
-        autoRetriesLeftRef.current = 2;
-        if (isMounted) {
-          setIsLoading(false);
-          setError(null);
-          setReadyMap(map);
-        }
-        if (sovereigntyMarkersRef.current.length === 0) {
-          sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(mapboxgl, map);
-        }
-      };
-
-      const handleError = (event: mapboxgl.ErrorEvent) => {
-        // Mapbox GL fires "error" for per-tile fetch failures (rate limits,
-        // transient network blips on the OSM raster fallback) as well as for
-        // genuinely fatal style/init errors. A single failed tile shouldn't
-        // tear down a map that already rendered — only surface the fatal
-        // error screen when the map never got past its initial style load.
-        const sourceScoped = Boolean((event as unknown as { sourceId?: string }).sourceId);
-        if (sourceScoped || map.loaded()) {
-          console.warn("Map tile error (non-fatal):", event.error);
-          return;
-        }
-
-        if (loadTimeout) clearTimeout(loadTimeout);
-        if (!isMounted) return;
-        failInitialLoad();
-      };
-
-      map.on("load", handleLoad);
-      map.on("error", handleError);
-      mapRef.current = map;
-
-      return () => {
-        isMounted = false;
-        if (loadTimeout) clearTimeout(loadTimeout);
-        if (errorStateTimer) clearTimeout(errorStateTimer);
-        if (autoRetryTimer) clearTimeout(autoRetryTimer);
-        sovereigntyMarkersRef.current.forEach((marker) => marker.remove());
-        sovereigntyMarkersRef.current = [];
-        map.off("load", handleLoad);
-        map.off("error", handleError);
-        map.remove();
-        mapRef.current = null;
-        setReadyMap(null);
-      };
     } catch (err) {
-      if (loadTimeout) clearTimeout(loadTimeout);
+      // e.g. WebGL unavailable — surface the error screen instead of crashing.
       errorStateTimer = setTimeout(() => {
         if (!isMounted) return;
         const message = err instanceof Error ? err.message : tRef.current("errors.unknown");
@@ -335,23 +212,100 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
         if (errorStateTimer) clearTimeout(errorStateTimer);
       };
     }
-  }, [usedToken, mapEpoch]);
 
+    const failInitialLoad = () => {
+      if (autoRetriesLeftRef.current > 0) {
+        autoRetriesLeftRef.current -= 1;
+        autoRetryTimer = setTimeout(() => {
+          if (isMounted) {
+            setMapEpoch((epoch) => epoch + 1);
+          }
+        }, 1500);
+        return;
+      }
+
+      setError(tRef.current("errors.loadFailed"));
+      setIsLoading(false);
+    };
+
+    // Watchdog: if the style or every initial tile request fails, "load"
+    // never fires and the map would sit blank forever. Recreating the map is
+    // the only reliable recovery, so a stalled initial load counts as failure.
+    let didLoad = false;
+    const loadTimeout = setTimeout(() => {
+      if (!isMounted || mapRef.current !== map || didLoad) {
+        return;
+      }
+      failInitialLoad();
+    }, 12000);
+
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+    const handleLoad = () => {
+      didLoad = true;
+      clearTimeout(loadTimeout);
+      autoRetriesLeftRef.current = 2;
+      hideBaseSeaNameLayers(map);
+      addVietnamSovereigntyLayers(map);
+      if (isMounted) {
+        setIsLoading(false);
+        setError(null);
+        setReadyMap(map);
+      }
+    };
+
+    const handleError = (event: { error: Error }) => {
+      // MapLibre fires "error" for per-tile fetch failures as well as fatal
+      // style/init errors. A single failed tile shouldn't tear down a map
+      // that already rendered — only surface the fatal error screen when the
+      // map never got past its initial load.
+      const sourceScoped = Boolean((event as { sourceId?: string }).sourceId);
+      if (didLoad || sourceScoped || map.loaded()) {
+        console.warn("Map tile error (non-fatal):", event.error);
+        return;
+      }
+
+      if (loadTimeout) clearTimeout(loadTimeout);
+      if (!isMounted) return;
+      failInitialLoad();
+    };
+
+    map.on("load", handleLoad);
+    map.on("error", handleError);
+    mapRef.current = map;
+
+    return () => {
+      isMounted = false;
+      if (loadTimeout) clearTimeout(loadTimeout);
+      if (autoRetryTimer) clearTimeout(autoRetryTimer);
+      popupRef.current?.remove();
+      popupRef.current = null;
+      map.off("load", handleLoad);
+      map.off("error", handleError);
+      map.remove();
+      mapRef.current = null;
+      setReadyMap(null);
+    };
+  }, [mapEpoch]);
+
+  /* Routes: one GeoJSON source, casing + solid + dashed-air line layers, and
+     an animated "flow" overlay on in-transit routes. */
   useEffect(() => {
     const map = readyMap;
     if (!map) return;
 
-    let routeClickHandler: ((
-      event: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }
-    ) => void) | null = null;
-    let routeMouseEnterHandler: (() => void) | null = null;
-    let routeMouseLeaveHandler: (() => void) | null = null;
+    let flowFrame: number | undefined;
+    let routeClickHandler: ((event: MapLayerMouseEvent) => void) | null = null;
+    const setPointer = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const clearPointer = () => {
+      map.getCanvas().style.cursor = "";
+    };
+    const interactiveRouteLayers = [ROUTE_SOLID_LAYER_ID, ROUTE_AIR_LAYER_ID];
 
     try {
-      const routeBounds = new mapboxgl.LngLatBounds();
-      let hasRouteBounds = false;
-
-      removeRouteLayers(map);
+      removeShipmentLayers(map);
 
       const routeFeatures = routes.flatMap((route) => {
         const routeCoordinates = buildSupplyChainRouteGeometry(route);
@@ -359,64 +313,111 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           return [];
         }
 
-        routeCoordinates.forEach((coordinate) => {
-          routeBounds.extend(coordinate);
-        });
-        hasRouteBounds = true;
-
-        return [{
-          type: "Feature" as const,
-          properties: {
-            routeId: route.id,
-            color: getRouteColor(route.mode, route.status, route.color),
-            width: getRouteWeight(route.mode, route.status),
-            opacity: route.status === "pending" ? 0.55 : 0.9
-          },
-          geometry: {
-            type: "LineString" as const,
-            coordinates: routeCoordinates
+        return [
+          {
+            type: "Feature" as const,
+            properties: {
+              routeId: route.id,
+              mode: route.mode,
+              status: route.status,
+              color: getRouteColor(route.mode, route.status, route.color),
+              width: getRouteWeight(route.mode, route.status),
+              opacity: route.status === "pending" ? 0.55 : 0.9
+            },
+            geometry: {
+              type: "LineString" as const,
+              coordinates: routeCoordinates
+            }
           }
-        }];
+        ];
       });
 
       if (routeFeatures.length > 0) {
         map.addSource(ROUTE_SOURCE_ID, {
           type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: routeFeatures
-          }
+          data: { type: "FeatureCollection", features: routeFeatures }
         });
+
+        // Keep data layers under the sovereignty labels so Hoàng Sa /
+        // Trường Sa stay readable even when a route crosses them.
+        const beforeId = map.getLayer(VIETNAM_SOVEREIGNTY_BASE_LAYER_ID)
+          ? VIETNAM_SOVEREIGNTY_BASE_LAYER_ID
+          : undefined;
 
         map.addLayer({
           id: ROUTE_CASING_LAYER_ID,
           type: "line",
           source: ROUTE_SOURCE_ID,
-          layout: {
-            "line-join": "round",
-            "line-cap": "round"
-          },
+          layout: { "line-join": "round", "line-cap": "round" },
           paint: {
             "line-color": "#ffffff",
             "line-width": ["+", ["get", "width"], 4],
             "line-opacity": 0.75
           }
-        });
+        }, beforeId);
 
         map.addLayer({
-          id: ROUTE_LINE_LAYER_ID,
+          id: ROUTE_SOLID_LAYER_ID,
           type: "line",
           source: ROUTE_SOURCE_ID,
-          layout: {
-            "line-join": "round",
-            "line-cap": "round"
-          },
+          filter: ["!=", ["get", "mode"], "air"],
+          layout: { "line-join": "round", "line-cap": "round" },
           paint: {
             "line-color": ["get", "color"],
             "line-width": ["get", "width"],
             "line-opacity": ["get", "opacity"]
           }
-        });
+        }, beforeId);
+
+        // line-dasharray is not data-driven, so air routes get their own
+        // dashed layer instead of a per-feature dash property.
+        map.addLayer({
+          id: ROUTE_AIR_LAYER_ID,
+          type: "line",
+          source: ROUTE_SOURCE_ID,
+          filter: ["==", ["get", "mode"], "air"],
+          layout: { "line-join": "round", "line-cap": "round" },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["get", "width"],
+            "line-opacity": ["get", "opacity"],
+            "line-dasharray": [2, 2]
+          }
+        }, beforeId);
+
+        const hasInTransit = routes.some((route) => route.status === "in_transit");
+        if (hasInTransit) {
+          map.addLayer({
+            id: ROUTE_FLOW_LAYER_ID,
+            type: "line",
+            source: ROUTE_SOURCE_ID,
+            filter: ["==", ["get", "status"], "in_transit"],
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": "rgba(255,255,255,0.9)",
+              "line-width": ["max", ["-", ["get", "width"], 2], 1.5],
+              "line-dasharray": FLOW_DASH_PHASES[0]
+            }
+          }, beforeId);
+
+          let phase = 0;
+          let lastStep = 0;
+          const stepFlow = (timestamp: number) => {
+            if (timestamp - lastStep >= FLOW_STEP_MS) {
+              lastStep = timestamp;
+              phase = (phase + 1) % FLOW_DASH_PHASES.length;
+              if (map.getLayer(ROUTE_FLOW_LAYER_ID)) {
+                map.setPaintProperty(
+                  ROUTE_FLOW_LAYER_ID,
+                  "line-dasharray",
+                  FLOW_DASH_PHASES[phase]
+                );
+              }
+            }
+            flowFrame = window.requestAnimationFrame(stepFlow);
+          };
+          flowFrame = window.requestAnimationFrame(stepFlow);
+        }
 
         routeClickHandler = (event) => {
           if (!onRouteClick) return;
@@ -424,191 +425,255 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
           const hit = routes.find((route) => route.id === routeId);
           if (hit) onRouteClick(hit);
         };
-        routeMouseEnterHandler = () => {
-          map.getCanvas().style.cursor = "pointer";
-        };
-        routeMouseLeaveHandler = () => {
-          map.getCanvas().style.cursor = "";
-        };
-
-        map.on("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
-        map.on("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
-        map.on("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
-      }
-
-      if (hasRouteBounds || nodes.length > 0) {
-        const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
-        if (!hasRouteBounds) {
-          nodes.forEach((node) => bounds.extend([node.lng, node.lat]));
-        }
-
-        if (!bounds.isEmpty()) {
-          // Refit only when the data's extent actually changes; otherwise a
-          // re-render (e.g. new callback identity from the parent) would
-          // yank the viewport away from wherever the user panned/zoomed.
-          const fitKey = [
-            bounds.getWest().toFixed(3),
-            bounds.getSouth().toFixed(3),
-            bounds.getEast().toFixed(3),
-            bounds.getNorth().toFixed(3)
-          ].join(",");
-
-          if (fitKey !== lastFitBoundsKeyRef.current) {
-            lastFitBoundsKeyRef.current = fitKey;
-            map.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 0 });
-          }
+        for (const layerId of interactiveRouteLayers) {
+          map.on("click", layerId, routeClickHandler);
+          map.on("mouseenter", layerId, setPointer);
+          map.on("mouseleave", layerId, clearPointer);
         }
       }
     } catch {
-
+      // A failed data refresh must not take down an already rendered map.
     }
 
     return () => {
+      if (flowFrame !== undefined) window.cancelAnimationFrame(flowFrame);
       try {
-        if (routeClickHandler) {
-          map.off("click", ROUTE_LINE_LAYER_ID, routeClickHandler);
+        for (const layerId of interactiveRouteLayers) {
+          if (routeClickHandler) map.off("click", layerId, routeClickHandler);
+          map.off("mouseenter", layerId, setPointer);
+          map.off("mouseleave", layerId, clearPointer);
         }
-        if (routeMouseEnterHandler) {
-          map.off("mouseenter", ROUTE_LINE_LAYER_ID, routeMouseEnterHandler);
-        }
-        if (routeMouseLeaveHandler) {
-          map.off("mouseleave", ROUTE_LINE_LAYER_ID, routeMouseLeaveHandler);
-        }
+        removeShipmentLayers(map);
       } catch {
-
+        // Map may already be destroyed during teardown.
       }
     };
-  }, [readyMap, routes, nodes, onRouteClick]);
+  }, [readyMap, routes, onRouteClick]);
 
+  /* Nodes: GL-native clustering instead of hand-rolled DOM-marker grids —
+     crisper rendering and clusters split/merge continuously while zooming. */
   useEffect(() => {
     const map = readyMap;
     if (!map) return;
 
-    const renderMarkers = () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
+    const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    const setPointer = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const clearPointer = () => {
+      map.getCanvas().style.cursor = "";
+    };
 
-      const clusters = clusterNodesByZoom(nodes, map.getZoom());
+    const handleClusterClick = (event: MapLayerMouseEvent) => {
+      const feature = event.features?.[0];
+      if (!feature) return;
+      const clusterId = feature.properties?.cluster_id;
+      const source = map.getSource(NODES_SOURCE_ID) as GeoJSONSource | undefined;
+      if (clusterId === undefined || !source) return;
+      if (feature.geometry.type !== "Point") return;
+      const [lng, lat] = feature.geometry.coordinates as [number, number];
+      source
+        .getClusterExpansionZoom(clusterId)
+        .then((targetZoom) => {
+          map.easeTo({ center: [lng, lat], zoom: targetZoom + 0.5 });
+        })
+        .catch(() => {});
+    };
 
-      clusters.forEach((cluster) => {
-        try {
-          if (cluster.nodes.length === 1) {
-            const node = cluster.nodes[0];
-            const nodeTypeLabel = getNodeTypeLabel(node.type);
-            const el = document.createElement("div");
-            // Apply styles directly to el so Mapbox anchors at the true visual center
-            el.style.cssText = [
-              `background-color: ${getMarkerColor(node.status)}`,
-              "color: white",
-              "border-radius: 50%",
-              "width: 36px",
-              "height: 36px",
-              "box-sizing: border-box",
-              "display: flex",
-              "align-items: center",
-              "justify-content: center",
-              "font-size: 15px",
-              "font-weight: 700",
-              "border: 3px solid white",
-              "box-shadow: 0 2px 8px rgba(0,0,0,0.3)",
-              "cursor: pointer",
-              "user-select: none"
-            ].join("; ");
-            el.textContent = getTypeEmoji(node.type);
+    const handleNodeClick = (event: MapLayerMouseEvent) => {
+      const feature = event.features?.[0];
+      const nodeId = feature?.properties?.nodeId;
+      const node = nodeId !== undefined ? nodeById.get(String(nodeId)) : undefined;
+      if (!node) return;
 
-            const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-              <div style="padding: 8px; min-width: 220px;">
-                <div style="font-weight: bold; margin-bottom: 8px;">${node.name}</div>
-                <div style="font-size: 14px; line-height: 1.5;">
-                  <p><strong>${t("popup.type")}:</strong> ${nodeTypeLabel}</p>
-                  <p><strong>${t("popup.country")}:</strong> ${node.country}</p>
-                  ${node.co2 !== undefined ? `<p><strong>${t("popup.co2")}:</strong> ${node.co2} tCO2</p>` : ""}
-                </div>
-              </div>
-            `);
+      const nodeTypeLabel = getNodeTypeLabel(node.type);
+      popupRef.current?.remove();
+      popupRef.current = new maplibregl.Popup({ offset: 18 })
+        .setLngLat([node.lng, node.lat])
+        .setHTML(`
+          <div style="padding: 6px; min-width: 200px; font-family: inherit;">
+            <div style="font-weight: bold; margin-bottom: 6px;">${escapeHtml(node.name)}</div>
+            <div style="font-size: 13px; line-height: 1.5;">
+              <p><strong>${escapeHtml(t("popup.type"))}:</strong> ${escapeHtml(nodeTypeLabel)}</p>
+              <p><strong>${escapeHtml(t("popup.country"))}:</strong> ${escapeHtml(node.country)}</p>
+              ${node.co2 !== undefined ? `<p><strong>${escapeHtml(t("popup.co2"))}:</strong> ${node.co2} tCO2</p>` : ""}
+            </div>
+          </div>
+        `)
+        .addTo(map);
 
-            const marker = new mapboxgl.Marker(el)
-              .setLngLat([node.lng, node.lat])
-              .setPopup(popup)
-              .addTo(map);
+      onNodeClick?.(node);
+    };
 
-            if (onNodeClick) {
-              el.addEventListener("click", () => onNodeClick(node));
-            }
-
-            markersRef.current.push(marker);
-          } else {
-            const count = cluster.nodes.length;
-            const size = Math.min(52, 34 + Math.round(Math.sqrt(count) * 6));
-            const el = document.createElement("div");
-            el.style.cssText = [
-              "background-color: #334155",
-              "color: white",
-              "border-radius: 50%",
-              `width: ${size}px`,
-              `height: ${size}px`,
-              "box-sizing: border-box",
-              "display: flex",
-              "align-items: center",
-              "justify-content: center",
-              "font-size: 14px",
-              "font-weight: 700",
-              "border: 3px solid white",
-              "box-shadow: 0 2px 8px rgba(0,0,0,0.35)",
-              "cursor: pointer",
-              "user-select: none"
-            ].join("; ");
-            el.textContent = String(count);
-            el.title = t.has("cluster.expandHint")
-              ? t("cluster.expandHint")
-              : "Click to zoom in";
-
-            el.addEventListener("click", () => {
-              const currentZoom = map.getZoom();
-              map.easeTo({
-                center: [cluster.lng, cluster.lat],
-                zoom: Math.min(currentZoom + 3, 12)
-              });
-            });
-
-            const marker = new mapboxgl.Marker(el)
-              .setLngLat([cluster.lng, cluster.lat])
-              .addTo(map);
-
-            markersRef.current.push(marker);
-          }
-        } catch {
-
+    try {
+      map.addSource(NODES_SOURCE_ID, {
+        type: "geojson",
+        cluster: true,
+        clusterRadius: 44,
+        clusterMaxZoom: 12,
+        data: {
+          type: "FeatureCollection",
+          features: nodes.map((node) => ({
+            type: "Feature" as const,
+            properties: {
+              nodeId: node.id,
+              letter: getTypeLetter(node.type),
+              color:
+                node.status === "completed"
+                  ? STATUS_COLORS.completed
+                  : node.status === "pending"
+                  ? STATUS_COLORS.pending
+                  : STATUS_COLORS.active
+            },
+            geometry: { type: "Point" as const, coordinates: [node.lng, node.lat] }
+          }))
         }
       });
-    };
 
-    renderMarkers();
+      // Keep marker layers under the sovereignty labels as well (see the
+      // matching comment in the routes effect).
+      const beforeId = map.getLayer(VIETNAM_SOVEREIGNTY_BASE_LAYER_ID)
+        ? VIETNAM_SOVEREIGNTY_BASE_LAYER_ID
+        : undefined;
 
-    const onZoomEnd = () => renderMarkers();
-    map.on("zoomend", onZoomEnd);
+      map.addLayer({
+        id: CLUSTER_CIRCLE_LAYER_ID,
+        type: "circle",
+        source: NODES_SOURCE_ID,
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": "#334155",
+          "circle-radius": ["step", ["get", "point_count"], 16, 5, 20, 10, 24],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2.5
+        }
+      }, beforeId);
+
+      map.addLayer({
+        id: CLUSTER_COUNT_LAYER_ID,
+        type: "symbol",
+        source: NODES_SOURCE_ID,
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["Noto Sans Bold"],
+          "text-size": 13,
+          "text-allow-overlap": true
+        },
+        paint: { "text-color": "#ffffff" }
+      }, beforeId);
+
+      map.addLayer({
+        id: NODE_CIRCLE_LAYER_ID,
+        type: "circle",
+        source: NODES_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-color": ["get", "color"],
+          "circle-radius": 13,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2.5
+        }
+      }, beforeId);
+
+      map.addLayer({
+        id: NODE_LETTER_LAYER_ID,
+        type: "symbol",
+        source: NODES_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        layout: {
+          "text-field": ["get", "letter"],
+          "text-font": ["Noto Sans Bold"],
+          "text-size": 12,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true
+        },
+        paint: { "text-color": "#ffffff" }
+      }, beforeId);
+
+      map.on("click", CLUSTER_CIRCLE_LAYER_ID, handleClusterClick);
+      map.on("click", NODE_CIRCLE_LAYER_ID, handleNodeClick);
+      for (const layerId of [CLUSTER_CIRCLE_LAYER_ID, NODE_CIRCLE_LAYER_ID]) {
+        map.on("mouseenter", layerId, setPointer);
+        map.on("mouseleave", layerId, clearPointer);
+      }
+    } catch {
+      // A failed data refresh must not take down an already rendered map.
+    }
 
     return () => {
-      map.off("zoomend", onZoomEnd);
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
+      try {
+        map.off("click", CLUSTER_CIRCLE_LAYER_ID, handleClusterClick);
+        map.off("click", NODE_CIRCLE_LAYER_ID, handleNodeClick);
+        for (const layerId of [CLUSTER_CIRCLE_LAYER_ID, NODE_CIRCLE_LAYER_ID]) {
+          map.off("mouseenter", layerId, setPointer);
+          map.off("mouseleave", layerId, clearPointer);
+        }
+        for (const layerId of [
+          NODE_LETTER_LAYER_ID,
+          NODE_CIRCLE_LAYER_ID,
+          CLUSTER_COUNT_LAYER_ID,
+          CLUSTER_CIRCLE_LAYER_ID
+        ]) {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+        }
+        if (map.getSource(NODES_SOURCE_ID)) map.removeSource(NODES_SOURCE_ID);
+      } catch {
+        // Map may already be destroyed during teardown.
+      }
     };
   }, [readyMap, nodes, onNodeClick, t, getNodeTypeLabel]);
+
+  /* Viewport: fit to the data, but only when its extent actually changes —
+     otherwise a re-render would yank the viewport away from wherever the
+     user panned/zoomed. */
+  useEffect(() => {
+    const map = readyMap;
+    if (!map) return;
+
+    const bounds = new maplibregl.LngLatBounds();
+    let hasBounds = false;
+
+    for (const route of routes) {
+      const coordinates = buildSupplyChainRouteGeometry(route);
+      if (coordinates && coordinates.length >= 2) {
+        for (const coordinate of coordinates) {
+          bounds.extend(coordinate);
+        }
+        hasBounds = true;
+      }
+    }
+    if (!hasBounds) {
+      for (const node of nodes) {
+        bounds.extend([node.lng, node.lat]);
+        hasBounds = true;
+      }
+    }
+    if (!hasBounds) return;
+
+    const fitKey = [
+      bounds.getWest().toFixed(3),
+      bounds.getSouth().toFixed(3),
+      bounds.getEast().toFixed(3),
+      bounds.getNorth().toFixed(3)
+    ].join(",");
+
+    if (fitKey !== lastFitBoundsKeyRef.current) {
+      lastFitBoundsKeyRef.current = fitKey;
+      map.fitBounds(bounds, { padding: 60, maxZoom: 10, duration: 0 });
+    }
+  }, [readyMap, routes, nodes]);
 
   if (error) {
     return (
       <div
         style={{ height }}
-        className="flex items-center justify-center bg-muted rounded-lg border">
-
+        className="flex items-center justify-center bg-muted rounded-lg border"
+      >
         <div className="text-center">
-          <p className="text-sm text-destructive font-semibold mb-2">
-            {t("errorTitle")}
-          </p>
+          <p className="text-sm text-destructive font-semibold mb-2">{t("errorTitle")}</p>
           <p className="text-xs text-muted-foreground">{error}</p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {usedToken ? t("addTokenHint") : t("networkHint")}
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">{t("networkHint")}</p>
           <button
             type="button"
             className="mt-4 inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-xs font-medium shadow-sm transition-colors hover:bg-muted"
@@ -619,11 +684,11 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
               setMapEpoch((epoch) => epoch + 1);
             }}
           >
-            {t.has("retry") ? t("retry") : "Thử lại"}
+            {t("retry")}
           </button>
         </div>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -631,18 +696,16 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       className="relative isolate w-full max-w-full overflow-hidden rounded-lg border border-border"
       style={{ height, contain: "layout paint" }}
     >
-      <div
-        ref={mapContainerRef}
-        className="absolute inset-0 z-0 h-full w-full overflow-hidden" />
+      <div ref={mapContainerRef} className="absolute inset-0 z-0 h-full w-full overflow-hidden" />
 
-      {isLoading &&
-      <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
+      {isLoading && (
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-sm text-muted-foreground">{t("loading")}</p>
           </div>
         </div>
-      }
+      )}
 
       <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur rounded-lg p-3 shadow-lg border z-10">
         <p className="text-xs font-semibold mb-2">{t("legend.title")}</p>
@@ -663,7 +726,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
             <svg width="20" height="6" viewBox="0 0 20 6">
               <line x1="0" y1="3" x2="20" y2="3" stroke="#14b8a6" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="10 4 2 4" />
             </svg>
-            <span>{t.has("legend.railRoute") ? t("legend.railRoute") : "Rail route"}</span>
+            <span>{t("legend.railRoute")}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg width="20" height="6" viewBox="0 0 20 6">
@@ -671,13 +734,13 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
             </svg>
             <span>{t("legend.roadRoute")}</span>
           </div>
-          <div className="border-t border-slate-200 mt-1.5 pt-1.5 text-muted-foreground">
-            <span>Mỗi màu = 1 lô hàng</span>
+          <div className="border-t border-border mt-1.5 pt-1.5 text-muted-foreground">
+            <span>{t("legend.perShipment")}</span>
           </div>
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 };
 
 export default SupplyChainMapContent;

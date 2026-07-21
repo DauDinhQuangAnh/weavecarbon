@@ -1646,31 +1646,24 @@
       "changeFilterHint": "Thử đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái."
     },
     "supplyChainMap": {
-      "loading": "Đang tải bản đồ...",
-      "roadRouteUnavailable": "Không thể xác định tuyến đường bộ chi tiết. Hãy điều chỉnh vị trí gần đường hơn.",
-      "modes": {
-        "twoD": "2D",
-        "twoDAria": "Bản đồ 2D",
-        "threeD": "Vệ tinh 3D",
-        "threeDAria": "Bản đồ vệ tinh 3D"
-      }
+      "loading": "Đang tải bản đồ..."
     },
     "supplyChainMapContent": {
       "errors": {
-        "missingToken": "Không tìm thấy MAPBOX_TOKEN trong biến môi trường",
         "loadFailed": "Không thể tải bản đồ",
         "unknown": "Lỗi không xác định"
       },
       "errorTitle": "Lỗi",
-      "addTokenHint": "Thêm NEXT_PUBLIC_MAPBOX_TOKEN vào .env.local",
-      "networkHint": "Không thể kết nối tới máy chủ bản đồ OpenStreetMap. Kiểm tra kết nối mạng, hoặc thêm NEXT_PUBLIC_MAPBOX_TOKEN vào .env.local để dùng bản đồ Mapbox ổn định hơn.",
+      "networkHint": "Không thể kết nối tới máy chủ bản đồ. Vui lòng kiểm tra kết nối mạng rồi thử lại.",
       "retry": "Thử lại",
       "loading": "Đang tải bản đồ...",
       "legend": {
         "title": "Chú thích",
         "seaRoute": "Tuyến đường biển",
         "airRoute": "Tuyến hàng không",
-        "roadRoute": "Tuyến đường bộ"
+        "railRoute": "Tuyến đường sắt",
+        "roadRoute": "Tuyến đường bộ",
+        "perShipment": "Mỗi màu = 1 lô hàng"
       },
       "popup": {
         "type": "Loại",
@@ -1683,39 +1676,6 @@
           "airport": "Sân bay",
           "destination": "Điểm đến"
         }
-      }
-    },
-    "supplyChainMap3D": {
-      "errors": {
-        "loadFailed": "Không thể tải bản đồ"
-      },
-      "loading": "Đang tải bản đồ 3D...",
-      "replaceTokenHint": "Cấu hình lại token trong mã",
-      "titleBadge": "Chế độ 3D",
-      "legend": {
-        "title": "Chú thích",
-        "seaRoute": "Tuyến đường biển",
-        "roadRoute": "Tuyến đường bộ"
-      },
-      "controlsHint": "Kéo để xoay • Cuộn để thu phóng",
-      "popup": {
-        "type": "Loại",
-        "country": "Quốc gia",
-        "co2": "CO2",
-        "nodeTypes": {
-          "factory": "Nhà máy",
-          "warehouse": "Kho",
-          "port": "Cảng",
-          "airport": "Sân bay",
-          "destination": "Điểm đến"
-        }
-      }
-    },
-    "shipmentMiniMap": {
-      "errors": {
-        "invalidToken": "Thiếu hoặc sai Mapbox token.",
-        "mapFailed": "Tải bản đồ thất bại",
-        "loadFailed": "Không thể tải bản đồ"
       }
     },
     "shipmentContext": {
