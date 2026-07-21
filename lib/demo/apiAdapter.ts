@@ -2,7 +2,6 @@
 
 import {
   ApiError,
-  authTokenStore,
   type ApiRequestAdapter,
 } from "@/lib/apiClient";
 import type { DemoDataset } from "@/lib/demo/schema";
@@ -166,27 +165,6 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
     const requestUrl = parseRequestUrl(path);
     const pathname = requestUrl.pathname;
     const searchParams = requestUrl.searchParams;
-
-    // Live AI extraction in demo: when the demo was entered via the backend
-    // (`signInDemo` → real tokens stored), route the evidence endpoints to the
-    // REAL backend so uploads hit Gemini OCR and get a genuine audit trail /
-    // verification level. Offline demo (no token) keeps the mocked responses.
-    // Wrapped in try/catch because getAccessToken reads sessionStorage, which is
-    // undefined in non-browser contexts (unit tests / SSR) — there we fall back
-    // to the mocked responses.
-    if (pathname === "/evidence" || pathname.startsWith("/evidence/")) {
-      let hasRealSession = false;
-      try {
-        hasRealSession = Boolean(
-          authTokenStore.getAccessToken() || authTokenStore.getRefreshToken()
-        );
-      } catch {
-        hasRealSession = false;
-      }
-      if (hasRealSession) {
-        return { handled: false };
-      }
-    }
 
     try {
       if (method === "GET" && pathname === "/auth/check-company") {
