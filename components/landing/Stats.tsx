@@ -9,52 +9,26 @@ const Stats = () => {
   const t = useTranslations("stats");
   const stats = [
     {
-      value: "50K+",
-      labelKey: "co2Tracked.title",
-      description: "co2Tracked.description",
+      value: "13",
+      labelKey: "docTypes.title",
+      description: "docTypes.description",
     },
     {
-      value: "2.5M",
-      labelKey: "carbon.title",
-      description: "carbon.description",
+      value: "L0–L5",
+      labelKey: "verification.title",
+      description: "verification.description",
     },
     {
-      value: "180K",
-      labelKey: "recycled.title",
-      description: "recycled.description",
+      value: "9",
+      labelKey: "markets.title",
+      description: "markets.description",
     },
     {
-      value: "98%",
-      labelKey: "exports.title",
-      description: "exports.description",
+      value: "4",
+      labelKey: "stages.title",
+      description: "stages.description",
     },
   ];
-
-  const renderStatLabel = (labelKey: string) => {
-    if (false) {
-      return t(labelKey);
-    }
-
-    if (labelKey === "co2Tracked.title") {
-      return (
-        <>
-          <span className="block md:inline">CO₂e</span>
-          <span className="block md:inline md:ml-1">theo dõi</span>
-        </>
-      );
-    }
-
-    if (labelKey === "recycled.title") {
-      return (
-        <>
-          <span className="block md:inline">Dệt may</span>
-          <span className="block md:inline md:ml-1">tái chế</span>
-        </>
-      );
-    }
-
-    return t(labelKey);
-  };
 
   return (
     <section
@@ -111,7 +85,7 @@ const Stats = () => {
                 {stat.value}
               </div>
               <div className="mb-1 font-semibold leading-tight">
-                {renderStatLabel(stat.labelKey)}
+                {t(stat.labelKey)}
               </div>
               <div className="text-sm text-primary-foreground/70">
                 {t(stat.description)}

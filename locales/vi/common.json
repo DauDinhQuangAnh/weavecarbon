@@ -2,7 +2,7 @@
   "navigation": {
     "features": "Tính năng",
     "howItWorks": "Cách hoạt động",
-    "impact": "Tác động",
+    "impact": "Năng lực",
     "contact": "Liên hệ",
     "calculator": "Tính toán",
     "login": "Đăng nhập",
@@ -32,104 +32,103 @@
   },
   "features": {
     "badge": "Tính năng",
-    "title": "Tính năng mạnh mẽ cho thời trang bền vững",
-    "subtitle": "Tất cả những gì bạn cần để theo dõi, giảm thiểu và báo cáo lượng khí thải carbon",
+    "title": "Từ chứng từ rời rạc đến hồ sơ carbon chuẩn EU",
+    "subtitle": "Đầy đủ công cụ để thu thập dữ liệu, tính phát thải, xác minh nguồn gốc và xuất hồ sơ tuân thủ",
+    "docAI": {
+      "title": "AI đọc chứng từ",
+      "desc": "Tải ảnh hóa đơn, PDF scan, file Excel hay BOM — AI tự đọc và bóc tách số liệu (kWh, lít nhiên liệu, khối lượng, nhà cung ứng) để bạn không phải nhập tay."
+    },
     "carbonProxy": {
-      "title": "Công cụ tính carbon dự phòng",
-      "desc": "Tính CO₂e cho các sản phẩm có dữ liệu chuỗi cung ứng không đầy đủ bằng các hệ số phát thải proxy."
+      "title": "Tính carbon theo ISO 14067",
+      "desc": "Ước tính CO₂e cho vật liệu, sản xuất, vận chuyển và đóng gói bằng hệ số Ecoinvent v3.10 — dùng được ngay cả khi dữ liệu chuỗi cung ứng chưa đầy đủ."
     },
-    "circularHub": {
-      "title": "Trung tâm tuần hoàn",
-      "desc": "Kết nối với các đơn vị tái chế và theo dõi hành trình tuần hoàn của chất thải dệt may."
+    "auditTrail": {
+      "title": "Truy vết & mức tin cậy",
+      "desc": "Mỗi chứng từ có mức xác minh L0–L5, mã băm SHA-256 và nhật ký thay đổi — chứng minh được số liệu đến từ đâu khi buyer hoặc kiểm toán viên hỏi."
     },
-    "exportReady": {
-      "title": "Sẵn sàng xuất khẩu",
-      "desc": "Đánh giá mức độ tuân thủ tiêu chuẩn xuất khẩu EU, US và JP với thông tin chi tiết."
+    "cbamDpp": {
+      "title": "Hồ sơ CBAM & EU DPP",
+      "desc": "Xuất báo cáo cấu trúc CBAM, hộ chiếu sản phẩm số (DPP) và bộ hồ sơ PDF sẵn sàng nộp cho đối tác nhập khẩu."
     },
-    "materialDb": {
-      "title": "Cơ sở dữ liệu vật liệu",
-      "desc": "Truy cập thông tin toàn diện về hệ số phát thải của bông, polyester, denim và hơn 50 loại vật liệu khác."
-    },
-    "ngoPartner": {
-      "title": "Quan hệ đối tác NGO",
-      "desc": "Kết nối trực tiếp với các tổ chức từ thiện và đối tác tái chế đã được xác minh để đạt hiệu quả xã hội tối đa."
-    },
-    "recommendations": {
-      "title": "Khuyến nghị",
-      "desc": "Các đề xuất dựa trên trí tuệ nhân tạo nhằm giảm thuế carbon và cải thiện tính bền vững của nhà cung cấp."
+    "dataGap": {
+      "title": "Kiểm tra khoảng trống dữ liệu",
+      "desc": "Chấm điểm độ đầy đủ dữ liệu và chỉ đúng chứng từ nào còn thiếu, mức độ nghiêm trọng ra sao — biết phải bổ sung gì trước khi bị hỏi."
     },
     "transportCalc": {
-      "title": "Tính toán vận chuyển",
-      "desc": "Tính toán lượng khí thải carbon tự động dựa trên nguồn gốc sản xuất và tuyến đường vận chuyển đến điểm đến."
+      "title": "Vận chuyển & bản đồ chuỗi cung ứng",
+      "desc": "Tính phát thải theo từng chặng (biển, hàng không, đường bộ, đường sắt) và theo dõi lô hàng trên bản đồ tuyến vận chuyển."
     },
-    "carbonCredits": {
-      "title": "Tín dụng carbon",
-      "desc": "Chuyển đổi các mặt hàng tái chế và quyên góp thành các khoản bù trừ carbon đã được xác minh cho báo cáo ESG của bạn."
+    "exportReady": {
+      "title": "Mức sẵn sàng theo thị trường",
+      "desc": "Chấm điểm mức độ đáp ứng cho từng thị trường xuất khẩu (EU, Hoa Kỳ, Nhật, Hàn, Anh, ASEAN…) kèm danh sách hồ sơ còn thiếu."
     },
-    "esgReports": {
-      "title": "Báo cáo ESG",
-      "desc": "Hồ sơ xuất khẩu sẵn sàng cho kiểm toán, hải quan và liên lạc với các bên liên quan."
+    "recommendations": {
+      "title": "Khuyến nghị giảm phát thải",
+      "desc": "AI phân tích cơ cấu phát thải và đề xuất hướng giảm cụ thể theo thứ tự ưu tiên, kèm mức giảm ước tính cho từng phương án."
+    },
+    "circularHub": {
+      "title": "Ứng dụng tuần hoàn cho người dùng cuối",
+      "desc": "Ứng dụng B2C đi kèm: bản đồ điểm thu gom, quyên góp và tái chế quần áo, tích điểm đổi ưu đãi — mở rộng câu chuyện bền vững tới người tiêu dùng."
     }
   },
   "howItWorks": {
     "badge": "Cách hoạt động",
     "title": "Cách hoạt động",
-    "subtitle": "Bắt đầu trong vài phút với quy trình bốn bước đơn giản",
+    "subtitle": "Bốn bước từ chứng từ thô đến hồ sơ nộp được cho buyer",
     "step1": {
-      "title": "Kết nối dữ liệu",
-      "desc": "Nhập mã SKU sản phẩm và thông tin chuỗi cung ứng",
-      "item1": "Hỗ trợ đa vai trò",
-      "item2": "Hợp tác nhóm",
-      "item3": "Tích hợp API"
+      "title": "Tải chứng từ lên",
+      "desc": "Ảnh hóa đơn, PDF, Excel hoặc nhập SKU — AI đọc và bóc tách số liệu",
+      "item1": "Ảnh, PDF, Excel",
+      "item2": "AI bóc tách số liệu",
+      "item3": "Nhập hàng loạt"
     },
     "step2": {
-      "title": "Tính toán phát thải",
-      "desc": "Hệ thống tính toán CO₂e chính xác sử dụng các hệ số ngành",
-      "item1": "Thư viện vật liệu",
-      "item2": "Bản đồ giao thông",
-      "item3": "Tải lên hàng loạt"
+      "title": "Tính & rà soát",
+      "desc": "Hệ thống tính CO₂e theo giai đoạn và chỉ ra dữ liệu còn thiếu",
+      "item1": "Hệ số Ecoinvent",
+      "item2": "Phân rã theo giai đoạn",
+      "item3": "Kiểm tra khoảng trống"
     },
     "step3": {
-      "title": "Theo dõi & giảm thiểu",
-      "desc": "Giám sát tiến độ và xác định cơ hội giảm thiểu",
-      "item1": "Phân loại bởi AI",
-      "item2": "Kết hợp NGO",
-      "item3": "Theo dõi tác động"
+      "title": "Xác minh & truy vết",
+      "desc": "Nâng mức tin cậy của chứng từ và khóa lại để phục vụ kiểm toán",
+      "item1": "Mức xác minh L0–L5",
+      "item2": "Mã băm SHA-256",
+      "item3": "Nhật ký thay đổi"
     },
     "step4": {
-      "title": "Báo cáo & xuất khẩu",
-      "desc": "Tạo báo cáo tuân thủ cho các thị trường quốc tế",
-      "item1": "EU DPP",
-      "item2": "Giấy chứng nhận cacbon",
-      "item3": "Đường mòn kiểm toán"
+      "title": "Xuất hồ sơ tuân thủ",
+      "desc": "Kết xuất hồ sơ theo chuẩn thị trường đích để nộp cho đối tác",
+      "item1": "Báo cáo CBAM",
+      "item2": "Hộ chiếu số EU DPP",
+      "item3": "Bộ hồ sơ tiền kiểm toán"
     }
   },
   "stats": {
-    "badge": "Tác động",
-    "title": "Tạo tác động thực sự",
-    "subtitle": "Tiến bộ đo lường được hướng tới ngành thời trang bền vững",
-    "co2Tracked": {
-      "title": "CO₂e theo dõi",
-      "description": "Lượng khí thải carbon được tính toán hàng tháng"
+    "badge": "Năng lực nền tảng",
+    "title": "Tính theo chuẩn, chứng minh được nguồn gốc",
+    "subtitle": "Phương pháp ISO 14067:2018 và GHG Protocol, hệ số Ecoinvent v3.10 — mỗi con số đều truy ngược được về chứng từ gốc",
+    "docTypes": {
+      "title": "Loại chứng từ",
+      "description": "Hóa đơn điện, nhiên liệu, BOM, vận đơn, tờ khai NCC…"
     },
-    "brands": "Thương hiệu thời trang",
-    "exports": {
-      "title": "Sẵn sàng xuất khẩu",
-      "description": "Tỷ lệ tuân thủ thành công"
+    "verification": {
+      "title": "Mức xác minh",
+      "description": "Từ chứng từ mới tải đến đã kiểm định độc lập"
     },
-    "recycled": {
-      "title": "Dệt may tái chế",
-      "description": "Thông qua mạng lưới Circular Hub"
+    "markets": {
+      "title": "Thị trường xuất khẩu",
+      "description": "Chấm điểm mức sẵn sàng theo từng thị trường đích"
     },
-    "carbon": {
-      "title": "kg CO₂e",
-      "description": "Tổng lượng khí thải được ghi lại"
+    "stages": {
+      "title": "Giai đoạn phát thải",
+      "description": "Vật liệu, sản xuất, vận chuyển và đóng gói"
     }
   },
   "cta": {
     "badge": "Bắt đầu ngay",
-    "title": "Sẵn sàng chuyển đổi chiến lược carbon?",
-    "subtitle": "Tham gia cùng các thương hiệu thời trang hàng đầu đo lường và giảm thiểu tác động môi trường",
+    "title": "Sẵn sàng cho yêu cầu carbon từ buyer?",
+    "subtitle": "Bắt đầu từ những hóa đơn bạn đang có — dựng hồ sơ carbon truy vết được trước khi đối tác nhập khẩu hỏi tới",
     "email": "Nhập email của bạn",
     "button": "Đăng ký sớm",
     "submitting": "Đang gửi...",

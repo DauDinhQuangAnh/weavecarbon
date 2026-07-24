@@ -1,15 +1,15 @@
 "use client";
 import { motion, AnimatePresence, useInView } from "motion/react";
 import {
-  BarChart3,
+  FileCheck2,
   Globe,
-  Leaf,
   Package,
   PieChart,
   Recycle,
   Scale,
+  ScanLine,
+  ShieldCheck,
   TrendingUp,
-  Users,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -770,55 +770,55 @@ const Features = () => {
 
   const features = [
     {
-      icon: <Scale className="w-6 h-6" />,
-      titleKey: "carbonProxy.title",
-      descKey: "carbonProxy.desc",
+      icon: <ScanLine className="w-6 h-6" />,
+      titleKey: "docAI.title",
+      descKey: "docAI.desc",
       gradient:
         "linear-gradient(315deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
       glowColor: "hsl(96 41% 19% / 0.3)",
     },
     {
-      icon: <Package className="w-6 h-6" />,
-      titleKey: "materialDb.title",
-      descKey: "materialDb.desc",
+      icon: <Scale className="w-6 h-6" />,
+      titleKey: "carbonProxy.title",
+      descKey: "carbonProxy.desc",
       gradient:
         "linear-gradient(135deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
       glowColor: "hsl(96 35% 25% / 0.3)",
+    },
+    {
+      icon: <ShieldCheck className="w-6 h-6" />,
+      titleKey: "auditTrail.title",
+      descKey: "auditTrail.desc",
+      gradient:
+        "linear-gradient(180deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
+      glowColor: "hsl(40 20% 70% / 0.3)",
+    },
+    {
+      icon: <FileCheck2 className="w-6 h-6" />,
+      titleKey: "cbamDpp.title",
+      descKey: "cbamDpp.desc",
+      gradient:
+        "linear-gradient(225deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
+      glowColor: "hsl(96 40% 22% / 0.3)",
+    },
+    {
+      icon: <PieChart className="w-6 h-6" />,
+      titleKey: "dataGap.title",
+      descKey: "dataGap.desc",
+      gradient:
+        "linear-gradient(270deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
+      glowColor: "hsl(25 45% 50% / 0.3)",
     },
     {
       icon: <Globe className="w-6 h-6" />,
       titleKey: "transportCalc.title",
       descKey: "transportCalc.desc",
       gradient:
-        "linear-gradient(180deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
-      glowColor: "hsl(40 20% 70% / 0.3)",
-    },
-    {
-      icon: <Recycle className="w-6 h-6" />,
-      titleKey: "circularHub.title",
-      descKey: "circularHub.desc",
-      gradient:
-        "linear-gradient(225deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
-      glowColor: "hsl(96 40% 22% / 0.3)",
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      titleKey: "ngoPartner.title",
-      descKey: "ngoPartner.desc",
-      gradient:
-        "linear-gradient(270deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
-      glowColor: "hsl(25 45% 50% / 0.3)",
-    },
-    {
-      icon: <Leaf className="w-6 h-6" />,
-      titleKey: "carbonCredits.title",
-      descKey: "carbonCredits.desc",
-      gradient:
         "linear-gradient(315deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
       glowColor: "hsl(96 30% 35% / 0.3)",
     },
     {
-      icon: <PieChart className="w-6 h-6" />,
+      icon: <Package className="w-6 h-6" />,
       titleKey: "exportReady.title",
       descKey: "exportReady.desc",
       gradient:
@@ -834,9 +834,9 @@ const Features = () => {
       glowColor: "hsl(96 38% 28% / 0.3)",
     },
     {
-      icon: <BarChart3 className="w-6 h-6" />,
-      titleKey: "esgReports.title",
-      descKey: "esgReports.desc",
+      icon: <Recycle className="w-6 h-6" />,
+      titleKey: "circularHub.title",
+      descKey: "circularHub.desc",
       gradient:
         "linear-gradient(360deg, hsl(96 35% 25%) 0%, hsl(96 30% 40%) 100%)",
       glowColor: "hsl(25 40% 55% / 0.3)",
