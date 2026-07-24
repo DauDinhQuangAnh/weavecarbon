@@ -1,0 +1,35 @@
+{
+  // Dependency vulnerability gate for CI (replaces bare `npm audit --audit-level=high`).
+  //
+  // Build FAILS on any high/critical advisory that is NOT listed below, so newly
+  // published vulnerabilities still block the pipeline.
+  //
+  // Everything in `allowlist` is a known advisory with NO patched release available
+  // at the time of writing (2026-07-21). They are transitively owned by `next`, which
+  // has no fixed version yet — latest published stable is 16.2.11 and the advisory
+  // range covers `9.3.4-canary.0 - 16.3.0-preview.7`, so upgrading cannot clear them.
+  //
+  // ACTION: when Next.js ships a patched release (>= 16.3.0 stable), bump `next`,
+  // re-run `npx audit-ci --config ./audit-ci.jsonc`, and delete every entry that no
+  // longer reports. Do not add new entries without the same "no fix exists" check.
+  "high": true,
+  "allowlist": [
+    // --- next (no fixed release yet) ---
+    "GHSA-6gpp-xcg3-4w24", // Middleware / Proxy bypass (App Router + Turbopack, single locale)
+    "GHSA-m99w-x7hq-7vfj", // Denial of Service in App Router using Server Actions
+    "GHSA-89xv-2m56-2m9x", // SSRF in Server Actions on custom servers
+    "GHSA-68g3-v927-f742", // Cache confusion of response bodies for requests with bodies
+    "GHSA-4633-3j49-mh5q", // Cache confusion (invalid UTF-8 byte sequences)
+    "GHSA-4c39-4ccg-62r3", // Unbounded Server Action payload in Edge runtime
+    "GHSA-p9j2-gv94-2wf4", // SSRF in rewrites via attacker-controlled destination hostname
+    "GHSA-q8wf-6r8g-63ch", // Denial of Service in Image Optimization API using SVGs
+    "GHSA-955p-x3mx-jcvp", // Unauthenticated disclosure of internal Server Function endpoints
+
+    // --- postcss (bundled under next/node_modules, not directly upgradable) ---
+    "GHSA-qx2v-qp2m-jg93", // XSS via unescaped </style> in CSS stringify output
+    "GHSA-6g55-p6wh-862q", // Arbitrary file read via attacker-controlled sourceMappingURL
+
+    // --- sharp (transitive via next image optimization) ---
+    "GHSA-f88m-g3jw-g9cj" // Inherited libvips CVEs (CVE-2026-33327/33328/35590/35591)
+  ]
+}

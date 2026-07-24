@@ -30,7 +30,9 @@ jobs:
         run: npm ci
 
       - name: Dependency vulnerability audit (high/critical fails the build)
-        run: npm audit --audit-level=high
+        # Allowlist in audit-ci.jsonc covers only advisories with no patched release
+        # available; any other high/critical finding still fails the build.
+        run: npx audit-ci --config ./audit-ci.jsonc
 
       - name: Lint and typecheck
         run: npm run check
