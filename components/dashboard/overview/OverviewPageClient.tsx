@@ -41,8 +41,9 @@ import {
   X } from
 "lucide-react";
 import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import ProductOverviewModal from "../assessment/ProductOverviewModal";
-import OverviewCharts, { EmissionBreakdownPoint } from "../OverviewCharts";
+import type { EmissionBreakdownPoint } from "../OverviewCharts";
 import { useRouter } from "next/navigation";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
@@ -61,12 +62,13 @@ import {
   mapOverviewMarketReadiness,
   pickEmissionColor,
   renderMarketReadinessItem,
-  type Company,
   type DashboardOverviewResponse,
   type MarketReadinessItem,
   type OverviewStats,
   type RecommendationItem
 } from "./overviewPageHelpers";
+
+const OverviewCharts = dynamic(() => import("../OverviewCharts"), { ssr: false });
 
 const OverviewPage: React.FC = () => {
   const t = useTranslations("overview");
@@ -83,14 +85,34 @@ const OverviewPage: React.FC = () => {
   } = useProducts();
   const navigate = useRouter();
   const appRoutes = useAppRoutes();
-  const [, setCompany] = useState<Company | null>(null);
   const [apiStats, setApiStats] = useState<OverviewStats | null>(null);
   const [showMarketReadinessDialog, setShowMarketReadinessDialog] = useState(false);
+  const [modalMarketReadiness, setModalMarketReadiness] = useState<MarketReadinessItem[]>([]);
+  const [modalMarketsLoading, setModalMarketsLoading] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [insightsLoading, setInsightsLoading] = useState(true);
   const [marketReadiness, setMarketReadiness] = useState<MarketReadinessItem[]>(
     []
   );
+
+  const handleOpenMarketReadinessDialog = async () => {
+    setShowMarketReadinessDialog(true);
+    if (modalMarketReadiness.length > 0 || modalMarketsLoading) return;
+
+    setModalMarketsLoading(true);
+    try {
+      const complianceMarkets = await fetchComplianceMarkets();
+      if (complianceMarkets && Object.keys(complianceMarkets).length > 0) {
+        setModalMarketReadiness(mapComplianceMarketReadiness(complianceMarkets));
+      }
+    } catch (error) {
+      if (!isUnauthorizedApiError(error)) {
+        console.warn("Failed to load compliance markets for modal.");
+      }
+    } finally {
+      setModalMarketsLoading(false);
+    }
+  };
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>(
     []
   );
@@ -277,19 +299,7 @@ const OverviewPage: React.FC = () => {
       if (!cancelled) setInsightsLoading(true);
 
       try {
-        const shouldLoadComplianceMarkets =
-          user.user_type === "b2b" || user.user_type === "admin";
-
-        const [overview, complianceMarkets] = await Promise.all([
-        api.get<DashboardOverviewResponse>("/dashboard/overview?trend_months=6"),
-        (shouldLoadComplianceMarkets ?
-        fetchComplianceMarkets() :
-        Promise.resolve(null)).catch((error) => {
-          if (!isUnauthorizedApiError(error)) {
-            console.warn("Failed to load compliance markets for overview readiness.");
-          }
-          return null;
-        })]);
+        const overview = await api.get<DashboardOverviewResponse>("/dashboard/overview?trend_months=6");
 
         if (cancelled) return;
 
@@ -300,22 +310,8 @@ const OverviewPage: React.FC = () => {
           confidenceScore: Math.round(overview.stats?.dataConfidence || 0)
         });
 
-        const complianceReadiness =
-        complianceMarkets && Object.keys(complianceMarkets).length > 0 ?
-        mapComplianceMarketReadiness(complianceMarkets) :
-        [];
         const overviewReadiness = mapOverviewMarketReadiness(overview.marketReadiness);
-
-        setCompany({
-          target_markets:
-          complianceReadiness.length > 0 ?
-          Object.keys(complianceMarkets || {}) :
-          overview.marketReadiness?.map((item) => item.marketCode || "") || []
-        });
-
-        setMarketReadiness(
-          complianceReadiness.length > 0 ? complianceReadiness : overviewReadiness
-        );
+        setMarketReadiness(overviewReadiness);
 
         const usedBreakdownColors = new Set<string>();
         setEmissionBreakdown(
@@ -498,7 +494,7 @@ const OverviewPage: React.FC = () => {
                   variant="default"
                   size="sm"
                   className="mt-0.5 h-7 min-w-[2.25rem] rounded-full px-2.5 text-xs font-bold shadow-sm shadow-primary/25"
-                  onClick={() => setShowMarketReadinessDialog(true)}
+                  onClick={handleOpenMarketReadinessDialog}
                   aria-label={
                     locale === "vi" ?
                       `Xem tat ca ${marketReadiness.length} thi truong` :
@@ -817,7 +813,14 @@ const OverviewPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
-            {marketReadiness.map(renderMarketReadinessItem)}
+            {modalMarketsLoading ? (
+              <div className="flex items-center justify-center py-8 text-sm text-slate-500">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {"Đang tải thông tin thị trường..."}
+              </div>
+            ) : (
+              (modalMarketReadiness.length > 0 ? modalMarketReadiness : marketReadiness).map(renderMarketReadinessItem)
+            )}
           </div>
         </DialogContent>
       </Dialog>
