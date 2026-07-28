@@ -222,7 +222,14 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: 'Từ chối',
   ready_for_calculation: 'Sẵn sàng tính',
   third_party_verified: 'Đã xác minh độc lập',
+  extract_failed: 'AI đọc lỗi',
 };
+
+// Statuses that mean AI extraction finished successfully.
+const EXTRACTION_OK_STATUSES = new Set([
+  'ocr_parsed', 'extracted', 'logic_checked', 'source_matched',
+  'cross_checked', 'verified', 'locked',
+]);
 
 interface EvDoc {
   id: string;
@@ -235,6 +242,7 @@ interface EvDoc {
   createdAt: string;
   checksumSha256: string | null;
   warnings: string[] | null;
+  extractionError?: string | null;
 }
 
 interface ExtractedField {
@@ -304,6 +312,47 @@ export default function EvidencePage() {
 
   useEffect(() => { load(page); }, [page, load]);
 
+  // After upload, poll the background AI extraction and surface the outcome as a toast
+  // (success with field count, or the failure reason) instead of leaving the user guessing.
+  const pollExtraction = useCallback(async (evidenceId: string) => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await new Promise((r) => setTimeout(r, 2500));
+      try {
+        const s = await api.get<{
+          status: string;
+          fieldCount: number;
+          extractionError: string | null;
+        }>(`/evidence/${evidenceId}/status`);
+
+        if (s.status === 'extract_failed') {
+          toast({
+            title: 'AI không đọc được chứng từ',
+            description: s.extractionError || 'Vui lòng thử lại hoặc tải file rõ ràng hơn.',
+            variant: 'destructive',
+          });
+          await load(1);
+          return;
+        }
+        if (EXTRACTION_OK_STATUSES.has(s.status) && s.fieldCount > 0) {
+          toast({
+            title: `AI đã đọc xong — ${s.fieldCount} trường`,
+            description: 'Bấm "Xem" ở dòng chứng từ để kiểm tra & xác nhận.',
+          });
+          await load(1);
+          return;
+        }
+      } catch {
+        // transient error while polling — keep trying
+      }
+    }
+    // Still not done after ~25s: refresh anyway and let the user know.
+    await load(1);
+    toast({
+      title: 'AI vẫn đang xử lý chứng từ',
+      description: 'Kết quả sẽ cập nhật sau ít phút. Bạn có thể tải lại trang để xem.',
+    });
+  }, [load]);
+
   useEffect(() => {
     if (highlightId && rows.length > 0) {
       document.getElementById(`ev-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -370,13 +419,15 @@ export default function EvidencePage() {
         } catch { /* non-fatal */ }
       }
 
-      toast({ title: 'Đã tải lên. AI đang đọc chứng từ — kết quả hiện sau 5-10 giây.' });
+      toast({ title: 'Đã tải lên. AI đang đọc chứng từ…' });
       setUploadOpen(false);
       resetUploadForm();
       setPage(1);
       await load(1);
-      // Auto-refresh after AI extraction completes (~8s)
-      setTimeout(() => load(1), 8000);
+      // Poll the background extraction and toast the real outcome (success or reason).
+      if (evidenceId) {
+        void pollExtraction(evidenceId);
+      }
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi tải lên', variant: 'destructive' });
     } finally {
@@ -844,7 +895,9 @@ export default function EvidencePage() {
                           colSpan={4}
                           className="p-3 text-center text-slate-500"
                         >
-                          AI chưa trích xuất được trường nào.
+                          {reviewDoc.status === 'extract_failed' && reviewDoc.extractionError
+                            ? reviewDoc.extractionError
+                            : 'AI chưa trích xuất được trường nào.'}
                         </td>
                       </tr>
                     ) : (
