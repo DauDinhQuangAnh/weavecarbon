@@ -644,6 +644,7 @@ const toProductRecord = (
     productCode: payload.productCode,
     productName: payload.productName,
     productType: payload.productType,
+    productCategory: payload.productCategory || "textile",
     weightPerUnit: payload.weightPerUnit,
     quantity: payload.quantity,
     materials: payload.materials,
@@ -952,6 +953,7 @@ export const importDemoBulkRows = (
       productCode,
       productName,
       productType,
+      productCategory: "textile",
       weightPerUnit,
       quantity,
       materials: [

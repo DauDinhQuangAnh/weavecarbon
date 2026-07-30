@@ -1,6 +1,7 @@
 import {
   getCarbonFactor,
   resolveAccessoryFactorIdByKeyword,
+  resolveCategoryMethodology,
   resolveMarketDistanceDefault
 } from "@/lib/carbon/factorRegistry";
 import type {
@@ -16,9 +17,6 @@ import type {
   CarbonStageKey
 } from "@/lib/carbon/types";
 
-const METHODOLOGY_NAME = "WeaveCarbon Attributional Textile PCF";
-const METHODOLOGY_VERSION = "WeaveCarbon Attributional Textile PCF v2.1 - climate-only partial CFP";
-const CALCULATION_GRAPH_VERSION = "textile-pcf-2.1.0";
 const RULE_ENGINE_VERSION = "scope-quality-rss-1.0.0";
 
 const CORE_STAGE_KEYS = [
@@ -236,6 +234,7 @@ export const calculateCarbonFootprint = (
   const unitMassKg = isFiniteNumber(input.unitMassKg) ? Math.max(0, input.unitMassKg) : 0;
   const includePackagingFallbackNote = input.includePackagingFallbackNote ?? true;
   const reportingActorRole = input.reportingActorRole || "manufacturer";
+  const methodology = resolveCategoryMethodology(input.productCategory);
 
   const stages: Record<(typeof CORE_STAGE_KEYS)[number], StageAccumulator> = {
     materials: createStageAccumulator(),
@@ -249,6 +248,7 @@ export const calculateCarbonFootprint = (
   let scope1Amount = 0;
   let scope2Amount = 0;
   let scope3Amount = 0;
+  let biogenicCarbonKgCO2e = 0;
   const contributionTerms: ContributionTerm[] = [];
   const energyBreakdown: CarbonComputationResult["energyBreakdown"] = [];
   const addContribution = (amount: number, factor: CarbonFactorMetadata) => {
@@ -283,7 +283,7 @@ export const calculateCarbonFootprint = (
   }
 
   for (const material of input.materials) {
-    const factor = resolveFactorOrFallback(material.factorId ?? material.type, "cat-other-generic");
+    const factor = resolveFactorOrFallback(material.factorId ?? material.type, methodology.defaultMaterialFactorId);
     const percentage = clamp(material.percentage || 0, 0, 100);
     const yieldToProduct =
       isFiniteNumber(material.yieldToProduct) && material.yieldToProduct > 0 ?
@@ -298,12 +298,18 @@ export const calculateCarbonFootprint = (
       scope3Amount += amount;
     }
 
+    const biogenicFactor = material.biogenicCarbonFactorKgPerKg ?? factor.biogenicCarbonKgPerKg;
+    if (isFiniteNumber(biogenicFactor) && biogenicFactor > 0) {
+      const materialMassKg = (materialBaseMassKg * (percentage / 100)) / yieldToProduct;
+      biogenicCarbonKgCO2e += materialMassKg * biogenicFactor;
+    }
+
     if ((material.source || "unknown") === "unknown") {
       notes.push(`Material "${material.name || material.type}" has unknown origin; uncertainty is widened.`);
       stages.materials.quality = maxQuality(stages.materials.quality, "market_default_or_missing");
     }
 
-    if (!material.factorId && factor.id === "cat-other-generic") {
+    if (!material.factorId && factor.id === methodology.defaultMaterialFactorId) {
       notes.push(`Material "${material.name || material.type}" is mapped to a generic internal proxy factor.`);
     }
   }
@@ -351,10 +357,12 @@ export const calculateCarbonFootprint = (
 
   const processFactorIds = input.processFactorIds.length > 0
     ? input.processFactorIds
-    : ["process-generic-garment"];
+    : [methodology.defaultProcessFactorId];
 
   if (input.processFactorIds.length === 0) {
-    notes.push("Manufacturing processes are missing; a generic garment process proxy was used.");
+    notes.push(
+      `Manufacturing processes are missing; a generic ${methodology.processFallbackWarningLabel} process proxy was used.`
+    );
     stages.finished_goods_manufacturing.quality = maxQuality(
       stages.finished_goods_manufacturing.quality,
       "market_default_or_missing"
@@ -362,7 +370,7 @@ export const calculateCarbonFootprint = (
   }
 
   const processIntensityKwhPerKg = processFactorIds.reduce((sum, factorId) => {
-    const factor = resolveFactorOrFallback(factorId, "process-generic-garment");
+    const factor = resolveFactorOrFallback(factorId, methodology.defaultProcessFactorId);
     addFactorSummary(stages.finished_goods_manufacturing, "finished_goods_manufacturing", factor);
     return sum + factor.value;
   }, 0);
@@ -433,7 +441,7 @@ export const calculateCarbonFootprint = (
     if (productionQualityFactor) {
       addContribution(
         productionAmount,
-        resolveFactorOrFallback(productionQualityFactor.factorId, "process-generic-garment")
+        resolveFactorOrFallback(productionQualityFactor.factorId, methodology.defaultProcessFactorId)
       );
     }
   }
@@ -612,6 +620,10 @@ export const calculateCarbonFootprint = (
   return {
     perProduct,
     totalBatch,
+    biogenicCarbon: biogenicCarbonKgCO2e > 0 ? {
+      removedKgCO2e: roundPerProduct(biogenicCarbonKgCO2e),
+      note: "Biogenic CO2 stored in bio-based materials (e.g. wood), reported separately per GHG Protocol/PAS 2050 convention. Not included in perProduct.total or reportedTotalKgCO2e."
+    } : null,
     cradleToGateCoreKgCO2e,
     gateToMarketExtensionKgCO2e,
     reportedTotalKgCO2e: perProduct.total,
@@ -623,10 +635,10 @@ export const calculateCarbonFootprint = (
     scope2: roundPerProduct(scope2Amount),
     scope3: roundPerProduct(scope3Amount),
     co2eRange: range,
-    methodologyVersion: METHODOLOGY_VERSION,
+    methodologyVersion: methodology.methodologyVersion,
     methodology: {
-      name: METHODOLOGY_NAME,
-      methodologyVersion: METHODOLOGY_VERSION,
+      name: methodology.methodologyName,
+      methodologyVersion: methodology.methodologyVersion,
       standardsAlignment: ["GHG Product Standard", "ISO 14067", "ISO 14040", "ISO 14044"],
       impactCategory: "climate_change_only",
       inventoryType: "partial_cfp",
@@ -666,13 +678,14 @@ export const calculateCarbonFootprint = (
     warnings: dedupeMessages(warnings),
     trace: {
       factorManifest,
-      calculationGraphVersion: CALCULATION_GRAPH_VERSION,
+      calculationGraphVersion: methodology.calculationGraphVersion,
       ruleEngineVersion: RULE_ENGINE_VERSION
     },
     assumptionsUsed: dedupeMessages([
       "Boundary: climate-only partial CFP with cradle-to-gate core and gate-to-market extension.",
       "Manufacturing energy is modeled as a process input inside finished goods manufacturing.",
       "Uncertainty range uses WeaveCarbon internal RSS fallback, not Monte Carlo.",
+      ...(biogenicCarbonKgCO2e > 0 ? ["Biogenic CO2 from bio-based materials is reported separately from the fossil CO2e total, not netted into it."] : []),
       ...notes
     ]),
     factorSourceSummary,
@@ -680,6 +693,8 @@ export const calculateCarbonFootprint = (
     stageBreakdown
   };
 };
+
+const DEFAULT_METHODOLOGY = resolveCategoryMethodology(undefined);
 
 export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
   perProduct: {
@@ -698,6 +713,7 @@ export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
     packaging: 0,
     total: 0
   },
+  biogenicCarbon: null,
   cradleToGateCoreKgCO2e: 0,
   gateToMarketExtensionKgCO2e: 0,
   reportedTotalKgCO2e: 0,
@@ -709,10 +725,10 @@ export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
   scope2: null,
   scope3: null,
   co2eRange: buildEmptyRange(),
-  methodologyVersion: METHODOLOGY_VERSION,
+  methodologyVersion: DEFAULT_METHODOLOGY.methodologyVersion,
   methodology: {
-    name: METHODOLOGY_NAME,
-    methodologyVersion: METHODOLOGY_VERSION,
+    name: DEFAULT_METHODOLOGY.methodologyName,
+    methodologyVersion: DEFAULT_METHODOLOGY.methodologyVersion,
     standardsAlignment: ["GHG Product Standard", "ISO 14067", "ISO 14040", "ISO 14044"],
     impactCategory: "climate_change_only",
     inventoryType: "partial_cfp",
@@ -748,7 +764,7 @@ export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
   ],
   trace: {
     factorManifest: [],
-    calculationGraphVersion: CALCULATION_GRAPH_VERSION,
+    calculationGraphVersion: DEFAULT_METHODOLOGY.calculationGraphVersion,
     ruleEngineVersion: RULE_ENGINE_VERSION
   },
   assumptionsUsed: ["Boundary: climate-only partial CFP with cradle-to-gate core and gate-to-market extension."],

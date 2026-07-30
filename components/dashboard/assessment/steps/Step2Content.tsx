@@ -428,6 +428,7 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
                           handleCatalogSelect(material.id, catalogMaterial)
                         }
                         onOtherClick={() => handleOtherClick(index)}
+                        productCategory={data.productCategory}
                         placeholder={
                           extMaterial.customName || t("materialSearchPlaceholder")
                         }
@@ -697,6 +698,7 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
         <OtherMaterialModal
           open={otherModalOpen}
           onOpenChange={setOtherModalOpen}
+          productCategory={data.productCategory}
           onSelectMaterial={handleOtherMaterialSelect}
         />
       </div>

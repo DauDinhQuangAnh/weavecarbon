@@ -62,8 +62,8 @@ const DASHBOARD_ROUTE_TITLES: Record<string, { title: string; subtitle?: string 
     subtitle: "Phân tích phát thải và hiệu quả giảm carbon",
   },
   "/cbam-report": {
-    title: "Báo cáo CBAM-style",
-    subtitle: "Cấu trúc 6 tab phỏng theo EU CBAM communication template",
+    title: "Báo cáo kiểu CBAM (Pre-audit, không phải tờ khai chính thức)",
+    subtitle: "Cấu trúc 6 tab phỏng theo EU CBAM communication template — phục vụ ESG/CSDDD, chưa thuộc phạm vi CBAM",
   },
   "/audit-trail": {
     title: "Audit Trail",

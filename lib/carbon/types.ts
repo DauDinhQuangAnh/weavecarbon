@@ -23,6 +23,8 @@ export type CarbonStageKey =
 
 export type CarbonReportingActorRole = "manufacturer" | "brand" | "supplier" | "other";
 
+export type ProductCategory = "textile" | "wood_pallet";
+
 export interface CarbonRange {
   min: number;
   max: number;
@@ -55,6 +57,8 @@ export interface CarbonFactorMetadata {
   uncertaintyCv: number;
   qualityScores: CarbonQualityScores;
   isProxy: boolean;
+  /** kg CO2 stored per kg of this material (dry-mass basis), for biogenic materials like wood. */
+  biogenicCarbonKgPerKg?: number;
 }
 
 export interface CarbonFactorSummaryItem {
@@ -109,6 +113,11 @@ export interface CarbonMaterialInput {
   provenanceFactorId?: string;
   name?: string;
   isPrimaryData?: boolean;
+  /**
+   * kg CO2 stored per kg of this material (dry-mass basis), for biogenic materials like wood.
+   * Reported separately from the fossil CO2e total, never netted into it.
+   */
+  biogenicCarbonFactorKgPerKg?: number;
 }
 
 export interface CarbonAccessoryInput {
@@ -149,6 +158,8 @@ export interface CarbonTransportInput {
 export interface CarbonEngineInput {
   unitMassKg: number;
   quantity: number;
+  /** Defaults to "textile" when omitted, preserving existing engine behavior. */
+  productCategory?: ProductCategory;
   materials: CarbonMaterialInput[];
   accessories: CarbonAccessoryInput[];
   packaging?: CarbonPackagingInput | null;
@@ -171,9 +182,19 @@ export interface CarbonBreakdownResult {
   total: number;
 }
 
+export interface CarbonBiogenicCarbonResult {
+  removedKgCO2e: number;
+  note: string;
+}
+
 export interface CarbonComputationResult {
   perProduct: CarbonBreakdownResult;
   totalBatch: CarbonBreakdownResult;
+  /**
+   * Biogenic CO2 removed/stored by bio-based materials (e.g. wood), reported per GHG
+   * Protocol/PAS 2050 convention: separately from perProduct.total, never netted into it.
+   */
+  biogenicCarbon: CarbonBiogenicCarbonResult | null;
   cradleToGateCoreKgCO2e: number;
   gateToMarketExtensionKgCO2e: number;
   reportedTotalKgCO2e: number;

@@ -4,8 +4,11 @@ import type {
   CarbonComputationResult,
   CarbonDataQualityBreakdown,
   CarbonFactorSummaryItem,
-  CarbonRange
+  CarbonRange,
+  ProductCategory
 } from "@/lib/carbon/types";
+
+export type { ProductCategory };
 
 
 export interface MaterialInput {
@@ -72,6 +75,7 @@ export interface ProductAssessmentData {
   productCode: string;
   productName: string;
   productType: string;
+  productCategory: ProductCategory;
   hsCode?: string;
   cnCode?: string;
   facility?: string;
@@ -129,6 +133,7 @@ export interface CarbonBreakdown {
 
 export interface CarbonAssessmentResult extends Partial<Pick<
   CarbonComputationResult,
+  | "biogenicCarbon"
   | "cradleToGateCoreKgCO2e"
   | "gateToMarketExtensionKgCO2e"
   | "reportedTotalKgCO2e"
@@ -175,6 +180,11 @@ export interface DraftVersion {
 }
 
 
+export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
+{ value: "textile", label: "Dệt may / May mặc" },
+{ value: "wood_pallet", label: "Pallet gỗ" }];
+
+
 export const PRODUCT_TYPES = [
 { value: "tshirt", label: "Áo thun" },
 { value: "polo", label: "Áo polo" },
@@ -218,13 +228,21 @@ export const ACCESSORY_TYPES = [
 { value: "other", label: "Khác" }];
 
 
-export const PRODUCTION_PROCESSES = [
-{ value: "knitting", label: "Dệt kim", co2Factor: 1.2 },
-{ value: "weaving", label: "Dệt thoi", co2Factor: 1.5 },
-{ value: "cutting_sewing", label: "Cắt may", co2Factor: 0.8 },
-{ value: "dyeing", label: "Nhuộm", co2Factor: 2.5 },
-{ value: "printing", label: "In", co2Factor: 1.8 },
-{ value: "finishing", label: "Hoàn tất", co2Factor: 0.5 }];
+export const PRODUCTION_PROCESSES: {
+  value: string;
+  label: string;
+  co2Factor: number;
+  categories: ProductCategory[];
+}[] = [
+{ value: "knitting", label: "Dệt kim", co2Factor: 1.2, categories: ["textile"] },
+{ value: "weaving", label: "Dệt thoi", co2Factor: 1.5, categories: ["textile"] },
+{ value: "cutting_sewing", label: "Cắt may", co2Factor: 0.8, categories: ["textile"] },
+{ value: "dyeing", label: "Nhuộm", co2Factor: 2.5, categories: ["textile"] },
+{ value: "printing", label: "In", co2Factor: 1.8, categories: ["textile"] },
+{ value: "finishing", label: "Hoàn tất", co2Factor: 0.5, categories: ["textile"] },
+{ value: "sawing", label: "Xẻ gỗ", co2Factor: 0.15, categories: ["wood_pallet"] },
+{ value: "kiln_drying", label: "Sấy gỗ", co2Factor: 0.35, categories: ["wood_pallet"] },
+{ value: "assembly", label: "Lắp ráp (đóng đinh)", co2Factor: 0.1, categories: ["wood_pallet"] }];
 
 
 export const ENERGY_SOURCES = [

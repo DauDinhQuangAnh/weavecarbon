@@ -31,21 +31,43 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/apiClient';
 import ReactMarkdown from 'react-markdown';
+import { getCarbonFactor, resolveCategoryMethodology } from '@/lib/carbon/factorRegistry';
+import type { ProductCategory } from '@/lib/carbon/types';
 
-const MATERIAL_FACTORS: Record<string, number> = {
-  cotton: 5.9,
-  polyester: 6.4,
-  wool: 10.1,
-  silk: 8.5,
-  linen: 1.5,
-  recycledPoly: 2.1,
-  organicCotton: 3.8,
-  hemp: 2.3,
+// Sourced from lib/carbon/factorRegistry.ts (same registry the assessment engine uses),
+// so this quick calculator stops maintaining its own drifting copy of emission factors.
+const MATERIAL_OPTIONS_BY_CATEGORY: Record<ProductCategory, { value: string; label: string }[]> = {
+  textile: [
+    { value: 'cat-cotton-100', label: 'Cotton thông thường' },
+    { value: 'cat-polyester-100', label: 'Polyester nguyên sinh' },
+    { value: 'cat-wool-100', label: 'Len' },
+    { value: 'cat-silk-100', label: 'Lụa tơ tằm' },
+    { value: 'cat-linen-100', label: 'Linen' },
+    { value: 'cat-polyester-recycled', label: 'Polyester tái chế' },
+    { value: 'cat-cotton-organic', label: 'Cotton hữu cơ' },
+    { value: 'cat-hemp', label: 'Hemp' },
+  ],
+  wood_pallet: [
+    { value: 'cat-wood-softwood-new', label: 'Gỗ thông xẻ, sấy khô (mới)' },
+    { value: 'cat-wood-recycled', label: 'Gỗ pallet tái chế/thu hồi' },
+  ],
 };
 
-const MANUFACTURING_FACTOR = 2.5;
-const PACKAGING_FACTOR = 0.3;
-const TRANSPORT_FACTOR = 0.00016;
+const CATEGORY_LABELS: Record<ProductCategory, string> = {
+  textile: 'Dệt may',
+  wood_pallet: 'Pallet gỗ',
+};
+
+const GRID_EMISSION_FACTOR = getCarbonFactor('energy-grid-vn-2023')?.value ?? 0.6592;
+const PACKAGING_FACTOR = getCarbonFactor('packaging-minimal-proxy')?.value ?? 0.3;
+// DEFRA sea-freight factor is per tonne.km; the calculator works in kg.km.
+const TRANSPORT_FACTOR = (getCarbonFactor('transport-sea-defra-2025')?.value ?? 16.12) / 1000;
+
+const resolveManufacturingFactor = (category: ProductCategory) => {
+  const processFactorId = resolveCategoryMethodology(category).defaultProcessFactorId;
+  const processIntensityKwhPerKg = getCarbonFactor(processFactorId)?.value ?? 0;
+  return processIntensityKwhPerKg * GRID_EMISSION_FACTOR;
+};
 
 interface EmissionBreakdown {
   material: number;
@@ -53,18 +75,8 @@ interface EmissionBreakdown {
   transport: number;
   packaging: number;
   total: number;
+  biogenic: number;
 }
-
-const MATERIAL_LABELS: Record<string, string> = {
-  cotton: 'Cotton thông thường',
-  polyester: 'Polyester nguyên sinh',
-  wool: 'Len',
-  silk: 'Lụa tơ tằm',
-  linen: 'Linen',
-  recycledPoly: 'Polyester tái chế',
-  organicCotton: 'Cotton hữu cơ',
-  hemp: 'Hemp',
-};
 
 const DESTINATION_OPTIONS = [
   { value: 'japan', label: 'Nhật Bản', distanceKm: 3800 },
@@ -92,17 +104,23 @@ const getDestinationLabel = (value: string) =>
   DESTINATION_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
 function buildAssessmentPrompt(context: {
+  category: ProductCategory;
   weight: string;
   material: string;
   destination: string;
   transportDistance: string;
   emissions: EmissionBreakdown;
 }): string {
-  const materialLabel = MATERIAL_LABELS[context.material] ?? context.material;
+  const materialFactorMeta = getCarbonFactor(context.material);
+  const materialLabel = materialFactorMeta?.label ?? context.material;
   const destinationLabel = getDestinationLabel(context.destination);
-  const materialFactor = MATERIAL_FACTORS[context.material] ?? 0;
+  const manufacturingFactor = resolveManufacturingFactor(context.category);
 
-  return `Bạn là chuyên gia tư vấn carbon footprint cho sản phẩm dệt may.
+  const biogenicLine = context.emissions.biogenic > 0
+    ? `\n- Carbon sinh học lưu trữ (biogenic, không cộng vào tổng): ${context.emissions.biogenic.toFixed(2)} kg CO2`
+    : '';
+
+  return `Bạn là chuyên gia tư vấn carbon footprint cho sản phẩm ngành ${CATEGORY_LABELS[context.category]}.
 
 Hãy đánh giá ngắn gọn kết quả tính carbon proxy dưới đây bằng tiếng Việt, tập trung vào quyết định vận hành:
 - Nêu nhận định chính về mức phát thải và nhóm đóng góp lớn nhất.
@@ -114,11 +132,11 @@ Hãy đánh giá ngắn gọn kết quả tính carbon proxy dưới đây bằn
 Dữ liệu đầu vào:
 - Khối lượng sản phẩm: ${context.weight} kg
 - Vật liệu chính: ${materialLabel}
-- Hệ số vật liệu: ${materialFactor} kg CO2e/kg
+- Hệ số vật liệu: ${materialFactorMeta?.value ?? 0} kg CO2e/kg
 - Điểm đến vận chuyển: ${destinationLabel}
 - Khoảng cách vận chuyển: ${context.transportDistance} km
 - Hệ số vận chuyển proxy: ${TRANSPORT_FACTOR} kg CO2e/kg.km
-- Hệ số sản xuất proxy: ${MANUFACTURING_FACTOR} kg CO2e/kg
+- Hệ số sản xuất proxy: ${manufacturingFactor.toFixed(4)} kg CO2e/kg
 - Hệ số đóng gói proxy: ${PACKAGING_FACTOR} kg CO2e/kg
 
 Kết quả:
@@ -126,10 +144,11 @@ Kết quả:
 - Vật liệu: ${context.emissions.material.toFixed(2)} kg CO2e (${pct(context.emissions.material, context.emissions.total).toFixed(0)}%)
 - Sản xuất: ${context.emissions.manufacturing.toFixed(2)} kg CO2e (${pct(context.emissions.manufacturing, context.emissions.total).toFixed(0)}%)
 - Vận chuyển: ${context.emissions.transport.toFixed(2)} kg CO2e (${pct(context.emissions.transport, context.emissions.total).toFixed(0)}%)
-- Đóng gói: ${context.emissions.packaging.toFixed(2)} kg CO2e (${pct(context.emissions.packaging, context.emissions.total).toFixed(0)}%)`;
+- Đóng gói: ${context.emissions.packaging.toFixed(2)} kg CO2e (${pct(context.emissions.packaging, context.emissions.total).toFixed(0)}%)${biogenicLine}`;
 }
 
 export default function CarbonCalculator() {
+  const [category, setCategory] = useState<ProductCategory>('textile');
   const [weight, setWeight] = useState('');
   const [material, setMaterial] = useState('');
   const [destination, setDestination] = useState('');
@@ -139,10 +158,18 @@ export default function CarbonCalculator() {
   const [isAssessing, setIsAssessing] = useState(false);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
 
+  const materialOptions = MATERIAL_OPTIONS_BY_CATEGORY[category];
+
   const resetDerivedState = () => {
     setEmissions(null);
     setAssessment(null);
     setAssessmentError(null);
+  };
+
+  const handleCategoryChange = (value: ProductCategory) => {
+    setCategory(value);
+    setMaterial('');
+    resetDerivedState();
   };
 
   const calculate = () => {
@@ -152,10 +179,12 @@ export default function CarbonCalculator() {
     const distanceKm = parseFloat(transportDistance);
     if (Number.isNaN(kg) || kg <= 0 || Number.isNaN(distanceKm) || distanceKm <= 0) return;
 
-    const materialEmission = kg * (MATERIAL_FACTORS[material] ?? 0);
-    const manufacturingEmission = kg * MANUFACTURING_FACTOR;
+    const materialFactorMeta = getCarbonFactor(material);
+    const materialEmission = kg * (materialFactorMeta?.value ?? 0);
+    const manufacturingEmission = kg * resolveManufacturingFactor(category);
     const transportEmission = kg * distanceKm * TRANSPORT_FACTOR;
     const packagingEmission = kg * PACKAGING_FACTOR;
+    const biogenicEmission = kg * (materialFactorMeta?.biogenicCarbonKgPerKg ?? 0);
     const total =
       materialEmission +
       manufacturingEmission +
@@ -168,6 +197,7 @@ export default function CarbonCalculator() {
       transport: transportEmission,
       packaging: packagingEmission,
       total,
+      biogenic: biogenicEmission,
     });
     setAssessment(null);
     setAssessmentError(null);
@@ -184,6 +214,7 @@ export default function CarbonCalculator() {
 
     try {
       const prompt = buildAssessmentPrompt({
+        category,
         weight,
         material,
         destination,
@@ -214,7 +245,7 @@ export default function CarbonCalculator() {
         <div>
           <h1 className="text-2xl font-bold">Tính Carbon Proxy</h1>
           <p className="text-sm text-muted-foreground">
-            Ước tính phát thải CO2e của sản phẩm dệt may theo vật liệu, sản xuất và vận chuyển.
+            Ước tính phát thải CO2e theo ngành hàng, vật liệu, sản xuất và vận chuyển.
           </p>
         </div>
       </div>
@@ -227,10 +258,29 @@ export default function CarbonCalculator() {
               Nhập thông tin sản phẩm
             </CardTitle>
             <CardDescription className="text-xs">
-              Kết quả là ước tính proxy từ hệ số Ecoinvent v3.10, chưa thay thế dữ liệu sơ cấp.
+              Kết quả là ước tính proxy, chưa thay thế dữ liệu sơ cấp.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <div className="space-y-1.5">
+              <Label>Ngành hàng</Label>
+              <Select
+                value={category}
+                onValueChange={(value) => handleCategoryChange(value as ProductCategory)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.entries(CATEGORY_LABELS) as [ProductCategory, string][]).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="weight">Khối lượng sản phẩm (kg)</Label>
               <Input
@@ -260,12 +310,12 @@ export default function CarbonCalculator() {
                   <SelectValue placeholder="Chọn vật liệu" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(MATERIAL_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
+                  {materialOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
                       <span className="flex items-center gap-2">
-                        {label}
+                        {option.label}
                         <span className="text-xs text-muted-foreground ml-1">
-                          ({MATERIAL_FACTORS[key]} kg CO2e/kg)
+                          ({getCarbonFactor(option.value)?.value ?? 0} kg CO2e/kg)
                         </span>
                       </span>
                     </SelectItem>
@@ -340,7 +390,7 @@ export default function CarbonCalculator() {
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-sky-500" />
               <span>
-                Hệ số phát thải lấy từ proxy ngành dệt may. Với báo cáo kiểm toán, hãy thay bằng dữ liệu đo đạc và chứng từ thực tế.
+                Hệ số phát thải lấy từ proxy theo ngành hàng đã chọn. Với báo cáo kiểm toán, hãy thay bằng dữ liệu đo đạc và chứng từ thực tế.
               </span>
             </div>
           </CardContent>
@@ -395,6 +445,17 @@ export default function CarbonCalculator() {
                     );
                   })}
                 </div>
+
+                {emissions.biogenic > 0 && (
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                    <p className="text-sm font-medium text-emerald-700">
+                      Carbon sinh học (biogenic): -{emissions.biogenic.toFixed(2)} kg CO2
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      CO₂ lưu trữ trong vật liệu gỗ, báo cáo riêng theo GHG Protocol/PAS 2050 — không cộng vào tổng phát thải ở trên.
+                    </p>
+                  </div>
+                )}
 
                 <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
                   <p className="font-medium text-foreground">Giải thích kết quả</p>
@@ -486,7 +547,7 @@ export default function CarbonCalculator() {
                 Nguồn hệ số phát thải
               </p>
               <p className="text-sky-800">
-                Ecoinvent v3.10 (textiles) - IPCC 2021 GWP100 - Higg MSI 3.0
+                Textile Exchange / Higg MSI 3.0 (dệt may) · WeaveCarbon internal proxy (pallet gỗ) · IPCC 2006 GWP100
               </p>
             </div>
             <div>

@@ -1,11 +1,13 @@
 import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
 import type { BulkProductRow } from "@/components/dashboard/products/types";
 import { calculateCarbonFootprint } from "@/lib/carbon/engine";
+import { resolveCategoryMethodology } from "@/lib/carbon/factorRegistry";
 import type {
   CarbonComputationResult,
   CarbonEngineInput,
   CarbonMaterialInput,
-  CarbonTransportInput
+  CarbonTransportInput,
+  ProductCategory
 } from "@/lib/carbon/types";
 
 const MATERIAL_FACTOR_BY_TYPE: Record<string, string> = {
@@ -23,7 +25,9 @@ const MATERIAL_FACTOR_BY_TYPE: Record<string, string> = {
   tencel: "cat-tencel",
   viscose: "cat-viscose",
   blend: "cat-blend-cotton-poly",
-  mixed: "cat-blend-cotton-poly"
+  mixed: "cat-blend-cotton-poly",
+  wood: "cat-wood-softwood-new",
+  recycled_wood: "cat-wood-recycled"
 };
 
 const PROCESS_FACTOR_BY_TYPE: Record<string, string> = {
@@ -33,7 +37,10 @@ const PROCESS_FACTOR_BY_TYPE: Record<string, string> = {
   cutting_sewing: "process-cutting-sewing",
   dyeing: "process-dyeing",
   printing: "process-printing",
-  finishing: "process-finishing"
+  finishing: "process-finishing",
+  sawing: "process-sawing",
+  kiln_drying: "process-kiln-drying",
+  assembly: "process-assembly"
 };
 
 const TRANSPORT_FACTOR_BY_MODE: Record<string, string> = {
@@ -168,11 +175,15 @@ export const buildCarbonEngineInputFromBulkRow = (row: BulkProductRow): CarbonEn
   const unitMassKg = toNumber(row.weightPerUnit) / 1000;
   const accessoryNames = parseAccessoryList(row.accessories);
   const accessoryWeightsKg = parseAccessoryWeightListKg(row.accessoriesWeightGram);
+  // Bulk CSV import is textile-only for now; wood pallet bulk upload is a follow-up.
+  const bulkRowCategory: ProductCategory = "textile";
+  const bulkRowDefaultProcessFactorId = resolveCategoryMethodology(bulkRowCategory).defaultProcessFactorId;
 
   return {
     unitMassKg,
     quantity: Math.max(1, toNumber(row.quantity)),
     reportingActorRole: "manufacturer",
+    productCategory: bulkRowCategory,
     materials: buildBulkMaterials(row),
     accessories: accessoryNames.map((name, index) => ({
       id: `accessory-${index + 1}`,
@@ -182,7 +193,7 @@ export const buildCarbonEngineInputFromBulkRow = (row: BulkProductRow): CarbonEn
     })),
     packaging: null,
     includePackagingFallbackNote: false,
-    processFactorIds: row.processes.map((process) => PROCESS_FACTOR_BY_TYPE[process] || "process-generic-garment"),
+    processFactorIds: row.processes.map((process) => PROCESS_FACTOR_BY_TYPE[process] || bulkRowDefaultProcessFactorId),
     energyMix: [
       {
         factorId: resolveEnergyFactorId(row.energySource, row.manufacturingLocation),
@@ -215,11 +226,13 @@ export const buildCarbonEngineInputFromAssessment = (
     normalizeText(data.destinationMarket) ||
     normalizeText(companyDomesticMarket) ||
     "other";
+  const productCategory: ProductCategory = data.productCategory || "textile";
 
   return {
     unitMassKg: Math.max(0, toNumber(data.weightPerUnit) / 1000),
     quantity: Math.max(1, toNumber(data.quantity)),
     reportingActorRole: "manufacturer",
+    productCategory,
     materials: data.materials.map((material) => ({
       id: material.id,
       type: material.materialType,
@@ -240,7 +253,7 @@ export const buildCarbonEngineInputFromAssessment = (
     packaging: null,
     includePackagingFallbackNote: false,
     processFactorIds: data.productionProcesses.map(
-      (process) => PROCESS_FACTOR_BY_TYPE[process] || "process-generic-garment"
+      (process) => PROCESS_FACTOR_BY_TYPE[process] || resolveCategoryMethodology(productCategory).defaultProcessFactorId
     ),
     energyMix:
       data.energySources.length > 0 ?
@@ -279,16 +292,20 @@ export const buildCarbonEngineInputFromProductOverview = (
   const primaryPercentage = toNumber(data.materialPercentage) || 100;
   const secondaryPercentage = toNumber(data.secondaryPercentage) || 0;
   const processType = normalizeText(data.processType);
+  // This legacy overview form has no category field of its own; textile is its only caller today.
+  const productOverviewCategory: ProductCategory = "textile";
+  const productOverviewDefaultProcessFactorId = resolveCategoryMethodology(productOverviewCategory).defaultProcessFactorId;
   const processFactorIds = processType
     .split(/[,;|]/)
     .map((item) => item.trim())
     .filter(Boolean)
-    .map((process) => PROCESS_FACTOR_BY_TYPE[process] || "process-generic-garment");
+    .map((process) => PROCESS_FACTOR_BY_TYPE[process] || productOverviewDefaultProcessFactorId);
 
   return {
     unitMassKg,
     quantity: 1,
     reportingActorRole: "manufacturer",
+    productCategory: productOverviewCategory,
     materials: [
       {
         id: "material-1",

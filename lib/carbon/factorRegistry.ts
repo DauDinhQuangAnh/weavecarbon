@@ -6,7 +6,8 @@ import type {
   CarbonFactorClass,
   CarbonFactorMetadata,
   CarbonFactorQuality,
-  CarbonQualityScores
+  CarbonQualityScores,
+  ProductCategory
 } from "@/lib/carbon/types";
 
 const GHG_PROTOCOL_PRODUCT_STANDARD_URL =
@@ -130,7 +131,9 @@ const CATALOG_FACTOR_SOURCES: Record<string, { source: string; sourceUrl: string
   "cat-leather-genuine":  { source: "FAO/UNEP 2021 co-product allocation (economic) — bovine leather, tanning included. Range 15–20 kgCO₂e/kg with economic allocation.", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "documented_secondary", isProxy: false },
   "cat-leather-faux":     { source: "Ecoinvent 3.10 — polyurethane coated fabric (PU faux leather)", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true },
   "cat-down":             { source: "Higg MSI 2023 — down feather (waterfowl), co-product allocation. Range 18–30 kgCO₂e/kg.", sourceUrl: SAC_HIGG_FEM_URL, quality: "documented_secondary", isProxy: false },
-  "cat-faux-fur":         { source: "WeaveCarbon proxy — acrylic-based faux fur, aligned with acrylic fiber LCA", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true }
+  "cat-faux-fur":         { source: "WeaveCarbon proxy — acrylic-based faux fur, aligned with acrylic fiber LCA", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true },
+  "cat-wood-softwood-new": { source: "WeaveCarbon internal proxy — indicative cradle-to-gate process emissions for kiln-dried softwood sawn timber; replace with primary EPD/Ecoinvent data before compliance use. Biogenic carbon content uses IPCC 2006 Guidelines Vol.4 default (0.5 carbon fraction of dry matter × 44/12).", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true },
+  "cat-wood-recycled":    { source: "WeaveCarbon internal proxy — indicative reclaimed/recycled pallet wood, lower processing energy than new sawn timber; replace with primary EPD/Ecoinvent data before compliance use. Biogenic carbon content uses IPCC 2006 Guidelines Vol.4 default.", sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL, quality: "internal_proxy", isProxy: true }
 };
 
 const buildCatalogFactor = (material: CatalogMaterial): RawCarbonFactorMetadata => {
@@ -144,7 +147,8 @@ const buildCatalogFactor = (material: CatalogMaterial): RawCarbonFactorMetadata 
     sourceUrl: override?.sourceUrl ?? GHG_PROTOCOL_PRODUCT_STANDARD_URL,
     geography: "generic",
     quality: override?.quality ?? "internal_proxy",
-    isProxy: override?.isProxy ?? true
+    isProxy: override?.isProxy ?? true,
+    biogenicCarbonKgPerKg: material.biogenicCarbonKgPerKg
   };
 };
 
@@ -290,6 +294,17 @@ const STATIC_FACTORS: Record<string, RawCarbonFactorMetadata> = {
     quality: "market_default_or_missing",
     isProxy: true
   },
+  "process-generic-wood-pallet": {
+    id: "process-generic-wood-pallet",
+    label: "Generic wood pallet — sawing, kiln-drying and assembly intensity",
+    unit: "kWh/kg",
+    value: 0.6,
+    source: "WeaveCarbon internal proxy — indicative average of sawing + kiln-drying + assembly electrical/thermal-equivalent intensity for softwood pallet manufacturing; replace with primary EPD/Ecoinvent data before compliance use.",
+    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    geography: "generic",
+    quality: "market_default_or_missing",
+    isProxy: true
+  },
   "process-dyeing": {
     id: "process-dyeing",
     label: "Wet dyeing — total energy intensity (electrical equiv.)",
@@ -319,6 +334,39 @@ const STATIC_FACTORS: Record<string, RawCarbonFactorMetadata> = {
     value: 1.5,
     source: "European BREF Textile BAT 2017 — mechanical and chemical finishing",
     sourceUrl: SAC_HIGG_FEM_URL,
+    geography: "generic",
+    quality: "internal_proxy",
+    isProxy: true
+  },
+  "process-sawing": {
+    id: "process-sawing",
+    label: "Sawing/milling — electrical intensity",
+    unit: "kWh/kg",
+    value: 0.15,
+    source: "WeaveCarbon internal proxy — indicative sawmilling electrical intensity; replace with primary EPD/Ecoinvent data before compliance use.",
+    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    geography: "generic",
+    quality: "internal_proxy",
+    isProxy: true
+  },
+  "process-kiln-drying": {
+    id: "process-kiln-drying",
+    label: "Kiln drying — thermal energy intensity (electrical equiv.)",
+    unit: "kWh/kg",
+    value: 0.35,
+    source: "WeaveCarbon internal proxy — indicative kiln-drying thermal energy intensity; replace with primary EPD/Ecoinvent data before compliance use.",
+    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
+    geography: "generic",
+    quality: "internal_proxy",
+    isProxy: true
+  },
+  "process-assembly": {
+    id: "process-assembly",
+    label: "Pallet assembly (nailing/fastening) — electrical intensity",
+    unit: "kWh/kg",
+    value: 0.1,
+    source: "WeaveCarbon internal proxy — indicative pallet assembly electrical intensity; replace with primary EPD/Ecoinvent data before compliance use.",
+    sourceUrl: GHG_PROTOCOL_PRODUCT_STANDARD_URL,
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
@@ -481,8 +529,54 @@ const FACTOR_ID_ALIASES: Record<string, string> = {
   genericgarment: "process-generic-garment",
   dyeing: "process-dyeing",
   printing: "process-printing",
-  finishing: "process-finishing"
+  finishing: "process-finishing",
+  wood: "cat-wood-softwood-new",
+  softwood: "cat-wood-softwood-new",
+  pallet: "cat-wood-softwood-new",
+  recycledwood: "cat-wood-recycled",
+  reclaimedwood: "cat-wood-recycled",
+  sawing: "process-sawing",
+  milling: "process-sawing",
+  kilndrying: "process-kiln-drying",
+  drying: "process-kiln-drying",
+  assembly: "process-assembly",
+  nailing: "process-assembly",
+  genericwoodpallet: "process-generic-wood-pallet"
 };
+
+export interface CategoryMethodologyConfig {
+  methodologyName: string;
+  methodologyVersion: string;
+  calculationGraphVersion: string;
+  defaultProcessFactorId: string;
+  defaultMaterialFactorId: string;
+  processFallbackWarningLabel: string;
+}
+
+// textile keeps the exact strings the engine already produced before productCategory existed,
+// so existing textile products/tests see byte-identical output.
+export const CATEGORY_METHODOLOGY: Record<ProductCategory, CategoryMethodologyConfig> = {
+  textile: {
+    methodologyName: "WeaveCarbon Attributional Textile PCF",
+    methodologyVersion: "WeaveCarbon Attributional Textile PCF v2.1 - climate-only partial CFP",
+    calculationGraphVersion: "textile-pcf-2.1.0",
+    defaultProcessFactorId: "process-generic-garment",
+    defaultMaterialFactorId: "cat-other-generic",
+    processFallbackWarningLabel: "garment"
+  },
+  wood_pallet: {
+    methodologyName: "WeaveCarbon Attributional Wood Pallet PCF",
+    methodologyVersion: "WeaveCarbon Attributional Wood Pallet PCF v1.0 - climate-only partial CFP",
+    calculationGraphVersion: "wood-pallet-pcf-1.0.0",
+    defaultProcessFactorId: "process-generic-wood-pallet",
+    defaultMaterialFactorId: "cat-other-generic",
+    processFallbackWarningLabel: "wood pallet"
+  }
+};
+
+export const resolveCategoryMethodology = (
+  category: ProductCategory | null | undefined
+): CategoryMethodologyConfig => CATEGORY_METHODOLOGY[category || "textile"];
 
 export const MARKET_DISTANCE_DEFAULTS: Record<string, number> = {
   vietnam: 500,

@@ -26,9 +26,10 @@ import { Loader2, Sparkles, AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   CatalogMaterial,
   MaterialType,
-  MATERIAL_CATALOG,
-  MATERIAL_TYPE_LABELS
+  MATERIAL_TYPE_LABELS,
+  filterCatalogMaterials
 } from "./materialCatalog";
+import type { ProductCategory } from "@/lib/carbon/types";
 
 interface AICandidate {
   material: CatalogMaterial;
@@ -39,6 +40,7 @@ interface AICandidate {
 interface OtherMaterialModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  productCategory?: ProductCategory;
   onSelectMaterial: (
     material: CatalogMaterial | null,
     customData?: {
@@ -60,24 +62,29 @@ const APPLICATION_VALUES = [
   "label",
   "elastic",
   "padding",
-  "trim"
+  "trim",
+  "pallet_body"
 ] as const;
 
 const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
   open,
   onOpenChange,
+  productCategory,
   onSelectMaterial
 }) => {
   const t = useTranslations("assessment.otherMaterialModal");
+  const defaultMaterialType: MaterialType = productCategory === "wood_pallet" ? "component" : "fabric";
+  const defaultApplication: (typeof APPLICATION_VALUES)[number] =
+    productCategory === "wood_pallet" ? "pallet_body" : "body_fabric";
 
   const [step, setStep] = useState<"input" | "results">("input");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [materialName, setMaterialName] = useState("");
   const [materialDescription, setMaterialDescription] = useState("");
-  const [materialType, setMaterialType] = useState<MaterialType>("fabric");
+  const [materialType, setMaterialType] = useState<MaterialType>(defaultMaterialType);
   const [application, setApplication] = useState<(typeof APPLICATION_VALUES)[number]>(
-    "body_fabric"
+    defaultApplication
   );
 
   const [candidates, setCandidates] = useState<AICandidate[]>([]);
@@ -90,8 +97,8 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
     setStep("input");
     setMaterialName("");
     setMaterialDescription("");
-    setMaterialType("fabric");
-    setApplication("body_fabric");
+    setMaterialType(defaultMaterialType);
+    setApplication(defaultApplication);
     setCandidates([]);
     setSelectedCandidateId(null);
     setUseProxy(false);
@@ -107,8 +114,7 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
     const query = materialName.trim().toLowerCase();
     const description = materialDescription.trim().toLowerCase();
 
-    return MATERIAL_CATALOG.filter((material) => material.status === "active")
-      .filter((material) => material.materialType === materialType)
+    return filterCatalogMaterials(productCategory, materialType)
       .map((material) => {
         const viName = material.displayNameVi.toLowerCase();
         const enName = material.displayNameEn.toLowerCase();
@@ -133,7 +139,7 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [materialDescription, materialName, materialType, t]);
+  }, [materialDescription, materialName, materialType, productCategory, t]);
 
   const runAnalyze = async () => {
     if (!materialName.trim()) return;

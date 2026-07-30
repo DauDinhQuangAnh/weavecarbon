@@ -12,7 +12,7 @@ import {
 "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package } from "lucide-react";
-import { ProductAssessmentData, PRODUCT_TYPES } from "./types";
+import { ProductAssessmentData, PRODUCT_CATEGORIES, PRODUCT_TYPES } from "./types";
 
 interface Step1SKUInfoProps {
   data: ProductAssessmentData;
@@ -89,6 +89,28 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
             placeholder={t("productNamePlaceholder")} />
           
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Ngành hàng / Product category</Label>
+        <Select
+          value={data.productCategory}
+          onValueChange={(v) => onChange({ productCategory: v as ProductAssessmentData["productCategory"] })}>
+
+          <SelectTrigger className="max-w-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PRODUCT_CATEGORIES.map((category) =>
+            <SelectItem key={category.value} value={category.value}>
+                {category.label}
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Quyết định danh mục vật liệu, quy trình sản xuất và phương pháp tính carbon áp dụng cho sản phẩm này.
+        </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

@@ -110,6 +110,11 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
     return warnings;
   }, [data.accessories, data.materials, t]);
 
+  const availableProcesses = useMemo(
+    () => PRODUCTION_PROCESSES.filter((process) => process.categories.includes(data.productCategory)),
+    [data.productCategory]
+  );
+
   const toggleProcess = (processValue: string) => {
     const current = data.productionProcesses || [];
     const updated = current.includes(processValue)
@@ -219,7 +224,7 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
 
         <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {PRODUCTION_PROCESSES.map((process) => (
+            {availableProcesses.map((process) => (
               <label
                 key={process.value}
                 className={`

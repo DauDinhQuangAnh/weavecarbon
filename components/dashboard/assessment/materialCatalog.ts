@@ -1,6 +1,6 @@
+import type { ProductCategory } from "@/lib/carbon/types";
 
-
-export type MaterialType = "fabric" | "trim" | "accessory" | "packaging";
+export type MaterialType = "fabric" | "trim" | "accessory" | "packaging" | "component";
 
 export type MaterialFamily =
 "cotton" |
@@ -23,6 +23,7 @@ export type MaterialFamily =
 "plastic" |
 "paper" |
 "mixed" |
+"wood" |
 "other";
 
 export type DataQuality = "primary" | "secondary" | "proxy";
@@ -41,6 +42,10 @@ export interface CatalogMaterial {
   dataQualityDefault: DataQuality;
   isRecycled?: boolean;
   status: "active" | "deprecated";
+  /** Missing means "textile" — every pre-existing entry predates this field. */
+  productCategory?: ProductCategory;
+  /** kg CO2 stored per kg of this material (dry-mass basis), for biogenic materials like wood. */
+  biogenicCarbonKgPerKg?: number;
 }
 
 export interface MaterialRequest {
@@ -576,6 +581,35 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
 
 
 {
+  id: "cat-wood-softwood-new",
+  displayNameVi: "Gỗ thông xẻ, sấy khô (mới)",
+  displayNameEn: "New Kiln-Dried Softwood (Sawn Timber)",
+  materialType: "component",
+  materialFamily: "wood",
+  typicalApplications: ["pallet_body"],
+  co2Factor: 0.3,
+  recyclabilityDefaultPercent: 90,
+  dataQualityDefault: "proxy",
+  status: "active",
+  productCategory: "wood_pallet",
+  biogenicCarbonKgPerKg: 1.83
+},
+{
+  id: "cat-wood-recycled",
+  displayNameVi: "Gỗ pallet tái chế/thu hồi",
+  displayNameEn: "Recycled/Reclaimed Pallet Wood",
+  materialType: "component",
+  materialFamily: "wood",
+  typicalApplications: ["pallet_body"],
+  co2Factor: 0.08,
+  recyclabilityDefaultPercent: 95,
+  dataQualityDefault: "proxy",
+  isRecycled: true,
+  status: "active",
+  productCategory: "wood_pallet",
+  biogenicCarbonKgPerKg: 1.83
+},
+{
   id: "cat-other-generic",
   displayNameVi: "Vật liệu khác (Proxy)",
   displayNameEn: "Other Material (Proxy)",
@@ -622,6 +656,30 @@ family: MaterialFamily)
 : CatalogMaterial[] {
   return MATERIAL_CATALOG.filter(
     (m) => m.materialFamily === family && m.status === "active"
+  );
+}
+
+/**
+ * Shared active/category/type/query filter used by MaterialCombobox and OtherMaterialModal,
+ * so both stay in sync instead of maintaining separate filter chains.
+ */
+export function filterCatalogMaterials(
+productCategory?: ProductCategory,
+materialType?: MaterialType,
+query?: string)
+: CatalogMaterial[] {
+  const normalizedQuery = (query || "").toLowerCase().trim();
+  const category = productCategory || "textile";
+
+  return MATERIAL_CATALOG.filter((m) => m.status === "active").
+  filter((m) => (m.productCategory || "textile") === category).
+  filter((m) => !materialType || m.materialType === materialType).
+  filter(
+    (m) =>
+    !normalizedQuery ||
+    m.displayNameVi.toLowerCase().includes(normalizedQuery) ||
+    m.displayNameEn.toLowerCase().includes(normalizedQuery) ||
+    m.materialFamily.includes(normalizedQuery)
   );
 }
 
@@ -713,7 +771,8 @@ export const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
   fabric: "Vải chính",
   trim: "Phụ liệu trim",
   accessory: "Phụ kiện",
-  packaging: "Bao bì"
+  packaging: "Bao bì",
+  component: "Vật liệu chính"
 };
 
 
@@ -738,5 +797,6 @@ export const MATERIAL_FAMILY_LABELS: Record<MaterialFamily, string> = {
   plastic: "Nhựa",
   paper: "Giấy",
   mixed: "Pha trộn",
+  wood: "Gỗ",
   other: "Khác"
 };

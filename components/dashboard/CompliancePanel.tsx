@@ -107,7 +107,7 @@ export function CompliancePanel({
             {result.hasRedFlag && (
               <tr className="bg-destructive/10">
                 <td colSpan={5} className="px-3 py-2 text-destructive">
-                  Rủi ro CBAM (giả định 85 €/tCO₂e × dư phát thải {result.excessTonsCo2e.toFixed(4)} t)
+                  Mô phỏng rủi ro kiểu CBAM (pre-audit, giả định 85 €/tCO₂e × dư phát thải {result.excessTonsCo2e.toFixed(4)} t — không phải khoản phí CBAM thực tế)
                 </td>
                 <td className="px-3 py-2 text-right font-bold text-destructive tabular-nums">
                   € {result.cbamPenaltyEur.toFixed(2)}
@@ -153,7 +153,7 @@ export function CompliancePanel({
           )}
           {onDownloadCbam && (
             <Button size="sm" variant="outline" onClick={onDownloadCbam}>
-              <Download className="mr-1 h-3 w-3" /> CBAM template (DG TAXUD)
+              <Download className="mr-1 h-3 w-3" /> CBAM-style template (DG TAXUD, pre-audit)
             </Button>
           )}
         </div>

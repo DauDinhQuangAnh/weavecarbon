@@ -87,7 +87,7 @@ const localizeProxyNote = (note: string, t: TranslateFn) => {
     return t("proxy.packagingExcluded");
   }
 
-  if (trimmed === "Manufacturing processes are missing; a generic garment process proxy was used.") {
+  if (/^Manufacturing processes are missing; a generic .+ process proxy was used\.$/.test(trimmed)) {
     return t("proxy.noProcessInfo");
   }
 
@@ -411,6 +411,29 @@ const Step5CarbonResult: React.FC<Step5CarbonResultProps> = ({
           ))}
         </CardContent>
       </Card>
+
+      {result.biogenicCarbon ? (
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Leaf className="w-5 h-5 text-emerald-600" />
+              <CardTitle className="text-lg text-emerald-700">Carbon sinh học (biogenic)</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-700">
+              -{result.biogenicCarbon.removedKgCO2e.toFixed(3)}
+              <span className="ml-2 text-base font-normal text-muted-foreground">
+                {t("units.kgCo2e")}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              CO₂ được lưu trữ trong vật liệu sinh học (gỗ), báo cáo riêng theo GHG Protocol/PAS
+              2050 — không cộng gộp vào tổng phát thải ở trên.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="pb-4">

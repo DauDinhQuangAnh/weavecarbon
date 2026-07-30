@@ -464,7 +464,7 @@
     "dataGap": "Kiểm tra dữ liệu",
     "export": "Xuất khẩu",
     "reports": "Báo cáo",
-    "cbamReport": "Báo cáo CBAM",
+    "cbamReport": "Báo cáo kiểu CBAM (Pre-audit)",
     "auditTrail": "Audit Trail",
     "suppliers": "Nhà cung ứng",
     "billing": "Gói dịch vụ",
@@ -2266,7 +2266,8 @@
         "label": "Nhãn",
         "elastic": "Thun",
         "padding": "Đệm",
-        "trim": "Phụ liệu khác"
+        "trim": "Phụ liệu khác",
+        "pallet_body": "Thân pallet"
       },
       "candidate": {
         "reason": "Nhóm vật liệu: {family}",

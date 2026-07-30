@@ -11,6 +11,7 @@ import type {
   EnergySourceInput,
   MaterialInput,
   ProductAssessmentData,
+  ProductCategory,
   TransportLeg } from
 "@/components/dashboard/assessment/steps/types";
 
@@ -592,6 +593,11 @@ const toProductStatus = (value: unknown): ProductStatus => {
     return "published";
   }
   return "draft";
+};
+
+const toProductCategory = (value: unknown): ProductCategory => {
+  const normalized = asString(value).trim().toLowerCase();
+  return normalized === "wood_pallet" ? "wood_pallet" : "textile";
 };
 
 const normalizeAddress = (value: unknown): AddressInput => {
@@ -1604,6 +1610,9 @@ const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
     productCode: asString(source.productCode ?? source.product_code ?? source.sku),
     productName: asString(source.productName ?? source.product_name ?? source.name),
     productType: asString(source.productType ?? source.product_type ?? source.category),
+    productCategory: toProductCategory(
+      payload.productCategory ?? payload.product_category ?? source.productCategory ?? source.product_category
+    ),
     hsCode: asString(payload.hsCode ?? payload.hs_code ?? source.hsCode ?? source.hs_code),
     cnCode: asString(
       payload.cnCode ??

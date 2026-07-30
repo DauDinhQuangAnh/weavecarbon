@@ -376,6 +376,7 @@ const ProductsClient: React.FC = () => {
       productCode: product.productCode,
       productName: product.productName,
       productType: product.productType,
+      productCategory: product.productCategory || "textile",
       weightPerUnit: product.weightPerUnit,
       quantity: product.quantity,
       materials: product.materials,

@@ -73,7 +73,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
   const auditRows = auditPayload.rows;
   const selectedEvidence = auditPayload.evidence;
   const marketReadiness = useMemo<Array<{ code: MarketCode; name: string; regulation: string; score: number }>>(() => [
-    { code: "EU", name: "Thị trường Châu Âu", regulation: "CBAM, EU Green Deal", score: 85 },
+    { code: "EU", name: "Thị trường Châu Âu", regulation: "EU Green Deal, ESPR/DPP (CBAM chưa áp dụng cho ngành này)", score: 85 },
     { code: "US", name: "Thị trường Hoa Kỳ", regulation: "California Climate", score: 65 },
     { code: "JP", name: "Thị trường Nhật Bản", regulation: "JIS Standards", score: 72 },
     { code: "KR", name: "Thị trường Hàn Quốc", regulation: "K-ETS", score: 58 }
@@ -652,7 +652,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
                 </tr>
                 <tr className="bg-red-50 text-red-600">
                   <td colSpan={5} className="px-3 py-3">
-                    Rủi ro CBAM (giả định 85 €/tCO₂e × dư phát thải {(selectedCarbon.gap / 1000).toFixed(4)} t)
+                    Mô phỏng rủi ro kiểu CBAM (pre-audit, giả định 85 €/tCO₂e × dư phát thải {(selectedCarbon.gap / 1000).toFixed(4)} t — không phải khoản phí CBAM thực tế)
                   </td>
                   <td className="px-3 py-3 text-right font-bold">€ {selectedSku.cbamPenaltyEurPerUnit.toFixed(2)}</td>
                 </tr>
@@ -687,7 +687,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
               </Button>
               <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`CBAM_${selectedSku.sku}.csv`)}>
                 <Download className="mr-2 h-4 w-4" />
-                CBAM template (DG TAXUD)
+                CBAM-style template (DG TAXUD, pre-audit)
               </Button>
             </div>
             <div className="pt-2 text-[10px] text-emerald-900">

@@ -23,14 +23,17 @@ import {
   MaterialType,
   MATERIAL_CATALOG,
   MATERIAL_TYPE_LABELS,
-  MATERIAL_FAMILY_LABELS
+  MATERIAL_FAMILY_LABELS,
+  filterCatalogMaterials
 } from "./materialCatalog";
+import type { ProductCategory } from "@/lib/carbon/types";
 
 interface MaterialComboboxProps {
   value?: string;
   onSelect: (material: CatalogMaterial | null) => void;
   onOtherClick: () => void;
   materialType?: MaterialType;
+  productCategory?: ProductCategory;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -40,6 +43,7 @@ const MaterialCombobox: React.FC<MaterialComboboxProps> = ({
   onSelect,
   onOtherClick,
   materialType,
+  productCategory,
   placeholder,
   disabled = false
 }) => {
@@ -50,35 +54,18 @@ const MaterialCombobox: React.FC<MaterialComboboxProps> = ({
 
   const defaultPlaceholder = placeholder || t("searchPlaceholder");
 
-  const filteredMaterials = useMemo(() => {
-    const query = search.toLowerCase().trim();
-
-    return MATERIAL_CATALOG
-      .filter((material: { status: string }) => material.status === "active")
-      .filter((material) => !materialType || material.materialType === materialType)
-      .filter(
-        (material: {
-          displayNameVi: string;
-          displayNameEn: string;
-          materialFamily: string;
-        }) => {
-          if (!query) return true;
-          return (
-            material.displayNameVi.toLowerCase().includes(query) ||
-            material.displayNameEn.toLowerCase().includes(query) ||
-            material.materialFamily.includes(query)
-          );
-        }
-      )
-      .slice(0, 15);
-  }, [materialType, search]);
+  const filteredMaterials = useMemo(
+    () => filterCatalogMaterials(productCategory, materialType, search).slice(0, 15),
+    [productCategory, materialType, search]
+  );
 
   const groupedMaterials = useMemo(() => {
     const groups: Record<MaterialType, CatalogMaterial[]> = {
       fabric: [],
       trim: [],
       accessory: [],
-      packaging: []
+      packaging: [],
+      component: []
     };
 
     filteredMaterials.forEach((material) => {

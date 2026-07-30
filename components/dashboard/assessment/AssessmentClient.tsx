@@ -34,6 +34,7 @@ import {
   AddressInput,
   DraftVersion,
   MarketComplianceDocumentSummary,
+  PRODUCT_CATEGORIES,
   PRODUCT_TYPES,
   ProductAssessmentData,
   ProductAssessmentSessionDraft
@@ -111,6 +112,7 @@ const emptyAddress = {
 };
 
 const PRODUCT_TYPE_VALUES = PRODUCT_TYPES.map((type) => type.value);
+const PRODUCT_CATEGORY_VALUES = PRODUCT_CATEGORIES.map((category) => category.value);
 const DESTINATION_MARKET_VALUES = DESTINATION_MARKETS.map((market) => market.value);
 
 const normalizeOptionToken = (value: string): string =>
@@ -480,6 +482,7 @@ const initialProductData: ProductAssessmentData = {
   productCode: "",
   productName: "",
   productType: "",
+  productCategory: "textile",
   hsCode: "",
   cnCode: "",
   facility: "",
@@ -548,6 +551,9 @@ initialData?: ProductAssessmentData | null)
       initialData.productType,
       PRODUCT_TYPE_VALUES
     ),
+    productCategory: PRODUCT_CATEGORY_VALUES.includes(initialData.productCategory) ?
+      initialData.productCategory :
+      "textile",
     destinationMarket: resolveNormalizedOptionValue(
       initialData.destinationMarket,
       DESTINATION_MARKET_VALUES,

@@ -73,6 +73,7 @@ describe("carbon engine", () => {
       productCode: "TEE-001",
       productName: "Cotton Tee",
       productType: "tshirt",
+      productCategory: "textile",
       weightPerUnit: 200,
       quantity: 1,
       materials: [
