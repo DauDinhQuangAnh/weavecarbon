@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,16 +38,13 @@ import {
   Trash2,
   X } from
 "lucide-react";
-import BulkUploadModal from "@/components/dashboard/products/BulkUploadModal";
-import BatchManagementModal from "@/components/dashboard/products/BatchManagementModal";
-import AssessmentClient from "@/components/dashboard/assessment/AssessmentClient";
 import { useRouter } from "next/navigation";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
-import {
+import type {
   ProductAssessmentData,
   ProductAssessmentSessionDraft
 } from "@/components/dashboard/assessment/steps/types";
@@ -66,7 +64,23 @@ import {
   type LogisticsShipmentStatus } from
 "@/lib/logisticsApi";
 import { api } from "@/lib/apiClient";
-import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";const ITEMS_PER_PAGE = 18;
+import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
+
+// Dynamic imports — these components are only needed when user opens a modal
+const BulkUploadModal = dynamic(
+  () => import("@/components/dashboard/products/BulkUploadModal"),
+  { ssr: false }
+);
+const BatchManagementModal = dynamic(
+  () => import("@/components/dashboard/products/BatchManagementModal"),
+  { ssr: false }
+);
+const AssessmentClient = dynamic(
+  () => import("@/components/dashboard/assessment/AssessmentClient"),
+  { ssr: false }
+);
+
+const ITEMS_PER_PAGE = 18;
 const TRIAL_SKU_LIMIT = 5;
 const SUMMARY_PREFETCH_PRODUCT_KEY = "weavecarbon_summary_prefetch_product";
 
@@ -164,8 +178,7 @@ const ProductsClient: React.FC = () => {
   const { setPageTitle } = useDashboardTitle();
   const { canMutate } = usePermissions();
   const { currentPlan } = useSubscriptionLock();
-  const [accountPlan, setAccountPlan] = useState<string | null>(null);
-  const normalizedCurrentPlan = normalizePlanId(accountPlan || currentPlan);
+  const normalizedCurrentPlan = normalizePlanId(currentPlan);
   const isStarterPlan = normalizedCurrentPlan === "trial";
 
   const STATUS_CONFIG: Record<
@@ -690,20 +703,22 @@ const ProductsClient: React.FC = () => {
     ]
   );
 
+  // Only fetch /account for starter-plan users who need domestic market data.
+  // Non-starter plans pass null for starterDomesticMarket, so no fetch needed.
   useEffect(() => {
+    if (!isStarterPlan) return;
+
     let cancelled = false;
-    const fetchAccountContext = async () => {
+    const fetchDomesticMarket = async () => {
       try {
         const account = await api.get<{
           company?: {
-            current_plan?: string | null;
             domestic_market?: string | null;
             target_markets?: string[] | null;
           } | null;
         }>("/account");
 
         if (cancelled) return;
-        setAccountPlan(normalizePlanId(account?.company?.current_plan || null) || null);
         setStarterDomesticMarket(
           resolveStarterDomesticMarket(
             account?.company?.domestic_market || null,
@@ -711,24 +726,18 @@ const ProductsClient: React.FC = () => {
           )
         );
       } catch {
-        if (!cancelled) {
-          setAccountPlan(null);
-          setStarterDomesticMarket("vietnam");
-        }
+        // keep default "vietnam"
       }
     };
 
-    void fetchAccountContext();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPlan]);
+    void fetchDomesticMarket();
+    return () => { cancelled = true; };
+  }, [isStarterPlan]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 250);
+    }, 400);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -1347,11 +1356,6 @@ const ProductsClient: React.FC = () => {
             }
             onClose={closeAssessmentModal}
             onCompleted={(result) => {
-              if (result.isUpdate) {
-                } else {
-                }
-              if (result.status === "published") {
-                }
               if (!result.isUpdate) {
                 setAssessmentSessionDraft(null);
               }
