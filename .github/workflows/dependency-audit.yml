@@ -1,0 +1,83 @@
+name: Dependency Audit (scheduled)
+
+on:
+  schedule:
+    # Every Monday 03:00 UTC — catches a stale audit-ci.jsonc allowlist before it
+    # silently blocks an unrelated PR's deploy (see incident on 2026-07-30).
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run audit-ci
+        id: audit
+        run: npx audit-ci --config ./audit-ci.jsonc
+        continue-on-error: true
+
+      - name: Open or update tracking issue
+        if: steps.audit.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Dependency audit: new unallowlisted high/critical advisories";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              "The scheduled dependency audit failed — `npx audit-ci --config ./audit-ci.jsonc` found",
+              "a high/critical advisory that is not in the allowlist.",
+              "",
+              `Failed run: ${runUrl}`,
+              "",
+              "To resolve:",
+              "1. Run `npx audit-ci --config ./audit-ci.jsonc` locally to see the new finding(s).",
+              "2. If `fixAvailable` is a plain `true` (non-major), upgrade that dependency instead of allowlisting it.",
+              "3. Otherwise, add the advisory ID to `audit-ci.jsonc`'s allowlist with a comment explaining why no",
+              "   non-breaking fix exists yet, matching the existing entries' style."
+            ].join("\n");
+
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: ["dependency-audit"]
+            });
+            const match = existing.find((issue) => issue.title === title);
+
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: match.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["dependency-audit"]
+              });
+            }
+
+      - name: Fail the job so the schedule shows red
+        if: steps.audit.outcome == 'failure'
+        run: exit 1
