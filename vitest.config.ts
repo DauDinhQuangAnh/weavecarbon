@@ -6,7 +6,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   test: {
-    environment: "node"
+    environment: "node",
+    // The report tests build real xlsx/pdf documents; the first exceljs/jspdf
+    // import per file is a cold start that can exceed the 5s default under CI load.
+    testTimeout: 20000
   },
   resolve: {
     alias: {

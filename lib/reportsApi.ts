@@ -4,6 +4,7 @@ import type {
   Worksheet
 } from "exceljs";
 import { api } from "@/lib/apiClient";
+import { THEME } from "@/lib/reports/excelTheme";
 
 export type ReportDatasetType =
   | "products"
@@ -104,60 +105,50 @@ const FULL_REPORT_DATASETS: ReportDatasetType[] = [
   "history",
 ];
 
+// Every dataset shares the WeaveCarbon brand palette (single source of truth in
+// excelTheme) so the full report matches the CBAM / passport / product reports.
+const BRAND_META = { accent: THEME.brand, accentSoft: THEME.brandSoft, accentText: THEME.brandDark };
+
 const DATASET_META: Record<ReportDatasetType, DatasetMeta> = {
   products: {
     sheetName: "Products",
-    accent: "0F766E",
-    accentSoft: "D1FAE5",
-    accentText: "065F46",
+    ...BRAND_META,
     title: "Product report",
     description: "Product catalog, emissions, quantities, and key product metrics.",
   },
   activity: {
     sheetName: "Activity",
-    accent: "2563EB",
-    accentSoft: "DBEAFE",
-    accentText: "1D4ED8",
+    ...BRAND_META,
     title: "Activity report",
     description: "Operational events, actions, and activity stream details.",
   },
   audit: {
     sheetName: "Audit",
-    accent: "7C3AED",
-    accentSoft: "EDE9FE",
-    accentText: "6D28D9",
+    ...BRAND_META,
     title: "Audit report",
     description: "Audit trail and system control records for traceability.",
   },
   users: {
     sheetName: "Users",
-    accent: "9333EA",
-    accentSoft: "F3E8FF",
-    accentText: "7E22CE",
+    ...BRAND_META,
     title: "User report",
     description: "User list, role mapping, and participation overview.",
   },
   history: {
     sheetName: "History",
-    accent: "EA580C",
-    accentSoft: "FFEDD5",
-    accentText: "C2410C",
+    ...BRAND_META,
     title: "Calculation history report",
     description: "Historical carbon calculations, versions, and recalculation records.",
   },
   analytics: {
     sheetName: "Analytics",
-    accent: "0891B2",
-    accentSoft: "CFFAFE",
-    accentText: "0E7490",
+    ...BRAND_META,
     title: "Analytics report",
     description: "Aggregate metrics, trends, and analytical breakdowns.",
   },
   company: {
     sheetName: "Company",
-    accent: "166534",
-    accentSoft: "DCFCE7",
-    accentText: "166534",
+    ...BRAND_META,
     title: "Full company report",
     description: "Detailed standard-plan workbook across the main reporting datasets.",
   },
@@ -348,7 +339,7 @@ const applyTitleBlock = (
   worksheet.mergeCells(3, 1, 3, mergeEnd);
   const subtitleCell = worksheet.getCell(3, 1);
   subtitleCell.value = subtitle;
-  subtitleCell.font = { size: 10, italic: true, color: { argb: "475569" } };
+  subtitleCell.font = { size: 10, italic: true, color: { argb: THEME.muted } };
 };
 
 const styleHeaderRow = (row: Row, accent: string) => {
@@ -358,10 +349,10 @@ const styleHeaderRow = (row: Row, accent: string) => {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accent } };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
     cell.border = {
-      top: { style: "thin", color: { argb: "CBD5E1" } },
-      left: { style: "thin", color: { argb: "CBD5E1" } },
-      bottom: { style: "thin", color: { argb: "CBD5E1" } },
-      right: { style: "thin", color: { argb: "CBD5E1" } },
+      top: { style: "thin", color: { argb: THEME.border } },
+      left: { style: "thin", color: { argb: THEME.border } },
+      bottom: { style: "thin", color: { argb: THEME.border } },
+      right: { style: "thin", color: { argb: THEME.border } },
     };
   });
 };
@@ -370,13 +361,13 @@ const styleBodyRow = (row: Row, isEven: boolean) => {
   row.eachCell((cell) => {
     cell.alignment = { vertical: "top", wrapText: true };
     cell.border = {
-      top: { style: "thin", color: { argb: "E2E8F0" } },
-      left: { style: "thin", color: { argb: "E2E8F0" } },
-      bottom: { style: "thin", color: { argb: "E2E8F0" } },
-      right: { style: "thin", color: { argb: "E2E8F0" } },
+      top: { style: "thin", color: { argb: THEME.border } },
+      left: { style: "thin", color: { argb: THEME.border } },
+      bottom: { style: "thin", color: { argb: THEME.border } },
+      right: { style: "thin", color: { argb: THEME.border } },
     };
     if (isEven) {
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F8FAFC" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.zebra } };
     }
   });
 };
@@ -574,7 +565,7 @@ const addDataSheet = (
   autoFitWorksheetColumns(sheet);
 };
 
-const buildSingleDatasetWorkbook = async (
+export const buildSingleDatasetWorkbook = async (
   datasetType: ReportDatasetType,
   columns: string[],
   rows: Record<string, unknown>[],
