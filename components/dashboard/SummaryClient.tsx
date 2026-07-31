@@ -1611,99 +1611,59 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
   const handleDownloadReport = async () => {
     try {
-      const XLSX = await import("@e965/xlsx");
       const generatedAt = new Date();
-      const datePart = generatedAt.toISOString().split("T")[0];
       const quantity =
-      typeof product.quantity === "number" && product.quantity > 0 ?
-      product.quantity :
-      1;
+        typeof product.quantity === "number" && product.quantity > 0 ? product.quantity : 1;
+      const confidenceScore = Number.isFinite(carbonDetail?.confidenceScore)
+        ? (carbonDetail?.confidenceScore as number)
+        : 0;
 
-      const confidenceScore = Number.isFinite(carbonDetail?.confidenceScore) ?
-      carbonDetail?.confidenceScore :
-      0;
-
-      const formatNumber = (value: unknown, digits = 3) => {
-        if (typeof value !== "number" || !Number.isFinite(value)) return "0";
-        return value.toFixed(digits);
-      };
-
-      const wb = XLSX.utils.book_new();
-
-      const overviewRows = [
-      { metric: "Product ID", value: product.id },
-      { metric: "Product Code", value: product.productCode || "" },
-      { metric: "Product Name", value: product.productName || "" },
-      { metric: "Product Type", value: product.productType || "" },
-      { metric: "Status", value: product.status || "" },
-      { metric: "Quantity", value: quantity },
-      { metric: "Weight Per Unit (g)", value: formatNumber(product.weightPerUnit, 2) },
-      { metric: "Destination Market", value: effectiveDestinationMarket || product.destinationMarket || "" },
-      { metric: "Estimated Distance (km)", value: formatNumber(product.estimatedTotalDistance, 2) },
-      { metric: "Total CO2e Per Unit (kg)", value: formatNumber(carbonDetail?.totalCo2e, 3) },
-      { metric: "Confidence Level", value: carbonDetail?.confidenceLevel || "low" },
-      { metric: "Confidence Score (%)", value: confidenceScore },
-      { metric: "Generated At", value: generatedAt.toISOString() }];
-
-      const wsOverview = XLSX.utils.json_to_sheet(overviewRows);
-      wsOverview["!cols"] = [{ wch: 32 }, { wch: 48 }];
-      XLSX.utils.book_append_sheet(wb, wsOverview, "Overview");
-
-      const breakdownRows = carbonBreakdown.map((item) => ({
-        stage: item.stage,
-        label: item.label,
-        co2e_per_unit_kg: formatNumber(item.co2e, 3),
-        co2e_batch_kg: formatNumber((item.co2e || 0) * quantity, 3),
-        percentage: item.percentage ?? 0,
-        has_data: item.hasData ? "yes" : "no",
-        uses_proxy: item.isProxy ? "yes" : "no",
-        note: item.note || ""
-      }));
-      const wsBreakdown = XLSX.utils.json_to_sheet(breakdownRows);
-      wsBreakdown["!cols"] = [
-      { wch: 18 },
-      { wch: 24 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 54 }];
-      XLSX.utils.book_append_sheet(wb, wsBreakdown, "Breakdown");
-
-      const materialRows = materialImpact.map((item) => ({
-        material: item.material,
-        percentage: item.percentage,
-        emission_factor_kgco2e_per_kg: formatNumber(item.emissionFactor, 3),
-        co2e_per_unit_kg: formatNumber(item.co2e, 3),
-        co2e_batch_kg: formatNumber(item.co2e * quantity, 3),
-        source: item.source,
-        factor_source: item.factorSource
-      }));
-      const wsMaterials = XLSX.utils.json_to_sheet(materialRows);
-      wsMaterials["!cols"] = [
-      { wch: 26 },
-      { wch: 12 },
-      { wch: 28 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 14 },
-      { wch: 36 }];
-      XLSX.utils.book_append_sheet(wb, wsMaterials, "Materials");
-
-      const complianceRows = (carbonDetail?.compliance || []).map((item) => ({
-        criterion: item.criterion,
-        status: item.status,
-        note: item.note || ""
-      }));
-      const wsCompliance = XLSX.utils.json_to_sheet(complianceRows);
-      wsCompliance["!cols"] = [{ wch: 42 }, { wch: 14 }, { wch: 54 }];
-      XLSX.utils.book_append_sheet(wb, wsCompliance, "Compliance");
-
+      const { downloadProductCarbonReport } = await import("@/lib/reports/productCarbonTemplate");
       const fileBase =
-      sanitizeFilenamePart(product.productCode || product.id || "carbon-report") ||
-      "carbon-report";
-      XLSX.writeFile(wb, `${fileBase}-${datePart}.xlsx`);
+        sanitizeFilenamePart(product.productCode || product.id || "carbon-report") || "carbon-report";
+
+      await downloadProductCarbonReport(
+        {
+          product: {
+            id: product.id,
+            productCode: product.productCode,
+            productName: product.productName,
+            productType: product.productType,
+            status: product.status,
+            weightPerUnitG: typeof product.weightPerUnit === "number" ? product.weightPerUnit : null,
+            destinationMarket: effectiveDestinationMarket || product.destinationMarket || null,
+          },
+          totalCo2ePerUnit: Number(carbonDetail?.totalCo2e) || 0,
+          confidenceLevel: carbonDetail?.confidenceLevel || "low",
+          confidenceScore,
+          estimatedDistanceKm: Number(product.estimatedTotalDistance) || 0,
+          quantity,
+          generatedAt,
+          breakdown: carbonBreakdown.map((item) => ({
+            stage: item.stage,
+            label: item.label,
+            co2e: Number(item.co2e) || 0,
+            percentage: item.percentage ?? 0,
+            hasData: item.hasData,
+            isProxy: item.isProxy,
+            note: item.note || "",
+          })),
+          materials: materialImpact.map((item) => ({
+            material: item.material,
+            percentage: item.percentage,
+            emissionFactor: item.emissionFactor,
+            co2e: Number(item.co2e) || 0,
+            source: item.source,
+            factorSource: item.factorSource,
+          })),
+          compliance: (carbonDetail?.compliance || []).map((item) => ({
+            criterion: item.criterion,
+            status: item.status,
+            note: item.note || "",
+          })),
+        },
+        fileBase,
+      );
     } catch (error) {
       toast.error(formatApiErrorMessage(error, "Unable to download carbon report."));
     }
