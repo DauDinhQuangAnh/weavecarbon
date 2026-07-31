@@ -98,7 +98,25 @@ export function buildReportPayloadV2(sku: DemoSkuV2 = DEMO_PACK_V2[0]): ReportPa
     }
   ];
 
-  const breakdownRows = [...materialRows, ...energyRows, ...transportRows];
+  // Scope 1 (facility direct emissions) is part of the PCF total, so it must appear
+  // as a line item — otherwise the breakdown rows don't sum to totals.pcfKgPerUnit.
+  const scope1Rows: ReportBreakdownRowV2[] =
+    computed.scope1 > 0
+      ? [
+          {
+            stage: "5. Phát thải cơ sở (Scope 1)",
+            activity: "Nhiên liệu & quy trình tại cơ sở",
+            amount: round(computed.scope1, 3),
+            unit: "kg CO2e",
+            source: "Facility fuel/process estimate",
+            kgCo2e: computed.scope1,
+            color: WEAVE_V2_COLORS.formula,
+            formula: "scope1_kg_co2e_batch / units"
+          }
+        ]
+      : [];
+
+  const breakdownRows = [...materialRows, ...energyRows, ...transportRows, ...scope1Rows];
   const totalPositive = Math.max(computed.total, 0.0001);
   const pieData = [
     { name: "Nguyên liệu", value: round((computed.materials / totalPositive) * 100, 1), color: "#06C167" },

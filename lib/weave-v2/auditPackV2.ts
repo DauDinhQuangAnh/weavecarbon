@@ -1,5 +1,6 @@
 import type { DemoSkuV2 } from "./demoPackV2";
 import { computeSkuCarbonV2 } from "./reportBuilder";
+import { csvField } from "@/lib/reports/csv";
 
 export interface AuditPanelRowV2 {
   segment: string;
@@ -103,5 +104,5 @@ export const buildAuditRowsCsvV2 = (payload: AuditPackPayloadV2) => {
       row.isDefault ? "TRUE" : "FALSE"
     ])
   ];
-  return rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  return rows.map((row) => row.map((cell) => csvField(cell)).join(",")).join("\n");
 };

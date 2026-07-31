@@ -2,6 +2,7 @@ import { WEAVE_V2_COLORS } from "./reportTemplate";
 import type { ReportPayloadV2 } from "./reportBuilder";
 import { downloadStandardReportPdf } from "@/lib/reports/standardReportPdf";
 import { downloadStandardReportXlsx } from "@/lib/reports/standardReportXlsx";
+import { csvField } from "@/lib/reports/csv";
 
 const triggerDownload = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
@@ -10,11 +11,6 @@ const triggerDownload = (blob: Blob, filename: string) => {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
-};
-
-const csvEscape = (value: unknown) => {
-  const text = String(value ?? "").replace(/\r?\n/g, " ");
-  return /[",;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
 export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
@@ -60,7 +56,7 @@ export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
     }))
   ];
   const columns = Object.keys(rows[0] || {});
-  const csv = [columns.join(","), ...rows.map((row) => columns.map((column) => csvEscape(row[column])).join(","))].join("\n");
+  const csv = [columns.join(","), ...rows.map((row) => columns.map((column) => csvField(row[column])).join(","))].join("\n");
   triggerDownload(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }), `WEAVE_CARBON_TEMPLATE_v2_${payload.sku.sku}.csv`);
 };
 

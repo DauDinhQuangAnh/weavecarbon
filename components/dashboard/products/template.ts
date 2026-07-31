@@ -1,4 +1,5 @@
 import { MATERIAL_CERTIFICATION_OPTIONS } from "@/lib/materialCertificationDefinitions";
+import { csvField } from "@/lib/reports/csv";
 
 interface TemplateColumn {
   key: string;
@@ -413,11 +414,6 @@ const buildSampleData = (): Array<Record<string, string | number>> => {
   ];
 };
 
-const csvEscape = (value: unknown): string => {
-  const text = String(value ?? "").replace(/\r?\n/g, " ");
-  return /[",;\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
 export const generateTemplate = async (format: "xlsx" | "csv" = "xlsx"): Promise<void> => {
   const headers = TEMPLATE_COLUMNS.map((col) => col.header);
   const sampleData = buildSampleData();
@@ -426,8 +422,8 @@ export const generateTemplate = async (format: "xlsx" | "csv" = "xlsx"): Promise
 
   if (format === "csv") {
     const csv = [
-      headers.map(csvEscape).join(","),
-      ...sampleRows.map((row) => row.map(csvEscape).join(",")),
+      headers.map(csvField).join(","),
+      ...sampleRows.map((row) => row.map(csvField).join(",")),
     ].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

@@ -5,6 +5,7 @@ import type {
 } from "exceljs";
 import { api } from "@/lib/apiClient";
 import { THEME } from "@/lib/reports/excelTheme";
+import { sanitizeCsvValue } from "@/lib/reports/csv";
 
 export type ReportDatasetType =
   | "products"
@@ -748,7 +749,8 @@ export const downloadAsCsv = (
   filename: string
 ) => {
   const escapeValue = (value: unknown) => {
-    const text = stringifyValue(value).replace(/\r?\n/g, " ").trim();
+    // Sanitise against CSV formula injection before quoting.
+    const text = sanitizeCsvValue(stringifyValue(value).replace(/\r?\n/g, " ").trim());
     if (/[",;]/.test(text)) {
       return `"${text.replace(/"/g, '""')}"`;
     }
