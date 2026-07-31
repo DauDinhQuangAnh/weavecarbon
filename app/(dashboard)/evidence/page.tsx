@@ -34,7 +34,6 @@ import {
   Upload,
   Download,
 } from 'lucide-react';
-import * as XLSX from '@e965/xlsx';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
@@ -172,36 +171,47 @@ const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | number)[][]
   },
 };
 
-function downloadTemplate(kind: string, label: string) {
+async function downloadTemplate(kind: string, label: string) {
   const tpl = DOC_TEMPLATES[kind] ?? DOC_TEMPLATES['other'];
-  const ws = XLSX.utils.aoa_to_sheet(tpl.rows);
+  const headers = (tpl.rows[0] ?? []).map((h) => String(h));
+  const dataRows = tpl.rows.slice(1);
+  const isNote = (r: (string | number)[]) => String(r[0] ?? '').trim().startsWith('*');
+  const notes = dataRows.filter(isNote).map((r) => String(r[0]));
+  const sampleRows = dataRows.filter((r) => !isNote(r));
+  const columns = headers.map((h) => ({ header: h, width: Math.max(h.length + 4, 16) }));
 
-  // Style header row width (approximate)
-  const colWidths = tpl.rows[0].map((h) => ({ wch: Math.max(String(h).length + 4, 16) }));
-  ws['!cols'] = colWidths;
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, tpl.sheet);
-
-  // Add instructions sheet
-  const infoWs = XLSX.utils.aoa_to_sheet([
-    ['WeaveCarbon — File mẫu chứng từ'],
-    [''],
-    ['Loại chứng từ:', label],
-    ['Mục đích:', 'Cung cấp dữ liệu có cấu trúc để hệ thống AI đọc và tính carbon chính xác hơn.'],
-    ['Định dạng tải lên:', 'PDF, XML, JPG, PNG, XLSX, CSV (tối đa 20 MB)'],
-    [''],
-    ['Lưu ý:'],
-    ['- Dòng đầu tiên trong sheet dữ liệu là tiêu đề cột, không thay đổi thứ tự.'],
-    ['- Xóa các dòng mẫu và điền dữ liệu thực của bạn.'],
-    ['- Xóa các dòng ghi chú (bắt đầu bằng *) trước khi tải lên.'],
-    ['- Tải file này lên cùng với chứng từ gốc (PDF/XML) để tăng độ chính xác.'],
-    [''],
-    ['Hỗ trợ:', 'support@weavecarbon.com'],
-  ]);
-  XLSX.utils.book_append_sheet(wb, infoWs, 'Huong_dan');
-
-  XLSX.writeFile(wb, `WeaveCarbon_Mau_${kind}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const { downloadFormTemplate } = await import('@/lib/reports/formTemplate');
+  await downloadFormTemplate(
+    {
+      sheets: [
+        {
+          name: tpl.sheet,
+          title: `Mẫu chứng từ — ${label}`,
+          subtitle: 'Điền dữ liệu thực vào các dòng bên dưới',
+          columns,
+          sampleRows,
+          notes,
+        },
+      ],
+      info: [
+        {
+          name: 'Huong_dan',
+          title: 'Hướng dẫn sử dụng file mẫu',
+          rows: [
+            ['Loại chứng từ', label],
+            ['Mục đích', 'Cung cấp dữ liệu có cấu trúc để hệ thống AI đọc và tính carbon chính xác hơn.'],
+            ['Định dạng tải lên', 'PDF, XML, JPG, PNG, XLSX, CSV (tối đa 20 MB)'],
+            'Dòng đầu tiên trong sheet dữ liệu là tiêu đề cột — không đổi thứ tự.',
+            'Xoá các dòng mẫu (nền nhạt) và điền dữ liệu thật.',
+            'Xoá các dòng ghi chú (bắt đầu bằng *) trước khi tải lên.',
+            'Tải file này lên cùng chứng từ gốc (PDF/XML) để tăng độ chính xác.',
+            ['Hỗ trợ', 'support@weavecarbon.com'],
+          ],
+        },
+      ],
+    },
+    `WeaveCarbon_Mau_${kind}_${new Date().toISOString().slice(0, 10)}.xlsx`,
+  );
 }
 
 const ACCEPT =
@@ -648,7 +658,7 @@ export default function EvidencePage() {
                   className="h-6 px-2 text-xs text-sky-600 hover:text-sky-700"
                   onClick={() => {
                     const label = DOC_TYPES.find((d) => d.value === docType)?.label ?? docType;
-                    downloadTemplate(docType, label);
+                    void downloadTemplate(docType, label);
                   }}
                 >
                   <Download className="h-3 w-3 mr-1" /> Tải file mẫu

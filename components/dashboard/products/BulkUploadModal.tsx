@@ -1190,7 +1190,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   );
 
   const handleDownloadTemplate = useCallback((format: "xlsx" | "csv") => {
-    generateTemplate(format);
+    void generateTemplate(format);
   }, []);
 
   const handleProceedToPreview = useCallback(() => {

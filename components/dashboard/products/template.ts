@@ -1,4 +1,3 @@
-import * as XLSX from "@e965/xlsx";
 import { MATERIAL_CERTIFICATION_OPTIONS } from "@/lib/materialCertificationDefinitions";
 
 interface TemplateColumn {
@@ -414,83 +413,81 @@ const buildSampleData = (): Array<Record<string, string | number>> => {
   ];
 };
 
-export const generateTemplate = (format: "xlsx" | "csv" = "xlsx"): void => {
-  const wb = XLSX.utils.book_new();
+const csvEscape = (value: unknown): string => {
+  const text = String(value ?? "").replace(/\r?\n/g, " ");
+  return /[",;\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
 
+export const generateTemplate = async (format: "xlsx" | "csv" = "xlsx"): Promise<void> => {
   const headers = TEMPLATE_COLUMNS.map((col) => col.header);
   const sampleData = buildSampleData();
-  const sampleRows = sampleData.map((row) =>
-    TEMPLATE_COLUMNS.map((col) => row[col.key] ?? "")
-  );
-
-  const wsData = [headers, ...sampleRows];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-  ws["!cols"] = TEMPLATE_COLUMNS.map((col) => ({ wch: col.width }));
-  XLSX.utils.book_append_sheet(wb, ws, "Product Data");
-
-  const instructionsData = [
-    ["BULK IMPORT TEMPLATE GUIDE"],
-    [""],
-    ["1) Keep headers unchanged."],
-    ["2) Required columns are marked with *."],
-    ["3) Use code values from 'Allowed Values' sheet for best compatibility."],
-    ["4) For export rows: set marketType=export and exportCountry."],
-    ["5) processes / certifications / exportComplianceDocuments accept comma-separated values."],
-    ["6) accessoriesWeightGram follows accessories order (e.g. accessories=button,zipper and weights=2,5)."],
-    ["7) transportMode / transportDistanceKm / route columns are optional. If blank, logistics stays empty for later completion."],
-    ["8) transportOrigin / transportDestination can be used as street or address line; city/state/country columns are optional but recommended."],
-    ["9) material percentages should sum to 100."],
-    ["10) Sample SKU is generated per download to reduce duplicate SKU errors."],
-    [""],
-    ["Vietnamese aliases are still accepted by parser (e.g. Trong nuoc, Xuat khau, Duong bien)."]
-  ];
-
-  const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
-  wsInstructions["!cols"] = [{ wch: 100 }];
-  XLSX.utils.book_append_sheet(wb, wsInstructions, "Guide");
-
-  const optionsData = [
-    ["ALLOWED VALUES"],
-    [""],
-    ["productType", "tshirt, pants, dress, jacket, shoes, bag, accessories, other"],
-    ["primaryMaterial / secondaryMaterial", "cotton, organic_cotton, polyester, recycled_polyester, nylon, wool, silk, linen, bamboo, hemp, blend"],
-    ["certifications", MATERIAL_CERTIFICATION_OPTIONS_TEXT],
-    ["materialSource", "domestic, imported, unknown"],
-    ["processes", "knitting, weaving, cutting_sewing, dyeing, printing, finishing"],
-    ["energySource", "grid, solar, coal, mixed"],
-    ["marketType", "domestic, export"],
-    ["exportCountry", "eu, us, jp, kr, other"],
-    [
-      "exportComplianceDocuments",
-      "list codes/names of uploaded export docs for selected market (from /export)"
-    ],
-    ["transportMode", "road, sea, air, rail, multimodal"],
-    [
-      "transportOrigin / transportDestination",
-      "free-text street/address line; pair with city/state/country columns when available"
-    ]
-  ];
-
-  const wsOptions = XLSX.utils.aoa_to_sheet(optionsData);
-  wsOptions["!cols"] = [{ wch: 30 }, { wch: 110 }];
-  XLSX.utils.book_append_sheet(wb, wsOptions, "Allowed Values");
-
+  const sampleRows = sampleData.map((row) => TEMPLATE_COLUMNS.map((col) => row[col.key] ?? ""));
   const fileName = `WeaveCarbon_Template_${new Date().toISOString().split("T")[0]}`;
 
-  if (format === "xlsx") {
-    XLSX.writeFile(wb, `${fileName}.xlsx`);
+  if (format === "csv") {
+    const csv = [
+      headers.map(csvEscape).join(","),
+      ...sampleRows.map((row) => row.map(csvEscape).join(",")),
+    ].join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${fileName}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
     return;
   }
 
-  const csv = XLSX.utils.sheet_to_csv(ws);
-  const blob = new Blob(["\ufeff" + csv], {
-    type: "text/csv;charset=utf-8;"
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${fileName}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+  const { downloadFormTemplate } = await import("@/lib/reports/formTemplate");
+  await downloadFormTemplate(
+    {
+      sheets: [
+        {
+          name: "Product Data",
+          title: "M\u1eabu nh\u1eadp s\u1ea3n ph\u1ea9m h\u00e0ng lo\u1ea1t",
+          subtitle: "M\u1ed7i d\u00f2ng l\u00e0 m\u1ed9t SKU",
+          columns: TEMPLATE_COLUMNS.map((col) => ({ header: col.header, width: col.width })),
+          sampleRows,
+        },
+      ],
+      info: [
+        {
+          name: "Guide",
+          title: "H\u01b0\u1edbng d\u1eabn nh\u1eadp li\u1ec7u (Bulk import)",
+          rows: [
+            "1) Gi\u1eef nguy\u00ean ti\u00eau \u0111\u1ec1 c\u1ed9t.",
+            "2) C\u1ed9t b\u1eaft bu\u1ed9c \u0111\u01b0\u1ee3c \u0111\u00e1nh d\u1ea5u *.",
+            "3) D\u00f9ng gi\u00e1 tr\u1ecb m\u00e3 trong sheet 'Allowed Values' \u0111\u1ec3 t\u01b0\u01a1ng th\u00edch t\u1ed1t nh\u1ea5t.",
+            "4) V\u1edbi d\u00f2ng xu\u1ea5t kh\u1ea9u: \u0111\u1eb7t marketType=export v\u00e0 exportCountry.",
+            "5) processes / certifications / exportComplianceDocuments nh\u1eadn nhi\u1ec1u gi\u00e1 tr\u1ecb, ng\u0103n b\u1eb1ng d\u1ea5u ph\u1ea9y.",
+            "6) accessoriesWeightGram theo th\u1ee9 t\u1ef1 accessories (vd accessories=button,zipper v\u00e0 weights=2,5).",
+            "7) C\u1ed9t transportMode / transportDistanceKm l\u00e0 tu\u1ef3 ch\u1ecdn; \u0111\u1ec3 tr\u1ed1ng th\u00ec logistics \u0111\u1ec3 ho\u00e0n thi\u1ec7n sau.",
+            "8) transportOrigin / transportDestination c\u00f3 th\u1ec3 l\u00e0 \u0111\u1ecba ch\u1ec9; city/state/country l\u00e0 tu\u1ef3 ch\u1ecdn nh\u01b0ng n\u00ean c\u00f3.",
+            "9) T\u1ed5ng ph\u1ea7n tr\u0103m v\u1eadt li\u1ec7u n\u00ean b\u1eb1ng 100.",
+            "10) SKU m\u1eabu \u0111\u01b0\u1ee3c sinh m\u1edbi m\u1ed7i l\u1ea7n t\u1ea3i \u0111\u1ec3 tr\u00e1nh tr\u00f9ng.",
+            "Ghi ch\u00fa: parser v\u1eabn ch\u1ea5p nh\u1eadn ti\u1ebfng Vi\u1ec7t (vd Trong nuoc, Xuat khau, Duong bien).",
+          ],
+        },
+        {
+          name: "Allowed Values",
+          title: "Gi\u00e1 tr\u1ecb h\u1ee3p l\u1ec7",
+          rows: [
+            ["productType", "tshirt, pants, dress, jacket, shoes, bag, accessories, other"],
+            ["primaryMaterial / secondaryMaterial", "cotton, organic_cotton, polyester, recycled_polyester, nylon, wool, silk, linen, bamboo, hemp, blend"],
+            ["certifications", MATERIAL_CERTIFICATION_OPTIONS_TEXT],
+            ["materialSource", "domestic, imported, unknown"],
+            ["processes", "knitting, weaving, cutting_sewing, dyeing, printing, finishing"],
+            ["energySource", "grid, solar, coal, mixed"],
+            ["marketType", "domestic, export"],
+            ["exportCountry", "eu, us, jp, kr, other"],
+            ["exportComplianceDocuments", "m\u00e3/t\u00ean ch\u1ee9ng t\u1eeb xu\u1ea5t kh\u1ea9u \u0111\u00e3 t\u1ea3i cho th\u1ecb tr\u01b0\u1eddng \u0111\u00e3 ch\u1ecdn (t\u1eeb /export)"],
+            ["transportMode", "road, sea, air, rail, multimodal"],
+            ["transportOrigin / transportDestination", "\u0111\u1ecba ch\u1ec9 t\u1ef1 do; gh\u00e9p v\u1edbi c\u1ed9t city/state/country khi c\u00f3"],
+          ],
+        },
+      ],
+    },
+    `${fileName}.xlsx`,
+  );
 };
