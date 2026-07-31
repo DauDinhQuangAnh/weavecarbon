@@ -681,9 +681,9 @@ const ExportConfigurationPortalV2: React.FC = () => {
                 <Download className="mr-2 h-4 w-4" />
                 Audit Pack (JSON)
               </Button>
-              <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`TT01_${selectedSku.sku}.csv`)}>
+              <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`KiemKeKNK_${selectedSku.sku}.csv`)}>
                 <Download className="mr-2 h-4 w-4" />
-                Mẫu 01 — TT 01/2022
+                Mẫu kiểm kê KNK (TT 38/2023/TT-BCT)
               </Button>
               <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`CBAM_${selectedSku.sku}.csv`)}>
                 <Download className="mr-2 h-4 w-4" />

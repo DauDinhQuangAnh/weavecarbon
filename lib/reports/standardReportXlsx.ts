@@ -101,7 +101,7 @@ export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Pro
   // ── ESG ───────────────────────────────────────────────────────────────────
   {
     const s = addWorksheet(wb, "ESG");
-    const r = addTitleBlock(s, "Phát thải theo Scope — ESG (TT 01/2022)", "Scope 1 / 2 / 3", 3);
+    const r = addTitleBlock(s, "Phát thải theo Scope — Kiểm kê KNK (TT 38/2023/TT-BCT)", "Scope 1 / 2 / 3", 3);
     const cols: TemplateColumn<Record<string, string | number>>[] = [
       { header: "Phạm vi", width: 20, value: (e) => str(e.scope) },
       { header: "tCO₂e", width: 16, align: "right", numFmt: KG4, value: (e) => n(e.tCO2e) },

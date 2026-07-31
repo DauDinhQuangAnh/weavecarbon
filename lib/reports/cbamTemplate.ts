@@ -140,6 +140,7 @@ export async function buildCbamWorkbook(data: CbamReportData): Promise<Workbook>
       { label: "Tên doanh nghiệp", value: co?.name ?? "—", source: "companies.name" },
       { label: "Loại hình kinh doanh", value: co?.business_type ?? "—", source: "companies.business_type" },
       { label: "Địa chỉ nhà máy", value: co?.address ?? "Chưa cập nhật", source: "companies.address" },
+      { label: "Quốc gia sản xuất", value: "Việt Nam", source: "mặc định (VN)" },
       { label: "Mã số thuế / EORI", value: co?.tax_id ?? "Chưa cập nhật", source: "companies.tax_id" },
       { label: "Kỳ báo cáo", value: data.reportingPeriod, source: "selected" },
       { label: "Từ ngày", value: data.periodStart, source: "computed" },

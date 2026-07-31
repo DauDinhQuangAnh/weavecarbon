@@ -66,8 +66,8 @@ export function buildStandardReportPdf(doc: jsPDF, payload: ReportPayloadV2): vo
     payload.pieData.map((p) => ({ label: str(p.name), value: Number(p.value) || 0, color: str(p.color) })),
   );
 
-  // ── ESG (TT 01/2022) ──────────────────────────────────────────────────────
-  y = section(doc, y, "Phát thải theo Scope — ESG (TT 01/2022)");
+  // ── ESG / GHG inventory (TT 38/2023/TT-BCT) ──────────────────────────────
+  y = section(doc, y, "Phát thải theo Scope — Kiểm kê KNK (TT 38/2023/TT-BCT)");
   const ecols: PdfColumn<Record<string, string | number>>[] = [
     { header: "Phạm vi", width: 40, value: (r) => str(r.scope) },
     { header: "tCO₂e", width: 40, align: "right", value: (r) => num(r.tCO2e, 4) },

@@ -148,7 +148,7 @@ export function CompliancePanel({
           )}
           {onDownloadTT01 && (
             <Button size="sm" variant="outline" onClick={onDownloadTT01}>
-              <Download className="mr-1 h-3 w-3" /> Mẫu 01 — TT 01/2022
+              <Download className="mr-1 h-3 w-3" /> Mẫu kiểm kê KNK (TT 38/2023/TT-BCT)
             </Button>
           )}
           {onDownloadCbam && (

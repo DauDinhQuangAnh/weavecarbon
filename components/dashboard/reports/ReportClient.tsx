@@ -1085,8 +1085,8 @@ const exportHistory = useMemo(
                 iconBg: "bg-purple-100 text-purple-700",
                 title: "Sẵn sàng Tuân thủ",
                 desc: locale === "vi"
-                  ? "EU CBAM · EUDR · TT 01/2022 · Khoảng trống dữ liệu"
-                  : "EU CBAM · EUDR · VN TT 01/2022 · Data gap analysis",
+                  ? "EU CBAM · EUDR · Kiểm kê KNK VN (TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
+                  : "EU CBAM · EUDR · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
               },
             ] as const).map((card) => {
               const Icon = card.icon;
@@ -1148,7 +1148,7 @@ const exportHistory = useMemo(
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">Xem trước Báo cáo Chuẩn (5 phần)</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Dashboard PCF + ISO 14067 + ESG TT 01/2022 + CBAM EU — bóc tách theo SKU, cùng định dạng chuẩn cho mọi tài khoản.
+                  Dashboard PCF + ISO 14067 + ESG · Kiểm kê KNK (TT 38/2023/TT-BCT) + CBAM EU — bóc tách theo SKU, cùng định dạng chuẩn cho mọi tài khoản.
                 </p>
               </div>
             </div>

@@ -44,7 +44,7 @@ export const allNotificationConfigs: NotificationConfig[] = [
   {
     id: 'compliance_deadline',
     label: 'Deadline compliance',
-    description: 'Nhắc nhở về các deadline CBAM, EUDR, TT01 sắp đến (7 ngày, 3 ngày, 1 ngày)',
+    description: 'Nhắc nhở về các deadline CBAM, EUDR, kiểm kê KNK sắp đến (7 ngày, 3 ngày, 1 ngày)',
     defaultEnabled: true,
     recipients: { type: 'company_members', roles: ['admin'] },
     emailSubjectTemplate: '[WeaveCarbon] Nhắc nhở: Deadline {{complianceType}} còn {{daysLeft}} ngày',

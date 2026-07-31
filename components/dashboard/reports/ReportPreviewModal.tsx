@@ -165,7 +165,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                 Xem trước báo cáo - WEAVE_CARBON_TEMPLATE_v2.0
               </DialogTitle>
               <p className="mt-1 text-sm text-slate-600">
-                Bóc tách theo đúng format chuẩn: Tổng quan, Nhập liệu, ISO 14067, ESG TT01, CBAM EU.
+                Bóc tách theo đúng format chuẩn: Tổng quan, Nhập liệu, ISO 14067, ESG · Kiểm kê KNK, CBAM EU.
               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
