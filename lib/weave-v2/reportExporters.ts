@@ -13,7 +13,8 @@ const triggerDownload = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
+/** Build the report CSV string (pure; injection-safe). Exposed for testing. */
+export const buildReportCsvV2 = (payload: ReportPayloadV2): string => {
   const rows: Array<Record<string, unknown>> = [
     ...payload.breakdownRows.map((row) => ({
       section: "pcf_breakdown",
@@ -56,7 +57,11 @@ export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
     }))
   ];
   const columns = Object.keys(rows[0] || {});
-  const csv = [columns.join(","), ...rows.map((row) => columns.map((column) => csvField(row[column])).join(","))].join("\n");
+  return [columns.join(","), ...rows.map((row) => columns.map((column) => csvField(row[column])).join(","))].join("\n");
+};
+
+export const downloadReportCsvV2 = (payload: ReportPayloadV2) => {
+  const csv = buildReportCsvV2(payload);
   triggerDownload(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }), `WEAVE_CARBON_TEMPLATE_v2_${payload.sku.sku}.csv`);
 };
 
