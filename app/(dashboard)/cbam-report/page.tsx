@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import * as XLSX from '@e965/xlsx';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useProducts } from '@/contexts/ProductContext';
@@ -391,66 +390,21 @@ export default function CbamReportPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const wb = XLSX.utils.book_new();
-
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-        ['Trường', 'Giá trị', 'Nguồn'],
-        ['Tên doanh nghiệp',    company?.name ?? '',                                  'companies.name'],
-        ['Loại hình KD',        company?.business_type ?? '',                         'companies.business_type'],
-        ['Địa chỉ',             company?.address ?? '',                               'companies.address'],
-        ['Mã số thuế / EORI',   company?.tax_id ?? '',                                'companies.tax_id'],
-        ['Kỳ báo cáo',          reportingPeriod,                                      'selected'],
-        ['Từ ngày',             periodStart,                                          'computed'],
-        ['Đến ngày',            periodEnd,                                            'computed'],
-        ['Thị trường mục tiêu', (company?.target_markets ?? []).join(', '),          'companies.target_markets'],
-      ]), 'A_Facility');
-
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-        ['Kỳ', 'Cơ sở', 'kWh', 'EF (kg/kWh)', 'Nguồn EF', 'CO₂e (kg)', 'Trạng thái'],
-        ...electricity.map((e) => [
-          e.billing_period, e.facility_name, e.kwh,
-          e.emission_factor_kg_per_kwh, e.emission_factor_source ?? 'EVN 2024',
-          e.scope2_co2e_kg, e.status,
-        ]),
-      ]), 'B_Electricity_S2');
-
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-        ['Kỳ', 'Loại nhiên liệu', 'Lượng (L)', 'EF (kg/L)', 'CO₂e (kg)', 'Trạng thái'],
-        ...fuels.map((f) => [
-          f.billing_period, f.fuel_type, f.quantity_liters,
-          f.emission_factor_kg_per_liter ?? 0, f.scope1_co2e_kg ?? 0, f.status,
-        ]),
-      ]), 'C_Fuel_S1');
-
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-        ['SKU', 'Tên SP', 'Khối lượng (kg)', 'Vật liệu',
-         'Direct (kg CO₂e)', 'Indirect (kg CO₂e)', 'Tổng (kg CO₂e)',
-         'Embedded (tCO₂e/tấn SP)', '% Proxy', 'Confidence', 'Nguồn tính toán'],
-        ...productSummary.map((p) => [
-          p.sku, p.name, p.weight, p.materials.join(', '),
-          +p.direct.toFixed(3), +p.indirect.toFixed(3), +p.total.toFixed(3),
-          p.embeddedPerTonne != null ? +p.embeddedPerTonne.toFixed(4) : '',
-          p.proxyPct, p.confidence,
-          p.hasCalc ? 'Tính toán thực' : 'Proxy (hệ số mặc định)',
-        ]),
-      ]), 'D_Products_Embedded');
-
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-        ['Chỉ tiêu', 'Giá trị', 'Đơn vị'],
-        ['Kỳ báo cáo',                  reportingPeriod, ''],
-        ['Scope 1',                      +totals.scope1.toFixed(2), 'kg CO₂e'],
-        ['Scope 2',                      +totals.scope2.toFixed(2), 'kg CO₂e'],
-        ['Scope 3',                      +totals.scope3.toFixed(2), 'kg CO₂e'],
-        ['Tổng phát thải',               +totals.total.toFixed(2),  'kg CO₂e'],
-        ['Điện tiêu thụ',                totals.totalKwh,            'kWh'],
-        ['Số SKU',                       products.length,            'sản phẩm'],
-        ['Chứng từ tải lên',             evidence.length,            'tài liệu'],
-        ['Mức hoàn chỉnh',               `${checks.pct}%`,           `(${checks.score}/${checks.total})`],
-        ['Disclaimer', 'Báo cáo tiền-thẩm tra — không phải tờ khai CBAM chính thức (EU 2023/956)', ''],
-      ]), 'Summary');
-
-      const filename = `WeaveCarbon_CBAM_${reportingPeriod.replace(' ', '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.writeFile(wb, filename);
+      // Styled, branded workbook from the shared report template engine
+      // (replaces the old raw-SheetJS export with no formatting).
+      const { downloadCbamReport } = await import('@/lib/reports/cbamTemplate');
+      await downloadCbamReport({
+        company,
+        reportingPeriod,
+        periodStart,
+        periodEnd,
+        electricity,
+        fuels,
+        productSummary,
+        totals,
+        checks,
+        evidenceCount: evidence.length,
+      });
     } finally {
       setExporting(false);
     }
