@@ -197,7 +197,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                 <FileSpreadsheet className="h-4 w-4" />
                 Tải Excel (5 sheet + công thức)
               </Button>
-              <Button className="gap-2 bg-emerald-800 hover:bg-emerald-900" onClick={() => void persistSnapshot().finally(() => downloadReportPdfV2(printableRef.current, payload.sku.sku))}>
+              <Button className="gap-2 bg-emerald-800 hover:bg-emerald-900" onClick={() => void persistSnapshot().finally(() => void downloadReportPdfV2(payload))}>
                 <Printer className="h-4 w-4" />
                 Tải PDF (đầy đủ màu & biểu đồ)
               </Button>
