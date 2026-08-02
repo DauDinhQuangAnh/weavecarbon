@@ -8,7 +8,10 @@ import UserTypeDialog from "./UserTypeDialog";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import Waves from "../icons/Waves";
-import { useEffect, useRef, useState } from "react";const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
+import { useEffect, useRef, useState } from "react";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
+
+const DesktopLeafHero = dynamic(() => import("./LeafHero3D"), {
   ssr: false,
   loading: () => null,
 });
@@ -19,6 +22,7 @@ const Hero = () => {
   const heroRef = useRef<HTMLElement | null>(null);
   const locale = "vi";
   const t = useTranslations("hero");
+  const reducedEffects = useReducedEffects();
   const isHeroInView = useInView(heroRef, { amount: 0.15 });
   const heroTitle = t("title");
   const trustText = t("trust");
@@ -46,40 +50,49 @@ const Hero = () => {
           <DesktopLeafHero />
         ) : (
           <>
-            <div className="absolute top-24 right-[-18%] h-[24rem] w-[24rem] rounded-full bg-primary/20 blur-3xl sm:right-[-8%] sm:h-[28rem] sm:w-[28rem]" />
+            <div className="absolute top-24 right-[-18%] h-[24rem] w-[24rem] rounded-full bg-primary/20 blur-2xl sm:right-[-8%] sm:h-[28rem] sm:w-[28rem]" />
             <div className="absolute bottom-[-8%] right-[-10%] h-[20rem] w-[20rem] rounded-full border border-primary/10 bg-[radial-gradient(circle_at_30%_30%,rgba(45,69,29,0.16),rgba(45,69,29,0.06),transparent_72%)] blur-2xl sm:h-[24rem] sm:w-[24rem]" />
           </>
         )}
 
         {isDesktopHero ? (
-          <>
-            <motion.div
-              className="absolute top-16 left-20 w-96 h-96 bg-primary/50 rounded-full blur-3xl"
-              initial={{ scale: 0.8, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 0.5 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            />
-            <motion.div
-              className="absolute top-1/4 right-20 w-80 h-80 bg-accent/50 rounded-full blur-3xl"
-              initial={{ scale: 0.8, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 0.5 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-            />
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-primary/3 rounded-full blur-3xl"
-              initial={{ scale: 0.8, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 0.3 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-            />
-          </>
+          reducedEffects ? (
+            // Low-power desktop: static, lighter blobs — no looping paint, no
+            // giant blur-3xl layer. Keeps the composition without the GPU cost.
+            <>
+              <div className="absolute top-16 left-20 w-96 h-96 bg-primary/40 rounded-full blur-2xl opacity-40" />
+              <div className="absolute top-1/4 right-20 w-80 h-80 bg-accent/40 rounded-full blur-2xl opacity-40" />
+            </>
+          ) : (
+            <>
+              <motion.div
+                className="absolute top-16 left-20 w-96 h-96 bg-primary/50 rounded-full blur-3xl will-change-transform"
+                initial={{ scale: 0.8, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 0.5 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+              <motion.div
+                className="absolute top-1/4 right-20 w-80 h-80 bg-accent/50 rounded-full blur-3xl will-change-transform"
+                initial={{ scale: 0.8, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 0.5 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+              />
+              <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-primary/3 rounded-full blur-3xl will-change-transform"
+                initial={{ scale: 0.8, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 0.3 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+              />
+            </>
+          )
         ) : (
           <>
-            <div className="absolute top-12 left-[-18%] h-52 w-52 rounded-full bg-primary/25 blur-3xl sm:left-[-10%] sm:h-64 sm:w-64" />
-            <div className="absolute top-1/3 right-[-10%] h-44 w-44 rounded-full bg-accent/20 blur-3xl sm:h-56 sm:w-56" />
-            <div className="absolute bottom-10 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/8 blur-3xl sm:h-80 sm:w-80" />
+            <div className="absolute top-12 left-[-18%] h-52 w-52 rounded-full bg-primary/25 blur-2xl sm:left-[-10%] sm:h-64 sm:w-64" />
+            <div className="absolute top-1/3 right-[-10%] h-44 w-44 rounded-full bg-accent/20 blur-2xl sm:h-56 sm:w-56" />
+            <div className="absolute bottom-10 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/8 blur-2xl sm:h-80 sm:w-80" />
           </>
         )}
       </div>
@@ -176,7 +189,7 @@ const Hero = () => {
       {/* Bottom gradient fade */}
       <div className="pointer-events-none absolute inset-x-0 top-14 z-0 flex justify-center sm:top-16 lg:top-0">
         <Waves
-          animated={isDesktopHero && isHeroInView}
+          animated={isDesktopHero && isHeroInView && !reducedEffects}
           className={
             isDesktopHero ?
               "block h-[20rem] w-full opacity-80 lg:h-auto lg:opacity-100" :

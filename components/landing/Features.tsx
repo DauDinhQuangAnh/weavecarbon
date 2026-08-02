@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const DESKTOP_DECORATIVE_PARTICLES = [
   { left: "18%", top: "18%", size: 8, duration: 4.2, delay: 0.1, drift: 16 },
@@ -720,7 +721,7 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
 const Features = () => {
   const t = useTranslations("features");
   const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [reducedEffects, setReducedEffects] = useState(false);
+  const reducedEffects = useReducedEffects();
 
   useEffect(() => {
     const syncViewportMode = () => {
@@ -745,26 +746,6 @@ const Features = () => {
     return () => {
       window.removeEventListener("resize", syncViewportMode);
       window.removeEventListener("orientationchange", syncViewportMode);
-    };
-  }, []);
-
-  useEffect(() => {
-    const syncReducedEffects = () => {
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
-      const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
-
-      setReducedEffects(
-        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 4,
-      );
-    };
-
-    syncReducedEffects();
-    window.addEventListener("resize", syncReducedEffects);
-    return () => {
-      window.removeEventListener("resize", syncReducedEffects);
     };
   }, []);
 

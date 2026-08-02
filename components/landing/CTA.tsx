@@ -6,11 +6,14 @@ import { ArrowRight, Mail } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const CTA = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const t = useTranslations("cta");
+  const reducedEffects = useReducedEffects();
+  const blurClass = reducedEffects ? "blur-2xl" : "blur-3xl";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +47,7 @@ const CTA = () => {
     <section className="relative -mt-6 bg-primary-foreground pt-12 pb-12 sm:-mt-8 sm:pt-16 sm:pb-16 md:mt-0 md:py-32">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-10 md:hidden">
         <div className="absolute inset-x-0 top-0 h-6 bg-linear-to-b from-primary-foreground/0 via-primary-foreground/85 to-primary-foreground" />
-        <div className="absolute left-1/2 top-[-0.75rem] h-8 w-[138%] -translate-x-1/2 rounded-full bg-primary-foreground/95 blur-3xl" />
+        <div className={`absolute left-1/2 top-[-0.75rem] h-8 w-[138%] -translate-x-1/2 rounded-full bg-primary-foreground/95 ${blurClass}`} />
       </div>
 
       <div className="container relative z-10 mx-auto px-6">
@@ -57,8 +60,8 @@ const CTA = () => {
             className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-lg sm:p-8 md:p-12 lg:p-16"
           >
             {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+            <div className={`absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full ${blurClass} -translate-y-1/2 translate-x-1/2`} />
+            <div className={`absolute bottom-0 left-0 w-48 h-48 bg-accent/10 rounded-full ${blurClass} translate-y-1/2 -translate-x-1/2`} />
 
             <div className="relative text-center">
               <motion.span

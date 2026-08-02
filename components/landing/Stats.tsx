@@ -4,9 +4,11 @@ import { motion } from "motion/react";
 import { TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import StatsWave from "@/components/icons/StatsWave";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const Stats = () => {
   const t = useTranslations("stats");
+  const reducedEffects = useReducedEffects();
   const stats = [
     {
       value: "13",
@@ -37,7 +39,7 @@ const Stats = () => {
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-12 md:hidden">
         <div className="absolute inset-x-0 top-0 h-8 bg-linear-to-b from-primary/0 via-primary/60 to-primary" />
-        <div className="absolute left-1/2 top-[-1rem] h-12 w-[138%] -translate-x-1/2 rounded-full bg-primary/90 blur-3xl" />
+        <div className={`absolute left-1/2 top-[-1rem] h-12 w-[138%] -translate-x-1/2 rounded-full bg-primary/90 ${reducedEffects ? "blur-2xl" : "blur-3xl"}`} />
       </div>
 
       {/* Background pattern */}

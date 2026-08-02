@@ -10,32 +10,24 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const HowItWorks = () => {
   const t = useTranslations("howItWorks");
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
-  const [reducedEffects, setReducedEffects] = useState(false);
+  const reducedEffects = useReducedEffects();
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
 
   useEffect(() => {
-    const syncReducedEffects = () => {
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
-      const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
-
-      setReducedEffects(
-        prefersReducedMotion || isCoarsePointer || hardwareConcurrency <= 4,
-      );
+    const syncIsDesktopLayout = () => {
       setIsDesktopLayout(window.innerWidth >= 1024);
     };
 
-    syncReducedEffects();
-    window.addEventListener("resize", syncReducedEffects);
+    syncIsDesktopLayout();
+    window.addEventListener("resize", syncIsDesktopLayout);
     return () => {
-      window.removeEventListener("resize", syncReducedEffects);
+      window.removeEventListener("resize", syncIsDesktopLayout);
     };
   }, []);
 
