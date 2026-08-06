@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck",
+    "verify": "npm run check",
+    "verify:full": "npm run check && npm run test",
+    "prepare": "git config core.hooksPath .githooks || exit 0",
     "clean:local": "node scripts/clean-local.mjs",
     "test": "vitest run",
     "test:carbon": "vitest run lib/carbon"
@@ -89,6 +92,7 @@
     },
     "flatted": "^3.4.1",
     "typescript-eslint": "^8.57.0",
-    "brace-expansion": "^5.0.9"
+    "brace-expansion@1": "^1.1.18",
+    "brace-expansion@2": "^2.1.4"
   }
 }
