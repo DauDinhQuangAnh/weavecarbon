@@ -663,47 +663,58 @@ product: ProductRecord)
   }
   if (candidates.length === 0) return null;
 
-  let bestMatch: {detail: LogisticsShipmentDetail;score: number;} | null = null;
+  type ShipmentMatch = { detail: LogisticsShipmentDetail; score: number };
   const MAX_DETAILS_TO_SCAN = 120;
+  const DETAIL_SCAN_CONCURRENCY = 6;
 
-  for (const summary of candidates.slice(0, MAX_DETAILS_TO_SCAN)) {
-    try {
-      const detail = await fetchLogisticsShipmentById(summary.id);
-      const score = scoreShipmentMatch(detail);
-      if (score <= 0) continue;
+  // Scan candidate summaries for a matching shipment. Details are fetched in small
+  // parallel chunks (instead of one-at-a-time) to cut the worst-case round-trips,
+  // while preserving the original semantics: candidates are still evaluated in
+  // priority order and the scan stops as soon as a strong (>=220) match is found.
+  // Threads the running best match in/out so the caller keeps ordinary type flow.
+  const scanForMatch = async (
+    summaries: { id: string }[],
+    current: ShipmentMatch | null
+  ): Promise<{ found: LogisticsShipmentDetail | null; best: ShipmentMatch | null }> => {
+    let best = current;
+    const list = summaries.slice(0, MAX_DETAILS_TO_SCAN);
+    for (let i = 0; i < list.length; i += DETAIL_SCAN_CONCURRENCY) {
+      const details = await Promise.all(
+        list.slice(i, i + DETAIL_SCAN_CONCURRENCY).map(async (summary) => {
+          try {
+            return await fetchLogisticsShipmentById(summary.id);
+          } catch {
+            return null;
+          }
+        })
+      );
+      for (const detail of details) {
+        if (!detail) continue;
+        const score = scoreShipmentMatch(detail);
+        if (score <= 0) continue;
 
-      if (!bestMatch || score > bestMatch.score) {
-        bestMatch = { detail, score };
+        if (!best || score > best.score) {
+          best = { detail, score };
+        }
+
+        if (score >= 220) {
+          return { found: detail, best };
+        }
       }
-
-      if (score >= 220) {
-        return detail;
-      }
-    } catch {
-
     }
-  }
+    return { found: null, best };
+  };
+
+  const primary = await scanForMatch(candidates, null);
+  if (primary.found) return primary.found;
+  let bestMatch = primary.best;
 
   if (!bestMatch) {
     const allCandidates = await collectAllSummaries();
     if (allCandidates.length > 0) {
-      for (const summary of allCandidates.slice(0, MAX_DETAILS_TO_SCAN)) {
-        try {
-          const detail = await fetchLogisticsShipmentById(summary.id);
-          const score = scoreShipmentMatch(detail);
-          if (score <= 0) continue;
-
-          if (!bestMatch || score > bestMatch.score) {
-            bestMatch = { detail, score };
-          }
-
-          if (score >= 220) {
-            return detail;
-          }
-        } catch {
-
-        }
-      }
+      const fallback = await scanForMatch(allCandidates, bestMatch);
+      if (fallback.found) return fallback.found;
+      bestMatch = fallback.best;
     }
   }
 

@@ -89,6 +89,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   const [loading, setLoading] = useState(true);
   const [authStatus, setAuthStatus] = useState<AuthSessionStatus>("checking");
   const userRef = useRef<User | null>(null);
+  const lastFocusRefreshRef = useRef(0);
   const hasRealSession = Boolean(user?.id || authTokenStore.getAccessToken());
   const effectiveUser = isDemoRuntime ? demoUser || user : user;
   const sessionEpoch = [
@@ -413,6 +414,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       if (!userRef.current && !loadStoredAuthUser()) {
         return;
       }
+      // Tab focus (visibilitychange) and bfcache restore (pageshow) can fire in
+      // quick succession; throttle to at most one session recovery per 30s so
+      // rapid tab switching doesn't trigger an /account + /session refetch storm.
+      const now = Date.now();
+      if (now - lastFocusRefreshRef.current < 30000) {
+        return;
+      }
+      lastFocusRefreshRef.current = now;
       void refreshUser({ preserveUserOnFailure: true });
     };
 

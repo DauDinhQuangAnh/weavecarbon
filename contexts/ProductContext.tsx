@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   useMemo,
@@ -81,6 +82,7 @@ interface ProductContextType {
   pendingProductData: PendingProductData | null;
   setPendingProductData: (data: PendingProductData | null) => void;
   clearPendingProduct: () => void;
+  registerConsumer: () => () => void;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -155,6 +157,26 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     setPendingProductData(null);
   }, []);
 
+  // Lazy hydration: only fetch the full product catalog once a component actually
+  // consumes it via useProducts(). Pages that never read products (Products list —
+  // which fetches its own filtered/paginated data — plus settings, billing,
+  // logistics, etc.) no longer trigger a redundant catalog-wide fetch.
+  const consumerCountRef = useRef(0);
+  const [hasConsumers, setHasConsumers] = useState(false);
+
+  const registerConsumer = useCallback(() => {
+    consumerCountRef.current += 1;
+    if (consumerCountRef.current === 1) {
+      setHasConsumers(true);
+    }
+    return () => {
+      consumerCountRef.current -= 1;
+      if (consumerCountRef.current === 0) {
+        setHasConsumers(false);
+      }
+    };
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!userId || (!companyId && !isDemoSession)) {
       setProducts([]);
@@ -172,7 +194,10 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     try {
       const records = await fetchAllProducts({
         sort_by: "updated_at",
-        sort_order: "desc"
+        sort_order: "desc",
+        // ProductContext only reads core catalog + carbon totals, so request the
+        // lighter summary payload (no per-product logistics / latest-shipment join).
+        view: "summary"
       });
       const nextProducts = records.map(mapProductRecordToDashboardProduct);
       setProducts(nextProducts);
@@ -185,6 +210,10 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
   }, [authStatus, companyId, isDemoSession, userId]);
 
   useEffect(() => {
+    if (!hasConsumers) {
+      return;
+    }
+
     if (authStatus === "checking" || authStatus === "recovering") {
       setStatus("hydrating");
       return;
@@ -197,7 +226,7 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     }
 
     void refresh();
-  }, [authStatus, refresh]);
+  }, [authStatus, refresh, hasConsumers]);
 
   const updateProduct = useCallback(
     (id: string, updates: Partial<DashboardProduct>) => {
@@ -244,7 +273,8 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     setLastCreatedProduct,
     pendingProductData,
     setPendingProductData,
-    clearPendingProduct
+    clearPendingProduct,
+    registerConsumer
   }), [
     products,
     status,
@@ -258,7 +288,8 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
     setLastCreatedProduct,
     pendingProductData,
     setPendingProductData,
-    clearPendingProduct
+    clearPendingProduct,
+    registerConsumer
   ]);
 
   return (
@@ -273,6 +304,10 @@ export const useProducts = () => {
   if (!context) {
     throw new Error("useProducts must be used within a ProductProvider");
   }
+  // Registering here is what triggers the provider's lazy hydration, so the
+  // catalog is only fetched on pages that actually read it.
+  const { registerConsumer } = context;
+  useEffect(() => registerConsumer(), [registerConsumer]);
   return context;
 };
 

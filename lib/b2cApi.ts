@@ -208,10 +208,13 @@ const toQueryString = (params: Record<string, string | number | undefined>) => {
   return serialized ? `?${serialized}` : "";
 };
 
+// Uses the shared apiClient GET cache/inflight-dedup (no disableResponseCache):
+// the dashboard is read by both useUserProfile and useRecentActivity, so on a B2C
+// page that mounts both hooks the two concurrent GETs collapse into one request.
+// Mutations (donations etc.) go through api.post, which invalidates this cache, so
+// the 3s TTL never serves stale data after a user action.
 export const fetchB2CDashboard = () =>
-  api.get<B2CDashboardResponse>("/b2c/dashboard", {
-    disableResponseCache: true
-  });
+  api.get<B2CDashboardResponse>("/b2c/dashboard");
 
 export const fetchB2CCollectionPoints = (params?: {
   search?: string;

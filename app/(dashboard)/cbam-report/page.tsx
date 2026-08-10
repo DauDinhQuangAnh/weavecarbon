@@ -234,13 +234,21 @@ export default function CbamReportPage() {
     setPageTitle('Báo cáo CBAM-style', 'Cấu trúc 6 tab phỏng theo EU CBAM communication template.');
   }, [setPageTitle]);
 
-  const loadInvoices = useCallback(async () => {
-    const [e, f] = await Promise.allSettled([
-      api.get<ElectricityInvoice[]>('/electricity-invoices'),
-      api.get<FuelInvoice[]>('/fuel-invoices'),
-    ]);
-    if (e.status === 'fulfilled') setElectricity(e.value ?? []);
-    if (f.status === 'fulfilled') setFuels(f.value ?? []);
+  // Reload only the invoice type that actually changed. A single-type mutation
+  // (save/delete an electricity OR a fuel invoice) no longer refetches both lists.
+  const loadInvoices = useCallback(async (scope: 'both' | 'electricity' | 'fuel' = 'both') => {
+    if (scope !== 'fuel') {
+      try {
+        const e = await api.get<ElectricityInvoice[]>('/electricity-invoices');
+        setElectricity(e ?? []);
+      } catch { /* ignore */ }
+    }
+    if (scope !== 'electricity') {
+      try {
+        const f = await api.get<FuelInvoice[]>('/fuel-invoices');
+        setFuels(f ?? []);
+      } catch { /* ignore */ }
+    }
   }, []);
 
   useEffect(() => {
@@ -281,7 +289,7 @@ export default function CbamReportPage() {
       if (elecEditing) await api.put(`/electricity-invoices/${elecEditing.id}`, payload);
       else await api.post('/electricity-invoices', payload);
       setElecModalOpen(false);
-      await loadInvoices();
+      await loadInvoices('electricity');
     } catch { /* ignore */ } finally { setSaving(false); }
   };
   const handleDeleteElec = async (id: string) => {
@@ -289,7 +297,7 @@ export default function CbamReportPage() {
     const inv = electricity.find((e) => e.id === id);
     await api.delete(`/electricity-invoices/${id}`).catch(() => {});
     if (inv?.evidence_document_id) await api.delete(`/evidence/${inv.evidence_document_id}`).catch(() => {});
-    await loadInvoices();
+    await loadInvoices('electricity');
   };
 
   // ── Fuel CRUD ───────────────────────────────────────────────────────────────
@@ -307,7 +315,7 @@ export default function CbamReportPage() {
       if (fuelEditing) await api.put(`/fuel-invoices/${fuelEditing.id}`, payload);
       else await api.post('/fuel-invoices', payload);
       setFuelModalOpen(false);
-      await loadInvoices();
+      await loadInvoices('fuel');
     } catch { /* ignore */ } finally { setSaving(false); }
   };
   const handleDeleteFuel = async (id: string) => {
@@ -315,7 +323,7 @@ export default function CbamReportPage() {
     const inv = fuels.find((f) => f.id === id);
     await api.delete(`/fuel-invoices/${id}`).catch(() => {});
     if (inv?.evidence_document_id) await api.delete(`/evidence/${inv.evidence_document_id}`).catch(() => {});
-    await loadInvoices();
+    await loadInvoices('fuel');
   };
 
   const totals = useMemo(() => {

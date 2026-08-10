@@ -365,13 +365,26 @@ product: ProductRecord)
   sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime()).
   map(([id]) => id);
 
-  for (const shipmentId of sortedCandidateIds.slice(0, 80)) {
-    try {
-      const detail = await fetchLogisticsShipmentById(shipmentId);
+  // Fetch shipment details in small parallel chunks rather than one-at-a-time to
+  // cut the worst-case round-trips, while preserving the original behaviour:
+  // candidates stay in priority order and the scan stops on the first strong
+  // (>=220) match. Worst case drops from ~80 sequential fetches to ~14 chunks.
+  const DETAIL_SCAN_CONCURRENCY = 6;
+  const scanIds = sortedCandidateIds.slice(0, 80);
+  for (let i = 0; i < scanIds.length; i += DETAIL_SCAN_CONCURRENCY) {
+    const details = await Promise.all(
+      scanIds.slice(i, i + DETAIL_SCAN_CONCURRENCY).map(async (shipmentId) => {
+        try {
+          return await fetchLogisticsShipmentById(shipmentId);
+        } catch {
+          return null;
+        }
+      })
+    );
+    for (const detail of details) {
+      if (!detail) continue;
       const score = scoreShipment(detail);
-      if (score <= 0) {
-        continue;
-      }
+      if (score <= 0) continue;
 
       if (!bestMatch || score > bestMatch.score) {
         bestMatch = { detail, score };
@@ -380,8 +393,6 @@ product: ProductRecord)
       if (score >= 220) {
         return detail;
       }
-    } catch {
-
     }
   }
 

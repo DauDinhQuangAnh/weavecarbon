@@ -1295,7 +1295,11 @@ query: Omit<ShipmentListRequestQuery, "page"> = {})
 : Promise<LogisticsShipmentSummary[]> => {
   const allShipments: LogisticsShipmentSummary[] = [];
   let page = 1;
-  let pageSize = toSafePageSize(query.page_size, 20);
+  // Default to the max page size (100) for the aggregate "fetch all" loop so a
+  // full listing is 1 round-trip per 100 shipments instead of per 20. Callers can
+  // still pass a smaller page_size explicitly; the sort-fallback path below resets
+  // to a conservative 20 only when the server rejects the sort clause.
+  let pageSize = toSafePageSize(query.page_size, 100);
   let disableSort = false;
 
   while (true) {

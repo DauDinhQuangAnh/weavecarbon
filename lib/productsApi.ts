@@ -55,6 +55,10 @@ export interface ProductListQuery {
   page_size?: number;
   sort_by?: "created_at" | "updated_at" | "name" | "sku" | "total_co2e";
   sort_order?: "asc" | "desc";
+  // "summary" asks the API to skip the per-product logistics payload + latest-shipment
+  // join, returning only the core catalog + carbon totals. Consumers that need
+  // addresses/transport legs (report/export builders) must omit this.
+  view?: "summary";
 }
 
 export type ProductSaveMode = "draft" | "publish";
@@ -1889,7 +1893,8 @@ query: ProductListQuery = {})
     page: safePage,
     page_size: safePageSize,
     sort_by: query.sort_by,
-    sort_order: query.sort_order
+    sort_order: query.sort_order,
+    view: query.view
   });
 
   const queryString = buildQueryString();
