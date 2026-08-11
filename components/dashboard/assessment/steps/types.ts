@@ -86,6 +86,9 @@ export interface ProductAssessmentData {
   poContractId?: string;
   billOfLadingNo?: string;
   containerNo?: string;
+  /** Wood pallet only: "standalone" commercial goods fall under EUDR; "packing_material"
+   * used in a closed-loop system is typically exempt. Drives EUDR data requirements. */
+  palletPurpose?: "standalone" | "packing_material";
   weightPerUnit: number;
   quantity: number;
 
@@ -185,20 +188,32 @@ export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
 { value: "wood_pallet", label: "Pallet gỗ" }];
 
 
-export const PRODUCT_TYPES = [
-{ value: "tshirt", label: "Áo thun" },
-{ value: "polo", label: "Áo polo" },
-{ value: "shirt", label: "Áo sơ mi" },
-{ value: "pants", label: "Quần dài" },
-{ value: "shorts", label: "Quần short" },
-{ value: "dress", label: "Váy/Đầm" },
-{ value: "jacket", label: "Áo khoác" },
-{ value: "sweater", label: "Áo len" },
-{ value: "shoes", label: "Giày" },
-{ value: "sandals", label: "Dép/Sandal" },
-{ value: "bag", label: "Túi xách" },
-{ value: "accessories", label: "Phụ kiện" },
-{ value: "other", label: "Khác" }];
+export const PRODUCT_TYPES: {
+  value: string;
+  label: string;
+  categories: ProductCategory[];
+}[] = [
+// Dệt may / da giày
+{ value: "tshirt", label: "Áo thun", categories: ["textile"] },
+{ value: "polo", label: "Áo polo", categories: ["textile"] },
+{ value: "shirt", label: "Áo sơ mi", categories: ["textile"] },
+{ value: "pants", label: "Quần dài", categories: ["textile"] },
+{ value: "shorts", label: "Quần short", categories: ["textile"] },
+{ value: "dress", label: "Váy/Đầm", categories: ["textile"] },
+{ value: "jacket", label: "Áo khoác", categories: ["textile"] },
+{ value: "sweater", label: "Áo len", categories: ["textile"] },
+{ value: "shoes", label: "Giày", categories: ["textile"] },
+{ value: "sandals", label: "Dép/Sandal", categories: ["textile"] },
+{ value: "bag", label: "Túi xách", categories: ["textile"] },
+{ value: "accessories", label: "Phụ kiện", categories: ["textile"] },
+// Pallet gỗ — kiểu dáng thiết kế (ISO 6780 / EPAL)
+{ value: "block_pallet", label: "Pallet gù (Block)", categories: ["wood_pallet"] },
+{ value: "stringer_pallet", label: "Pallet đố (Stringer)", categories: ["wood_pallet"] },
+{ value: "skid", label: "Pallet 1 tầng (Skid)", categories: ["wood_pallet"] },
+{ value: "wooden_crate", label: "Thùng gỗ kín (Crate)", categories: ["wood_pallet"] },
+{ value: "wooden_box", label: "Hộp/kiện gỗ (Box)", categories: ["wood_pallet"] },
+// Dùng chung
+{ value: "other", label: "Khác", categories: ["textile", "wood_pallet"] }];
 
 
 export const MATERIAL_TYPES = [
@@ -217,15 +232,24 @@ export const MATERIAL_TYPES = [
 { value: "blend", label: "Vải pha", co2Factor: 6.0 }];
 
 
-export const ACCESSORY_TYPES = [
-{ value: "button", label: "Nút" },
-{ value: "zipper", label: "Khóa kéo" },
-{ value: "thread", label: "Chỉ may" },
-{ value: "label", label: "Nhãn mác" },
-{ value: "elastic", label: "Thun co giãn" },
-{ value: "lining", label: "Vải lót" },
-{ value: "padding", label: "Đệm/Mút" },
-{ value: "other", label: "Khác" }];
+export const ACCESSORY_TYPES: {
+  value: string;
+  label: string;
+  categories: ProductCategory[];
+}[] = [
+// Dệt may
+{ value: "button", label: "Nút", categories: ["textile"] },
+{ value: "zipper", label: "Khóa kéo", categories: ["textile"] },
+{ value: "thread", label: "Chỉ may", categories: ["textile"] },
+{ value: "label", label: "Nhãn mác", categories: ["textile"] },
+{ value: "elastic", label: "Thun co giãn", categories: ["textile"] },
+{ value: "lining", label: "Vải lót", categories: ["textile"] },
+{ value: "padding", label: "Đệm/Mút", categories: ["textile"] },
+// Pallet gỗ
+{ value: "nail", label: "Đinh thép", categories: ["wood_pallet"] },
+{ value: "corner_block", label: "Ke góc / Chốt gỗ", categories: ["wood_pallet"] },
+// Dùng chung
+{ value: "other", label: "Khác", categories: ["textile", "wood_pallet"] }];
 
 
 export const PRODUCTION_PROCESSES: {

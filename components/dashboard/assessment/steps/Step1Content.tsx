@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,16 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
 
   const skuPreviews = generateSKUPreview();
 
+  // Only show product types belonging to the selected industry (textile vs wood
+  // pallet). "Khác" is shared by both.
+  const availableProductTypes = useMemo(
+    () =>
+      PRODUCT_TYPES.filter((type) =>
+        type.categories.includes(data.productCategory ?? "textile")
+      ),
+    [data.productCategory]
+  );
+
   return (
     <div className="space-y-6">
       
@@ -95,7 +105,20 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
         <Label>Ngành hàng / Product category</Label>
         <Select
           value={data.productCategory}
-          onValueChange={(v) => onChange({ productCategory: v as ProductAssessmentData["productCategory"] })}>
+          onValueChange={(v) => {
+            const nextCategory = v as ProductAssessmentData["productCategory"];
+            // Clear the product type if it doesn't belong to the new industry so
+            // the user can't carry an "Áo thun" selection into "Pallet gỗ".
+            const productTypeStillValid = PRODUCT_TYPES.some(
+              (type) =>
+                type.value === data.productType &&
+                type.categories.includes(nextCategory)
+            );
+            onChange({
+              productCategory: nextCategory,
+              ...(productTypeStillValid ? {} : { productType: "" })
+            });
+          }}>
 
           <SelectTrigger className="max-w-xs">
             <SelectValue />
@@ -113,6 +136,39 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
         </p>
       </div>
 
+      {data.productCategory === "wood_pallet" ?
+      <div className="space-y-2">
+          <Label>Mục đích sử dụng pallet</Label>
+          <Select
+          value={data.palletPurpose ?? ""}
+          onValueChange={(v) =>
+          onChange({ palletPurpose: v as ProductAssessmentData["palletPurpose"] })
+          }>
+
+            <SelectTrigger className="max-w-xs">
+              <SelectValue placeholder="Chọn mục đích" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="standalone">Hàng hoá độc lập (xuất khẩu thương mại)</SelectItem>
+              <SelectItem value="packing_material">Bao bì vận chuyển (vòng kín)</SelectItem>
+            </SelectContent>
+          </Select>
+          {data.palletPurpose === "standalone" ?
+        <p className="text-xs text-amber-700">
+              Pallet xuất khẩu độc lập thường thuộc phạm vi EUDR — cần thu thập tọa độ vùng khai thác gỗ, tên khoa học và hồ sơ hợp pháp. (Tham khảo, đối chiếu quy định chính thức.)
+            </p> :
+        data.palletPurpose === "packing_material" ?
+        <p className="text-xs text-muted-foreground">
+              Pallet làm bao bì vận chuyển trong hệ thống vòng kín thường được miễn EUDR. (Tham khảo, đối chiếu quy định chính thức.)
+            </p> :
+
+        <p className="text-xs text-muted-foreground">
+              Xác định pallet là hàng hoá độc lập hay bao bì vận chuyển để biết có thuộc phạm vi EUDR hay không.
+            </p>
+        }
+        </div> :
+      null}
+
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label>{t("productTypeLabel")}</Label>
@@ -124,7 +180,7 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
               <SelectValue placeholder={t("productTypePlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              {PRODUCT_TYPES.map((type) =>
+              {availableProductTypes.map((type) =>
               <SelectItem key={type.value} value={type.value}>
                   {t.has(`productTypes.${type.value}`) ?
                 t(`productTypes.${type.value}`) :

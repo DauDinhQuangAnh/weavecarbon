@@ -635,7 +635,9 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
                         <SelectValue placeholder={t("accessoryTypePlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
-                        {ACCESSORY_TYPES.map((type) => (
+                        {ACCESSORY_TYPES.filter((type) =>
+                          type.categories.includes(data.productCategory ?? "textile")
+                        ).map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {t.has(`accessoryTypes.${type.value}`)
                               ? t(`accessoryTypes.${type.value}`)
