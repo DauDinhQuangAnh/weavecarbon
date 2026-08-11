@@ -53,8 +53,8 @@
   --color-destructive: hsl(0 70% 45%); /* Đỏ thẫm, không dùng đỏ tươi */
   --color-destructive-foreground: hsl(0 0% 98%);
 
-  --color-border: hsl(96 10% 88%);
-  --color-input: hsl(96 10% 88%);
+  --color-border: hsl(96 10% 88%);      /* soft divider/card edges — kept subtle */
+  --color-input: hsl(96 16% 72%);       /* form-field border — darker so inputs pop on white */
 
   /* Ring focus khi bấm tab: dùng chính màu primary */
   --color-ring: hsl(96 41% 19%);
