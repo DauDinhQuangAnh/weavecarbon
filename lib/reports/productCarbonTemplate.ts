@@ -9,8 +9,10 @@ import {
   addTitleBlock,
   addKpiStrip,
   addKeyValueTable,
+  addSectionBar,
   addDataTable,
   downloadWorkbook,
+  THEME,
   type TemplateColumn,
 } from "./excelTheme";
 
@@ -87,7 +89,7 @@ export async function buildProductCarbonWorkbook(data: ProductCarbonReportInput)
       { label: "Số lượng", value: qty.toLocaleString("vi-VN"), unit: "sản phẩm" },
     ]);
 
-    addKeyValueTable(s, r, [
+    let rr = addKeyValueTable(s, r, [
       { label: "Mã sản phẩm", value: p.productCode ?? "—", source: "products.code" },
       { label: "Tên sản phẩm", value: p.productName ?? "—", source: "products.name" },
       { label: "Loại sản phẩm", value: p.productType ?? "—", source: "products.type" },
@@ -97,6 +99,19 @@ export async function buildProductCarbonWorkbook(data: ProductCarbonReportInput)
       { label: "Quãng đường ước tính (km)", value: data.estimatedDistanceKm || "—", source: "computed" },
       { label: "Mức tin cậy", value: data.confidenceLevel, source: "carbon.confidence" },
     ]);
+
+    // Boundary & disclosure (ISO 14067) — the anti-greenwashing statement buyers/
+    // auditors expect on the document. Applies to every report from this engine.
+    rr = addSectionBar(s, rr, "Ranh giới hệ thống & Tuyên bố miễn trừ", 8);
+    s.mergeCells(rr, 1, rr + 3, 8);
+    const disc = s.getCell(rr, 1);
+    disc.value =
+      "PCF bán phần (partial CFP): cradle-to-gate + gate-to-market; LOẠI TRỪ giai đoạn sử dụng (B) và cuối vòng đời (C). " +
+      "GHG được báo cáo tách biệt theo ISO 14067 (6.4.9): GWP-fossil = tổng PCF ở trên; GWP-biogenic (carbon sinh học lưu trữ trong gỗ) báo cáo RIÊNG, KHÔNG trừ vào tổng fossil; GWP-luluc (thay đổi sử dụng đất) chưa được mô hình hoá. " +
+      "Chỉ số này không đại diện cho toàn bộ vòng đời sản phẩm và chưa được xác minh độc lập (not independently verified).";
+    disc.font = { name: "Calibri", size: 11, italic: true, color: { argb: THEME.muted } };
+    disc.alignment = { vertical: "top", horizontal: "left", wrapText: true };
+    for (let i = rr; i <= rr + 3; i++) s.getRow(i).height = 20;
 
     s.getColumn(1).width = 26;
     for (let c = 2; c <= 8; c++) s.getColumn(c).width = 16;
