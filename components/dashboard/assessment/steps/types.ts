@@ -142,6 +142,7 @@ export interface CarbonBreakdown {
 export interface CarbonAssessmentResult extends Partial<Pick<
   CarbonComputationResult,
   | "biogenicCarbon"
+  | "gwpBreakdown"
   | "cradleToGateCoreKgCO2e"
   | "gateToMarketExtensionKgCO2e"
   | "reportedTotalKgCO2e"

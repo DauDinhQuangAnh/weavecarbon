@@ -212,6 +212,12 @@ describe("carbon engine", () => {
     expect(result.cradleToGateCoreKgCO2e).not.toBeCloseTo(result.perProduct.total, 3);
     expect(result.boundary.partialCfp).toBe(true);
     expect(result.boundary.excludedStages).toEqual(expect.arrayContaining(["use", "end_of_life"]));
+
+    // GHG split (ISO 14067 6.4.9): fossil == reported total, biogenic never netted in,
+    // luluc not modeled for the partial boundary.
+    expect(result.gwpBreakdown.fossilKgCO2e).toBeCloseTo(result.reportedTotalKgCO2e, 3);
+    expect(result.gwpBreakdown.biogenicRemovedKgCO2e).toBeGreaterThanOrEqual(0);
+    expect(result.gwpBreakdown.lulucKgCO2e).toBeNull();
   });
 
   it("keeps energy as an analytical view instead of a top-level lifecycle stage", () => {

@@ -187,6 +187,20 @@ export interface CarbonBiogenicCarbonResult {
   note: string;
 }
 
+/**
+ * The three GHG buckets kept separate per ISO 14067:2018 (6.4.9) / EN 16485 so a
+ * fossil-based PCF is never conflated with stored biogenic carbon or land-use change.
+ */
+export interface CarbonGwpBreakdownResult {
+  /** Fossil-based GWP — equals the reported PCF total; the DPP "gateway metric". */
+  fossilKgCO2e: number;
+  /** Biogenic CO2 stored in bio-based materials, reported separately (never netted). */
+  biogenicRemovedKgCO2e: number;
+  /** Land-use-change GWP. null = not modeled for this product's partial boundary. */
+  lulucKgCO2e: number | null;
+  note: string;
+}
+
 export interface CarbonComputationResult {
   perProduct: CarbonBreakdownResult;
   totalBatch: CarbonBreakdownResult;
@@ -195,6 +209,8 @@ export interface CarbonComputationResult {
    * Protocol/PAS 2050 convention: separately from perProduct.total, never netted into it.
    */
   biogenicCarbon: CarbonBiogenicCarbonResult | null;
+  /** Explicit fossil / biogenic / luluc split (ISO 14067 6.4.9). */
+  gwpBreakdown: CarbonGwpBreakdownResult;
   cradleToGateCoreKgCO2e: number;
   gateToMarketExtensionKgCO2e: number;
   reportedTotalKgCO2e: number;

@@ -624,6 +624,12 @@ export const calculateCarbonFootprint = (
       removedKgCO2e: roundPerProduct(biogenicCarbonKgCO2e),
       note: "Biogenic CO2 stored in bio-based materials (e.g. wood), reported separately per GHG Protocol/PAS 2050 convention. Not included in perProduct.total or reportedTotalKgCO2e."
     } : null,
+    gwpBreakdown: {
+      fossilKgCO2e: perProduct.total,
+      biogenicRemovedKgCO2e: biogenicCarbonKgCO2e > 0 ? roundPerProduct(biogenicCarbonKgCO2e) : 0,
+      lulucKgCO2e: null,
+      note: "GHG separated per ISO 14067 (6.4.9) / EN 16485: fossilKgCO2e is the reported PCF total; biogenicRemovedKgCO2e is reported separately and never netted into it; lulucKgCO2e (land-use change) is not yet modeled for this cradle-to-gate + gate-to-market boundary."
+    },
     cradleToGateCoreKgCO2e,
     gateToMarketExtensionKgCO2e,
     reportedTotalKgCO2e: perProduct.total,
@@ -714,6 +720,12 @@ export const EMPTY_CARBON_RESULT: CarbonComputationResult = {
     total: 0
   },
   biogenicCarbon: null,
+  gwpBreakdown: {
+    fossilKgCO2e: 0,
+    biogenicRemovedKgCO2e: 0,
+    lulucKgCO2e: null,
+    note: "GHG separated per ISO 14067 (6.4.9) / EN 16485: fossil, biogenic (reported separately), land-use change."
+  },
   cradleToGateCoreKgCO2e: 0,
   gateToMarketExtensionKgCO2e: 0,
   reportedTotalKgCO2e: 0,
