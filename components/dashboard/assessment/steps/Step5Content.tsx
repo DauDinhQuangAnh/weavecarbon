@@ -534,6 +534,47 @@ const Step5CarbonResult: React.FC<Step5CarbonResultProps> = ({
         </CardContent>
       </Card>
 
+      {result.gwpBreakdown ? (
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Phân tách GHG &amp; ranh giới hệ thống</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Theo ISO 14067 (6.4.9) / EN 16485 — ba chỉ số báo cáo tách biệt.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-center">
+              <p className="mb-1 text-xs font-medium text-slate-600">GWP-fossil</p>
+              <p className="text-lg font-bold">{result.gwpBreakdown.fossilKgCO2e.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">kg CO₂e · tổng PCF báo cáo</p>
+            </div>
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 text-center">
+              <p className="mb-1 text-xs font-medium text-emerald-700">GWP-biogenic</p>
+              <p className="text-lg font-bold">
+                {result.gwpBreakdown.biogenicRemovedKgCO2e > 0
+                  ? `−${result.gwpBreakdown.biogenicRemovedKgCO2e.toFixed(2)}`
+                  : "0.00"}
+              </p>
+              <p className="text-xs text-muted-foreground">kg CO₂e · lưu trữ, tách riêng</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-center">
+              <p className="mb-1 text-xs font-medium text-slate-600">GWP-luluc</p>
+              <p className="text-lg font-bold">—</p>
+              <p className="text-xs text-muted-foreground">Chưa mô hình hoá</p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+            <p className="text-xs text-amber-800">
+              PCF bán phần (cradle-to-gate + gate-to-market), loại trừ giai đoạn sử dụng (B)
+              và cuối vòng đời (C). Carbon sinh học được báo cáo tách riêng, không trừ vào tổng
+              phát thải hoá thạch — tránh &quot;bù trừ sai lệch&quot; (false offsetting) theo ISO 14067.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+      ) : null}
+
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between gap-3">
