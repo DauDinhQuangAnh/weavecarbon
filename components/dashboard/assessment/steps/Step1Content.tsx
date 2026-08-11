@@ -137,35 +137,71 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
       </div>
 
       {data.productCategory === "wood_pallet" ?
-      <div className="space-y-2">
-          <Label>Mục đích sử dụng pallet</Label>
-          <Select
-          value={data.palletPurpose ?? ""}
-          onValueChange={(v) =>
-          onChange({ palletPurpose: v as ProductAssessmentData["palletPurpose"] })
-          }>
+      <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Mục đích sử dụng pallet</Label>
+            <Select
+            value={data.palletPurpose ?? ""}
+            onValueChange={(v) =>
+            onChange({ palletPurpose: v as ProductAssessmentData["palletPurpose"] })
+            }>
 
-            <SelectTrigger className="max-w-xs">
-              <SelectValue placeholder="Chọn mục đích" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="standalone">Hàng hoá độc lập (xuất khẩu thương mại)</SelectItem>
-              <SelectItem value="packing_material">Bao bì vận chuyển (vòng kín)</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger className="max-w-xs">
+                <SelectValue placeholder="Chọn mục đích" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standalone">Hàng hoá độc lập (xuất khẩu thương mại)</SelectItem>
+                <SelectItem value="packing_material">Bao bì vận chuyển (vòng kín)</SelectItem>
+              </SelectContent>
+            </Select>
+            {data.palletPurpose === "standalone" ?
+          <p className="text-xs text-amber-700">
+                Pallet xuất khẩu độc lập thường thuộc phạm vi EUDR — cần thu thập tọa độ vùng khai thác gỗ, tên khoa học và hồ sơ hợp pháp. (Tham khảo, đối chiếu quy định chính thức.)
+              </p> :
+          data.palletPurpose === "packing_material" ?
+          <p className="text-xs text-muted-foreground">
+                Pallet làm bao bì vận chuyển trong hệ thống vòng kín thường được miễn EUDR. (Tham khảo, đối chiếu quy định chính thức.)
+              </p> :
+
+          <p className="text-xs text-muted-foreground">
+                Xác định pallet là hàng hoá độc lập hay bao bì vận chuyển để biết có thuộc phạm vi EUDR hay không.
+              </p>
+          }
+          </div>
+
           {data.palletPurpose === "standalone" ?
-        <p className="text-xs text-amber-700">
-              Pallet xuất khẩu độc lập thường thuộc phạm vi EUDR — cần thu thập tọa độ vùng khai thác gỗ, tên khoa học và hồ sơ hợp pháp. (Tham khảo, đối chiếu quy định chính thức.)
-            </p> :
-        data.palletPurpose === "packing_material" ?
-        <p className="text-xs text-muted-foreground">
-              Pallet làm bao bì vận chuyển trong hệ thống vòng kín thường được miễn EUDR. (Tham khảo, đối chiếu quy định chính thức.)
-            </p> :
-
-        <p className="text-xs text-muted-foreground">
-              Xác định pallet là hàng hoá độc lập hay bao bì vận chuyển để biết có thuộc phạm vi EUDR hay không.
+        <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 space-y-3">
+            <p className="text-xs font-medium text-amber-800">
+              Truy xuất nguồn gốc gỗ (dùng cho EUDR / Lacey Act / Clean Wood Act)
             </p>
-        }
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="woodSpecies">Tên khoa học loài gỗ</Label>
+                <Input
+                id="woodSpecies"
+                value={data.woodSpecies || ""}
+                onChange={(e) => onChange({ woodSpecies: e.target.value })}
+                placeholder="VD: Acacia mangium" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="harvestCountry">Quốc gia khai thác</Label>
+                <Input
+                id="harvestCountry"
+                value={data.harvestCountry || ""}
+                onChange={(e) => onChange({ harvestCountry: e.target.value })}
+                placeholder="VD: Việt Nam" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="legalityReference">Mã hồ sơ hợp pháp / tọa độ</Label>
+                <Input
+                id="legalityReference"
+                value={data.legalityReference || ""}
+                onChange={(e) => onChange({ legalityReference: e.target.value })}
+                placeholder="FSC-C123456 / GeoJSON ref" />
+              </div>
+            </div>
+          </div> :
+        null}
         </div> :
       null}
 

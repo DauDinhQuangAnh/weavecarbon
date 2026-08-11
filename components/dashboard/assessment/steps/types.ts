@@ -89,6 +89,11 @@ export interface ProductAssessmentData {
   /** Wood pallet only: "standalone" commercial goods fall under EUDR; "packing_material"
    * used in a closed-loop system is typically exempt. Drives EUDR data requirements. */
   palletPurpose?: "standalone" | "packing_material";
+  /** Wood traceability captured for a standalone pallet — reused by EUDR (DDS),
+   * US Lacey Act and JP Clean Wood Act. Optional; stored for later report/DDS use. */
+  woodSpecies?: string;
+  harvestCountry?: string;
+  legalityReference?: string;
   weightPerUnit: number;
   quantity: number;
 
