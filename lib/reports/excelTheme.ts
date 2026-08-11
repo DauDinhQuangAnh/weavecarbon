@@ -24,6 +24,28 @@ export const THEME = {
   amber: "B45309",
 } as const;
 
+/**
+ * Central font-size scale (pt) for every Excel report. Bump these numbers to make
+ * all downloadable reports larger in one place — every helper below reads from here.
+ */
+export const SIZE = {
+  brandBar: 13,
+  title: 24,
+  subtitle: 12.5,
+  sectionBar: 15,
+  kpiLabel: 12.5,
+  kpiValue: 22,
+  kvHeader: 14,
+  kvLabel: 13,
+  kvValue: 14,
+  kvSource: 11,
+  tableHeader: 14,
+  tableBody: 13,
+  tableTotals: 14,
+  empty: 13,
+  footnote: 11,
+} as const;
+
 const FONT = "Calibri";
 
 export type CellValue = string | number | null | undefined;
@@ -62,7 +84,7 @@ export async function newBrandedWorkbook(): Promise<Workbook> {
 export function addWorksheet(wb: Workbook, name: string): Worksheet {
   const safe = name.replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31) || "Sheet";
   const sheet = wb.addWorksheet(safe, {
-    properties: { tabColor: { argb: THEME.brand }, defaultRowHeight: 16 },
+    properties: { tabColor: { argb: THEME.brand }, defaultRowHeight: 22 },
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
     views: [{ showGridLines: false }],
   });
@@ -82,24 +104,24 @@ export function addTitleBlock(
   sheet.mergeCells(1, 1, 1, cols);
   const brandCell = sheet.getCell(1, 1);
   brandCell.value = "WeaveCarbon · Carbon Intelligence Platform";
-  brandCell.font = { name: FONT, size: 11, bold: true, color: { argb: THEME.headerText } };
+  brandCell.font = { name: FONT, size: SIZE.brandBar, bold: true, color: { argb: THEME.headerText } };
   brandCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
   brandCell.fill = fill(THEME.brand);
-  sheet.getRow(1).height = 24;
+  sheet.getRow(1).height = 28;
 
   sheet.mergeCells(2, 1, 2, cols);
   const titleCell = sheet.getCell(2, 1);
   titleCell.value = title;
-  titleCell.font = { name: FONT, size: 17, bold: true, color: { argb: THEME.ink } };
+  titleCell.font = { name: FONT, size: SIZE.title, bold: true, color: { argb: THEME.ink } };
   titleCell.alignment = { vertical: "middle", horizontal: "left" };
-  sheet.getRow(2).height = 26;
+  sheet.getRow(2).height = 34;
 
   sheet.mergeCells(3, 1, 3, cols);
   const subCell = sheet.getCell(3, 1);
   subCell.value = meta ? `${subtitle}\n${meta}` : subtitle;
-  subCell.font = { name: FONT, size: 9.5, italic: true, color: { argb: THEME.muted } };
+  subCell.font = { name: FONT, size: SIZE.subtitle, italic: true, color: { argb: THEME.muted } };
   subCell.alignment = { vertical: "top", horizontal: "left", wrapText: true };
-  sheet.getRow(3).height = meta ? 28 : 16;
+  sheet.getRow(3).height = meta ? 40 : 22;
 
   return 5; // leave one blank row
 }
@@ -116,20 +138,20 @@ export function addKpiStrip(
     sheet.mergeCells(startRow, c, startRow, c + perCard - 1);
     const label = sheet.getCell(startRow, c);
     label.value = item.label;
-    label.font = { name: FONT, size: 8.5, bold: true, color: { argb: THEME.brandDark } };
+    label.font = { name: FONT, size: SIZE.kpiLabel, bold: true, color: { argb: THEME.brandDark } };
     label.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
     label.fill = fill(THEME.brandSoft);
 
     sheet.mergeCells(startRow + 1, c, startRow + 2, c + perCard - 1);
     const val = sheet.getCell(startRow + 1, c);
     val.value = item.unit ? `${item.value ?? "—"}  ${item.unit}` : (item.value ?? "—");
-    val.font = { name: FONT, size: 15, bold: true, color: { argb: THEME.brand } };
+    val.font = { name: FONT, size: SIZE.kpiValue, bold: true, color: { argb: THEME.brand } };
     val.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
     val.fill = fill("FFFFFF");
     val.border = { bottom: thin(THEME.border), left: thin(THEME.border), right: thin(THEME.border) };
   });
-  sheet.getRow(startRow).height = 16;
-  sheet.getRow(startRow + 1).height = 20;
+  sheet.getRow(startRow).height = 22;
+  sheet.getRow(startRow + 1).height = 30;
   return startRow + 4;
 }
 
@@ -139,10 +161,10 @@ export function addSectionBar(sheet: Worksheet, startRow: number, text: string, 
   sheet.mergeCells(startRow, 1, startRow, cols);
   const cell = sheet.getCell(startRow, 1);
   cell.value = text;
-  cell.font = { name: FONT, size: 10.5, bold: true, color: { argb: THEME.brandDark } };
+  cell.font = { name: FONT, size: SIZE.sectionBar, bold: true, color: { argb: THEME.brandDark } };
   cell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
   cell.fill = fill(THEME.brandSoft);
-  sheet.getRow(startRow).height = 20;
+  sheet.getRow(startRow).height = 26;
   return startRow + 2;
 }
 
@@ -159,12 +181,12 @@ export function addKeyValueTable(
   header.forEach((h, i) => {
     const cell = headerRow.getCell(i + 1);
     cell.value = h;
-    cell.font = { name: FONT, size: 9.5, bold: true, color: { argb: THEME.headerText } };
+    cell.font = { name: FONT, size: SIZE.kvHeader, bold: true, color: { argb: THEME.headerText } };
     cell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
     cell.fill = fill(THEME.brand);
     cell.border = allBorders(THEME.border);
   });
-  headerRow.height = 18;
+  headerRow.height = 26;
 
   rows.forEach((r, i) => {
     const row = sheet.getRow(startRow + 1 + i);
@@ -175,9 +197,9 @@ export function addKeyValueTable(
       cell.alignment = { vertical: "middle", horizontal: "left", indent: 1, wrapText: true };
       cell.border = allBorders(THEME.border);
       if (i % 2 === 1) cell.fill = fill(THEME.zebra);
-      if (ci === 0) cell.font = { name: FONT, size: 9.5, color: { argb: THEME.muted } };
-      else if (ci === 1) cell.font = { name: FONT, size: 10, bold: true, color: { argb: THEME.ink } };
-      else cell.font = { name: FONT, size: 8, color: { argb: THEME.muted } };
+      if (ci === 0) cell.font = { name: FONT, size: SIZE.kvLabel, color: { argb: THEME.muted } };
+      else if (ci === 1) cell.font = { name: FONT, size: SIZE.kvValue, bold: true, color: { argb: THEME.ink } };
+      else cell.font = { name: FONT, size: SIZE.kvSource, color: { argb: THEME.muted } };
     });
   });
 
@@ -205,18 +227,18 @@ export function addDataTable<T>(
   columns.forEach((col, i) => {
     const cell = header.getCell(i + 1);
     cell.value = col.header;
-    cell.font = { name: FONT, size: 9, bold: true, color: { argb: THEME.headerText } };
+    cell.font = { name: FONT, size: SIZE.tableHeader, bold: true, color: { argb: THEME.headerText } };
     cell.alignment = { vertical: "middle", horizontal: col.align ?? "left", wrapText: true, indent: col.align === "right" ? 0 : 1 };
     cell.fill = fill(THEME.brand);
     cell.border = allBorders(THEME.border);
   });
-  header.height = 26;
+  header.height = 36;
 
   if (rows.length === 0) {
     sheet.mergeCells(startRow + 1, 1, startRow + 1, nCols);
     const cell = sheet.getCell(startRow + 1, 1);
     cell.value = opts.emptyText ?? "Chưa có dữ liệu.";
-    cell.font = { name: FONT, size: 9.5, italic: true, color: { argb: THEME.muted } };
+    cell.font = { name: FONT, size: SIZE.empty, italic: true, color: { argb: THEME.muted } };
     cell.alignment = { vertical: "middle", horizontal: "center" };
     cell.border = allBorders(THEME.border);
     return startRow + 3;
@@ -230,7 +252,7 @@ export function addDataTable<T>(
       const v = col.value(dataRow);
       cell.value = v === undefined || v === null || v === "" ? null : v;
       cell.alignment = { vertical: "middle", horizontal: col.align ?? "left", indent: col.align === "right" ? 0 : 1, wrapText: true };
-      cell.font = { name: FONT, size: 9, color: { argb: THEME.ink } };
+      cell.font = { name: FONT, size: SIZE.tableBody, color: { argb: THEME.ink } };
       cell.border = allBorders(THEME.border);
       if (ri % 2 === 1) cell.fill = fill(THEME.zebra);
       if (col.numFmt && typeof cell.value === "number") cell.numFmt = col.numFmt;
@@ -254,7 +276,7 @@ export function addDataTable<T>(
         cell.value = sum;
         if (col.numFmt) cell.numFmt = col.numFmt;
       }
-      cell.font = { name: FONT, size: 9, bold: true, color: { argb: THEME.brandDark } };
+      cell.font = { name: FONT, size: SIZE.tableTotals, bold: true, color: { argb: THEME.brandDark } };
       cell.alignment = { vertical: "middle", horizontal: col.align ?? "left", indent: col.align === "right" ? 0 : 1 };
       cell.fill = fill(THEME.brandSoft);
       cell.border = allBorders(THEME.border);
@@ -266,12 +288,13 @@ export function addDataTable<T>(
   columns.forEach((col, i) => {
     const column = sheet.getColumn(i + 1);
     if (col.width) {
-      column.width = col.width;
+      // Widen explicit widths ~20% to keep pace with the larger body font.
+      column.width = Math.ceil(col.width * 1.2);
     } else {
-      let w = Math.max(col.header.length + 4, 10);
+      let w = Math.max(col.header.length + 6, 14);
       rows.forEach((r) => {
         const v = col.value(r);
-        w = Math.max(w, Math.min(String(v ?? "").length + 2, 44));
+        w = Math.max(w, Math.min(String(v ?? "").length + 3, 52));
       });
       column.width = w;
     }
@@ -285,7 +308,7 @@ export function addDataTable<T>(
 
 export function styleAsFootnote(row: Row) {
   row.eachCell((cell) => {
-    cell.font = { name: FONT, size: 8, italic: true, color: { argb: THEME.muted } };
+    cell.font = { name: FONT, size: SIZE.footnote, italic: true, color: { argb: THEME.muted } };
     cell.alignment = { vertical: "top", wrapText: true };
   });
 }

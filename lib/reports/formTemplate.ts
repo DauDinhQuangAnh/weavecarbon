@@ -4,7 +4,7 @@
  * for evidence and product bulk-import.
  */
 import type { Workbook, Worksheet } from "exceljs";
-import { THEME, newBrandedWorkbook, addWorksheet, downloadWorkbook } from "./excelTheme";
+import { THEME, SIZE, newBrandedWorkbook, addWorksheet, downloadWorkbook } from "./excelTheme";
 
 const FONT = "Calibri";
 const fill = (argb: string) => ({ type: "pattern" as const, pattern: "solid" as const, fgColor: { argb } });
@@ -36,25 +36,25 @@ function titleBar(sheet: Worksheet, title: string, subtitle: string | undefined,
   sheet.mergeCells(1, 1, 1, cols);
   const brand = sheet.getCell(1, 1);
   brand.value = "WeaveCarbon · File mẫu";
-  brand.font = { name: FONT, size: 11, bold: true, color: { argb: "FFFFFF" } };
+  brand.font = { name: FONT, size: SIZE.brandBar, bold: true, color: { argb: "FFFFFF" } };
   brand.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
   brand.fill = fill(THEME.brand);
-  sheet.getRow(1).height = 22;
+  sheet.getRow(1).height = 28;
 
   sheet.mergeCells(2, 1, 2, cols);
   const t = sheet.getCell(2, 1);
   t.value = title;
-  t.font = { name: FONT, size: 15, bold: true, color: { argb: THEME.ink } };
-  sheet.getRow(2).height = 22;
+  t.font = { name: FONT, size: SIZE.title, bold: true, color: { argb: THEME.ink } };
+  sheet.getRow(2).height = 34;
 
   sheet.mergeCells(3, 1, 3, cols);
   const s = sheet.getCell(3, 1);
   s.value = subtitle
     ? `${subtitle}  ·  Dòng ví dụ (nền nhạt) — xoá và thay bằng dữ liệu thật. Ô có * là bắt buộc.`
     : "Dòng ví dụ (nền nhạt) — xoá và thay bằng dữ liệu thật. Ô có * là bắt buộc.";
-  s.font = { name: FONT, size: 9, italic: true, color: { argb: THEME.muted } };
+  s.font = { name: FONT, size: SIZE.subtitle, italic: true, color: { argb: THEME.muted } };
   s.alignment = { vertical: "top", wrapText: true };
-  sheet.getRow(3).height = 22;
+  sheet.getRow(3).height = 34;
   return 5;
 }
 
@@ -66,20 +66,20 @@ function addFormSheet(wb: Workbook, spec: FormSheetSpec): void {
   spec.columns.forEach((col, i) => {
     const cell = header.getCell(i + 1);
     cell.value = col.header;
-    cell.font = { name: FONT, size: 9.5, bold: true, color: { argb: "FFFFFF" } };
+    cell.font = { name: FONT, size: SIZE.tableHeader, bold: true, color: { argb: "FFFFFF" } };
     cell.alignment = { vertical: "middle", horizontal: "left", indent: 1, wrapText: true };
     cell.fill = fill(THEME.brand);
     cell.border = borders(THEME.border);
-    if (col.width) sheet.getColumn(i + 1).width = col.width;
+    if (col.width) sheet.getColumn(i + 1).width = Math.ceil(col.width * 1.2);
   });
-  header.height = 24;
+  header.height = 34;
 
   spec.sampleRows.forEach((row, ri) => {
     const r = sheet.getRow(startRow + 1 + ri);
     spec.columns.forEach((_, ci) => {
       const cell = r.getCell(ci + 1);
       cell.value = row[ci] === undefined || row[ci] === "" ? null : row[ci];
-      cell.font = { name: FONT, size: 9, italic: true, color: { argb: THEME.muted } };
+      cell.font = { name: FONT, size: SIZE.tableBody, italic: true, color: { argb: THEME.muted } };
       cell.alignment = { vertical: "middle", horizontal: "left", indent: 1, wrapText: true };
       cell.fill = fill(THEME.zebra);
       cell.border = borders(THEME.border);
@@ -96,7 +96,7 @@ function addFormSheet(wb: Workbook, spec: FormSheetSpec): void {
       sheet.mergeCells(noteRow, 1, noteRow, Math.min(spec.columns.length, 8) || 1);
       const cell = sheet.getCell(noteRow, 1);
       cell.value = note;
-      cell.font = { name: FONT, size: 8.5, italic: true, color: { argb: THEME.muted } };
+      cell.font = { name: FONT, size: SIZE.footnote, italic: true, color: { argb: THEME.muted } };
       cell.alignment = { vertical: "top", horizontal: "left", wrapText: true };
       noteRow += 1;
     });
@@ -111,11 +111,11 @@ function addInfoSheet(wb: Workbook, spec: InfoSheetSpec): void {
     if (Array.isArray(row)) {
       const a = sheet.getCell(r, 1);
       a.value = row[0];
-      a.font = { name: FONT, size: 9.5, bold: true, color: { argb: THEME.brandDark } };
+      a.font = { name: FONT, size: SIZE.tableBody, bold: true, color: { argb: THEME.brandDark } };
       a.alignment = { vertical: "top", wrapText: true };
       const b = sheet.getCell(r, 2);
       b.value = row[1];
-      b.font = { name: FONT, size: 9.5, color: { argb: THEME.ink } };
+      b.font = { name: FONT, size: SIZE.tableBody, color: { argb: THEME.ink } };
       b.alignment = { vertical: "top", wrapText: true };
       if (r % 2 === 1) {
         a.fill = fill(THEME.zebra);
@@ -125,7 +125,7 @@ function addInfoSheet(wb: Workbook, spec: InfoSheetSpec): void {
       sheet.mergeCells(r, 1, r, 2);
       const cell = sheet.getCell(r, 1);
       cell.value = row;
-      cell.font = { name: FONT, size: 9.5, color: { argb: THEME.ink } };
+      cell.font = { name: FONT, size: SIZE.tableBody, color: { argb: THEME.ink } };
       cell.alignment = { vertical: "top", wrapText: true };
     }
     r += 1;

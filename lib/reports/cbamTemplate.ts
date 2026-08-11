@@ -115,7 +115,7 @@ export async function buildCbamWorkbook(data: CbamReportData): Promise<Workbook>
     // Colour the status cells green/red.
     data.checks.items.forEach((it, i) => {
       const cell = s.getCell(checkStart + 1 + i, 2);
-      cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: it.ok ? THEME.brand : THEME.red } };
+      cell.font = { name: "Calibri", size: 13, bold: true, color: { argb: it.ok ? THEME.brand : THEME.red } };
     });
 
     r = addSectionBar(s, r, "Tuyên bố miễn trừ trách nhiệm", 8);
@@ -125,11 +125,11 @@ export async function buildCbamWorkbook(data: CbamReportData): Promise<Workbook>
       "Đây là báo cáo dữ liệu carbon tiền-thẩm tra (pre-audit) phục vụ chuẩn bị/ESG. " +
       "KHÔNG phải tờ khai CBAM và KHÔNG phải chứng nhận. Hàng dệt may hiện chưa thuộc phạm vi CBAM " +
       "(Quy định EU 2023/956); cấu trúc chỉ phỏng theo mẫu DG TAXUD. Cần đơn vị thẩm tra độc lập để dùng chính thức.";
-    disc.font = { name: "Calibri", size: 8.5, italic: true, color: { argb: THEME.muted } };
+    disc.font = { name: "Calibri", size: 11, italic: true, color: { argb: THEME.muted } };
     disc.alignment = { vertical: "top", horizontal: "left", wrapText: true };
 
-    s.getColumn(1).width = 26;
-    for (let c = 2; c <= 8; c++) s.getColumn(c).width = 16;
+    s.getColumn(1).width = 32;
+    for (let c = 2; c <= 8; c++) s.getColumn(c).width = 19;
   }
 
   // ── Sheet 2: A. Cơ sở ─────────────────────────────────────────────────────
