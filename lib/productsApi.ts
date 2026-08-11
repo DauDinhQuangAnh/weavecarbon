@@ -1672,6 +1672,13 @@ const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
       source.containerNo ??
       source.container_no
     ),
+    palletPurpose: ((): ProductAssessmentData["palletPurpose"] => {
+      const raw = payload.palletPurpose ?? payload.pallet_purpose ?? source.palletPurpose ?? source.pallet_purpose;
+      return raw === "standalone" || raw === "packing_material" ? raw : undefined;
+    })(),
+    woodSpecies: asString(payload.woodSpecies ?? payload.wood_species ?? source.woodSpecies ?? source.wood_species),
+    harvestCountry: asString(payload.harvestCountry ?? payload.harvest_country ?? source.harvestCountry ?? source.harvest_country),
+    legalityReference: asString(payload.legalityReference ?? payload.legality_reference ?? source.legalityReference ?? source.legality_reference),
     weightPerUnit,
     quantity: asNumber(source.quantity),
     materials: normalizeMaterials(payload.materials ?? source.materials),
