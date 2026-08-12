@@ -59,6 +59,7 @@ import {
   DEFAULT_B2C_MATERIAL_REWARDS,
   DEFAULT_OTHER_MATERIAL_ID
 } from "@/lib/b2cMaterialRewardsDefaults";
+import { donationCo2Saved } from "@/lib/b2cCo2";
 import {
   convertAnalysisResultToFormItems,
   getAnalysisErrorMessage,
@@ -313,7 +314,7 @@ const B2CDonationClient: React.FC = () => {
 
       accumulator.totalWeightKg += weightKg;
       accumulator.basePoints += Math.round(reward.points_per_kg * weightKg);
-      accumulator.co2Saved += reward.co2_saved_per_kg * weightKg;
+      accumulator.co2Saved += donationCo2Saved(category, reward.co2_saved_per_kg, weightKg);
       return accumulator;
     },
     {
@@ -2027,6 +2028,11 @@ const B2CDonationClient: React.FC = () => {
                   </p>
                   <p className="mt-2 text-2xl font-semibold">
                     {estimatedCo2Saved.toFixed(2)} kg
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                    {category === "charity"
+                      ? "Ước tính theo mức tái sử dụng bảo thủ (WRAP): ~50% phát thải nguyên sinh tránh được."
+                      : "Ước tính theo tái chế cơ học (WRAP): ~0,7 kg CO₂/kg."}
                   </p>
                 </div>
               </div>

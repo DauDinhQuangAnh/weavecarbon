@@ -1,6 +1,7 @@
 "use client";
 
 import { DEFAULT_B2C_MATERIAL_REWARDS } from "@/lib/b2cMaterialRewardsDefaults";
+import { donationCo2Saved } from "@/lib/b2cCo2";
 
 const B2C_DEMO_USER_ID = "b2c-demo-usr-0001";
 const B2C_DEMO_EMAIL = "linh.nguyen@weavecarbon.demo";
@@ -576,6 +577,7 @@ export const createDemoB2CDonation = (payload: Record<string, unknown>) => {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const materialRewards = getDemoB2CMaterialRewards().items;
   const materialMap = new Map(materialRewards.map((m) => [m.id, m]));
+  const category = String(payload.category || "charity");
 
   let basePoints = 0;
   let co2Saved = 0;
@@ -584,7 +586,7 @@ export const createDemoB2CDonation = (payload: Record<string, unknown>) => {
     const weightKg = Number(item.weight_kg) || 0;
     const reward = materialMap.get(String(item.material_id || ""));
     const pointsEarned = reward ? Math.round(reward.points_per_kg * weightKg) : 0;
-    const itemCo2 = reward ? reward.co2_saved_per_kg * weightKg : 0;
+    const itemCo2 = reward ? donationCo2Saved(category, reward.co2_saved_per_kg, weightKg) : 0;
     basePoints += pointsEarned;
     co2Saved += itemCo2;
     totalWeightKg += weightKg;
@@ -603,7 +605,6 @@ export const createDemoB2CDonation = (payload: Record<string, unknown>) => {
     };
   });
 
-  const category = String(payload.category || "charity");
   const bonusPoints = category === "charity" ? Math.round(basePoints * 0.5) : 0;
 
   const donation = {
