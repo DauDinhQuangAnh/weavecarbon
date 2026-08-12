@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Camera,
   CheckCircle2,
+  Droplets,
   ImagePlus,
   Loader2,
   MapPin,
@@ -60,6 +61,7 @@ import {
   DEFAULT_OTHER_MATERIAL_ID
 } from "@/lib/b2cMaterialRewardsDefaults";
 import { donationCo2Saved } from "@/lib/b2cCo2";
+import { aggregateMicrofiberLevel } from "@/lib/b2cMicrofiber";
 import {
   convertAnalysisResultToFormItems,
   getAnalysisErrorMessage,
@@ -328,6 +330,16 @@ const B2CDonationClient: React.FC = () => {
     category === "charity" ? Math.round(metrics.basePoints * 0.5) : 0;
   const estimatedTotalPoints = metrics.basePoints + bonusPoints;
   const estimatedCo2Saved = Number(metrics.co2Saved.toFixed(4));
+
+  // Microfibre (microplastic) shedding advisory: synthetic fibres — especially
+  // mechanically recycled ones — release fragments when laundered.
+  const microfiberLevel = useMemo(
+    () =>
+      aggregateMicrofiberLevel(
+        items.map((item) => materialMap.get(item.material_id)?.material_name)
+      ),
+    [items, materialMap]
+  );
 
   useEffect(() => {
     if (loading || authStatus === "checking" || authStatus === "recovering") return;
@@ -2036,6 +2048,25 @@ const B2CDonationClient: React.FC = () => {
                   </p>
                 </div>
               </div>
+
+              {microfiberLevel !== "none" ? (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
+                  <Droplets className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">Lưu ý vi sợi nhựa</p>
+                    <p className="text-xs leading-relaxed">
+                      {microfiberLevel === "recycled-synthetic"
+                        ? "Sản phẩm sợi tổng hợp tái chế cơ học phát tán vi nhựa cao hơn (gấp 4–6 lần) khi giặt. Ưu tiên tặng để tái sử dụng nguyên trạng thay vì tái chế, và dùng túi giặt lọc vi nhựa để giảm phát tán."
+                        : "Sợi tổng hợp giải phóng vi sợi nhựa khi giặt. Cân nhắc dùng túi giặt lọc vi nhựa; nếu sản phẩm còn mặc được, hãy chọn quyên góp tái sử dụng (charity) để giữ nguyên cấu trúc sợi."}
+                    </p>
+                    {microfiberLevel === "recycled-synthetic" && category === "recycle" ? (
+                      <p className="text-xs font-medium">
+                        Gợi ý: có món còn tốt? Chuyển sang mục “Charity” để ưu tiên vòng lặp tái sử dụng.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               <Separator />
 
