@@ -2,13 +2,32 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Award, Shirt, Recycle, TrendingUp, Car, Trees, Smartphone } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import {
+  Award,
+  Shirt,
+  Recycle,
+  TrendingUp,
+  Car,
+  Trees,
+  Smartphone,
+  Sprout,
+  Leaf
+} from "lucide-react";
 import { UserProfile } from "@/hooks/useUserProfile";
 import { useTranslations } from "next-intl";
 
 interface B2CStatsGridProps {
   profile: UserProfile | null;
 }
+
+// Circularity tiers, driven by lifetime CO₂ saved (kg). Encourages repeat donations.
+const CIRCULARITY_TIERS = [
+  { key: "seed", name: "Hạt giống", min: 0, icon: Sprout },
+  { key: "sprout", name: "Mầm xanh", min: 10, icon: Leaf },
+  { key: "tree", name: "Cây trưởng thành", min: 50, icon: Trees },
+  { key: "ambassador", name: "Đại sứ Tuần hoàn", min: 150, icon: Award }
+];
 
 const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
   const t = useTranslations("b2c.stats");
@@ -18,6 +37,20 @@ const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
     co2Saved: profile?.co2Saved || 0,
     treesEquivalent: profile?.treesEquivalent || 0
   };
+
+  const tierIndex = CIRCULARITY_TIERS.reduce(
+    (acc, tier, index) => (stats.co2Saved >= tier.min ? index : acc),
+    0
+  );
+  const currentTier = CIRCULARITY_TIERS[tierIndex];
+  const nextTier = CIRCULARITY_TIERS[tierIndex + 1];
+  const TierIcon = currentTier.icon;
+  const tierProgress = nextTier
+    ? Math.min(
+        100,
+        Math.round(((stats.co2Saved - currentTier.min) / (nextTier.min - currentTier.min)) * 100)
+      )
+    : 100;
 
   const statItems = [
     {
@@ -72,6 +105,28 @@ const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
 
   return (
     <div className="space-y-4">
+      <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-emerald-100 p-2.5 ring-1 ring-emerald-200">
+              <TierIcon className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Cấp độ tuần hoàn
+              </p>
+              <p className="text-lg font-bold text-foreground">{currentTier.name}</p>
+            </div>
+          </div>
+          <Progress value={tierProgress} className="mt-3 h-2" />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {nextTier
+              ? `Còn ${Math.max(0, Math.ceil(nextTier.min - stats.co2Saved)).toLocaleString("vi-VN")} kg CO₂ để lên "${nextTier.name}".`
+              : "Bạn đã đạt cấp cao nhất — Đại sứ Tuần hoàn."}
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {statItems.map((item) => {
         const Icon = item.icon;
