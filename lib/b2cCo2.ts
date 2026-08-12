@@ -23,6 +23,33 @@ export const RECYCLE_NET_EF_PER_KG = 0.7;
 /** Disposition intent that earns the reuse (higher) credit. */
 export const REUSE_CATEGORY = "charity";
 
+/** Actual end-of-life pathway recorded at the sorting centre. */
+export type DonationDisposition = "reuse" | "recycle" | "waste";
+
+/**
+ * CO₂e saved (kg) for a single item given its *actual* sorted disposition.
+ * reuse → conservative virgin displacement; recycle → flat downcycling saving;
+ * waste (incineration) → no net saving credited.
+ */
+export function dispositionCo2Saved(
+  disposition: DonationDisposition | string | null | undefined,
+  virginEfPerKg: number,
+  weightKg: number
+): number {
+  const ef = Number(virginEfPerKg);
+  const weight = Number(weightKg);
+  if (!Number.isFinite(ef) || !Number.isFinite(weight) || weight <= 0) {
+    return 0;
+  }
+  if (disposition === "reuse") {
+    return ef * REUSE_DISPLACEMENT_FACTOR * weight;
+  }
+  if (disposition === "recycle") {
+    return RECYCLE_NET_EF_PER_KG * weight;
+  }
+  return 0;
+}
+
 /**
  * CO₂e saved (kg) for a single donated line item, adjusted for its disposition.
  * Returns 0 for non-positive or non-finite inputs.

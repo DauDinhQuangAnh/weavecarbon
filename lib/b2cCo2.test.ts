@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   donationCo2Saved,
+  dispositionCo2Saved,
   REUSE_DISPLACEMENT_FACTOR,
   RECYCLE_NET_EF_PER_KG
 } from "./b2cCo2";
@@ -27,5 +28,21 @@ describe("donationCo2Saved", () => {
     expect(donationCo2Saved("charity", 8.0, 0)).toBe(0);
     expect(donationCo2Saved("charity", 8.0, -1)).toBe(0);
     expect(donationCo2Saved("charity", Number.NaN, 1)).toBe(0);
+  });
+});
+
+describe("dispositionCo2Saved", () => {
+  it("credits reuse with the conservative virgin displacement", () => {
+    expect(dispositionCo2Saved("reuse", 8.0, 1)).toBeCloseTo(4.0, 6);
+  });
+
+  it("credits recycle at the flat downcycling factor", () => {
+    expect(dispositionCo2Saved("recycle", 8.0, 1)).toBeCloseTo(RECYCLE_NET_EF_PER_KG, 6);
+    expect(dispositionCo2Saved("recycle", 17.0, 1)).toBeCloseTo(RECYCLE_NET_EF_PER_KG, 6);
+  });
+
+  it("credits nothing for waste or unknown dispositions", () => {
+    expect(dispositionCo2Saved("waste", 8.0, 5)).toBe(0);
+    expect(dispositionCo2Saved("unknown", 8.0, 5)).toBe(0);
   });
 });

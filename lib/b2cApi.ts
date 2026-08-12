@@ -114,6 +114,9 @@ export interface DonationSummary {
   category: "charity" | "recycle";
   delivery_method: "drop_off" | "shipping";
   status: string;
+  disposition?: "reuse" | "recycle" | "waste" | null;
+  disposition_note?: string | null;
+  disposition_at?: string | null;
   base_points: number;
   bonus_points: number;
   total_points: number;
@@ -296,6 +299,18 @@ export const fetchB2CDonationById = (donationId: string) =>
   api.get<DonationDetail>(`/b2c/donations/${encodeURIComponent(donationId)}`, {
     disableResponseCache: true
   });
+
+// Sorting-centre action (operator/admin, or the demo simulation): record the
+// actual disposition and receive the recomputed donation detail.
+export const recordB2CDonationDisposition = (
+  donationId: string,
+  disposition: "reuse" | "recycle" | "waste",
+  note?: string | null
+) =>
+  api.post<DonationDetail & { co2_delta?: number }>(
+    `/b2c-admin/donations/${encodeURIComponent(donationId)}/disposition`,
+    { disposition, note: note ?? null }
+  );
 
 export const fetchB2CRewardTransactions = (limit = 30) =>
   api.get<RewardTransactionListPayload>(

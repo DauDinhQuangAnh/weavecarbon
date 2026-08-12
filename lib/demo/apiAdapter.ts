@@ -73,6 +73,7 @@ import {
   getDemoSuppliers,
 } from "@/lib/demo/domain/operations";
 import {
+  applyDemoB2CDonationDisposition,
   createDemoB2CDonation,
   getDemoB2CAccount,
   getDemoB2CCollectionPoints,
@@ -1298,6 +1299,42 @@ export const createDemoB2CApiRequestAdapter = (): ApiRequestAdapter => {
             ? JSON.parse(body.get("payload") as string)
             : getBodyObject(body);
         return { handled: true, value: createDemoB2CDonation(parsed as Record<string, unknown>) };
+      }
+
+      if (
+        method === "POST" &&
+        /^\/b2c-admin\/donations\/[^/]+\/disposition$/.test(pathname)
+      ) {
+        const match = ensurePathMatches(
+          pathname.match(/^\/b2c-admin\/donations\/([^/]+)\/disposition$/),
+          pathname
+        );
+        const payload = getBodyObject(body) as {
+          disposition?: "reuse" | "recycle" | "waste";
+          note?: string | null;
+        };
+        const disposition = payload.disposition;
+        if (disposition !== "reuse" && disposition !== "recycle" && disposition !== "waste") {
+          return {
+            handled: true,
+            error: new ApiError("Disposition must be reuse, recycle, or waste.", {
+              status: 422,
+              code: "INVALID_DISPOSITION",
+            }),
+          };
+        }
+        const updated = applyDemoB2CDonationDisposition(
+          decodeURIComponent(match[1]),
+          disposition,
+          payload.note ?? null
+        );
+        if (!updated) {
+          return {
+            handled: true,
+            error: new ApiError("Donation not found.", { status: 404, code: "NOT_FOUND" }),
+          };
+        }
+        return { handled: true, value: updated };
       }
 
       if (method === "GET" && /^\/b2c\/donations\/[^/]+$/.test(pathname)) {

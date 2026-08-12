@@ -1,7 +1,7 @@
 "use client";
 
 import { DEFAULT_B2C_MATERIAL_REWARDS } from "@/lib/b2cMaterialRewardsDefaults";
-import { donationCo2Saved } from "@/lib/b2cCo2";
+import { donationCo2Saved, dispositionCo2Saved } from "@/lib/b2cCo2";
 
 const B2C_DEMO_USER_ID = "b2c-demo-usr-0001";
 const B2C_DEMO_EMAIL = "linh.nguyen@weavecarbon.demo";
@@ -15,6 +15,9 @@ type DemoDonation = {
   category: string;
   delivery_method: string;
   status: string;
+  disposition?: "reuse" | "recycle" | "waste" | null;
+  disposition_note?: string | null;
+  disposition_at?: string | null;
   base_points: number;
   bonus_points: number;
   total_points: number;
@@ -200,6 +203,11 @@ export const getDemoB2CAccount = () => ({
   company_membership: null,
 });
 
+// Accumulated CO₂ delta from simulated sorting-centre dispositions, folded into
+// the demo dashboard total so the full donation → sorting → adjusted-credit loop
+// is visible in demo mode.
+let demoCo2Adjustment = 0;
+
 export const getDemoB2CDashboard = () => ({
   profile: {
     id: B2C_DEMO_USER_ID,
@@ -212,9 +220,9 @@ export const getDemoB2CDashboard = () => ({
     total_donations: 15,
     total_items_donated: 38,
     total_weight_kg: 19.5,
-    total_co2_saved: 47.3,
+    total_co2_saved: Number(Math.max(0, 47.3 + demoCo2Adjustment).toFixed(2)),
     current_level: "Green Member",
-    trees_equivalent: 5,
+    trees_equivalent: Math.max(0, Math.round((47.3 + demoCo2Adjustment) / 21)),
   },
   recent_activity: [
     {
@@ -572,6 +580,47 @@ export const getDemoB2CDonations = (limit = 20) => ({
 
 export const getDemoB2CDonationById = (id: string) =>
   demoDonations.find((d) => d.id === id) ?? null;
+
+const FALLBACK_VIRGIN_EF_PER_KG = 6.0; // "Other Material (Proxy)" default
+
+export const applyDemoB2CDonationDisposition = (
+  id: string,
+  disposition: "reuse" | "recycle" | "waste",
+  note?: string | null
+) => {
+  const donation = demoDonations.find((d) => d.id === id);
+  if (!donation) {
+    return null;
+  }
+
+  const materialRewards = getDemoB2CMaterialRewards().items;
+  const efById = new Map(materialRewards.map((m) => [m.id, m.co2_saved_per_kg]));
+
+  const previousCo2 = donation.co2_saved;
+  let newTotalCo2 = 0;
+  donation.items = donation.items.map((item) => {
+    const virginEf = efById.get(item.material_id) ?? FALLBACK_VIRGIN_EF_PER_KG;
+    const itemCo2 = Number(
+      dispositionCo2Saved(disposition, virginEf, item.weight_kg).toFixed(4)
+    );
+    newTotalCo2 += itemCo2;
+    return { ...item, co2_saved: itemCo2 };
+  });
+
+  newTotalCo2 = Number(newTotalCo2.toFixed(4));
+  const delta = Number((newTotalCo2 - previousCo2).toFixed(4));
+
+  donation.co2_saved = newTotalCo2;
+  donation.disposition = disposition;
+  donation.disposition_note = note ?? null;
+  donation.disposition_at = new Date().toISOString();
+  donation.status = "completed";
+  donation.completed_at = donation.completed_at ?? new Date().toISOString();
+
+  demoCo2Adjustment = Number((demoCo2Adjustment + delta).toFixed(4));
+
+  return { ...donation, co2_delta: delta };
+};
 
 export const createDemoB2CDonation = (payload: Record<string, unknown>) => {
   const items = Array.isArray(payload.items) ? payload.items : [];

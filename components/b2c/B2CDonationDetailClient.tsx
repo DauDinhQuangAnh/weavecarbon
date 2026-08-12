@@ -17,7 +17,20 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { fetchB2CDonationById, type DonationDetail } from "@/lib/b2cApi";
+import {
+  fetchB2CDonationById,
+  recordB2CDonationDisposition,
+  type DonationDetail
+} from "@/lib/b2cApi";
+import { useAppRuntime } from "@/lib/demo/routes";
+
+type Disposition = "reuse" | "recycle" | "waste";
+
+const DISPOSITION_LABELS: Record<Disposition, string> = {
+  reuse: "Tái sử dụng",
+  recycle: "Tái chế",
+  waste: "Loại bỏ (đốt)"
+};
 
 interface B2CDonationDetailClientProps {
   donationId: string;
@@ -30,9 +43,26 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
+  const runtime = useAppRuntime();
   const [donation, setDonation] = useState<DonationDetail | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [simulating, setSimulating] = useState<Disposition | null>(null);
+
+  const handleSimulateDisposition = async (disposition: Disposition) => {
+    if (!donation) return;
+    setSimulating(disposition);
+    try {
+      const updated = await recordB2CDonationDisposition(donation.id, disposition);
+      setDonation(updated);
+    } catch (error) {
+      setPageError(
+        error instanceof Error ? error.message : "Không thể ghi nhận phân loại."
+      );
+    } finally {
+      setSimulating(null);
+    }
+  };
 
   useEffect(() => {
     if (loading || authStatus === "checking" || authStatus === "recovering") return;
@@ -139,6 +169,11 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
                   <Badge variant="outline">{donation.status}</Badge>
                   <Badge variant="outline">{donation.category}</Badge>
                   <Badge variant="outline">{donation.delivery_method}</Badge>
+                  {donation.disposition ? (
+                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
+                      Kết quả: {DISPOSITION_LABELS[donation.disposition]}
+                    </Badge>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
@@ -171,6 +206,49 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
                     </p>
                   </div>
                 </div>
+
+                {donation.disposition ? (
+                  <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
+                    <p className="font-semibold">
+                      Đã phân loại tại trung tâm: {DISPOSITION_LABELS[donation.disposition]}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed">
+                      CO₂ tiết kiệm đã được cập nhật theo kết quả phân loại thực tế (thay cho ước
+                      tính lúc quyên góp).
+                      {donation.disposition === "waste"
+                        ? " Đồ không thể tái sử dụng/tái chế nên không ghi nhận CO₂ tiết kiệm."
+                        : ""}
+                    </p>
+                    {donation.disposition_note ? (
+                      <p className="mt-1 text-xs italic">“{donation.disposition_note}”</p>
+                    ) : null}
+                  </div>
+                ) : runtime === "demo" ? (
+                  <div className="rounded-2xl border border-dashed border-border p-4">
+                    <p className="text-sm font-medium text-foreground">
+                      Mô phỏng phân loại (sorting center)
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Chọn kết quả thực tế sau khi phân loại — CO₂ tiết kiệm sẽ được tính lại và
+                      cập nhật vào tổng của bạn.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(["reuse", "recycle", "waste"] as const).map((disposition) => (
+                        <Button
+                          key={disposition}
+                          variant="outline"
+                          size="sm"
+                          disabled={simulating !== null}
+                          onClick={() => handleSimulateDisposition(disposition)}
+                        >
+                          {simulating === disposition
+                            ? "Đang xử lý..."
+                            : DISPOSITION_LABELS[disposition]}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {donation.collection_point && (
                   <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
