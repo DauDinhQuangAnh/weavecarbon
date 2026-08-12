@@ -11,8 +11,10 @@ import {
   addTitleBlock,
   addKpiStrip,
   addKeyValueTable,
+  addSectionBar,
   addDataTable,
   downloadWorkbook,
+  THEME,
   type TemplateColumn,
 } from "./excelTheme";
 
@@ -50,7 +52,19 @@ export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Pro
       { header: "kg CO₂e", width: 14, align: "right", numFmt: KG4, total: true, value: (b) => n(b.kgCo2e) },
       { header: "Công thức", width: 34, value: (b) => str(b.formula) },
     ];
-    addDataTable(s, { startRow: r, columns: cols, rows: payload.breakdownRows, totalsLabel: "Tổng PCF", emptyText: "Chưa có dữ liệu." });
+    let rr = addDataTable(s, { startRow: r, columns: cols, rows: payload.breakdownRows, totalsLabel: "Tổng PCF", emptyText: "Chưa có dữ liệu." });
+
+    // Boundary & disclosure (ISO 14067) — anti-greenwashing statement on the buyer document.
+    rr = addSectionBar(s, rr, "Ranh giới hệ thống & Tuyên bố miễn trừ", 7);
+    s.mergeCells(rr, 1, rr + 3, 7);
+    const disc = s.getCell(rr, 1);
+    disc.value =
+      "PCF bán phần (partial CFP): cradle-to-gate + gate-to-market; LOẠI TRỪ giai đoạn sử dụng (B) và cuối vòng đời (C). " +
+      "GHG được báo cáo tách biệt theo ISO 14067 (6.4.9): GWP-fossil = tổng PCF; GWP-biogenic (carbon sinh học lưu trữ trong gỗ) báo cáo RIÊNG, KHÔNG trừ vào tổng fossil; GWP-luluc chưa được mô hình hoá. " +
+      "Chỉ số này không đại diện cho toàn bộ vòng đời sản phẩm và chưa được xác minh độc lập (not independently verified).";
+    disc.font = { name: "Calibri", size: 11, italic: true, color: { argb: THEME.muted } };
+    disc.alignment = { vertical: "top", horizontal: "left", wrapText: true };
+    for (let i = rr; i <= rr + 3; i++) s.getRow(i).height = 20;
   }
 
   // ── Cơ sở ─────────────────────────────────────────────────────────────────

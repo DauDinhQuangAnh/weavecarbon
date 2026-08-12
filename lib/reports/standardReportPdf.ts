@@ -101,6 +101,8 @@ export function buildStandardReportPdf(doc: jsPDF, payload: ReportPayloadV2): vo
     y,
     "Báo cáo tiền-thẩm tra (pre-audit) tạo tự động từ dữ liệu người dùng, không phải chứng nhận CBAM chính thức " +
       "và cần đơn vị thẩm tra độc lập để dùng trong giao dịch thương mại. " +
+      "Đây là PCF bán phần (cradle-to-gate + gate-to-market), loại trừ giai đoạn sử dụng (B) và cuối vòng đời (C); không đại diện toàn bộ vòng đời sản phẩm. " +
+      "GHG được báo cáo tách biệt theo ISO 14067 (6.4.9): carbon sinh học (GWP-biogenic) báo cáo riêng, không trừ vào tổng phát thải hoá thạch; GWP-luluc chưa được mô hình hoá. " +
       `Nguồn hệ số: ${payload.sources.join(" · ")}.`,
   );
 
