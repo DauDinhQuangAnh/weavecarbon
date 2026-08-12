@@ -253,6 +253,12 @@ describe("carbon engine", () => {
 
     expect(kept.energyMix[0]?.factorId).toBe("energy-solar-generic");
     expect(sold.energyMix[0]?.factorId).toBe("energy-grid-vn-2023");
+
+    // Location-based (dual reporting) forces the grid factor even with RECs kept.
+    const locationBased = buildCarbonEngineInputFromAssessment(base, "vietnam", {
+      forceGridElectricity: true
+    });
+    expect(locationBased.energyMix[0]?.factorId).toBe("energy-grid-vn-2023");
   });
 
   it("keeps energy as an analytical view instead of a top-level lifecycle stage", () => {

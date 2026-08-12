@@ -143,6 +143,13 @@ const Step5CarbonResult: React.FC<Step5CarbonResultProps> = ({
     (): CarbonAssessmentResult => calculateAssessmentCarbon(data, companyDomesticMarket),
     [companyDomesticMarket, data]
   );
+  // GHG Protocol Scope 2 dual reporting: location-based recomputes with the national
+  // grid factor applied to all electricity (ignoring RECs/PPAs); the main `result` is
+  // market-based (honors RECs kept, penalizes RECs sold).
+  const locationBasedScope2 = useMemo(
+    () => calculateAssessmentCarbon(data, companyDomesticMarket, { forceGridElectricity: true }).scope2,
+    [companyDomesticMarket, data]
+  );
   const resultSerialized = useMemo(() => JSON.stringify(result), [result]);
   const engineInput = useMemo(
     () => buildCarbonEngineInputFromAssessment(data, companyDomesticMarket),
@@ -531,6 +538,20 @@ const Step5CarbonResult: React.FC<Step5CarbonResultProps> = ({
               </div>
             ))}
           </div>
+
+          {typeof result.scope2 === "number" &&
+          typeof locationBasedScope2 === "number" &&
+          Math.abs(result.scope2 - locationBasedScope2) > 0.001 ? (
+            <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/60 p-3 text-xs text-blue-800">
+              <p className="font-medium">Scope 2 — báo cáo song song (GHG Protocol Scope 2)</p>
+              <p className="mt-1">
+                Location-based (hệ số lưới điện quốc gia):{" "}
+                <b>{locationBasedScope2.toFixed(2)}</b> kg CO₂e ·{" "}
+                Market-based (theo REC/PPA — số ở trên):{" "}
+                <b>{result.scope2.toFixed(2)}</b> kg CO₂e.
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

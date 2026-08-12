@@ -220,7 +220,8 @@ export const calculateBulkRowCarbon = (row: BulkProductRow): CarbonComputationRe
 
 export const buildCarbonEngineInputFromAssessment = (
   data: ProductAssessmentData,
-  companyDomesticMarket?: string | null
+  companyDomesticMarket?: string | null,
+  options?: { forceGridElectricity?: boolean }
 ): CarbonEngineInput => {
   const destinationMarket =
     normalizeText(data.destinationMarket) ||
@@ -264,7 +265,7 @@ export const buildCarbonEngineInputFromAssessment = (
           // I-REC/GO sold => green attribute transferred; account this renewable
           // electricity at the national grid factor (GHG Protocol Scope 2 market-based).
           const factorId =
-            isRenewable && energy.recsSold ?
+            options?.forceGridElectricity || (isRenewable && energy.recsSold) ?
               resolveEnergyFactorId("grid", energyGeography) :
               resolveEnergyFactorId(energy.source, energyGeography);
           return {
@@ -289,9 +290,10 @@ export const buildCarbonEngineInputFromAssessment = (
 
 export const calculateAssessmentCarbon = (
   data: ProductAssessmentData,
-  companyDomesticMarket?: string | null
+  companyDomesticMarket?: string | null,
+  options?: { forceGridElectricity?: boolean }
 ): CarbonComputationResult =>
-  calculateCarbonFootprint(buildCarbonEngineInputFromAssessment(data, companyDomesticMarket));
+  calculateCarbonFootprint(buildCarbonEngineInputFromAssessment(data, companyDomesticMarket, options));
 
 export const buildCarbonEngineInputFromProductOverview = (
   data: ProductOverviewAdapterInput
