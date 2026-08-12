@@ -168,6 +168,13 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
     onChange({ energySources: updated });
   };
 
+  const updateEnergyRecsSold = (sourceValue: string, recsSold: boolean) => {
+    const updated = data.energySources.map((energy) =>
+      energy.source === sourceValue ? { ...energy, recsSold } : energy
+    );
+    onChange({ energySources: updated });
+  };
+
   const totalEnergyPercentage = data.energySources.reduce(
     (sum, energy) => sum + (energy.percentage || 0),
     0
@@ -370,6 +377,45 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
                   <span>{t("energy.invalidTotal")}</span>
                 </div>
               ) : null}
+            </div>
+          ) : null}
+
+          {data.energySources.some(
+            (energy) => energy.source === "solar" || energy.source === "wind"
+          ) ? (
+            <div className="mt-6 space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-3 md:p-4">
+              <p className="text-sm font-medium text-amber-800">
+                Chứng chỉ năng lượng tái tạo (I-REC / GO)
+              </p>
+              {data.energySources
+                .filter((energy) => energy.source === "solar" || energy.source === "wind")
+                .map((energy) => {
+                  const sourceInfo = ENERGY_SOURCES.find((s) => s.value === energy.source);
+                  const label =
+                    sourceInfo && t.has(`energySources.${sourceInfo.value}`)
+                      ? t(`energySources.${sourceInfo.value}`)
+                      : sourceInfo?.label || energy.source;
+                  return (
+                    <label key={energy.id} className="flex items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(energy.recsSold)}
+                        onChange={(event) =>
+                          updateEnergyRecsSold(energy.source, event.target.checked)
+                        }
+                        className="mt-0.5 h-4 w-4"
+                      />
+                      <span>
+                        Đã bán / chuyển nhượng chứng chỉ REC cho <b>{label}</b>
+                        <span className="block text-xs text-muted-foreground">
+                          Khi bật: phần điện này được hạch toán theo hệ số lưới điện quốc gia
+                          (market-based), không còn tính bằng 0 — chống tính đếm kép theo GHG
+                          Protocol Scope 2.
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
             </div>
           ) : null}
         </CardContent>

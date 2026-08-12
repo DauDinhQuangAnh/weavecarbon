@@ -915,7 +915,8 @@ map((item, index) => {
   return {
     id: asString(item.id, `energy-${index + 1}`),
     source: source || "",
-    percentage: asNumber(item.percentage ?? item.ratio ?? item.share ?? item.percent)
+    percentage: asNumber(item.percentage ?? item.ratio ?? item.share ?? item.percent),
+    recsSold: Boolean(item.recsSold ?? item.recs_sold)
   };
 }).
 filter((item) => item.source.length > 0);

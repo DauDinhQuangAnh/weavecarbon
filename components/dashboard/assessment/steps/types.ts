@@ -30,6 +30,12 @@ export interface EnergySourceInput {
   id: string;
   source: string;
   percentage: number;
+  /**
+   * Renewable source (solar/wind) whose I-REC/GO certificates have been SOLD: the
+   * green attribute is transferred, so this electricity must be accounted at the
+   * national grid factor (GHG Protocol Scope 2 market-based) to avoid double counting.
+   */
+  recsSold?: boolean;
 }
 
 export interface TransportLegNodeRef {

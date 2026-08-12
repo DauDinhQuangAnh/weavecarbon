@@ -257,14 +257,22 @@ export const buildCarbonEngineInputFromAssessment = (
     ),
     energyMix:
       data.energySources.length > 0 ?
-        data.energySources.map((energy) => ({
-          factorId: resolveEnergyFactorId(
-            energy.source,
-            data.manufacturingLocation || data.originAddress.country
-          ),
-          percentage: energy.percentage,
-          geography: data.manufacturingLocation || data.originAddress.country
-        })) :
+        data.energySources.map((energy) => {
+          const energyGeography = data.manufacturingLocation || data.originAddress.country;
+          const normalizedEnergy = normalizeText(energy.source);
+          const isRenewable = normalizedEnergy === "solar" || normalizedEnergy === "wind";
+          // I-REC/GO sold => green attribute transferred; account this renewable
+          // electricity at the national grid factor (GHG Protocol Scope 2 market-based).
+          const factorId =
+            isRenewable && energy.recsSold ?
+              resolveEnergyFactorId("grid", energyGeography) :
+              resolveEnergyFactorId(energy.source, energyGeography);
+          return {
+            factorId,
+            percentage: energy.percentage,
+            geography: energyGeography
+          };
+        }) :
         [],
     manufacturingGeography: data.manufacturingLocation || data.originAddress.country,
     originGeography: data.originAddress.country,

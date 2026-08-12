@@ -220,6 +220,41 @@ describe("carbon engine", () => {
     expect(result.gwpBreakdown.lulucKgCO2e).toBeNull();
   });
 
+  it("accounts sold-REC renewable electricity at the grid factor (Scope 2 market-based)", () => {
+    const base: ProductAssessmentData = {
+      productCode: "SOLAR-1",
+      productName: "Solar Tee",
+      productType: "tshirt",
+      productCategory: "textile",
+      weightPerUnit: 200,
+      quantity: 1,
+      materials: [
+        { id: "m1", materialType: "cat-cotton-100", percentage: 100, source: "domestic", certifications: [] }
+      ],
+      accessories: [],
+      productionProcesses: ["cutting_sewing"],
+      energySources: [{ id: "e1", source: "solar", percentage: 100 }],
+      manufacturingLocation: "Vietnam",
+      wasteRecovery: "",
+      destinationMarket: "vietnam",
+      originAddress: { streetNumber: "", street: "", ward: "", district: "", city: "Ho Chi Minh City", stateRegion: "", country: "Vietnam", postalCode: "" },
+      destinationAddress: { streetNumber: "", street: "", ward: "", district: "", city: "Ha Noi", stateRegion: "", country: "Vietnam", postalCode: "" },
+      transportLegs: [{ id: "l1", mode: "road", estimatedDistance: 500 }],
+      estimatedTotalDistance: 500,
+      status: "draft",
+      version: 1
+    };
+
+    const kept = buildCarbonEngineInputFromAssessment(base, "vietnam");
+    const sold = buildCarbonEngineInputFromAssessment(
+      { ...base, energySources: [{ id: "e1", source: "solar", percentage: 100, recsSold: true }] },
+      "vietnam"
+    );
+
+    expect(kept.energyMix[0]?.factorId).toBe("energy-solar-generic");
+    expect(sold.energyMix[0]?.factorId).toBe("energy-grid-vn-2023");
+  });
+
   it("keeps energy as an analytical view instead of a top-level lifecycle stage", () => {
     const result = calculateCarbonFootprint(buildBaseInput({ quantity: 1 }));
     const stageIds = result.stageBreakdown.map((stage) => stage.stage);
