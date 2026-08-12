@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Award, Shirt, Recycle, TrendingUp } from "lucide-react";
+import { Award, Shirt, Recycle, TrendingUp, Car, Trees, Smartphone } from "lucide-react";
 import { UserProfile } from "@/hooks/useUserProfile";
 import { useTranslations } from "next-intl";
 
@@ -58,8 +58,21 @@ const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
     }
   ];
 
+  // Real-world equivalences make the abstract kg CO₂e relatable (illustrative,
+  // average factors): car ~0.17 kg CO₂e/km, tree ~21 kg/yr, phone charge ~8 g.
+  const co2 = stats.co2Saved;
+  const equivalences =
+    co2 > 0
+      ? [
+          { icon: Car, value: Math.round(co2 / 0.17).toLocaleString("vi-VN"), label: "km không lái ô tô" },
+          { icon: Trees, value: Math.round(co2 / (21 / 365)).toLocaleString("vi-VN"), label: "ngày một cây xanh hấp thụ" },
+          { icon: Smartphone, value: Math.round(co2 / 0.008).toLocaleString("vi-VN"), label: "lần sạc điện thoại" }
+        ]
+      : [];
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {statItems.map((item) => {
         const Icon = item.icon;
 
@@ -89,6 +102,37 @@ const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
           </Card>
         );
       })}
+      </div>
+
+      {equivalences.length > 0 ? (
+        <Card className="border-border/80 bg-card/90 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {stats.co2Saved} kg CO₂ bạn tiết kiệm · tương đương
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {equivalences.map((eq, index) => {
+                const EqIcon = eq.icon;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-100"
+                  >
+                    <EqIcon className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <div className="min-w-0">
+                      <p className="text-lg font-bold text-foreground">{eq.value}</p>
+                      <p className="text-xs text-muted-foreground">{eq.label}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              Số quy đổi mang tính minh hoạ (hệ số TB: ô tô ~0,17 kg CO₂e/km · cây xanh ~21 kg/năm · sạc điện thoại ~8 g).
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 
