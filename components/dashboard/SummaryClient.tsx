@@ -1647,6 +1647,10 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
           totalCo2ePerUnit: Number(carbonDetail?.totalCo2e) || 0,
           confidenceLevel: carbonDetail?.confidenceLevel || "low",
           confidenceScore,
+          biogenicRemovedKgCO2e:
+            product.carbonResults?.gwpBreakdown?.biogenicRemovedKgCO2e ||
+            product.carbonResults?.biogenicCarbon?.removedKgCO2e ||
+            undefined,
           estimatedDistanceKm: Number(product.estimatedTotalDistance) || 0,
           quantity,
           generatedAt,

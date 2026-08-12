@@ -54,6 +54,8 @@ export interface ProductCarbonReportInput {
   totalCo2ePerUnit: number;
   confidenceLevel: string;
   confidenceScore: number;
+  /** Biogenic CO2 stored (e.g. wood), reported separately per ISO 14067 — never netted. */
+  biogenicRemovedKgCO2e?: number;
   estimatedDistanceKm: number;
   quantity: number;
   generatedAt: Date;
@@ -98,6 +100,13 @@ export async function buildProductCarbonWorkbook(data: ProductCarbonReportInput)
       { label: "Thị trường đích", value: p.destinationMarket ?? "—", source: "products.market" },
       { label: "Quãng đường ước tính (km)", value: data.estimatedDistanceKm || "—", source: "computed" },
       { label: "Mức tin cậy", value: data.confidenceLevel, source: "carbon.confidence" },
+      ...(data.biogenicRemovedKgCO2e && data.biogenicRemovedKgCO2e > 0
+        ? [{
+            label: "GWP-biogenic (lưu trữ · tách riêng)",
+            value: `−${data.biogenicRemovedKgCO2e.toFixed(3)} kg CO₂e`,
+            source: "carbon.gwpBreakdown",
+          }]
+        : []),
     ]);
 
     // Boundary & disclosure (ISO 14067) — the anti-greenwashing statement buyers/
