@@ -1320,6 +1320,31 @@ quantityFallback = 1)
       }
       return undefined;
     })(),
+    biogenicCarbon: (() => {
+      const raw =
+        structured?.biogenicCarbon ??
+        structured?.biogenic_carbon ??
+        source.biogenicCarbon ??
+        source.biogenic_carbon;
+      if (!isObject(raw)) return undefined;
+      const removed = asNullableNumber(raw.removedKgCO2e ?? raw.removed_kg_co2e);
+      if (typeof removed !== "number") return undefined;
+      return { removedKgCO2e: removed, note: asString(raw.note) };
+    })(),
+    gwpBreakdown: (() => {
+      const raw =
+        structured?.gwpBreakdown ??
+        structured?.gwp_breakdown ??
+        source.gwpBreakdown ??
+        source.gwp_breakdown;
+      if (!isObject(raw)) return undefined;
+      return {
+        fossilKgCO2e: asNumber(raw.fossilKgCO2e ?? raw.fossil_kg_co2e),
+        biogenicRemovedKgCO2e: asNumber(raw.biogenicRemovedKgCO2e ?? raw.biogenic_removed_kg_co2e),
+        lulucKgCO2e: asNullableNumber(raw.lulucKgCO2e ?? raw.luluc_kg_co2e) ?? null,
+        note: asString(raw.note)
+      };
+    })(),
     methodologyVersion: asNonEmptyString(
       structured?.methodologyVersion ??
       structured?.methodology_version ??
