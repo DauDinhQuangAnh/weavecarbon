@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
@@ -24,8 +24,13 @@ import {
   formatApiErrorMessage,
   isValidProductId,
   isPublishedProductStatus,
+  normalizeProductFromUnknown,
   type ProductRecord } from
 "@/lib/productsApi";
+import {
+  PRODUCT_SNAPSHOT_PARAM,
+  decodeProductSnapshot } from
+"@/lib/demo/passportSnapshot";
 import {
   fetchAllLogisticsShipments,
   fetchLogisticsShipmentById,
@@ -473,6 +478,7 @@ function getMaterialLabel(materialType: string): string {
 
 export default function SummaryClient({ productId }: SummaryClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const appRoutes = useAppRoutes();
   const { setPageTitle } = useDashboardTitle();
   const t = useTranslations("summary");
@@ -486,11 +492,22 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     () => readSummaryPrefetchedProduct(productId),
     [productId]
   );
+  // Product snapshot carried in the QR link (`?p=`). Lets a scanned demo passport
+  // render on any device even when the product isn't in that device's local demo
+  // dataset (e.g. a product created on another browser). See lib/demo/passportSnapshot.
+  const snapshotProduct = useMemo(() => {
+    const decoded = decodeProductSnapshot(
+      searchParams?.get(PRODUCT_SNAPSHOT_PARAM)
+    );
+    return decoded ? normalizeProductFromUnknown(decoded) : null;
+  }, [searchParams]);
   const [showQRModal, setShowQRModal] = useState(false);
   const [product, setProduct] = useState<ProductRecord | null>(
-    initialPrefetchedProduct
+    initialPrefetchedProduct ?? snapshotProduct
   );
-  const [loading, setLoading] = useState(!initialPrefetchedProduct);
+  const [loading, setLoading] = useState(
+    !(initialPrefetchedProduct ?? snapshotProduct)
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [marketComplianceMap, setMarketComplianceMap] =
   useState<Record<MarketCode, MarketCompliance> | null>(null);
@@ -619,7 +636,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
       return;
     }
 
-    const prefetchedProduct = readSummaryPrefetchedProduct(productId);
+    const prefetchedProduct = readSummaryPrefetchedProduct(productId) ?? snapshotProduct;
     setProduct(prefetchedProduct);
     setShipmentTransportSnapshot(null);
     setLoadError(null);
@@ -669,16 +686,16 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
           }
 
           if (!cancelled) {
-            setProduct(null);
+            setProduct(snapshotProduct);
             setShipmentTransportSnapshot(null);
-            setLoadError(invalidProductIdFormatError);
+            setLoadError(snapshotProduct ? null : invalidProductIdFormatError);
             setLoading(false);
           }
         } catch {
           if (!cancelled) {
-            setProduct(null);
+            setProduct(snapshotProduct);
             setShipmentTransportSnapshot(null);
-            setLoadError(invalidProductIdFormatError);
+            setLoadError(snapshotProduct ? null : invalidProductIdFormatError);
             setLoading(false);
           }
         }
@@ -835,9 +852,17 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
         }
       } catch (error) {
         if (!cancelled) {
-          setProduct(null);
-          setShipmentTransportSnapshot(null);
-          setLoadError(formatApiErrorMessage(error, unableToLoadProductError));
+          // Fall back to the QR-embedded snapshot so a scanned demo passport still
+          // renders on a device whose local dataset lacks this product.
+          if (snapshotProduct) {
+            setProduct(snapshotProduct);
+            setShipmentTransportSnapshot(null);
+            setLoadError(null);
+          } else {
+            setProduct(null);
+            setShipmentTransportSnapshot(null);
+            setLoadError(formatApiErrorMessage(error, unableToLoadProductError));
+          }
         }
       } finally {
         if (!cancelled) {
@@ -851,7 +876,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     return () => {
       cancelled = true;
     };
-  }, [appRoutes, invalidProductIdFormatError, productId, router, unableToLoadProductError]);
+  }, [appRoutes, invalidProductIdFormatError, productId, router, snapshotProduct, unableToLoadProductError]);
 
   const productData: ProductData | null = useMemo(() => {
     if (!product) return null;
@@ -1952,6 +1977,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
         shipmentId={product.shipmentId || undefined}
         productName={product.productName}
         productCode={product.productCode}
+        product={product}
         open={showQRModal}
         onClose={() => setShowQRModal(false)} />
 

@@ -14,6 +14,7 @@ import {
   type LogisticsOverview,
   type LogisticsTransportMode,
 } from "@/lib/logisticsApi";
+import { fetchProductById, type ProductRecord } from "@/lib/productsApi";
 import { DEFRA_VERSION } from "@/config/penalties";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -227,8 +228,37 @@ const LogisticsClient: React.FC = () => {
   const [selectedDetail, setSelectedDetail] =
     useState<LogisticsShipmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [qrShipment, setQrShipment] =
-    useState<LogisticsShipmentSummary | null>(null);
+  // A shipment QR must resolve to a real product passport, not the shipment id
+  // (the passport/summary pages look products up by id). We resolve a representative
+  // product of the shipment and hand its full record to ProductQRCode so the link
+  // works in the real app AND embeds a demo snapshot for cross-device demo scans.
+  const [qrData, setQrData] = useState<{
+    shipment: LogisticsShipmentSummary;
+    product: ProductRecord;
+    productId: string;
+  } | null>(null);
+  const [qrLoadingId, setQrLoadingId] = useState<string | null>(null);
+
+  const handleOpenShipmentQr = useCallback(
+    async (shipment: LogisticsShipmentSummary) => {
+      setQrLoadingId(shipment.id);
+      try {
+        const detail = await fetchLogisticsShipmentById(shipment.id);
+        const representative = detail.products?.find((item) => item.productId);
+        if (!representative?.productId) {
+          toast.error("Lô hàng chưa có sản phẩm nên chưa tạo được mã QR.");
+          return;
+        }
+        const product = await fetchProductById(representative.productId);
+        setQrData({ shipment, product, productId: representative.productId });
+      } catch {
+        toast.error("Không tạo được mã QR cho lô hàng này.");
+      } finally {
+        setQrLoadingId(null);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     setPageTitle(t("title"), t("subtitle"));
@@ -690,12 +720,17 @@ const LogisticsClient: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8"
+                        disabled={qrLoadingId === s.id}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setQrShipment(s);
+                          void handleOpenShipmentQr(s);
                         }}
                       >
-                        <QrCode className="h-4 w-4 text-green-600" />
+                        {qrLoadingId === s.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                        ) : (
+                          <QrCode className="h-4 w-4 text-green-600" />
+                        )}
                       </Button>
                       {s.status !== "delivered" && s.status !== "cancelled" && (
                         <Button
@@ -993,13 +1028,22 @@ const LogisticsClient: React.FC = () => {
       </Dialog>
 
       {/* QR Modal */}
-      {qrShipment && (
+      {qrData && (
         <ProductQRCode
-          productId={qrShipment.id}
-          productName={`Lô ${qrShipment.referenceNumber || qrShipment.id}`}
-          productCode={qrShipment.referenceNumber || qrShipment.id}
+          productId={qrData.productId}
+          product={qrData.product}
+          productName={
+            qrData.product.productName ||
+            `Lô ${qrData.shipment.referenceNumber || qrData.shipment.id}`
+          }
+          productCode={
+            qrData.product.productCode ||
+            qrData.shipment.referenceNumber ||
+            qrData.shipment.id
+          }
+          shipmentId={qrData.shipment.id}
           open={true}
-          onClose={() => setQrShipment(null)}
+          onClose={() => setQrData(null)}
         />
       )}
     </div>

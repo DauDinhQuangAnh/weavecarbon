@@ -26,6 +26,11 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { useAppRuntime } from "@/lib/demo/routes";
 import { env } from "@/lib/env";
+import {
+  PRODUCT_SNAPSHOT_PARAM,
+  encodeProductSnapshot
+} from "@/lib/demo/passportSnapshot";
+import type { ProductRecord } from "@/lib/productsApi";
 
 const normalizePublicBaseUrl = (value?: string | null) => {
   const trimmed = String(value || "").trim();
@@ -63,6 +68,12 @@ export interface ProductQRCodeProps {
   productCode?: string;
   sku?: string;
   shipmentId?: string;
+  /**
+   * Full product record. When provided in demo mode, a compact snapshot is embedded
+   * in the QR link so the scanned passport resolves on any device (demo data is
+   * per-browser localStorage and otherwise wouldn't exist on the scanning phone).
+   */
+  product?: ProductRecord;
   open?: boolean;
   isOpen?: boolean;
   onClose: () => void;
@@ -74,6 +85,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
   productCode,
   sku,
   shipmentId,
+  product,
   open,
   isOpen,
   onClose
@@ -92,14 +104,24 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
     if (!publicOrigin) return "";
 
     if (runtime === "demo") {
-      return `${publicOrigin}/demo/summary/${encodeURIComponent(productId)}`;
+      const base = `${publicOrigin}/demo/summary/${encodeURIComponent(productId)}`;
+      const snapshot = encodeProductSnapshot(product);
+      return snapshot ? `${base}?${PRODUCT_SNAPSHOT_PARAM}=${snapshot}` : base;
     }
     const params = new URLSearchParams({ id: productId });
     if (shipmentId && shipmentId.trim().length > 0) {
       params.set("shipmentId", shipmentId.trim());
     }
     return `${publicOrigin}/passport?${params.toString()}`;
-  }, [productId, runtime, shipmentId]);
+  }, [product, productId, runtime, shipmentId]);
+
+  // Embedded snapshots make the URL long; drop error-correction from H to M so the
+  // QR stays comfortably within capacity and scannable. Plain links keep level H.
+  const qrLevel: "L" | "M" | "Q" | "H" = passportUrl.includes(
+    `?${PRODUCT_SNAPSHOT_PARAM}=`
+  )
+    ? "M"
+    : "H";
 
   const usesLocalhostUrl = passportUrl ? isLocalhostUrl(passportUrl) : false;
 
@@ -291,7 +313,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
                   id="product-qr-code"
                   value={passportUrl}
                   size={224}
-                  level="H"
+                  level={qrLevel}
                   includeMargin={true}
                   bgColor="#ffffff"
                   fgColor="#000000" />

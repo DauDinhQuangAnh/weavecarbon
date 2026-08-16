@@ -1460,7 +1460,7 @@ quantityFallback = 1)
   };
 };
 
-const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
+export const normalizeProductFromUnknown = (value: unknown): ProductRecord | null => {
   if (!isObject(value)) return null;
 
   const payload = isObject(value.payload) ? value.payload : {};
