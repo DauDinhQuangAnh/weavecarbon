@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -58,7 +58,10 @@ import {
   Eye,
   Layers,
   Building2,
-  ClipboardCheck } from
+  ClipboardCheck,
+  Leaf,
+  FileBarChart,
+  BadgeCheck } from
 "lucide-react";
 
 import { toast } from "sonner";
@@ -78,6 +81,32 @@ import { isDemoPath } from "@/lib/demo/routes";
 import { downloadDemoReportFromPath } from "@/lib/demo/domain/reports";
 import { cn } from "@/lib/utils";import MobileDataCard from "./mobile/MobileDataCard";
 const ReportPreviewModal = dynamic(() => import("./ReportPreviewModal"), { ssr: false });
+// CBAM pre-audit tool is heavy (loads invoices/evidence/calcs); only load it when its
+// tab is selected. Merged in from the former standalone /cbam-report page.
+const CbamReportSection = dynamic(
+  () => import("@/components/dashboard/cbam/CbamReportSection"),
+  { ssr: false }
+);
+
+type ReportCategory = "esg" | "ghg" | "cbam" | "iso";
+
+const REPORT_CATEGORIES = [
+  { key: "esg" as const, label: "ESG", icon: Leaf, desc: "Phát triển bền vững & sẵn sàng tuân thủ" },
+  { key: "ghg" as const, label: "GHG", icon: Building2, desc: "GHG Protocol · Kiểm kê phát thải Scope 1/2/3" },
+  { key: "cbam" as const, label: "CBAM", icon: FileBarChart, desc: "EU CBAM pre-audit · 6 tab phỏng theo mẫu EU" },
+  { key: "iso" as const, label: "ISO", icon: BadgeCheck, desc: "ISO 14067 · Dấu chân carbon sản phẩm (PCF)" },
+];
+
+// Which PDF report card belongs under which standard tab (one primary home each).
+const PDF_CARD_CATEGORY: Record<string, ReportCategory> = {
+  product: "iso",
+  facility: "ghg",
+  batch: "cbam",
+  compliance: "esg",
+};
+
+const isReportCategory = (value: unknown): value is ReportCategory =>
+  value === "esg" || value === "ghg" || value === "cbam" || value === "iso";
 
 type ReportType =
 "carbon_footprint" |
@@ -439,6 +468,14 @@ const ReportsPage: React.FC = () => {
   const pathname = usePathname();
   const isDemoRuntime = isDemoPath(pathname);
   const { user, loading: authLoading, isDemoSession } = useAuth();
+
+  // Report standard tabs (ESG / GHG / CBAM / ISO). The former standalone
+  // /cbam-report page now redirects here with ?tab=cbam.
+  const searchParams = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState<ReportCategory>(() => {
+    const tab = searchParams?.get("tab");
+    return isReportCategory(tab) ? tab : "esg";
+  });
 
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -1042,12 +1079,38 @@ const exportHistory = useMemo(
           })}
         </div>
 
-        {/* ── 4 PDF Report Type Cards ────────────────────────────── */}
+        {/* ── Report standard tabs: ESG / GHG / CBAM / ISO ────────── */}
+        <div className="flex flex-wrap gap-2">
+          {REPORT_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon;
+            const isActive = activeCategory === category.key;
+            return (
+              <button
+                key={category.key}
+                type="button"
+                onClick={() => setActiveCategory(category.key)}
+                aria-pressed={isActive}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
+                  isActive
+                    ? "border-emerald-800 bg-emerald-800 text-white shadow-sm"
+                    : "border-emerald-100 bg-white text-slate-700 hover:bg-emerald-50"
+                )}
+              >
+                <CategoryIcon className="h-4 w-4" />
+                {category.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Report cards for the active standard ─────────────────── */}
         <div>
           <div className="mb-3 flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
             <h3 className="text-sm font-semibold text-slate-800">
-              {"Loại báo cáo PDF"}
+              {REPORT_CATEGORIES.find((category) => category.key === activeCategory)?.desc ??
+                "Loại báo cáo PDF"}
             </h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1088,7 +1151,9 @@ const exportHistory = useMemo(
                   ? "EU CBAM · EUDR · Kiểm kê KNK VN (TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
                   : "EU CBAM · EUDR · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
               },
-            ] as const).map((card) => {
+            ] as const)
+              .filter((card) => PDF_CARD_CATEGORY[card.key] === activeCategory)
+              .map((card) => {
               const Icon = card.icon;
               return (
                 <Card
@@ -1138,6 +1203,13 @@ const exportHistory = useMemo(
             })}
           </div>
         </div>
+
+        {/* CBAM pre-audit tool (merged from the former /cbam-report page) */}
+        {activeCategory === "cbam" && (
+          <div className="rounded-xl border border-emerald-100 bg-white p-3 shadow-sm md:p-4">
+            <CbamReportSection />
+          </div>
+        )}
 
         <Card className="rounded-xl border border-emerald-200 bg-white shadow-sm">
           <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
