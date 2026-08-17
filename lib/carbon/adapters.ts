@@ -25,9 +25,7 @@ const MATERIAL_FACTOR_BY_TYPE: Record<string, string> = {
   tencel: "cat-tencel",
   viscose: "cat-viscose",
   blend: "cat-blend-cotton-poly",
-  mixed: "cat-blend-cotton-poly",
-  wood: "cat-wood-softwood-new",
-  recycled_wood: "cat-wood-recycled"
+  mixed: "cat-blend-cotton-poly"
 };
 
 const PROCESS_FACTOR_BY_TYPE: Record<string, string> = {
@@ -37,10 +35,7 @@ const PROCESS_FACTOR_BY_TYPE: Record<string, string> = {
   cutting_sewing: "process-cutting-sewing",
   dyeing: "process-dyeing",
   printing: "process-printing",
-  finishing: "process-finishing",
-  sawing: "process-sawing",
-  kiln_drying: "process-kiln-drying",
-  assembly: "process-assembly"
+  finishing: "process-finishing"
 };
 
 const TRANSPORT_FACTOR_BY_MODE: Record<string, string> = {
@@ -175,7 +170,6 @@ export const buildCarbonEngineInputFromBulkRow = (row: BulkProductRow): CarbonEn
   const unitMassKg = toNumber(row.weightPerUnit) / 1000;
   const accessoryNames = parseAccessoryList(row.accessories);
   const accessoryWeightsKg = parseAccessoryWeightListKg(row.accessoriesWeightGram);
-  // Bulk CSV import is textile-only for now; wood pallet bulk upload is a follow-up.
   const bulkRowCategory: ProductCategory = "textile";
   const bulkRowDefaultProcessFactorId = resolveCategoryMethodology(bulkRowCategory).defaultProcessFactorId;
 

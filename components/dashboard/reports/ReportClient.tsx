@@ -1148,8 +1148,8 @@ const exportHistory = useMemo(
                 iconBg: "bg-purple-100 text-purple-700",
                 title: "Sẵn sàng Tuân thủ",
                 desc: locale === "vi"
-                  ? "EU CBAM · EUDR · Kiểm kê KNK VN (TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
-                  : "EU CBAM · EUDR · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
+                  ? "EU ESPR/DPP · EPR dệt may · Kiểm kê KNK VN (TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
+                  : "EU ESPR/DPP · Textile EPR · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
               },
             ] as const)
               .filter((card) => PDF_CARD_CATEGORY[card.key] === activeCategory)

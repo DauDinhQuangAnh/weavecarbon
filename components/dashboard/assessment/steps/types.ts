@@ -92,14 +92,6 @@ export interface ProductAssessmentData {
   poContractId?: string;
   billOfLadingNo?: string;
   containerNo?: string;
-  /** Wood pallet only: "standalone" commercial goods fall under EUDR; "packing_material"
-   * used in a closed-loop system is typically exempt. Drives EUDR data requirements. */
-  palletPurpose?: "standalone" | "packing_material";
-  /** Wood traceability captured for a standalone pallet — reused by EUDR (DDS),
-   * US Lacey Act and JP Clean Wood Act. Optional; stored for later report/DDS use. */
-  woodSpecies?: string;
-  harvestCountry?: string;
-  legalityReference?: string;
   weightPerUnit: number;
   quantity: number;
 
@@ -196,8 +188,7 @@ export interface DraftVersion {
 
 
 export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
-{ value: "textile", label: "Dệt may / May mặc" },
-{ value: "wood_pallet", label: "Pallet gỗ" }];
+{ value: "textile", label: "Dệt may / May mặc" }];
 
 
 export const PRODUCT_TYPES: {
@@ -218,14 +209,7 @@ export const PRODUCT_TYPES: {
 { value: "sandals", label: "Dép/Sandal", categories: ["textile"] },
 { value: "bag", label: "Túi xách", categories: ["textile"] },
 { value: "accessories", label: "Phụ kiện", categories: ["textile"] },
-// Pallet gỗ — kiểu dáng thiết kế (ISO 6780 / EPAL)
-{ value: "block_pallet", label: "Pallet gù (Block)", categories: ["wood_pallet"] },
-{ value: "stringer_pallet", label: "Pallet đố (Stringer)", categories: ["wood_pallet"] },
-{ value: "skid", label: "Pallet 1 tầng (Skid)", categories: ["wood_pallet"] },
-{ value: "wooden_crate", label: "Thùng gỗ kín (Crate)", categories: ["wood_pallet"] },
-{ value: "wooden_box", label: "Hộp/kiện gỗ (Box)", categories: ["wood_pallet"] },
-// Dùng chung
-{ value: "other", label: "Khác", categories: ["textile", "wood_pallet"] }];
+{ value: "other", label: "Khác", categories: ["textile"] }];
 
 
 export const MATERIAL_TYPES = [
@@ -257,11 +241,7 @@ export const ACCESSORY_TYPES: {
 { value: "elastic", label: "Thun co giãn", categories: ["textile"] },
 { value: "lining", label: "Vải lót", categories: ["textile"] },
 { value: "padding", label: "Đệm/Mút", categories: ["textile"] },
-// Pallet gỗ
-{ value: "nail", label: "Đinh thép", categories: ["wood_pallet"] },
-{ value: "corner_block", label: "Ke góc / Chốt gỗ", categories: ["wood_pallet"] },
-// Dùng chung
-{ value: "other", label: "Khác", categories: ["textile", "wood_pallet"] }];
+{ value: "other", label: "Khác", categories: ["textile"] }];
 
 
 export const PRODUCTION_PROCESSES: {
@@ -275,10 +255,7 @@ export const PRODUCTION_PROCESSES: {
 { value: "cutting_sewing", label: "Cắt may", co2Factor: 0.8, categories: ["textile"] },
 { value: "dyeing", label: "Nhuộm", co2Factor: 2.5, categories: ["textile"] },
 { value: "printing", label: "In", co2Factor: 1.8, categories: ["textile"] },
-{ value: "finishing", label: "Hoàn tất", co2Factor: 0.5, categories: ["textile"] },
-{ value: "sawing", label: "Xẻ gỗ", co2Factor: 0.15, categories: ["wood_pallet"] },
-{ value: "kiln_drying", label: "Sấy gỗ", co2Factor: 0.35, categories: ["wood_pallet"] },
-{ value: "assembly", label: "Lắp ráp (đóng đinh)", co2Factor: 0.1, categories: ["wood_pallet"] }];
+{ value: "finishing", label: "Hoàn tất", co2Factor: 0.5, categories: ["textile"] }];
 
 
 export const ENERGY_SOURCES = [

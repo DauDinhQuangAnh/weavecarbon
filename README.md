@@ -7,9 +7,9 @@ service for compliance assistance.
 
 ## Why it exists
 
-EU **CBAM**, CSDDD and buyer ESG programs increasingly require a credible,
+EU **ESPR/DPP**, CSDDD and buyer ESG programs increasingly require a credible,
 auditable **product carbon footprint (PCF)** per SKU — something most Vietnamese
-SME exporters (textile, wood pallet) have no tooling or local emission data to
+SME textile exporters have no tooling or local emission data to
 produce. WeaveCarbon turns a factory's bill of materials, energy mix and shipping
 legs into an audit-defensible PCF plus the paperwork buyers and customs ask for.
 

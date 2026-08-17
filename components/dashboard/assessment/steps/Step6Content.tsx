@@ -115,42 +115,6 @@ const Step6Content: React.FC<Step6SaveHistoryProps> = ({
             </div>
           </div>
 
-          {data.productCategory === "wood_pallet" ? (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Pallet gỗ · Truy xuất &amp; tuân thủ</p>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Mục đích sử dụng</p>
-                    <p className="font-medium">
-                      {data.palletPurpose === "standalone"
-                        ? "Hàng hoá độc lập (thuộc EUDR)"
-                        : data.palletPurpose === "packing_material"
-                          ? "Bao bì vận chuyển (thường miễn EUDR)"
-                          : "—"}
-                    </p>
-                  </div>
-                  {data.palletPurpose === "standalone" ? (
-                    <>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Tên khoa học loài gỗ</p>
-                        <p className="font-medium">{data.woodSpecies || "—"}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Quốc gia khai thác</p>
-                        <p className="font-medium">{data.harvestCountry || "—"}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Hồ sơ hợp pháp / tọa độ</p>
-                        <p className="font-medium">{data.legalityReference || "—"}</p>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </>
-          ) : null}
 
           <Separator />
 

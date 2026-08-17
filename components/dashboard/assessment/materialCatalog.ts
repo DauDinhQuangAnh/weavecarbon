@@ -581,35 +581,6 @@ export const MATERIAL_CATALOG: CatalogMaterial[] = [
 
 
 {
-  id: "cat-wood-softwood-new",
-  displayNameVi: "Gỗ thông xẻ, sấy khô (mới)",
-  displayNameEn: "New Kiln-Dried Softwood (Sawn Timber)",
-  materialType: "component",
-  materialFamily: "wood",
-  typicalApplications: ["pallet_body"],
-  co2Factor: 0.3,
-  recyclabilityDefaultPercent: 90,
-  dataQualityDefault: "proxy",
-  status: "active",
-  productCategory: "wood_pallet",
-  biogenicCarbonKgPerKg: 1.83
-},
-{
-  id: "cat-wood-recycled",
-  displayNameVi: "Gỗ pallet tái chế/thu hồi",
-  displayNameEn: "Recycled/Reclaimed Pallet Wood",
-  materialType: "component",
-  materialFamily: "wood",
-  typicalApplications: ["pallet_body"],
-  co2Factor: 0.08,
-  recyclabilityDefaultPercent: 95,
-  dataQualityDefault: "proxy",
-  isRecycled: true,
-  status: "active",
-  productCategory: "wood_pallet",
-  biogenicCarbonKgPerKg: 1.83
-},
-{
   id: "cat-other-generic",
   displayNameVi: "Vật liệu khác (Proxy)",
   displayNameEn: "Other Material (Proxy)",

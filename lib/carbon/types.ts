@@ -23,7 +23,7 @@ export type CarbonStageKey =
 
 export type CarbonReportingActorRole = "manufacturer" | "brand" | "supplier" | "other";
 
-export type ProductCategory = "textile" | "wood_pallet";
+export type ProductCategory = "textile";
 
 export interface CarbonRange {
   min: number;

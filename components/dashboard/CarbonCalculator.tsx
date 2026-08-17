@@ -47,15 +47,10 @@ const MATERIAL_OPTIONS_BY_CATEGORY: Record<ProductCategory, { value: string; lab
     { value: 'cat-cotton-organic', label: 'Cotton hữu cơ' },
     { value: 'cat-hemp', label: 'Hemp' },
   ],
-  wood_pallet: [
-    { value: 'cat-wood-softwood-new', label: 'Gỗ thông xẻ, sấy khô (mới)' },
-    { value: 'cat-wood-recycled', label: 'Gỗ pallet tái chế/thu hồi' },
-  ],
 };
 
 const CATEGORY_LABELS: Record<ProductCategory, string> = {
   textile: 'Dệt may',
-  wood_pallet: 'Pallet gỗ',
 };
 
 const GRID_EMISSION_FACTOR = getCarbonFactor('energy-grid-vn-2023')?.value ?? 0.6592;
@@ -547,7 +542,7 @@ export default function CarbonCalculator() {
                 Nguồn hệ số phát thải
               </p>
               <p className="text-sky-800">
-                Textile Exchange / Higg MSI 3.0 (dệt may) · WeaveCarbon internal proxy (pallet gỗ) · IPCC 2006 GWP100
+                Textile Exchange / Higg MSI 3.0 (dệt may) · DEFRA 2025 (vận tải) · IPCC 2006 GWP100
               </p>
             </div>
             <div>

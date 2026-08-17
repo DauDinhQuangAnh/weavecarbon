@@ -62,8 +62,7 @@ const APPLICATION_VALUES = [
   "label",
   "elastic",
   "padding",
-  "trim",
-  "pallet_body"
+  "trim"
 ] as const;
 
 const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
@@ -73,9 +72,8 @@ const OtherMaterialModal: React.FC<OtherMaterialModalProps> = ({
   onSelectMaterial
 }) => {
   const t = useTranslations("assessment.otherMaterialModal");
-  const defaultMaterialType: MaterialType = productCategory === "wood_pallet" ? "component" : "fabric";
-  const defaultApplication: (typeof APPLICATION_VALUES)[number] =
-    productCategory === "wood_pallet" ? "pallet_body" : "body_fabric";
+  const defaultMaterialType: MaterialType = "fabric";
+  const defaultApplication: (typeof APPLICATION_VALUES)[number] = "body_fabric";
 
   const [step, setStep] = useState<"input" | "results">("input");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
