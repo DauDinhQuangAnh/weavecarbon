@@ -4,6 +4,7 @@ import DashboardLayoutContent from "@/components/dashboard/DashboardLayoutConten
 import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
 import DemoProvider from "@/components/demo/DemoProvider";
 import DemoRoutePrefetch from "@/components/demo/DemoRoutePrefetch";
+import DemoAutoTour from "@/components/demo/DemoAutoTour";
 import { DashboardProvider } from "@/contexts/DashboardContext";
 import { ProductProvider } from "@/contexts/ProductContext";
 import { DASHBOARD_BASE_NAMESPACES } from "@/lib/i18n/namespaces";
@@ -22,6 +23,7 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
                 <DashboardLayoutContent>{children}</DashboardLayoutContent>
               </main>
               <RouteWeaveyChat />
+              <DemoAutoTour />
             </div>
           </DemoProvider>
         </ProductProvider>
