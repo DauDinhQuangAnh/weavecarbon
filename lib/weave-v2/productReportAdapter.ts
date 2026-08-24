@@ -110,7 +110,7 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
     scope1KgCo2eBatch: productionKg * quantity,
     cbamPenaltyEurPerUnit: hasSupplyGap ? 0.05 : 0,
     evidence: mapEvidence(product, evidence),
-    verifier: product.verifiedBy || "Chưa thẩm tra",
+    verifier: "Chờ kiểm toán độc lập",
     confidence: normalizeConfidence(product)
   };
 };
