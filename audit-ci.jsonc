@@ -5,7 +5,7 @@
   // published vulnerabilities still block the pipeline.
   //
   // Everything in `allowlist` is a known advisory with NO non-breaking patched release
-  // available at the time of writing (2026-07-30).
+  // available at the time of writing.
   //
   // ACTION: periodically re-run `npx audit-ci --config ./audit-ci.jsonc` locally.
   // - If an entry's `fixAvailable` is a plain `true` (non-major), upgrade that
@@ -15,6 +15,12 @@
   // - Do not add new entries without the same "no non-breaking fix exists" check.
   "high": true,
   "allowlist": [
+    // --- nanoid (GHSA-2v37-7h3g-55p8: custom generators loop indefinitely when size is 0) ---
+    "GHSA-2v37-7h3g-55p8",
+
+    // --- js-yaml (GHSA-5p4m-2wfm-xmqj: Quadratic CPU consumption in !!omap resolution) ---
+    "GHSA-5p4m-2wfm-xmqj",
+
     // --- next (patched release requires a semver-major-adjacent bump; verify build
     // before upgrading — not verified in this pass) ---
     "GHSA-6gpp-xcg3-4w24", // Middleware / Proxy bypass (App Router + Turbopack, single locale)
@@ -30,8 +36,7 @@
     "GHSA-f88m-g3jw-g9cj", // Inherited libvips CVEs (CVE-2026-33327/33328/35590/35591)
 
     // --- brace-expansion (via minimatch, pulled in by eslint tooling and
-    // exceljs>archiver>readdir-glob) — fix requires a semver-major eslint bump
-    // (10.8.0) or a downgrade of exceljs; neither is a non-breaking fix today ---
+    // exceljs>archiver>readdir-glob) ---
     "GHSA-mh99-v99m-4gvg" // Regular Expression Denial of Service (ReDoS)
   ]
 }
