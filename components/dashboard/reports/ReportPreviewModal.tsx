@@ -100,7 +100,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
   const gapRow = payload?.breakdownRows.find((row) => row.isDefault);
 
   useEffect(() => {
-    if (!open || isDemoRuntime) return;
+    if (!open) return;
     let cancelled = false;
     setLoadingProducts(true);
     void (async () => {
@@ -128,7 +128,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
     return () => {
       cancelled = true;
     };
-  }, [isDemoRuntime, open]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !selectedProduct || productEvidence[selectedProduct.id]) return;
@@ -190,7 +190,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
               <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">SKU:</span>
-                  <Select value={selectedSku} onValueChange={setSelectedSku}>
+                  <Select value={selectedSku || selectedProduct?.id || ""} onValueChange={setSelectedSku}>
                     <SelectTrigger className="h-11 w-[310px] rounded-xl border-emerald-700 bg-white">
                       <SelectValue />
                     </SelectTrigger>
