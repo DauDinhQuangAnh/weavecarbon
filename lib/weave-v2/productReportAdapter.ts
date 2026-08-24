@@ -117,10 +117,16 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
 
 export const buildReportPayloadFromProductV2 = (product: ProductRecord): ReportPayloadV2 => {
   const sku = productToDemoSkuV2(product);
-  const payload = buildReportPayloadV2(sku);
+  const facility = {
+    ...DEMO_FACILITY_V2,
+    name: product.facility || product.manufacturingLocation || DEMO_FACILITY_V2.name,
+    address: product.manufacturingLocation || DEMO_FACILITY_V2.address,
+  };
+  const payload = buildReportPayloadV2(sku, facility);
   const computed = computeSkuCarbonV2(sku);
   return {
     ...payload,
+    facility,
     totals: {
       ...payload.totals,
       pcfKgPerUnit: Number(computed.total.toFixed(3)),
@@ -134,10 +140,16 @@ export const buildReportPayloadFromProductWithEvidenceV2 = (
   evidence: EvidenceDocumentV2[]
 ): ReportPayloadV2 => {
   const sku = productToDemoSkuV2(product, evidence);
-  const payload = buildReportPayloadV2(sku);
+  const facility = {
+    ...DEMO_FACILITY_V2,
+    name: product.facility || product.manufacturingLocation || DEMO_FACILITY_V2.name,
+    address: product.manufacturingLocation || DEMO_FACILITY_V2.address,
+  };
+  const payload = buildReportPayloadV2(sku, facility);
   const computed = computeSkuCarbonV2(sku);
   return {
     ...payload,
+    facility,
     totals: {
       ...payload.totals,
       pcfKgPerUnit: Number(computed.total.toFixed(3)),

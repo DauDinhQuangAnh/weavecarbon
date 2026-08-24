@@ -61,7 +61,10 @@ export function computeSkuCarbonV2(sku: DemoSkuV2) {
   };
 }
 
-export function buildReportPayloadV2(sku: DemoSkuV2 = DEMO_PACK_V2[0]): ReportPayloadV2 {
+export function buildReportPayloadV2(
+  sku: DemoSkuV2 = DEMO_PACK_V2[0],
+  facility: typeof DEMO_FACILITY_V2 = DEMO_FACILITY_V2
+): ReportPayloadV2 {
   const computed = computeSkuCarbonV2(sku);
   const materialRows: ReportBreakdownRowV2[] = sku.materials.map((material) => ({
     stage: material.isDefault ? "4. Khuyết dữ liệu" : "1. Nguyên liệu",
@@ -127,7 +130,7 @@ export function buildReportPayloadV2(sku: DemoSkuV2 = DEMO_PACK_V2[0]): ReportPa
 
   return {
     sku,
-    facility: DEMO_FACILITY_V2,
+    facility,
     generatedAt: new Date().toISOString(),
     totals: {
       pcfKgPerUnit: round(computed.total, 3),
