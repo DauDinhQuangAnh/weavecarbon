@@ -84,7 +84,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
         productId: product.id,
         productName: product.productName,
         hsCode: product.hsCode || product.cnCode || "-",
-        productionSite: product.facility || product.manufacturingLocation || "Nha may Binh Duong",
+        productionSite: product.facility || product.manufacturingLocation || "Cơ sở sản xuất",
         exportVolume: Number(product.quantity || 0),
         unit: "units"
       }))
@@ -92,7 +92,7 @@ const ExportConfigurationPortalV2: React.FC = () => {
         productId: sku.sku,
         productName: sku.name,
         hsCode: sku.cnCode,
-        productionSite: "Nha may Binh Duong",
+        productionSite: sku.factory || "Cơ sở sản xuất",
         exportVolume: sku.units,
         unit: "units"
       })),

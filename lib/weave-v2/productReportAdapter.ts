@@ -75,9 +75,9 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
     routeCode: product.poContractId || "PRODUCT-ROUTE",
     units: quantity,
     weightKgPerUnit: asPositive(product.weightPerUnit, 0) / 1000,
-    factory: product.facility || product.manufacturingLocation || DEMO_FACILITY_V2.name,
-    factoryAddress: product.manufacturingLocation || DEMO_FACILITY_V2.address,
-    unLocode: DEMO_FACILITY_V2.unLocode,
+    factory: product.facility || product.manufacturingLocation || "Cơ sở sản xuất",
+    factoryAddress: product.manufacturingLocation || "Việt Nam",
+    unLocode: "VN",
     materials: [
       {
         key: materialLabel,
@@ -110,7 +110,7 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
     scope1KgCo2eBatch: productionKg * quantity,
     cbamPenaltyEurPerUnit: hasSupplyGap ? 0.05 : 0,
     evidence: mapEvidence(product, evidence),
-    verifier: DEMO_FACILITY_V2.verifier,
+    verifier: product.verifiedBy || "Chưa thẩm tra",
     confidence: normalizeConfidence(product)
   };
 };
