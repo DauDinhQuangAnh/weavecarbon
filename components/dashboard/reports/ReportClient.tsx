@@ -972,14 +972,6 @@ const ReportsPage: React.FC = () => {
     [t]
   );
 
-const exportHistory = useMemo(
-    () =>
-    reports.
-    filter((report) => EXPORT_DATASET_TYPES.has(report.type)).
-    slice(0, 10),
-    [reports]
-  );
-
   const reportSummaryCards = [
     {
       label: "Sản phẩm",
@@ -989,7 +981,7 @@ const exportHistory = useMemo(
     },
     {
       label: "Hoạt động",
-      value: getDatasetSourceCount("activity") || Math.max(reports.length, exportHistory.length),
+      value: getDatasetSourceCount("activity"),
       icon: Activity,
       iconClassName: "text-emerald-700"
     },
@@ -1006,24 +998,6 @@ const exportHistory = useMemo(
       iconClassName: "text-red-400"
     }
   ];
-
-  const handleCreateAuditPackLink = async () => {
-    const tokenPayload = `${user?.id || "demo"}:${Date.now()}:audit-pack`;
-    const token =
-      typeof window !== "undefined"
-        ? window.btoa(unescape(encodeURIComponent(tokenPayload)))
-        : tokenPayload;
-    const auditUrl =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/audit?token=${encodeURIComponent(token)}`
-        : `/audit?token=${encodeURIComponent(token)}`;
-    try {
-      await navigator.clipboard.writeText(auditUrl);
-      toast.success("Đã tạo Audit Pack link 7 ngày và copy vào clipboard.");
-    } catch {
-      toast.success("Đã tạo Audit Pack link 7 ngày.");
-    }
-  };
 
   return (
     <div className="space-y-4 md:space-y-6 no-horizontal-scroll" suppressHydrationWarning>
@@ -1248,7 +1222,7 @@ const exportHistory = useMemo(
             <Button
               type="button"
               className="h-10 w-full rounded-xl bg-emerald-800 text-white hover:bg-emerald-900"
-              onClick={() => void handleCreateAuditPackLink()}
+              disabled
             >
               <Shield className="mr-2 h-4 w-4" />
               Tạo Audit Pack link (7 ngày)

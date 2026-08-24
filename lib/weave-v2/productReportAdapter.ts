@@ -1,6 +1,6 @@
 import type { ProductRecord } from "@/lib/productsApi";
 import type { EvidenceDocumentV2 } from "./evidenceV2Api";
-import { DEMO_FACILITY_V2, type DemoSkuV2 } from "./demoPackV2";
+import { type DemoSkuV2 } from "./demoPackV2";
 import { buildReportPayloadV2, computeSkuCarbonV2, type ReportPayloadV2 } from "./reportBuilder";
 
 const asPositive = (value: unknown, fallback: number) => {
@@ -12,8 +12,16 @@ const asPositive = (value: unknown, fallback: number) => {
   return fallback;
 };
 
-const normalizeHsCode = (product: ProductRecord) =>
-  String(product.cnCode || product.hsCode || "62000000").trim() || "62000000";
+const normalizeHsCode = (product: ProductRecord) => String(product.cnCode || product.hsCode || "").trim();
+
+const getProductFacility = (product: ProductRecord) => ({
+  name: product.facility || product.manufacturingLocation || "Chưa khai báo",
+  address: product.manufacturingLocation || "Chưa khai báo",
+  unLocode: "",
+  naceCode: "",
+  customsOffice: "",
+  verifier: "Chưa khai báo"
+});
 
 const normalizeConfidence = (product: ProductRecord) => {
   const score = product.carbonResults?.confidenceScore;
@@ -46,10 +54,9 @@ const mapEvidence = (product: ProductRecord, evidence: EvidenceDocumentV2[] = []
 };
 
 export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDocumentV2[] = []): DemoSkuV2 => {
-  const materials = Array.isArray(product.materials) ? product.materials : [];
   const energySources = Array.isArray(product.energySources) ? product.energySources : [];
   const transportLegs = Array.isArray(product.transportLegs) ? product.transportLegs : [];
-  const quantity = Math.max(1, Math.trunc(asPositive(product.quantity, 1)));
+  const quantity = Math.max(0, Math.trunc(asPositive(product.quantity, 0)));
   const perProduct = product.carbonResults?.perProduct || {
     materials: 0,
     energy: 0,
@@ -61,67 +68,59 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
   const energyKg = asPositive(perProduct.energy, 0);
   const productionKg = asPositive(perProduct.production, 0);
   const transportKg = asPositive(perProduct.transport, 0);
-  const hasSupplyGap = Boolean(product.supplyGap || materials.some((item) => item.source === "unknown"));
-  const materialLabel =
-    materials[0]?.materialType ||
-    product.productType ||
-    "material";
+  const materialLabel = product.productType || "Nguyên liệu";
 
   return {
     id: product.id,
     sku: product.productCode,
     name: product.productName,
     cnCode: normalizeHsCode(product),
-    routeCode: product.poContractId || "PRODUCT-ROUTE",
+    routeCode: product.poContractId || "",
     units: quantity,
     weightKgPerUnit: asPositive(product.weightPerUnit, 0) / 1000,
-    factory: product.facility || product.manufacturingLocation || "Cơ sở sản xuất",
-    factoryAddress: product.manufacturingLocation || "Việt Nam",
-    unLocode: "VN",
+    factory: product.facility || product.manufacturingLocation || "Chưa khai báo",
+    factoryAddress: product.manufacturingLocation || "Chưa khai báo",
+    unLocode: "",
     materials: [
       {
         key: materialLabel,
         name: materialLabel,
-        kgPerUnit: 1,
-        co2ePerKg: materialsKg,
-        source: hasSupplyGap ? "Ecoinvent v3.10 Default Value" : "Assessment factor registry",
-        isDefault: hasSupplyGap,
-        color: hasSupplyGap ? "#EF4444" : "#06C167"
+        kgPerUnit: materialsKg,
+        co2ePerKg: 1,
+        source: "Kết quả đánh giá sản phẩm",
+        isDefault: false,
+        color: "#06C167"
       }
     ].filter((item) => item.co2ePerKg > 0),
     energy: energyKg > 0 ? [
       {
-        source: energySources[0]?.source || "Energy allocation",
-        kwhPerUnit: 1,
-        factor: energyKg,
-        citation: "Assessment energy factor"
+        source: energySources[0]?.source || "Kết quả đánh giá sản phẩm",
+        kwhPerUnit: energyKg,
+        factor: 1,
+        citation: "Kết quả đánh giá sản phẩm"
       }
     ] : [],
     transport: transportKg > 0 ? [
       {
         mode: transportLegs[0]?.mode || "road",
         route: `${product.originAddress?.city || "Origin"} -> ${product.destinationAddress?.city || "Destination"}`,
-        distanceKm: 1,
+        distanceKm: transportKg,
         weightTonnes: 1,
-        defraKey: "assessment_transport_total",
-        defraFactor: transportKg
+        defraKey: "product_assessment_total",
+        defraFactor: 1
       }
     ] : [],
     scope1KgCo2eBatch: productionKg * quantity,
-    cbamPenaltyEurPerUnit: hasSupplyGap ? 0.05 : 0,
+    cbamPenaltyEurPerUnit: 0,
     evidence: mapEvidence(product, evidence),
-    verifier: "Chờ kiểm toán độc lập",
+    verifier: "Chưa khai báo",
     confidence: normalizeConfidence(product)
   };
 };
 
 export const buildReportPayloadFromProductV2 = (product: ProductRecord): ReportPayloadV2 => {
   const sku = productToDemoSkuV2(product);
-  const facility = {
-    ...DEMO_FACILITY_V2,
-    name: product.facility || product.manufacturingLocation || DEMO_FACILITY_V2.name,
-    address: product.manufacturingLocation || DEMO_FACILITY_V2.address,
-  };
+  const facility = getProductFacility(product);
   const payload = buildReportPayloadV2(sku, facility);
   const computed = computeSkuCarbonV2(sku);
   return {
@@ -140,11 +139,7 @@ export const buildReportPayloadFromProductWithEvidenceV2 = (
   evidence: EvidenceDocumentV2[]
 ): ReportPayloadV2 => {
   const sku = productToDemoSkuV2(product, evidence);
-  const facility = {
-    ...DEMO_FACILITY_V2,
-    name: product.facility || product.manufacturingLocation || DEMO_FACILITY_V2.name,
-    address: product.manufacturingLocation || DEMO_FACILITY_V2.address,
-  };
+  const facility = getProductFacility(product);
   const payload = buildReportPayloadV2(sku, facility);
   const computed = computeSkuCarbonV2(sku);
   return {

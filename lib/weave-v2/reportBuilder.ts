@@ -88,7 +88,7 @@ export function buildReportPayloadV2(
     formula: `${energy.kwhPerUnit} kWh × ${energy.factor} kg CO2e/kWh`
   }));
   const transportKg = computed.transport;
-  const transportRows: ReportBreakdownRowV2[] = [
+  const transportRows: ReportBreakdownRowV2[] = sku.transport.length > 0 ? [
     {
       stage: "3. Vận chuyển",
       activity: sku.transport.map((leg) => leg.mode === "sea" ? "Sea freight" : leg.mode).join(" + "),
@@ -99,7 +99,7 @@ export function buildReportPayloadV2(
       color: "#219E9A",
       formula: "Σ(distance_km × weight_tonnes × DEFRA factor) / units"
     }
-  ];
+  ] : [];
 
   // Scope 1 (facility direct emissions) is part of the PCF total, so it must appear
   // as a line item — otherwise the breakdown rows don't sum to totals.pcfKgPerUnit.
@@ -155,11 +155,11 @@ export function buildReportPayloadV2(
     ],
     officialCbamRows: {
       A_INSTDATA: [
-        { field: "Installation name", value: DEMO_FACILITY_V2.name },
-        { field: "Address", value: DEMO_FACILITY_V2.address },
-        { field: "NACE", value: DEMO_FACILITY_V2.naceCode },
-        { field: "UN/LOCODE", value: DEMO_FACILITY_V2.unLocode },
-        { field: "Verifier", value: DEMO_FACILITY_V2.verifier }
+        { field: "Installation name", value: facility.name },
+        { field: "Address", value: facility.address },
+        { field: "NACE", value: facility.naceCode },
+        { field: "UN/LOCODE", value: facility.unLocode },
+        { field: "Verifier", value: facility.verifier }
       ],
       B_EMINST: [
         { field: "Scope 1 emissions", value: round(sku.scope1KgCo2eBatch / 1000, 4), unit: "tCO2e" },
@@ -179,9 +179,7 @@ export function buildReportPayloadV2(
         kg_co2e: round(row.kgCo2e, 4),
         formula: row.formula
       })),
-      E_PURCHPREC: [
-        { precursor_hs: "5208", supplier_country: "CN", direct_tco2e_per_tonne: 1.12, indirect_tco2e_per_tonne: 0.1772, carbon_price_paid: "45 CNY/tCO2" }
-      ],
+      E_PURCHPREC: [],
       SUMMARY_COMMUNICATION: [
         { cn_code: sku.cnCode, sku: sku.sku, route: sku.routeCode, embedded_tco2e: round(computed.batchTonnes, 4), determination: "(D)" }
       ]

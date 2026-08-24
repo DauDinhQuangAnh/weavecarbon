@@ -8,8 +8,6 @@ import {
   X,
   Package,
   PlusCircle,
-  Eye,
-  AlertTriangle,
   Loader2,
   ArrowRight
 } from "lucide-react";
@@ -17,8 +15,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { DEMO_PACK_V2 } from "@/lib/weave-v2/demoPackV2";
-import { buildReportPayloadV2 } from "@/lib/weave-v2/reportBuilder";
 import { REPORT_TABS_V2, WEAVE_V2_COLORS } from "@/lib/weave-v2/reportTemplate";
 import { downloadReportCsvV2, downloadReportPdfV2, downloadReportXlsxV2 } from "@/lib/weave-v2/reportExporters";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
@@ -78,44 +74,30 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productEvidence, setProductEvidence] = useState<Record<string, EvidenceDocumentV2[]>>({});
-  const [selectedSku, setSelectedSku] = useState(DEMO_PACK_V2[0]?.sku || "");
+  const [selectedSku, setSelectedSku] = useState("");
   const [activeTab, setActiveTab] = useState<(typeof REPORT_TABS_V2)[number]["key"]>("overview");
-  const [showDemoSample, setShowDemoSample] = useState(isDemoRuntime);
   const printableRef = useRef<HTMLDivElement | null>(null);
 
-  const useRealProducts = !isDemoRuntime && !showDemoSample && products.length > 0;
   const selectedProduct = useMemo(
     () => products.find((item) => item.id === selectedSku || item.productCode === selectedSku) || products[0],
     [products, selectedSku]
   );
-  const sku = useMemo(
-    () => DEMO_PACK_V2.find((item) => item.sku === selectedSku) || DEMO_PACK_V2[0],
-    [selectedSku]
-  );
   const payload = useMemo(
-    () =>
-      useRealProducts && selectedProduct
-        ? buildReportPayloadFromProductWithEvidenceV2(selectedProduct, productEvidence[selectedProduct.id] || [])
-        : buildReportPayloadV2(sku),
-    [productEvidence, selectedProduct, sku, useRealProducts]
-  );
+    () => selectedProduct
+      ? buildReportPayloadFromProductWithEvidenceV2(selectedProduct, productEvidence[selectedProduct.id] || [])
+      : null,
+    [productEvidence, selectedProduct]
+  ) as ReturnType<typeof buildReportPayloadFromProductWithEvidenceV2>;
   const skuOptions = useMemo(
-    () =>
-      useRealProducts
-        ? products.map((item) => ({
+    () => products.map((item) => ({
             key: item.id,
             value: item.id,
             label: `${item.productCode} - ${item.productName}`
-          }))
-        : DEMO_PACK_V2.map((item) => ({
-            key: item.sku,
-            value: item.sku,
-            label: `${item.sku} - ${item.name}`
           })),
-    [products, useRealProducts]
+    [products]
   );
 
-  const gapRow = payload.breakdownRows.find((row) => row.isDefault);
+  const gapRow = payload?.breakdownRows.find((row) => row.isDefault);
 
   useEffect(() => {
     if (!open || isDemoRuntime) return;
@@ -149,7 +131,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
   }, [isDemoRuntime, open]);
 
   useEffect(() => {
-    if (!open || !useRealProducts || !selectedProduct || productEvidence[selectedProduct.id]) return;
+    if (!open || !selectedProduct || productEvidence[selectedProduct.id]) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -166,10 +148,10 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
     return () => {
       cancelled = true;
     };
-  }, [open, productEvidence, selectedProduct, useRealProducts]);
+  }, [open, productEvidence, selectedProduct]);
 
   const persistSnapshot = async () => {
-    if (isDemoRuntime || showDemoSample) return;
+    if (isDemoRuntime || !payload) return;
     try {
       await saveReportSnapshotV2(payload);
     } catch {
@@ -177,15 +159,12 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
     }
   };
 
-  const isRealAccountEmpty = !isDemoRuntime && !loadingProducts && products.length === 0 && !showDemoSample;
+  const isRealAccountEmpty = !loadingProducts && !payload;
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          setShowDemoSample(isDemoRuntime);
-        }
         onOpenChange(nextOpen);
       }}
     >
@@ -206,7 +185,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
             </Button>
           </div>
 
-          {!isRealAccountEmpty && !loadingProducts && (
+          {payload && !loadingProducts && (
             <>
               <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2">
@@ -300,39 +279,10 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                   Đến trang tạo sản phẩm
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2 border-slate-300 hover:bg-slate-50"
-                  onClick={() => setShowDemoSample(true)}
-                >
-                  <Eye className="h-4 w-4 text-slate-600" />
-                  Xem mẫu báo cáo minh họa (Demo)
-                </Button>
               </div>
             </div>
           ) : (
             <div ref={printableRef} className="rounded-2xl bg-white p-5 shadow-sm">
-              {showDemoSample && !isDemoRuntime && (
-                <div className="mb-4 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                    <span>
-                      <strong>Mẫu báo cáo minh họa (Demo Sample)</strong>: Đây là dữ liệu mẫu mô phỏng cho sản phẩm dệt may. Hãy thêm sản phẩm thật trong tài khoản để xuất báo cáo chính thức.
-                    </span>
-                  </div>
-                  {products.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="ml-3 h-7 border-amber-400 bg-white text-xs text-amber-900 hover:bg-amber-100"
-                      onClick={() => setShowDemoSample(false)}
-                    >
-                      Dùng sản phẩm của tôi
-                    </Button>
-                  )}
-                </div>
-              )}
-
               <div className="rounded-xl px-4 py-3 text-white" style={{ backgroundColor: WEAVE_V2_COLORS.primary }}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
