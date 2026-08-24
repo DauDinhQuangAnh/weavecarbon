@@ -134,13 +134,38 @@ const OverviewPage: React.FC = () => {
     window.dispatchEvent(new Event(PRICING_MODAL_OPEN_EVENT));
   };
 
+  const disclaimerTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    const dismissed = localStorage.getItem("weavecarbon_audit_disclaimer_dismissed");
-    if (!dismissed) setShowDisclaimer(true);
+    try {
+      const alreadyShown = sessionStorage.getItem("weavecarbon_audit_disclaimer_shown");
+      if (!alreadyShown) {
+        setShowDisclaimer(true);
+        sessionStorage.setItem("weavecarbon_audit_disclaimer_shown", "1");
+        disclaimerTimerRef.current = setTimeout(() => {
+          setShowDisclaimer(false);
+        }, 5000);
+      }
+    } catch {
+      // ignore storage access errors
+    }
+
+    return () => {
+      if (disclaimerTimerRef.current) {
+        clearTimeout(disclaimerTimerRef.current);
+      }
+    };
   }, []);
 
   const handleDismissDisclaimer = () => {
-    localStorage.setItem("weavecarbon_audit_disclaimer_dismissed", "1");
+    if (disclaimerTimerRef.current) {
+      clearTimeout(disclaimerTimerRef.current);
+    }
+    try {
+      sessionStorage.setItem("weavecarbon_audit_disclaimer_shown", "1");
+    } catch {
+      // ignore storage access errors
+    }
     setShowDisclaimer(false);
   };
 
@@ -775,28 +800,42 @@ const OverviewPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* ── Pre-audit Disclaimer (dismissible) ────────────────── */}
+      {/* ── Pre-audit Disclaimer (floating popup at top-right, auto-hides after 5s, shown once per session) ── */}
       {showDisclaimer && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-amber-800">
-              {"Lưu ý trước kiểm toán độc lập"}
-            </p>
-            <p className="text-xs leading-relaxed text-amber-700">
-              {locale === "vi"
-                ? "Các kết quả phát thải CO₂e hiển thị trên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. Số liệu sử dụng hệ số phát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Bộ TN&MT Việt Nam. Một số dữ liệu đầu vào vẫn là dữ liệu proxy — cần bổ sung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc để đạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
-                : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data — original invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
-            </p>
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-sm rounded-xl border border-amber-300/90 bg-amber-50/95 p-3.5 shadow-xl shadow-amber-950/10 backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-3 sm:max-w-md sm:p-4"
+        >
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div className="flex-1 space-y-1 pr-1">
+              <p className="text-xs font-semibold text-amber-900 sm:text-sm">
+                {"Lưu ý trước kiểm toán độc lập"}
+              </p>
+              <p className="text-xs leading-relaxed text-amber-800">
+                {locale === "vi"
+                  ? "Các kết quả phát thải CO₂e hiển thị trên dashboard được tính theo phương pháp ISO 14067:2018 và GHG Protocol. Số liệu sử dụng hệ số phát thải từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Bộ TN&MT Việt Nam. Một số dữ liệu đầu vào vẫn là dữ liệu proxy — cần bổ sung hóa đơn, vận đơn và dữ liệu nhà cung ứng gốc để đạt mức xác minh L4–L5 cho kiểm toán SGS / Bureau Veritas."
+                  : "CO₂e emission results shown on this dashboard are calculated per ISO 14067:2018 and the GHG Protocol. Emission factors are sourced from Ecoinvent v3.10, DEFRA 2024, and Vietnam MONRE. Some inputs remain proxy data — original invoices, shipping documents, and supplier data are required for L4–L5 verification suitable for SGS / Bureau Veritas audit."}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label={"Đóng thông báo"}
+              onClick={handleDismissDisclaimer}
+              className="shrink-0 rounded-md p-1 text-amber-700 hover:bg-amber-200/60 hover:text-amber-900 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label={"Đóng thông báo"}
-            onClick={handleDismissDisclaimer}
-            className="shrink-0 rounded-md p-1 text-amber-600 hover:bg-amber-100 hover:text-amber-800"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-amber-200/60">
+            <div
+              className="h-full rounded-full bg-amber-500"
+              style={{
+                animation: "countdown 5s linear forwards",
+              }}
+            />
+          </div>
         </div>
       )}
 
