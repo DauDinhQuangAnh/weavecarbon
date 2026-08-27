@@ -19,6 +19,8 @@
 
 # production
 /build
+/backups/
+/restore-drills/
 
 # misc
 .DS_Store

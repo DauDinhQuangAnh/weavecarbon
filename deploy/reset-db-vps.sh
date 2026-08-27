@@ -43,7 +43,7 @@ DATABASE_SCHEMA.sql is applied again on a fresh database.
 
 Options:
   --yes          Required safety flag.
-  --skip-backup  Do not create a SQL backup before resetting.
+  --skip-backup  Do not create a PostgreSQL + evidence backup bundle before resetting.
 EOF
 }
 
