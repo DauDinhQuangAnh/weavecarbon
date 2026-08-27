@@ -101,6 +101,22 @@ acquire_deploy_lock() {
   fi
 }
 
+validate_rag_internal_api_key() {
+  local internal_api_key
+  internal_api_key="$(get_env_value "RAG_INTERNAL_API_KEY")"
+
+  if [[ -z "${internal_api_key}" ]]; then
+    echo "RAG_INTERNAL_API_KEY is missing from ${ENV_FILE}."
+    echo "Generate a unique secret with: openssl rand -hex 32"
+    return 1
+  fi
+
+  if [[ "${internal_api_key}" == change_me* || ${#internal_api_key} -lt 32 ]]; then
+    echo "RAG_INTERNAL_API_KEY must be a non-placeholder secret of at least 32 characters."
+    return 1
+  fi
+}
+
 pull_images() {
   if [[ "$#" -eq 0 ]]; then
     return 0
@@ -306,6 +322,7 @@ done
 cd "${ROOT_DIR}"
 
 acquire_deploy_lock
+validate_rag_internal_api_key
 compose config >/dev/null
 cleanup_legacy_containers
 cleanup_docker_disk

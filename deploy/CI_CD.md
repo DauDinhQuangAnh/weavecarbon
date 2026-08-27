@@ -65,3 +65,23 @@ bash deploy/redeploy-vps.sh
 bash deploy/redeploy-vps.sh --frontend-only
 bash deploy/redeploy-vps.sh --backend-only
 ```
+
+## Private RAG preflight
+
+RAG is an internal-only service. Before deploying a revision that enables the
+private RAG route, add one shared, randomly generated value to the VPS
+`/opt/weavecarbon/FE/.env.vps`:
+
+```bash
+RAG_INTERNAL_API_KEY=<output of: openssl rand -hex 32>
+RAG_REQUIRE_INTERNAL_API_KEY=true
+RAG_CORS_ORIGINS=
+RAG_ROOT_PATH=
+```
+
+The value is injected into both the backend and RAG containers; it must never be
+added to Git, a `NEXT_PUBLIC_*` variable, logs, or browser configuration. The
+deployment script validates that the value is non-placeholder and at least 32
+characters before any container cleanup or restart. Caddy intentionally has no
+public `/rag` route; browser traffic must use authenticated `/api/chat/*` or
+`/api/ai-config/rag/*` backend routes.

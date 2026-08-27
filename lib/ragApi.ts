@@ -252,18 +252,6 @@ export interface RagProductSuggestionResponse {
   suggestions: RagProductSuggestion[];
 }
 
-export class RagApiError extends Error {
-  status: number;
-  detail: string | null;
-
-  constructor(message: string, status: number, detail: string | null = null) {
-    super(message);
-    this.name = "RagApiError";
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
 export const getDefaultRagRuntimeConfig = (): RagRuntimeConfig => ({
   baseUrl: envDefaultBaseUrl || DEFAULT_RAG_BASE_URL,
   collectionName: envDefaultCollection,
@@ -336,105 +324,6 @@ export const saveRagRuntimeConfig = (config: RagRuntimeConfig) => {
 export const resetRagRuntimeConfig = () => {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(RAG_CONFIG_STORAGE_KEY);
-};
-
-const resolveErrorDetail = (payload: unknown) => {
-  const candidate = asRecord(payload);
-  const detail = candidate.detail;
-  if (typeof detail === "string" && detail.trim().length > 0) {
-    return detail.trim();
-  }
-  if (Array.isArray(detail)) {
-    const flattened = detail
-      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-      .filter((entry) => entry.length > 0)
-      .join("; ");
-    if (flattened.length > 0) return flattened;
-  }
-  return null;
-};
-
-interface RagRequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
-  body?: BodyInit | PrimitiveRecord | null;
-  timeoutMs?: number;
-  headers?: Record<string, string>;
-}
-
-const ragRequest = async <T,>(
-  baseUrl: string,
-  path: string,
-  options: RagRequestOptions = {}
-): Promise<T> => {
-  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-  if (!normalizedBaseUrl) {
-    throw new Error("RAG API base URL is missing.");
-  }
-
-  const method = options.method || "GET";
-  const timeoutMs = clampInteger(options.timeoutMs, envDefaultTimeoutMs, 1000, 120000);
-  const headers: Record<string, string> = {
-    ...(options.headers || {})
-  };
-
-  let requestBody: BodyInit | undefined;
-  if (options.body instanceof FormData) {
-    requestBody = options.body;
-  } else if (isObjectRecord(options.body)) {
-    requestBody = JSON.stringify(options.body);
-    headers["Content-Type"] = "application/json";
-  } else if (typeof options.body === "string") {
-    requestBody = options.body;
-    if (!headers["Content-Type"]) {
-      headers["Content-Type"] = "text/plain";
-    }
-  } else {
-    requestBody = undefined;
-  }
-
-  const controller = new AbortController();
-  const timeoutHandle = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    const response = await fetch(`${normalizedBaseUrl}${path}`, {
-      method,
-      headers,
-      body: requestBody,
-      signal: controller.signal
-    });
-
-    const contentType = response.headers.get("content-type") || "";
-    const payload =
-      contentType.includes("application/json") ?
-        await response.json().catch(() => null) :
-        await response.text().catch(() => "");
-
-    if (!response.ok) {
-      const detail = resolveErrorDetail(payload);
-      throw new RagApiError(
-        detail || `RAG API request failed with status ${response.status}.`,
-        response.status,
-        detail
-      );
-    }
-
-    return payload as T;
-  } catch (error) {
-    if (error instanceof RagApiError) {
-      throw error;
-    }
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("RAG API request timed out.");
-    }
-    if (error instanceof Error) {
-      throw new Error(error.message || "Failed to connect to RAG API.");
-    }
-    throw new Error("Failed to connect to RAG API.");
-  } finally {
-    clearTimeout(timeoutHandle);
-  }
 };
 
 const normalizeCollectionDetail = (payload: unknown, fallbackName = ""): RagCollectionDetail => {
@@ -756,21 +645,17 @@ export const queryRagCollection = async (
 };
 
 export const generateProductSuggestions = async (
-  baseUrl: string,
+  _baseUrl: string,
   productId: string,
   payload: RagProductSuggestionRequest = {},
-  timeoutMs?: number
+  _timeoutMs?: number
 ): Promise<RagProductSuggestionResponse> => {
-  const response = await ragRequest<unknown>(
-    baseUrl,
-    `/recommendations/product/${encodeURIComponent(productId)}`,
+  void _timeoutMs;
+  const response = await api.post<unknown>(
+    `/chat/recommendations/product/${encodeURIComponent(productId)}`,
     {
-      method: "POST",
-      timeoutMs,
-      body: {
-        product_id: payload.product_id || productId,
-        language: asString(payload.language, "vi") || "vi"
-      }
+      product_id: payload.product_id || productId,
+      language: asString(payload.language, "vi") || "vi"
     }
   );
   const candidate = asRecord(response);
@@ -787,21 +672,17 @@ export const generateProductSuggestions = async (
 };
 
 export const generateCompanyRecommendations = async (
-  baseUrl: string,
+  _baseUrl: string,
   companyId: string,
   payload: RagCompanyRecommendationRequest = {},
-  timeoutMs?: number
+  _timeoutMs?: number
 ): Promise<RagCompanyRecommendationResponse> => {
-  const response = await ragRequest<unknown>(
-    baseUrl,
-    `/recommendations/company/${encodeURIComponent(companyId)}`,
+  void _timeoutMs;
+  const response = await api.post<unknown>(
+    `/chat/recommendations/company/${encodeURIComponent(companyId)}`,
     {
-      method: "POST",
-      timeoutMs,
-      body: {
-        company_id: payload.company_id || companyId,
-        language: asString(payload.language, "vi") || "vi"
-      }
+      company_id: payload.company_id || companyId,
+      language: asString(payload.language, "vi") || "vi"
     }
   );
   const candidate = asRecord(response);

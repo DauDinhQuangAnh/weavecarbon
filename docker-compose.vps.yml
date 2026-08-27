@@ -61,6 +61,8 @@ services:
       GOOGLE_REDIRECT_URI: ${APP_PUBLIC_URL}/api/auth/google/callback
       RAG_PROXY_ALLOWED_BASE_URLS: ${RAG_PROXY_ALLOWED_BASE_URLS:-https://weavecarbon.com/rag,https://www.weavecarbon.com/rag}
       RAG_PROXY_INTERNAL_BASE_URL: ${RAG_PROXY_INTERNAL_BASE_URL:-http://rag:8000}
+      RAG_INTERNAL_API_KEY: ${RAG_INTERNAL_API_KEY:?RAG_INTERNAL_API_KEY must be set}
+      RAG_REQUIRE_INTERNAL_API_KEY: "true"
     volumes:
       - be_uploads:/app/uploads
 
@@ -82,8 +84,12 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite-preview}
       HF_TOKEN: ${HF_TOKEN:-}
-      ROOT_PATH: ${RAG_ROOT_PATH:-/rag}
-      RAG_CORS_ORIGINS: ${FRONTEND_URLS}
+      ROOT_PATH: ${RAG_ROOT_PATH:-}
+      RAG_CORS_ORIGINS: ${RAG_CORS_ORIGINS:-}
+      RAG_INTERNAL_API_KEY: ${RAG_INTERNAL_API_KEY:?RAG_INTERNAL_API_KEY must be set}
+      RAG_REQUIRE_INTERNAL_API_KEY: "true"
+    expose:
+      - "8000"
     volumes:
       - rag_data:/app/db
       - rag_cache:/root/.cache
