@@ -18,11 +18,12 @@ compose() {
 
 usage() {
   cat <<'EOF'
-Usage: ./deploy/redeploy-vps.sh [--frontend-only|--backend-only]
+Usage: ./deploy/redeploy-vps.sh [--frontend-only|--backend-only|--rag-only]
 
 Options:
   --frontend-only  Pulls the configured frontend image and restarts only the frontend service.
   --backend-only   Pulls the configured backend image and restarts only the backend service.
+  --rag-only       Rebuilds RAG and reloads the proxy without pulling frontend/backend images.
   -h, --help       Show this help message.
 EOF
 }
@@ -307,6 +308,9 @@ for arg in "$@"; do
     --backend-only)
       DEPLOY_MODE="backend-only"
       ;;
+    --rag-only)
+      DEPLOY_MODE="rag-only"
+      ;;
     -h|--help)
       usage
       exit 0
@@ -338,6 +342,12 @@ elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
   pull_images be
   retry_command 3 20 compose up -d --no-deps be
   wait_for_service_health be 180
+elif [[ "${DEPLOY_MODE}" == "rag-only" ]]; then
+  echo "Deploy mode: rag-only"
+  retry_command 3 20 compose up -d --build --no-deps rag
+  wait_for_service_health rag 240
+  retry_command 3 20 compose up -d --no-deps proxy
+  wait_for_service_health proxy 60
 else
   echo "Deploy mode: full stack"
   pull_images be fe
