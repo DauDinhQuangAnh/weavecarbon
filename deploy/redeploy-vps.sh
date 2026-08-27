@@ -102,6 +102,19 @@ acquire_deploy_lock() {
   fi
 }
 
+refresh_ghcr_login() {
+  local ghcr_token
+
+  if [[ -z "${GHCR_USERNAME:-}" || -z "${GHCR_TOKEN_B64:-}" ]]; then
+    return 0
+  fi
+
+  ghcr_token="$(printf '%s' "${GHCR_TOKEN_B64}" | base64 -d)"
+  echo "Refreshing GHCR login inside the deploy lock as ${GHCR_USERNAME}..."
+  printf '%s' "${ghcr_token}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
+  unset ghcr_token
+}
+
 validate_rag_internal_api_key() {
   local internal_api_key
   internal_api_key="$(get_env_value "RAG_INTERNAL_API_KEY")"
@@ -327,6 +340,7 @@ cd "${ROOT_DIR}"
 
 acquire_deploy_lock
 validate_rag_internal_api_key
+refresh_ghcr_login
 compose config >/dev/null
 cleanup_legacy_containers
 cleanup_docker_disk
