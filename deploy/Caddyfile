@@ -10,3 +10,7 @@
     reverse_proxy fe:3000
   }
 }
+
+# Host-specific routes live in ignored *.local.caddy files so production
+# co-tenants do not leave tracked WeaveCarbon files dirty.
+import /etc/caddy/extra-sites/*.caddy

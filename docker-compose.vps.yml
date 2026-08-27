@@ -134,6 +134,7 @@ services:
       - "${PROXY_HTTPS_BIND:-0.0.0.0}:${PROXY_HTTPS_PORT:-443}:443"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/extra-sites:/etc/caddy/extra-sites:ro
       - caddy_data:/data
       - caddy_config:/config
 
