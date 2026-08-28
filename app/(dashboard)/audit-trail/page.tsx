@@ -39,9 +39,9 @@ interface AuditTrailResponse {
 }
 
 interface CompanyMember {
-  userId: string;
-  fullName: string;
-  email: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
   role: string;
 }
 
@@ -92,13 +92,12 @@ export default function AuditTrailPage() {
       `/audit-trail?companyId=${companyId}&limit=500`
     );
 
-    const membersPromise = apiRequest<{ data: CompanyMember[] }>(
-      '/company-members'
-    ).then((res) => {
-      const members = Array.isArray(res) ? res : (res as { data: CompanyMember[] }).data ?? [];
+    const membersPromise = apiRequest<CompanyMember[]>(
+      '/company/members'
+    ).then((members) => {
       const map = new Map<string, string>();
       members.forEach((m) => {
-        if (m.userId && m.fullName) map.set(m.userId, m.fullName);
+        if (m.user_id && m.full_name) map.set(m.user_id, m.full_name);
       });
       setNameMap(map);
     }).catch(() => {

@@ -13,6 +13,7 @@
     "verify:full": "npm run check && npm run test",
     "prepare": "git config core.hooksPath .githooks || exit 0",
     "clean:local": "node scripts/clean-local.mjs",
+    "contract:audit": "node scripts/audit-openapi-coverage.mjs",
     "test": "vitest run",
     "test:carbon": "vitest run lib/carbon"
   },
