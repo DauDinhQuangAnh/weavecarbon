@@ -14,6 +14,7 @@ import {
 import { FileText, GitCommit, Loader2, Search, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiRequest } from '@/lib/apiClient';
+import { listCompanyMembers } from '@/lib/api/companyMembers';
 import { toast } from 'sonner';
 
 interface TrailEntry {
@@ -36,13 +37,6 @@ interface AuditTrailResponse {
     page?: number;
     limit?: number;
   };
-}
-
-interface CompanyMember {
-  user_id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string;
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -92,12 +86,10 @@ export default function AuditTrailPage() {
       `/audit-trail?companyId=${companyId}&limit=500`
     );
 
-    const membersPromise = apiRequest<CompanyMember[]>(
-      '/company/members'
-    ).then((members) => {
+    const membersPromise = listCompanyMembers().then((members) => {
       const map = new Map<string, string>();
       members.forEach((m) => {
-        if (m.user_id && m.full_name) map.set(m.user_id, m.full_name);
+        if (m.userId && m.fullName) map.set(m.userId, m.fullName);
       });
       setNameMap(map);
     }).catch(() => {
