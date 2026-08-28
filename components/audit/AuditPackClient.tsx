@@ -2,23 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   Shield,
   CheckCircle2,
   Download,
-  FileText,
   FileSpreadsheet,
-  Building2,
-  Calendar,
-  Layers,
-  Lock,
-  ExternalLink,
-  Loader2,
   AlertTriangle,
-  Info,
-  Clock,
-  Package
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +48,6 @@ export default function AuditPackClient() {
   const searchParams = useSearchParams();
   const rawToken = searchParams?.get("token") || "";
 
-  const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [productEvidence, setProductEvidence] = useState<Record<string, EvidenceDocumentV2[]>>({});
   const [selectedProductId, setSelectedProductId] = useState<string>("");
@@ -98,10 +86,6 @@ export default function AuditPackClient() {
       } catch {
         if (!cancelled) {
           setProducts([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
         }
       }
     })();
