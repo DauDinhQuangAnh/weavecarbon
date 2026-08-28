@@ -25,6 +25,11 @@
 # misc
 .DS_Store
 *.pem
+*.log
+*.tmp
+*.bak
+.npmrc
+/test.txt
 
 # debug
 npm-debug.log*
