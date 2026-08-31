@@ -69,6 +69,7 @@ export interface ProductMutationResult {
   version: number;
   updatedAt?: string;
   shipmentId?: string | null;
+  carbonResults?: CarbonAssessmentResult;
 }
 
 export interface BulkValidationErrorItem {
@@ -1858,6 +1859,8 @@ const normalizeMutationPayload = (payload: unknown): ProductMutationResult => {
     throw new Error("Product id was not returned by server.");
   }
 
+  const rawCarbonResults = payload.carbonResults ?? payload.carbon_results;
+
   return {
     id,
     status: toProductStatus(payload.status),
@@ -1870,7 +1873,10 @@ const normalizeMutationPayload = (payload: unknown): ProductMutationResult => {
     asString(payload.updatedAt) :
     payload.updated_at ?
     asString(payload.updated_at) :
-    undefined
+    undefined,
+    ...(isObject(rawCarbonResults)
+      ? { carbonResults: normalizeCarbonResults(rawCarbonResults, payload, 1) }
+      : {})
   };
 };
 

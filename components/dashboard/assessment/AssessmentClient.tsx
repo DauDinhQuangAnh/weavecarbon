@@ -1552,6 +1552,7 @@ export default function AssessmentClient({
         version: nextVersion,
         data: {
           ...productData,
+          carbonResults: result.carbonResults ?? productData.carbonResults,
           status: "draft",
           version: result.version,
           updatedAt: timestamp
@@ -1562,6 +1563,7 @@ export default function AssessmentClient({
       setDraftHistory((prev) => [draft, ...prev]);
       setProductData((prev) => ({
         ...prev,
+        carbonResults: result.carbonResults ?? prev.carbonResults,
         status: "draft",
         version: result.version,
         createdAt: prev.createdAt || timestamp,
@@ -1651,6 +1653,9 @@ export default function AssessmentClient({
       const { result, timestamp, payload } = await persistProduct("published");
       const publishedSuccessfully = result.status === "published";
       let ensuredShipmentId: string | null = result.shipmentId || null;
+      const authoritativePayload = result.carbonResults
+        ? { ...payload, carbonResults: result.carbonResults }
+        : payload;
 
       if (publishedSuccessfully && !ensuredShipmentId && isValidProductId(result.id)) {
         try {
@@ -1660,7 +1665,7 @@ export default function AssessmentClient({
               productCode: payload.productCode,
               productName: payload.productName
             },
-            payload
+            authoritativePayload
           );
         } catch (shipmentError) {
           const shipmentErrorMessage = formatApiErrorMessage(
@@ -1673,6 +1678,7 @@ export default function AssessmentClient({
 
       setProductData((prev) => ({
         ...prev,
+        carbonResults: result.carbonResults ?? prev.carbonResults,
         status: publishedSuccessfully ? "published" : "draft",
         version: result.version,
         createdAt: prev.createdAt || timestamp,

@@ -3795,7 +3795,45 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    [key: string]: unknown;
+                    /** @enum {string} */
+                    calculation_type: "product" | "shipment" | "facility" | "annual" | "other";
+                    carbon_input: {
+                        accessories: {
+                            [key: string]: unknown;
+                        }[];
+                        destinationMarket?: string;
+                        energyMix: {
+                            [key: string]: unknown;
+                        }[];
+                        includePackagingFallbackNote?: boolean;
+                        manufacturingGeography?: string;
+                        materials: {
+                            [key: string]: unknown;
+                        }[];
+                        originGeography?: string;
+                        packaging?: {
+                            [key: string]: unknown;
+                        } | null;
+                        processFactorIds: string[];
+                        /** @enum {string} */
+                        productCategory?: "textile";
+                        quantity: number;
+                        /** @enum {string} */
+                        reportingActorRole?: "manufacturer" | "brand" | "supplier" | "other";
+                        transport: {
+                            [key: string]: unknown;
+                        }[];
+                        unitMassKg: number;
+                    };
+                    notes?: string | null;
+                    /** Format: date */
+                    period_end?: string | null;
+                    /** Format: date */
+                    period_start?: string | null;
+                    /** Format: uuid */
+                    product_id?: string | null;
+                    /** Format: uuid */
+                    shipment_id?: string | null;
                 };
             };
         };
@@ -5848,6 +5886,10 @@ export interface operations {
                     accessories?: {
                         [key: string]: unknown;
                     }[];
+                    /**
+                     * @deprecated
+                     * @description Optional client preview only. The server recomputes and replaces this value.
+                     */
                     carbonResults?: {
                         [key: string]: unknown;
                     };
@@ -5919,6 +5961,10 @@ export interface operations {
                     accessories?: {
                         [key: string]: unknown;
                     }[];
+                    /**
+                     * @deprecated
+                     * @description Optional client preview only. The server recomputes and replaces this value.
+                     */
                     carbonResults?: {
                         [key: string]: unknown;
                     };
