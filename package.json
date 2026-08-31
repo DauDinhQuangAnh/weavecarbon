@@ -74,7 +74,7 @@
     "audit-ci": "^7.1.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.1.6",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.1",
     "openapi-typescript": "7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5",
