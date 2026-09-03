@@ -23,7 +23,13 @@ const sample: ProductCarbonReportInput = {
     source: "product_assessment_snapshot",
     calculationId: "22222222-2222-4222-8222-222222222222",
     calculationVersion: 7,
-    calculatedAt: "2026-07-31T00:00:00Z"
+    calculatedAt: "2026-07-31T00:00:00Z",
+    engineVersion: "scope-quality-rss-1.0.0",
+    methodologyVersion: "textile-pcf-2.1.0",
+    factorRegistryVersion: "factors-v1:test",
+    gwpBasis: "IPCC_AR5_100y",
+    canonicalInputHash: "a".repeat(64),
+    legacy: false
   },
   breakdown: [
     { stage: "Nguyên liệu", label: "Cotton", co2e: 6.2, percentage: 50, hasData: true, isProxy: false, note: "" },
@@ -62,10 +68,14 @@ describe("buildProductCarbonWorkbook", () => {
     expect(Buffer.from(buf.slice(0, 2)).toString("latin1")).toBe("PK");
   });
 
-  it("embeds the server calculation identity", async () => {
+  it("embeds the server calculation identity and reproducibility metadata", async () => {
     const wb = await buildProductCarbonWorkbook(sample);
     const values = wb.worksheets[0].getSheetValues().flat(2).map(String);
     expect(values).toContain("22222222-2222-4222-8222-222222222222");
     expect(values).toContain("7");
+    expect(values).toContain("scope-quality-rss-1.0.0");
+    expect(values).toContain("textile-pcf-2.1.0");
+    expect(values).toContain("factors-v1:test");
+    expect(values).toContain("IPCC_AR5_100y");
   });
 });

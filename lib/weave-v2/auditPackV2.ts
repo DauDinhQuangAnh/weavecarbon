@@ -139,11 +139,17 @@ export const buildAuditPackJsonV2 = (payload: AuditPackPayloadV2) => ({
 
 export const buildAuditRowsCsvV2 = (payload: AuditPackPayloadV2) => {
   const rows = [
-    ["sku", "calculation_id", "calculation_version", "segment", "activity_data", "emission_factor", "source", "kg_co2e", "is_default"],
+    ["sku", "calculation_id", "calculation_version", "engine_version", "methodology_version", "factor_registry_version", "gwp_basis", "canonical_input_hash", "is_legacy", "segment", "activity_data", "emission_factor", "source", "kg_co2e", "is_default"],
     ...payload.rows.map((row) => [
       payload.sku.sku,
       payload.carbonAuthority?.calculationId || "demo-preview",
       payload.carbonAuthority?.calculationVersion || "",
+      payload.carbonAuthority?.engineVersion || "",
+      payload.carbonAuthority?.methodologyVersion || "",
+      payload.carbonAuthority?.factorRegistryVersion || "",
+      payload.carbonAuthority?.gwpBasis || "",
+      payload.carbonAuthority?.canonicalInputHash || "",
+      payload.carbonAuthority?.legacy ? "TRUE" : "FALSE",
       row.segment,
       row.activity.toFixed(3),
       row.factor.toFixed(4),

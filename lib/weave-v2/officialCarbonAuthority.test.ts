@@ -50,7 +50,13 @@ const product = {
     source: "product_assessment_snapshot",
     calculationId: "22222222-2222-4222-8222-222222222222",
     calculationVersion: 7,
-    calculatedAt: "2026-08-31T00:00:00.000Z"
+    calculatedAt: "2026-08-31T00:00:00.000Z",
+    engineVersion: "scope-quality-rss-1.0.0",
+    methodologyVersion: "textile-pcf-2.1.0",
+    factorRegistryVersion: "factors-v1:test",
+    gwpBasis: "IPCC_AR5_100y",
+    canonicalInputHash: "a".repeat(64),
+    legacy: false
   },
   status: "published",
   version: 7,
@@ -76,5 +82,9 @@ describe("official frontend carbon outputs", () => {
     expect(report.carbonAuthority).toEqual(audit.carbonAuthority);
     expect(auditCsv).toContain("22222222-2222-4222-8222-222222222222");
     expect(auditCsv).toContain(",7,");
+    expect(auditCsv).toContain("scope-quality-rss-1.0.0");
+    expect(auditCsv).toContain("factors-v1:test");
+    expect(auditCsv).toContain("IPCC_AR5_100y");
+    expect(auditCsv).toContain("a".repeat(64));
   });
 });

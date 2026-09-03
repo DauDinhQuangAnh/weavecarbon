@@ -112,6 +112,26 @@ export async function buildProductCarbonWorkbook(data: ProductCarbonReportInput)
         value: data.carbonAuthority?.calculationVersion ?? "—",
         source: data.carbonAuthority?.calculatedAt ?? "—"
       },
+      {
+        label: "Engine version",
+        value: data.carbonAuthority?.engineVersion ?? "legacy-unversioned",
+        source: "carbonAuthority.engineVersion"
+      },
+      {
+        label: "Methodology version",
+        value: data.carbonAuthority?.methodologyVersion ?? "legacy-unversioned",
+        source: "carbonAuthority.methodologyVersion"
+      },
+      {
+        label: "Factor registry version",
+        value: data.carbonAuthority?.factorRegistryVersion ?? "legacy-unversioned",
+        source: "carbonAuthority.factorRegistryVersion"
+      },
+      {
+        label: "GWP basis",
+        value: data.carbonAuthority?.gwpBasis ?? "legacy-unversioned",
+        source: data.carbonAuthority?.canonicalInputHash ?? "legacy-unversioned"
+      },
       ...(data.biogenicRemovedKgCO2e && data.biogenicRemovedKgCO2e > 0
         ? [{
             label: "GWP-biogenic (lưu trữ · tách riêng)",

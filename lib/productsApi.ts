@@ -23,6 +23,12 @@ export interface CarbonAuthorityReference {
   calculationId: string;
   calculationVersion: number;
   calculatedAt: string | null;
+  engineVersion: string;
+  methodologyVersion: string;
+  factorRegistryVersion: string;
+  gwpBasis: string;
+  canonicalInputHash: string;
+  legacy: boolean;
 }
 
 export interface ProductRecord extends Omit<ProductAssessmentData, "status"> {
@@ -305,7 +311,21 @@ const normalizeCarbonAuthority = (value: unknown): CarbonAuthorityReference | un
       1,
       Math.trunc(asNumber(value.calculationVersion ?? value.calculation_version, 1))
     ),
-    calculatedAt: asNonEmptyString(value.calculatedAt ?? value.calculated_at)
+    calculatedAt: asNonEmptyString(value.calculatedAt ?? value.calculated_at),
+    engineVersion: asNonEmptyString(value.engineVersion ?? value.engine_version)
+      || "legacy-unversioned",
+    methodologyVersion: asNonEmptyString(
+      value.methodologyVersion ?? value.methodology_version
+    ) || "legacy-unversioned",
+    factorRegistryVersion: asNonEmptyString(
+      value.factorRegistryVersion ?? value.factor_registry_version
+    ) || "legacy-unversioned",
+    gwpBasis: asNonEmptyString(value.gwpBasis ?? value.gwp_basis)
+      || "legacy-unversioned",
+    canonicalInputHash: asNonEmptyString(
+      value.canonicalInputHash ?? value.canonical_input_hash
+    ) || `legacy:${calculationId}`,
+    legacy: typeof value.legacy === "boolean" ? value.legacy : true
   };
 };
 

@@ -2265,6 +2265,12 @@ export interface components {
             /** Format: uuid */
             calculationId: string;
             calculationVersion: number;
+            canonicalInputHash: string;
+            engineVersion: string;
+            factorRegistryVersion: string;
+            gwpBasis: string;
+            legacy: boolean;
+            methodologyVersion: string;
             /** @enum {string} */
             source: "product_assessment_snapshot";
         };
