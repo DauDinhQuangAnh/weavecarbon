@@ -70,6 +70,13 @@ const serverMutation = {
     scope1: 0,
     scope2: 1.591,
     scope3: 2.986
+  },
+  carbonAuthority: {
+    authoritative: true,
+    source: "product_assessment_snapshot",
+    calculationId: "22222222-2222-4222-8222-222222222222",
+    calculationVersion: 7,
+    calculatedAt: "2026-08-31T00:00:00.000Z"
   }
 };
 
@@ -91,6 +98,7 @@ describe("authoritative product mutation results", () => {
     );
     expect(result.carbonResults?.perProduct.total).toBe(4.577);
     expect(result.carbonResults?.confidenceScore).toBe(77);
+    expect(result.carbonAuthority?.calculationVersion).toBe(7);
   });
 
   it("uses the server carbon result returned after update", async () => {

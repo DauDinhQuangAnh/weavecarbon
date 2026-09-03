@@ -1,5 +1,6 @@
 import { DEMO_FACILITY_V2, DEMO_PACK_V2, type DemoSkuV2 } from "./demoPackV2";
 import { OFFICIAL_CBAM_TABS, REPORT_SOURCES_V2, WEAVE_V2_COLORS } from "./reportTemplate";
+import type { CarbonAuthorityReference } from "@/lib/productsApi";
 
 export interface ReportBreakdownRowV2 {
   stage: string;
@@ -31,6 +32,23 @@ export interface ReportPayloadV2 {
   evidence: DemoSkuV2["evidence"];
   sources: string[];
   colors: typeof WEAVE_V2_COLORS;
+  carbonAuthority?: CarbonAuthorityReference;
+  carbonResults?: ProductRecordCarbonResultV2;
+}
+
+export interface ProductRecordCarbonResultV2 {
+  perProduct: {
+    materials: number;
+    production: number;
+    energy: number;
+    transport: number;
+    packaging?: number;
+    total: number;
+  };
+  totalBatch?: { total?: number };
+  scope1?: number | null;
+  scope2?: number | null;
+  scope3?: number | null;
 }
 
 const round = (value: number, digits = 3) => Number(value.toFixed(digits));

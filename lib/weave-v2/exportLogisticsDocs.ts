@@ -1,5 +1,6 @@
 import { DEMO_PACK_V2, type DemoSkuV2 } from "./demoPackV2";
 import { computeSkuCarbonV2 } from "./reportBuilder";
+import type { CarbonAuthorityReference } from "@/lib/productsApi";
 
 export interface ExportConfigV2 {
   customsDeclarationNo: string;
@@ -28,6 +29,7 @@ export interface DppPayloadV2 {
   issuedAt: string;
   payloadSha256: string;
   decentralizedUrl: string;
+  carbonAuthority?: CarbonAuthorityReference;
 }
 
 export const DEFAULT_EXPORT_CONFIG_V2: ExportConfigV2 = {

@@ -1647,6 +1647,9 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
   const handleDownloadReport = async () => {
     try {
+      if (!product.carbonAuthority?.authoritative) {
+        throw new Error("Server-authoritative carbon calculation is not available for this product.");
+      }
       const generatedAt = new Date();
       const quantity =
         typeof product.quantity === "number" && product.quantity > 0 ? product.quantity : 1;
@@ -1701,6 +1704,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
             status: item.status,
             note: item.note || "",
           })),
+          carbonAuthority: product.carbonAuthority,
         },
         fileBase,
       );

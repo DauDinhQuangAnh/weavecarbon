@@ -1,7 +1,43 @@
-import type { ProductRecord } from "@/lib/productsApi";
+import type { CarbonAuthorityReference, ProductRecord } from "@/lib/productsApi";
 import type { EvidenceDocumentV2 } from "./evidenceV2Api";
 import { type DemoSkuV2 } from "./demoPackV2";
 import { buildReportPayloadV2, computeSkuCarbonV2, type ReportPayloadV2 } from "./reportBuilder";
+
+export interface AuthoritativeCarbonArtifactV2 {
+  carbonAuthority: CarbonAuthorityReference;
+  carbonResults: NonNullable<ProductRecord["carbonResults"]>;
+}
+
+export const getProductAuthoritativeCarbonV2 = (
+  product: ProductRecord
+): AuthoritativeCarbonArtifactV2 | null =>
+  product.carbonAuthority?.authoritative && product.carbonResults
+    ? {
+        carbonAuthority: product.carbonAuthority,
+        carbonResults: product.carbonResults
+      }
+    : null;
+
+const applyAuthoritativeReportCarbonV2 = (
+  payload: ReportPayloadV2,
+  product: ProductRecord
+): ReportPayloadV2 => {
+  const authoritative = getProductAuthoritativeCarbonV2(product);
+  if (!authoritative) return payload;
+  const total = authoritative.carbonResults.perProduct.total;
+  const batchTotal = authoritative.carbonResults.totalBatch?.total ??
+    total * Math.max(1, product.quantity || 1);
+  return {
+    ...payload,
+    carbonAuthority: authoritative.carbonAuthority,
+    carbonResults: authoritative.carbonResults,
+    totals: {
+      ...payload.totals,
+      pcfKgPerUnit: total,
+      batchTonnes: Number((batchTotal / 1000).toFixed(6))
+    }
+  };
+};
 
 const asPositive = (value: unknown, fallback: number) => {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
@@ -250,7 +286,7 @@ export const buildReportPayloadFromProductV2 = (product: ProductRecord): ReportP
   const facility = getProductFacility(product);
   const payload = buildReportPayloadV2(sku, facility);
   const computed = computeSkuCarbonV2(sku);
-  return {
+  return applyAuthoritativeReportCarbonV2({
     ...payload,
     facility,
     totals: {
@@ -258,7 +294,7 @@ export const buildReportPayloadFromProductV2 = (product: ProductRecord): ReportP
       pcfKgPerUnit: Number(computed.total.toFixed(3)),
       batchTonnes: Number(computed.batchTonnes.toFixed(4))
     }
-  };
+  }, product);
 };
 
 export const buildReportPayloadFromProductWithEvidenceV2 = (
@@ -269,7 +305,7 @@ export const buildReportPayloadFromProductWithEvidenceV2 = (
   const facility = getProductFacility(product);
   const payload = buildReportPayloadV2(sku, facility);
   const computed = computeSkuCarbonV2(sku);
-  return {
+  return applyAuthoritativeReportCarbonV2({
     ...payload,
     facility,
     totals: {
@@ -277,19 +313,26 @@ export const buildReportPayloadFromProductWithEvidenceV2 = (
       pcfKgPerUnit: Number(computed.total.toFixed(3)),
       batchTonnes: Number(computed.batchTonnes.toFixed(4))
     }
-  };
+  }, product);
 };
 
 export const getProductEmbeddedBreakdownV2 = (product: ProductRecord, evidence: EvidenceDocumentV2[] = []) => {
   const sku = productToDemoSkuV2(product, evidence);
   const computed = computeSkuCarbonV2(sku);
+  const authoritative = getProductAuthoritativeCarbonV2(product);
+  const perProduct = authoritative?.carbonResults.perProduct;
+  const embeddedKgPerUnit = perProduct?.total ?? computed.total;
+  const embeddedTonnesBatch = authoritative?.carbonResults.totalBatch?.total != null
+    ? authoritative.carbonResults.totalBatch.total / 1000
+    : (embeddedKgPerUnit * sku.units) / 1000;
   return {
     sku,
-    materialKgPerUnit: computed.materials,
-    energyKgPerUnit: computed.energy,
-    transportKgPerUnit: computed.transport,
-    embeddedKgPerUnit: computed.total,
-    embeddedTonnesBatch: computed.batchTonnes,
-    productId: product.id
+    materialKgPerUnit: perProduct?.materials ?? computed.materials,
+    energyKgPerUnit: perProduct?.energy ?? computed.energy,
+    transportKgPerUnit: perProduct?.transport ?? computed.transport,
+    embeddedKgPerUnit,
+    embeddedTonnesBatch,
+    productId: product.id,
+    carbonAuthority: authoritative?.carbonAuthority
   };
 };

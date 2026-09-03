@@ -17,6 +17,14 @@ import type {
 
 export type ProductStatus = "draft" | "published";
 
+export interface CarbonAuthorityReference {
+  authoritative: true;
+  source: "product_assessment_snapshot";
+  calculationId: string;
+  calculationVersion: number;
+  calculatedAt: string | null;
+}
+
 export interface ProductRecord extends Omit<ProductAssessmentData, "status"> {
   id: string;
   status: ProductStatus;
@@ -31,6 +39,7 @@ export interface ProductRecord extends Omit<ProductAssessmentData, "status"> {
   billOfLadingNo?: string;
   containerNo?: string;
   shipmentId?: string | null;
+  carbonAuthority?: CarbonAuthorityReference;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,6 +79,7 @@ export interface ProductMutationResult {
   updatedAt?: string;
   shipmentId?: string | null;
   carbonResults?: CarbonAssessmentResult;
+  carbonAuthority?: CarbonAuthorityReference;
 }
 
 export interface BulkValidationErrorItem {
@@ -280,6 +290,23 @@ const asNumber = (value: unknown, fallback = 0) => {
     if (Number.isFinite(parsed)) return parsed;
   }
   return fallback;
+};
+
+const normalizeCarbonAuthority = (value: unknown): CarbonAuthorityReference | undefined => {
+  if (!isObject(value) || value.authoritative !== true) return undefined;
+  const calculationId = asString(value.calculationId ?? value.calculation_id).trim();
+  const source = asString(value.source).trim();
+  if (!calculationId || source !== "product_assessment_snapshot") return undefined;
+  return {
+    authoritative: true,
+    source: "product_assessment_snapshot",
+    calculationId,
+    calculationVersion: Math.max(
+      1,
+      Math.trunc(asNumber(value.calculationVersion ?? value.calculation_version, 1))
+    ),
+    calculatedAt: asNonEmptyString(value.calculatedAt ?? value.calculated_at)
+  };
 };
 
 const asNullableNumber = (value: unknown) => {
@@ -1768,6 +1795,9 @@ export const normalizeProductFromUnknown = (value: unknown): ProductRecord | nul
       source,
       asNumber(source.quantity, 1)
     ),
+    carbonAuthority: normalizeCarbonAuthority(
+      source.carbonAuthority ?? source.carbon_authority
+    ),
     status,
     shipmentId: asNonEmptyString(source.shipmentId ?? source.shipment_id),
     version: Math.max(1, asNumber(source.version, 1)),
@@ -1860,6 +1890,9 @@ const normalizeMutationPayload = (payload: unknown): ProductMutationResult => {
   }
 
   const rawCarbonResults = payload.carbonResults ?? payload.carbon_results;
+  const carbonAuthority = normalizeCarbonAuthority(
+    payload.carbonAuthority ?? payload.carbon_authority
+  );
 
   return {
     id,
@@ -1876,7 +1909,8 @@ const normalizeMutationPayload = (payload: unknown): ProductMutationResult => {
     undefined,
     ...(isObject(rawCarbonResults)
       ? { carbonResults: normalizeCarbonResults(rawCarbonResults, payload, 1) }
-      : {})
+      : {}),
+    ...(carbonAuthority ? { carbonAuthority } : {})
   };
 };
 

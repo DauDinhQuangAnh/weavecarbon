@@ -3,6 +3,7 @@
  * Replaces the raw SheetJS (json_to_sheet) export in SummaryClient.
  */
 import type { Workbook } from "exceljs";
+import type { CarbonAuthorityReference } from "@/lib/productsApi";
 import {
   newBrandedWorkbook,
   addWorksheet,
@@ -62,6 +63,7 @@ export interface ProductCarbonReportInput {
   breakdown: ProductCarbonBreakdownRow[];
   materials: ProductCarbonMaterialRow[];
   compliance: ProductCarbonComplianceRow[];
+  carbonAuthority?: CarbonAuthorityReference;
 }
 
 const KG3 = "#,##0.000";
@@ -100,6 +102,16 @@ export async function buildProductCarbonWorkbook(data: ProductCarbonReportInput)
       { label: "Thị trường đích", value: p.destinationMarket ?? "—", source: "products.market" },
       { label: "Quãng đường ước tính (km)", value: data.estimatedDistanceKm || "—", source: "computed" },
       { label: "Mức tin cậy", value: data.confidenceLevel, source: "carbon.confidence" },
+      {
+        label: "Calculation ID",
+        value: data.carbonAuthority?.calculationId ?? "demo-preview",
+        source: data.carbonAuthority?.source ?? "demo"
+      },
+      {
+        label: "Calculation version",
+        value: data.carbonAuthority?.calculationVersion ?? "—",
+        source: data.carbonAuthority?.calculatedAt ?? "—"
+      },
       ...(data.biogenicRemovedKgCO2e && data.biogenicRemovedKgCO2e > 0
         ? [{
             label: "GWP-biogenic (lưu trữ · tách riêng)",

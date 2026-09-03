@@ -2257,6 +2257,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CarbonAuthorityReference: {
+            /** @enum {boolean} */
+            authoritative: true;
+            /** Format: date-time */
+            calculatedAt: string | null;
+            /** Format: uuid */
+            calculationId: string;
+            calculationVersion: number;
+            /** @enum {string} */
+            source: "product_assessment_snapshot";
+        };
         CompanyMember: {
             /** Format: date-time */
             created_at?: string;
@@ -2329,6 +2340,7 @@ export interface components {
          *     }
          */
         Product: {
+            carbonAuthority?: components["schemas"]["CarbonAuthorityReference"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: uuid */
@@ -4903,7 +4915,14 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    [key: string]: unknown;
+                    /** Format: uri */
+                    decentralizedUrl?: string;
+                    gtin?: string;
+                    /** Format: uuid */
+                    product_id?: string;
+                    /** Format: uuid */
+                    productId?: string;
+                    sku?: string;
                 };
             };
         };
@@ -6477,6 +6496,13 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
+                    /** @description Presentation payload. Carbon totals are replaced by the authoritative server snapshot. */
+                    payload: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: uuid */
+                    productId: string;
+                } & {
                     [key: string]: unknown;
                 };
             };

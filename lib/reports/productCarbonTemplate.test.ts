@@ -18,6 +18,13 @@ const sample: ProductCarbonReportInput = {
   estimatedDistanceKm: 10800,
   quantity: 5000,
   generatedAt: new Date("2026-07-31T00:00:00Z"),
+  carbonAuthority: {
+    authoritative: true,
+    source: "product_assessment_snapshot",
+    calculationId: "22222222-2222-4222-8222-222222222222",
+    calculationVersion: 7,
+    calculatedAt: "2026-07-31T00:00:00Z"
+  },
   breakdown: [
     { stage: "Nguyên liệu", label: "Cotton", co2e: 6.2, percentage: 50, hasData: true, isProxy: false, note: "" },
     { stage: "Khuyết dữ liệu", label: "Phụ liệu", co2e: 1.9, percentage: 15, hasData: false, isProxy: true, note: "Dùng hệ số mặc định" },
@@ -53,5 +60,12 @@ describe("buildProductCarbonWorkbook", () => {
     const buf = await wb.xlsx.writeBuffer();
     expect(buf.byteLength).toBeGreaterThan(4000);
     expect(Buffer.from(buf.slice(0, 2)).toString("latin1")).toBe("PK");
+  });
+
+  it("embeds the server calculation identity", async () => {
+    const wb = await buildProductCarbonWorkbook(sample);
+    const values = wb.worksheets[0].getSheetValues().flat(2).map(String);
+    expect(values).toContain("22222222-2222-4222-8222-222222222222");
+    expect(values).toContain("7");
   });
 });

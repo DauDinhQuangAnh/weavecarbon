@@ -19,7 +19,7 @@ import { exportFullStandardReport } from "@/lib/reportsApi";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import { isDemoPath } from "@/lib/demo/routes";
-import { getProductEmbeddedBreakdownV2, productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
+import { getProductAuthoritativeCarbonV2, getProductEmbeddedBreakdownV2, productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { buildAuditPackJsonV2, buildAuditPackPayloadV2, buildAuditRowsCsvV2 } from "@/lib/weave-v2/auditPackV2";
 import CompanyDataExportCardV2 from "./CompanyDataExportCardV2";
@@ -68,7 +68,15 @@ const ExportConfigurationPortalV2: React.FC = () => {
     () => breakdowns.reduce((sum, item) => sum + item.embeddedTonnesBatch, 0),
     [breakdowns]
   );
-  const auditPayload = useMemo(() => buildAuditPackPayloadV2(selectedSku), [selectedSku]);
+  const auditPayload = useMemo(
+    () => buildAuditPackPayloadV2(
+      selectedSku,
+      useRealProducts && selectedProduct
+        ? getProductAuthoritativeCarbonV2(selectedProduct)
+        : null
+    ),
+    [selectedProduct, selectedSku, useRealProducts]
+  );
   const selectedCarbon = auditPayload.totals;
   const auditRows = auditPayload.rows;
   const selectedEvidence = auditPayload.evidence;
@@ -379,10 +387,9 @@ const ExportConfigurationPortalV2: React.FC = () => {
 
     setLocking(true);
     try {
-      const localPayload = await buildDppPayloadV2(selectedSku, cfg);
-      setDpp(localPayload);
-
       if (isDemoRuntime) {
+        const localPayload = await buildDppPayloadV2(selectedSku, cfg);
+        setDpp(localPayload);
         toast.success("Đã khóa số liệu & sinh QR DPP (chế độ demo — dữ liệu mẫu, chưa lưu lên server).");
         return;
       }
@@ -393,9 +400,10 @@ const ExportConfigurationPortalV2: React.FC = () => {
           selectedProduct ? { productId: selectedProduct.id } : { sku: selectedSku.sku }
         );
         setDpp({
-          ...localPayload,
-          payloadSha256: remoteLock.payloadSha256 || localPayload.payloadSha256,
-          decentralizedUrl: remoteLock.decentralizedUrl || localPayload.decentralizedUrl
+          ...(remoteLock.payload as unknown as DppPayloadV2),
+          payloadSha256: remoteLock.payloadSha256,
+          decentralizedUrl: remoteLock.decentralizedUrl,
+          carbonAuthority: remoteLock.carbonAuthority
         });
         toast.success("Đã khóa số liệu & sinh QR DPP");
       } catch (error) {

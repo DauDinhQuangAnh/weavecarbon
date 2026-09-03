@@ -1,6 +1,7 @@
 import type { DemoSkuV2 } from "./demoPackV2";
 import { computeSkuCarbonV2 } from "./reportBuilder";
 import { csvField } from "@/lib/reports/csv";
+import type { AuthoritativeCarbonArtifactV2 } from "./productReportAdapter";
 
 export interface AuditPanelRowV2 {
   segment: string;
@@ -25,6 +26,8 @@ export interface AuditPackPayloadV2 {
   rows: AuditPanelRowV2[];
   evidence: AuditEvidenceV2[];
   methodology: string;
+  carbonAuthority?: AuthoritativeCarbonArtifactV2["carbonAuthority"];
+  carbonResults?: AuthoritativeCarbonArtifactV2["carbonResults"];
 }
 
 const FALLBACK_EVIDENCE: AuditEvidenceV2[] = [
@@ -42,8 +45,7 @@ const FALLBACK_EVIDENCE: AuditEvidenceV2[] = [
   }
 ];
 
-export const buildAuditPackPayloadV2 = (sku: DemoSkuV2): AuditPackPayloadV2 => {
-  const totals = computeSkuCarbonV2(sku);
+const buildPreviewRows = (sku: DemoSkuV2): AuditPanelRowV2[] => {
   const materialRows = sku.materials.map((material) => ({
     segment: "Material",
     detail: material.name,
@@ -67,17 +69,59 @@ export const buildAuditPackPayloadV2 = (sku: DemoSkuV2): AuditPackPayloadV2 => {
     detail: leg.route || leg.mode,
     activity: leg.distanceKm * leg.weightTonnes,
     factor: leg.defraFactor,
-    source: `DEFRA 2024 · ${leg.defraKey}`,
+    source: `DEFRA 2024 - ${leg.defraKey}`,
     kgCo2e: (leg.distanceKm * leg.weightTonnes * leg.defraFactor) / Math.max(1, sku.units),
     isDefault: false
   }));
+  return [...materialRows, ...energyRows, ...transportRows].filter((row) => row.kgCo2e > 0);
+};
+
+export const buildAuditPackPayloadV2 = (
+  sku: DemoSkuV2,
+  authoritative: AuthoritativeCarbonArtifactV2 | null = null
+): AuditPackPayloadV2 => {
+  const previewTotals = computeSkuCarbonV2(sku);
+  const perProduct = authoritative?.carbonResults.perProduct;
+  const totals = perProduct
+    ? {
+        ...previewTotals,
+        materials: perProduct.materials,
+        energy: perProduct.energy,
+        transport: perProduct.transport,
+        scope1: perProduct.production,
+        total: perProduct.total,
+        batchTonnes: Number(
+          ((authoritative.carbonResults.totalBatch?.total ?? perProduct.total * sku.units) / 1000)
+            .toFixed(6)
+        )
+      }
+    : previewTotals;
+  const rows: AuditPanelRowV2[] = perProduct
+    ? [
+        ["Materials", perProduct.materials],
+        ["Finished goods manufacturing", perProduct.production],
+        ["Energy", perProduct.energy],
+        ["Logistics and storage", perProduct.transport],
+        ["Packaging", perProduct.packaging || 0]
+      ].filter(([, value]) => Number(value) > 0).map(([segment, value]) => ({
+        segment: String(segment),
+        detail: "Server-authoritative product assessment",
+        activity: Number(value),
+        factor: 1,
+        source: authoritative.carbonAuthority.source,
+        kgCo2e: Number(value),
+        isDefault: false
+      }))
+    : buildPreviewRows(sku);
 
   return {
     sku,
     totals,
-    rows: [...materialRows, ...energyRows, ...transportRows].filter((row) => row.kgCo2e > 0),
+    rows,
     evidence: sku.evidence.length > 0 ? sku.evidence : FALLBACK_EVIDENCE,
-    methodology: "ISO 14067:2018 · Ecoinvent v3.10 · DEFRA 2024 · Bộ TN&MT VN"
+    methodology: "ISO 14067:2018 - server-authoritative WeaveCarbon calculation",
+    carbonAuthority: authoritative?.carbonAuthority,
+    carbonResults: authoritative?.carbonResults
   };
 };
 
@@ -86,6 +130,8 @@ export const buildAuditPackJsonV2 = (payload: AuditPackPayloadV2) => ({
   productName: payload.sku.name,
   locked: true,
   methodology: payload.methodology,
+  carbonAuthority: payload.carbonAuthority,
+  carbonResults: payload.carbonResults,
   totals: payload.totals,
   rows: payload.rows,
   evidence: payload.evidence
@@ -93,9 +139,11 @@ export const buildAuditPackJsonV2 = (payload: AuditPackPayloadV2) => ({
 
 export const buildAuditRowsCsvV2 = (payload: AuditPackPayloadV2) => {
   const rows = [
-    ["sku", "segment", "activity_data", "emission_factor", "source", "kg_co2e", "is_default"],
+    ["sku", "calculation_id", "calculation_version", "segment", "activity_data", "emission_factor", "source", "kg_co2e", "is_default"],
     ...payload.rows.map((row) => [
       payload.sku.sku,
+      payload.carbonAuthority?.calculationId || "demo-preview",
+      payload.carbonAuthority?.calculationVersion || "",
       row.segment,
       row.activity.toFixed(3),
       row.factor.toFixed(4),

@@ -1,5 +1,6 @@
 import { api, resolveApiUrl, ensureAccessToken } from "@/lib/apiClient";
 import type { ExportConfigV2 } from "./exportLogisticsDocs";
+import type { CarbonAuthorityReference } from "@/lib/productsApi";
 
 export interface DppLockResponseV2 {
   id: string;
@@ -8,6 +9,7 @@ export interface DppLockResponseV2 {
   gtin: string;
   barcodeStandard: string;
   payload: Record<string, unknown>;
+  carbonAuthority?: CarbonAuthorityReference;
   payloadSha256: string;
   decentralizedUrl: string;
   status: string;

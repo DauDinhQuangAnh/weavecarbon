@@ -22,7 +22,7 @@ import {
   type AuditPackPayloadV2
 } from "@/lib/weave-v2/auditPackV2";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
-import { productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
+import { getProductAuthoritativeCarbonV2, productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 
 const formatNum = (v: number | string | null | undefined, digits = 3) => {
@@ -127,8 +127,11 @@ export default function AuditPackClient() {
   }, [selectedProduct, productEvidence]);
 
   const auditPayload: AuditPackPayloadV2 = useMemo(() => {
-    return buildAuditPackPayloadV2(auditSku);
-  }, [auditSku]);
+    return buildAuditPackPayloadV2(
+      auditSku,
+      selectedProduct ? getProductAuthoritativeCarbonV2(selectedProduct) : null
+    );
+  }, [auditSku, selectedProduct]);
 
   const handleExportJson = () => {
     const json = JSON.stringify(buildAuditPackJsonV2(auditPayload), null, 2);

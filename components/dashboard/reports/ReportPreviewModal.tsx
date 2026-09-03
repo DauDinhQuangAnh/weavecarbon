@@ -22,6 +22,7 @@ import { isDemoPath, useAppRoutes } from "@/lib/demo/routes";
 import { buildReportPayloadFromProductWithEvidenceV2 } from "@/lib/weave-v2/productReportAdapter";
 import { saveReportSnapshotV2 } from "@/lib/weave-v2/reportsV2Api";
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
+import { toast } from "sonner";
 
 interface ReportPreviewModalProps {
   open: boolean;
@@ -150,12 +151,24 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
     };
   }, [open, productEvidence, selectedProduct]);
 
-  const persistSnapshot = async () => {
-    if (isDemoRuntime || !payload) return;
+  const getOfficialPayload = async () => {
+    if (!payload) throw new Error("No report payload is available.");
+    if (isDemoRuntime) return payload;
+    const snapshot = await saveReportSnapshotV2(payload);
+    return snapshot.payload;
+  };
+
+  const exportOfficialReport = async (
+    exporter: (officialPayload: typeof payload) => void | Promise<void>
+  ) => {
     try {
-      await saveReportSnapshotV2(payload);
-    } catch {
-      // Do not block file export if snapshot persistence is temporarily unavailable.
+      await exporter(await getOfficialPayload());
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message.trim()
+          ? `Unable to prepare authoritative report: ${error.message}`
+          : "Unable to prepare authoritative report."
+      );
     }
   };
 
@@ -207,7 +220,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                   <Button
                     variant="outline"
                     className="gap-2"
-                    onClick={() => void persistSnapshot().finally(() => downloadReportCsvV2(payload))}
+                    onClick={() => void exportOfficialReport(downloadReportCsvV2)}
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     Tải CSV
@@ -215,14 +228,14 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                   <Button
                     variant="outline"
                     className="gap-2"
-                    onClick={() => void persistSnapshot().finally(() => void downloadReportXlsxV2(payload))}
+                    onClick={() => void exportOfficialReport(downloadReportXlsxV2)}
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     Tải Excel (5 sheet + công thức)
                   </Button>
                   <Button
                     className="gap-2 bg-emerald-800 hover:bg-emerald-900"
-                    onClick={() => void persistSnapshot().finally(() => void downloadReportPdfV2(payload))}
+                    onClick={() => void exportOfficialReport(downloadReportPdfV2)}
                   >
                     <Printer className="h-4 w-4" />
                     Tải PDF (đầy đủ màu & biểu đồ)
