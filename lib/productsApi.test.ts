@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
 
 const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
   post: vi.fn(),
   put: vi.fn(),
   invalidate: vi.fn()
@@ -9,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/apiClient", () => ({
   api: {
-    get: vi.fn(),
+    get: mocks.get,
     post: mocks.post,
     put: mocks.put,
     patch: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("@/lib/apiClient", () => ({
   isApiError: vi.fn()
 }));
 
-import { createProduct, updateProduct } from "@/lib/productsApi";
+import { createProduct, importProductsBulkRows, updateProduct } from "@/lib/productsApi";
 
 const assessmentWithTamperedPreview = {
   productCode: "SKU-1",
@@ -89,6 +90,7 @@ const serverMutation = {
 describe("authoritative product mutation results", () => {
   beforeEach(() => {
     mocks.post.mockReset();
+    mocks.get.mockReset();
     mocks.put.mockReset();
     mocks.invalidate.mockReset();
   });
@@ -122,5 +124,28 @@ describe("authoritative product mutation results", () => {
 
     expect(result.version).toBe(2);
     expect(result.carbonResults?.perProduct.total).toBe(4.577);
+  });
+
+  it("polls durable large imports until the worker result is complete", async () => {
+    vi.useFakeTimers();
+    mocks.post.mockResolvedValue({
+      job_id: "33333333-3333-4333-8333-333333333333",
+      status: "pending"
+    });
+    mocks.get.mockResolvedValue({
+      status: "completed",
+      result: { imported: 30, failed: 0, errors: [], ids: ["product-1"] }
+    });
+
+    const pending = importProductsBulkRows([{ sku: "SKU-1" }]);
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(pending).resolves.toEqual({
+      imported: 30, failed: 0, errors: [], ids: ["product-1"]
+    });
+    expect(mocks.get).toHaveBeenCalledWith(
+      "/operations/jobs/33333333-3333-4333-8333-333333333333",
+      { disableResponseCache: true }
+    );
+    vi.useRealTimers();
   });
 });

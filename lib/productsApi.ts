@@ -125,6 +125,17 @@ export interface BulkImportResult {
   ids: string[];
 }
 
+interface OperationalJobReceipt {
+  job_id: string;
+  status: string;
+}
+
+interface OperationalJobStatus {
+  status: string;
+  result?: unknown;
+  last_error?: string | null;
+}
+
 export type ProductBatchStatus = "draft" | "published" | "archived";
 
 export interface ProductBatchItem {
@@ -2242,8 +2253,30 @@ saveMode: ProductSaveMode = "draft")
     rows,
     save_mode: saveMode
   });
+  let completedPayload = payload;
+  if (isObject(payload) && typeof payload.job_id === "string") {
+    const receipt = payload as unknown as OperationalJobReceipt;
+    const deadline = Date.now() + 5 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const job = await api.get<OperationalJobStatus>(
+        `/operations/jobs/${encodeURIComponent(receipt.job_id)}`,
+        { disableResponseCache: true }
+      );
+      if (job.status === "completed") {
+        completedPayload = job.result;
+        break;
+      }
+      if (job.status === "dead") {
+        throw new Error(job.last_error || "Bulk import failed after all retry attempts.");
+      }
+    }
+    if (completedPayload === payload) {
+      throw new Error("Bulk import is still processing. Please check again shortly.");
+    }
+  }
   invalidateProductCaches("products-bulk-imported");
-  return normalizeBulkImportPayload(payload);
+  return normalizeBulkImportPayload(completedPayload);
 };
 
 const toBatchStatus = (value: unknown): ProductBatchStatus => {

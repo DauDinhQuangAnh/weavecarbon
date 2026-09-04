@@ -1697,6 +1697,40 @@ export interface paths {
         patch: operations["patchLogisticsShipmentsByIdStatus"];
         trace?: never;
     };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prometheus metrics */
+        get: operations["getMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operations/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /operations/jobs/{id} */
+        get: operations["getOperationsJobsById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/passport/{productId}": {
         parameters: {
             query?: never;
@@ -1934,6 +1968,23 @@ export interface paths {
         };
         /** GET /products/bulk-template.xlsx */
         get: operations["getProductsBulkTemplateXlsx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Database and worker readiness */
+        get: operations["getReadiness"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5505,7 +5556,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Application and database are healthy */
+            /** @description Application process is alive */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5514,7 +5565,6 @@ export interface operations {
                     /**
                      * @example {
                      *       "data": {
-                     *         "db": "ok",
                      *         "status": "healthy",
                      *         "timestamp": "2026-08-28T00:00:00.000Z",
                      *         "uptime": 120
@@ -5523,24 +5573,6 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["GenericSuccessResponse"];
-                };
-            };
-            /** @description Database is unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "error": {
-                     *         "code": "DB_UNAVAILABLE",
-                     *         "message": "Database not reachable"
-                     *       },
-                     *       "success": false
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -5733,6 +5765,47 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prometheus text exposition */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getOperationsJobsById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
@@ -6324,6 +6397,35 @@ export interface operations {
             422: components["responses"]["ValidationError"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    getReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dependencies are ready */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenericSuccessResponse"];
+                };
+            };
+            /** @description A dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     getReports: {
