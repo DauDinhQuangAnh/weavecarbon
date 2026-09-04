@@ -65,6 +65,7 @@ import {
 "@/lib/logisticsApi";
 import { api } from "@/lib/apiClient";
 import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
+import { cacheSummaryProduct } from "@/lib/summaryProductCache";
 
 // Dynamic imports — these components are only needed when user opens a modal
 const BulkUploadModal = dynamic(
@@ -82,7 +83,6 @@ const AssessmentClient = dynamic(
 
 const ITEMS_PER_PAGE = 18;
 const TRIAL_SKU_LIMIT = 5;
-const SUMMARY_PREFETCH_PRODUCT_KEY = "weavecarbon_summary_prefetch_product";
 
 const TARGET_MARKET_TO_DESTINATION_MARKET: Record<string, string> = {
   VN: "vietnam",
@@ -352,19 +352,7 @@ const ProductsClient: React.FC = () => {
   );
 
   const cacheSummaryPrefetch = useCallback((product: ProductRecord) => {
-    if (typeof window === "undefined") return;
-    try {
-      window.sessionStorage.setItem(
-        SUMMARY_PREFETCH_PRODUCT_KEY,
-        JSON.stringify({
-          id: product.id,
-          product,
-          cached_at: Date.now()
-        })
-      );
-    } catch {
-
-    }
+    cacheSummaryProduct(product);
   }, []);
 
   const notifyNoPermission = useCallback(() => {

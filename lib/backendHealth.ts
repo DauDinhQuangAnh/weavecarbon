@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { env } from "@/lib/env";
+import { fetchWithPolicy } from "@/lib/http/requestPolicy";
 
 const DEFAULT_API_BASE_URL = "/api";
 const HEALTH_PATH = "/health";
@@ -83,14 +84,13 @@ export interface BackendHealthResult {
 
 export const getBackendHealth = async (): Promise<BackendHealthResult> => {
   const healthUrl = await resolveHealthUrl();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
-
   try {
-    const response = await fetch(healthUrl, {
+    const response = await fetchWithPolicy(healthUrl, {
       method: "GET",
-      cache: "no-store",
-      signal: controller.signal
+      cache: "no-store"
+    }, {
+      retries: 0,
+      timeoutMs: HEALTH_TIMEOUT_MS
     });
 
     const payload = await response
@@ -116,7 +116,5 @@ export const getBackendHealth = async (): Promise<BackendHealthResult> => {
       status: "unreachable",
       message
     };
-  } finally {
-    clearTimeout(timeout);
   }
 };

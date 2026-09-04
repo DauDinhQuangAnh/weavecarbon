@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,7 +17,6 @@ import TransportScopeSelector from "./TransportScopeSelector";
 import TransportLegCard from "./TransportLegCard";
 import TransportResultsSidebar from "./TransportResultsSidebar";
 import PermissionDialog from "@/components/ui/PermissionDialog";
-import TransportMap from "@/components/ui/TransportMap";
 import type { TransportLeg } from "@/types/transport";
 import {
   fetchAllLogisticsShipmentDetails,
@@ -28,6 +28,10 @@ import {
   type LogisticsShipmentDetail } from
 "@/lib/logisticsApi";
 import { toast } from "sonner";
+const TransportMap = dynamic(() => import("@/components/ui/TransportMap"), {
+  loading: () => <div className="h-[420px] animate-pulse rounded-xl bg-muted" />,
+  ssr: false
+});
 import {
   fetchProductById,
   formatApiErrorMessage,

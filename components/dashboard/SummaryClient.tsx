@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Package } from "lucide-react";
-import ProductQRCode from "@/components/dashboard/ProductQRCode";
 import { MATERIAL_TYPES } from "@/components/dashboard/assessment/steps/types";
 import {
   ProductCarbonDetail,
@@ -49,10 +49,10 @@ import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { api } from "@/lib/apiClient";
 import { normalizeDomesticMarketCode } from "@/lib/targetMarkets";
 import { useAppRoutes } from "@/lib/demo/routes";
+import { readSummaryProduct } from "@/lib/summaryProductCache";
 
 
 import ProductOverviewHeader from "@/components/dashboard/product-details/ProductOverviewHeader";
-import CarbonBreakdownChart from "@/components/dashboard/product-details/CarbonBreakdownChart";
 import MaterialImpactTable from "@/components/dashboard/product-details/MaterialImpactTable";
 import CarbonFootprintCard from "@/components/dashboard/product-details/CarbonFootprintCard";
 import ComplianceStatus from "@/components/dashboard/product-details/ComplianceStatus";
@@ -62,11 +62,18 @@ import DataCompletenessCheck from "@/components/dashboard/product-details/DataCo
 import EndOfLifeAssessment from "@/components/dashboard/product-details/EndOfLifeAssessment";
 import VersionHistory from "@/components/dashboard/product-details/VersionHistory";
 
+const ProductQRCode = dynamic(() => import("@/components/dashboard/ProductQRCode"), {
+  ssr: false
+});
+const CarbonBreakdownChart = dynamic(
+  () => import("@/components/dashboard/product-details/CarbonBreakdownChart"),
+  { ssr: false }
+);
+
 interface SummaryClientProps {
   productId: string;
 }
 
-const SUMMARY_PREFETCH_PRODUCT_KEY = "weavecarbon_summary_prefetch_product";
 const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
 
 const normalizePlanId = (plan: string | null | undefined) => {
@@ -174,52 +181,8 @@ trim().
 toLowerCase().
 replace(/[\s_-]+/g, "");
 
-const normalizeSummaryLookup = (value: unknown) =>
-String(value ?? "").trim().toLowerCase();
-
 const readSummaryPrefetchedProduct = (slug: string): ProductRecord | null => {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.sessionStorage.getItem(SUMMARY_PREFETCH_PRODUCT_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as {
-      id?: string;
-      product?: ProductRecord;
-      cached_at?: number;
-    };
-
-    if (!parsed || typeof parsed !== "object" || !parsed.product) {
-      return null;
-    }
-
-    const isExpired =
-      typeof parsed.cached_at === "number" &&
-      Number.isFinite(parsed.cached_at) &&
-      Date.now() - parsed.cached_at > 5 * 60 * 1000;
-    if (isExpired) {
-      window.sessionStorage.removeItem(SUMMARY_PREFETCH_PRODUCT_KEY);
-      return null;
-    }
-
-    const target = normalizeSummaryLookup(slug);
-    const candidateProduct = parsed.product;
-    const candidateTokens = [
-      parsed.id,
-      candidateProduct.id,
-      candidateProduct.productCode,
-      candidateProduct.productName
-    ].map(normalizeSummaryLookup);
-
-    if (candidateTokens.some((token) => token.length > 0 && token === target)) {
-      return candidateProduct;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
+  return readSummaryProduct(slug);
 };
 
 const resolveMarketCodeFromDestination = (destinationMarket: unknown): MarketCode | null => {

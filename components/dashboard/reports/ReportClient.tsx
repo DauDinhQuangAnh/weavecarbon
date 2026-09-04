@@ -8,7 +8,6 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   api,
-  API_BASE_URL,
   authTokenStore,
   isApiError
 } from "@/lib/apiClient";
@@ -714,11 +713,9 @@ const ReportsPage: React.FC = () => {
               continue;
             }
             // Fetch with auth header then trigger blob download
-            const token = authTokenStore.getAccessToken();
-            const res = await fetch(`${API_BASE_URL}/reports/${reportId}/download`, {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            const res = await api.raw(`/reports/${reportId}/download`, {
+              timeoutMs: 60_000
             });
-            if (!res.ok) throw new Error(`Download failed: ${res.status}`);
             const blob = await res.blob();
             const objectUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");

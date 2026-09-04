@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useProducts } from '@/contexts/ProductContext';
+import { ProductProvider, useProducts } from '@/contexts/ProductContext';
 import { api } from '@/lib/apiClient';
 import { useAppRoutes } from '@/lib/demo/routes';
 import {
@@ -195,7 +195,7 @@ function CheckItem({ ok, label }: { ok: boolean; label: string }) {
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR];
 
-export default function CbamReportSection() {
+function CbamReportSectionContent() {
   const { products } = useProducts();
   const router = useRouter();
   // Keep in-tool navigation runtime-aware so links resolve to /demo/* in demo mode.
@@ -1101,5 +1101,13 @@ export default function CbamReportSection() {
       </Dialog>
 
     </div>
+  );
+}
+
+export default function CbamReportSection() {
+  return (
+    <ProductProvider>
+      <CbamReportSectionContent />
+    </ProductProvider>
   );
 }

@@ -18,14 +18,7 @@ import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 const beVietnamProBody = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
   weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-plus-jakarta-sans",
-  display: "swap"
-});
-
-const beVietnamProHeading = Be_Vietnam_Pro({
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-dm-sans",
+  variable: "--font-weavecarbon",
   display: "swap"
 });
 
@@ -50,7 +43,7 @@ export default async function RootLayout({
   return (
     <html data-scroll-behavior="smooth" lang={locale} suppressHydrationWarning>
       <body
-        className={`${beVietnamProBody.variable} ${beVietnamProHeading.variable} antialiased`}>
+        className={`${beVietnamProBody.variable} antialiased`}>
         {backendHealth.healthy ? (
           <AuthProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>

@@ -17,6 +17,7 @@ import {
 } from "@/lib/mapbox";
 import { type RoadRoutePointSource } from "@/lib/roadRouting";
 import { AddressInput } from "./types";
+import { fetchWithPolicy } from "@/lib/http/requestPolicy";
 
 export interface LocationPickerChangeMeta {
   source: RoadRoutePointSource;
@@ -568,9 +569,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             lon: String(lng),
             "accept-language": mapLanguage
           });
-          const response = await fetch(`${OSM_REVERSE_ENDPOINT}?${params.toString()}`, {
-            signal: controller.signal
-          });
+          const response = await fetchWithPolicy(
+            `${OSM_REVERSE_ENDPOINT}?${params.toString()}`,
+            { signal: controller.signal },
+            { retries: 1, timeoutMs: 10_000 }
+          );
           const data = await response.json();
           if (
             controller.signal.aborted ||
@@ -591,9 +594,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           return;
         }
 
-        const response = await fetch(reverseGeocodingUrl, {
-          signal: controller.signal
-        });
+        const response = await fetchWithPolicy(
+          reverseGeocodingUrl,
+          { signal: controller.signal },
+          { retries: 1, timeoutMs: 10_000 }
+        );
         const data = await response.json();
         if (
           controller.signal.aborted ||
@@ -844,9 +849,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
             params.set("countrycodes", osmCountryFilter);
           }
 
-          const response = await fetch(`${OSM_SEARCH_ENDPOINT}?${params.toString()}`, {
-            signal: controller.signal
-          });
+          const response = await fetchWithPolicy(
+            `${OSM_SEARCH_ENDPOINT}?${params.toString()}`,
+            { signal: controller.signal },
+            { retries: 1, timeoutMs: 10_000 }
+          );
           const data = await response.json();
           if (
             !controller.signal.aborted &&
@@ -865,9 +872,11 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           return;
         }
 
-        const response = await fetch(forwardGeocodingUrl, {
-          signal: controller.signal
-        });
+        const response = await fetchWithPolicy(
+          forwardGeocodingUrl,
+          { signal: controller.signal },
+          { retries: 1, timeoutMs: 10_000 }
+        );
         const data = await response.json();
         if (
           controller.signal.aborted ||

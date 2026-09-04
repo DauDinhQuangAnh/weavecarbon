@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -24,7 +25,10 @@ import {
   XCircle } from
 "lucide-react";
 import type { TrackShipment } from "./types";
-import TransportMap from "@/components/ui/TransportMap";
+const TransportMap = dynamic(() => import("@/components/ui/TransportMap"), {
+  loading: () => <div className="h-[420px] animate-pulse rounded-xl bg-muted" />,
+  ssr: false
+});
 import { useAppRoutes } from "@/lib/demo/routes";
 import { updateLogisticsShipmentStatus } from "@/lib/logisticsApi";
 import { isApiError } from "@/lib/apiClient";

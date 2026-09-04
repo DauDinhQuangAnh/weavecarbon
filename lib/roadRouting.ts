@@ -2,6 +2,7 @@ import {
   buildMapboxDrivingDirectionsUrl,
   hasMapboxPublicToken
 } from "@/lib/mapbox";
+import { fetchWithPolicy } from "@/lib/http/requestPolicy";
 
 export type RoutePoint = {
   lat: number;
@@ -432,11 +433,14 @@ const executeRouteAttempt = async (
   }
 
   try {
-    const response = await fetch(requestUrl, {
+    const response = await fetchWithPolicy(requestUrl, {
       method: "GET",
       headers: {
         Accept: "application/json"
       }
+    }, {
+      retries: 1,
+      timeoutMs: 12_000
     });
 
     let payload: MapboxDirectionsResponse | null = null;

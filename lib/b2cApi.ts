@@ -1,8 +1,6 @@
 import {
   api,
-  apiRequest,
-  ensureAccessToken,
-  resolveApiUrl
+  apiRequest
 } from "@/lib/apiClient";
 import type {
   B2CCollectionPoint,
@@ -321,25 +319,9 @@ export const fetchB2CRewardTransactions = (limit = 30) =>
   );
 
 export const fetchB2CDonationImageObjectUrl = async (donationId: string) => {
-  const token = await ensureAccessToken();
-  const response = await fetch(
-    resolveApiUrl(`/b2c/donations/${encodeURIComponent(donationId)}/image`),
-    {
-      method: "GET",
-      credentials: "include",
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`
-          }
-        : undefined,
-      cache: "no-store"
-    }
+  const response = await api.raw(
+    `/b2c/donations/${encodeURIComponent(donationId)}/image`
   );
-
-  if (!response.ok) {
-    throw new Error("Unable to load donation image.");
-  }
-
   const blob = await response.blob();
   return URL.createObjectURL(blob);
 };

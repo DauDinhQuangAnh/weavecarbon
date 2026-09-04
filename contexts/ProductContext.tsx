@@ -14,6 +14,12 @@ import React, {
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import type { ProductStatus } from "@/types/product";
+import {
+  CLIENT_CACHE_POLICIES,
+  buildClientCacheKey,
+  readSessionCache,
+  writeSessionCache
+} from "@/lib/clientCache";
 
 export interface DashboardProduct {
   id: string;
@@ -86,10 +92,6 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
-const PRODUCT_SNAPSHOT_KEY_PREFIX = "weavecarbon_products_snapshot_v1";
-
-const buildSnapshotKey = (userId?: string | null, companyId?: string | null) =>
-  `${PRODUCT_SNAPSHOT_KEY_PREFIX}:${userId || "anonymous"}:${companyId || "no-company"}`;
 
 const mapProductRecordToDashboardProduct = (product: ProductRecord): DashboardProduct => ({
   id: product.id,
@@ -111,33 +113,6 @@ const mapProductRecordToDashboardProduct = (product: ProductRecord): DashboardPr
     packaging: product.carbonResults?.perProduct?.packaging || 0,
   },
 });
-
-const readSnapshot = (key: string): DashboardProduct[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(key) || "null") as {
-      products?: DashboardProduct[];
-    } | null;
-    return Array.isArray(parsed?.products) ? parsed.products : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeSnapshot = (key: string, products: DashboardProduct[]) => {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(
-      key,
-      JSON.stringify({
-        cachedAt: Date.now(),
-        products
-      })
-    );
-  } catch {
-
-  }
-};
 
 export const ProductProvider: React.FC<{children: ReactNode;}> = ({
   children
@@ -184,8 +159,9 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
       return;
     }
 
-    const snapshotKey = buildSnapshotKey(userId, companyId);
-    const staleProducts = readSnapshot(snapshotKey);
+    const cachePolicy = CLIENT_CACHE_POLICIES.productCatalog;
+    const snapshotKey = buildClientCacheKey(cachePolicy, { userId, companyId });
+    const staleProducts = readSessionCache<DashboardProduct[]>(snapshotKey, cachePolicy) || [];
     if (staleProducts.length > 0) {
       setProducts(staleProducts);
     }
@@ -201,7 +177,7 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
       });
       const nextProducts = records.map(mapProductRecordToDashboardProduct);
       setProducts(nextProducts);
-      writeSnapshot(snapshotKey, nextProducts);
+      writeSessionCache(snapshotKey, cachePolicy, nextProducts);
       setLastHydratedAt(new Date().toISOString());
       setStatus("ready");
     } catch {

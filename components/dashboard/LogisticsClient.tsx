@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
@@ -60,7 +61,7 @@ import SupplyChainMap, {
 import { getShipmentColor } from "@/lib/shipmentColors";
 import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeometry";
 import MobileDataCard from "@/components/mobile/MobileDataCard";
-import ProductQRCode from "./ProductQRCode";
+const ProductQRCode = dynamic(() => import("./ProductQRCode"), { ssr: false });
 
 /* ─── DEFRA 2024 factors (kg CO₂e per tonne-km) ──────────────────────── */
 const DEFRA_FACTORS: Record<

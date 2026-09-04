@@ -3,13 +3,29 @@ import { buildAuthSnapshotEpoch, readAuthUserSnapshot } from "./authSnapshot";
 let apiSessionEpoch = "anonymous";
 
 export const inflightGetRequests = new Map<string, Promise<unknown>>();
-const recentGetResponses = new Map<string, { value: unknown; expiresAt: number }>();
-const GET_RESPONSE_CACHE_TTL_MS = 3000;
+const recentGetResponses = new Map<
+  string,
+  { value: unknown; expiresAt: number; tags: readonly string[] }
+>();
+export const GET_RESPONSE_CACHE_TTL_MS = 3000;
 
-export const invalidateApiResponseCache = (reason?: string) => {
+export const invalidateApiResponseCache = (
+  reason?: string,
+  tags?: readonly string[]
+) => {
   void reason;
-  recentGetResponses.clear();
   inflightGetRequests.clear();
+  if (tags?.length) {
+    const selectedTags = new Set(tags);
+    for (const [key, entry] of recentGetResponses) {
+      if (entry.tags.some((tag) => selectedTags.has(tag))) {
+        recentGetResponses.delete(key);
+      }
+    }
+    return;
+  }
+
+  recentGetResponses.clear();
 };
 
 export const resetApiSessionEpochState = () => {
@@ -55,9 +71,18 @@ export const readCachedGetResponse = (key: string) => {
   return { hit: true as const, value: cached.value };
 };
 
-export const writeCachedGetResponse = (key: string, value: unknown) => {
+export const writeCachedGetResponse = (
+  key: string,
+  value: unknown,
+  options?: { tags?: readonly string[]; ttlMs?: number }
+) => {
+  const ttlMs = typeof options?.ttlMs === "number" && Number.isFinite(options.ttlMs)
+    ? Math.max(0, Math.min(60_000, options.ttlMs))
+    : GET_RESPONSE_CACHE_TTL_MS;
+
   recentGetResponses.set(key, {
     value,
-    expiresAt: Date.now() + GET_RESPONSE_CACHE_TTL_MS
+    expiresAt: Date.now() + ttlMs,
+    tags: options?.tags ? [...new Set(options.tags)] : []
   });
 };

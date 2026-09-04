@@ -1,4 +1,4 @@
-import { api, resolveApiUrl, ensureAccessToken } from "@/lib/apiClient";
+import { api } from "@/lib/apiClient";
 import type { ExportConfigV2 } from "./exportLogisticsDocs";
 import type { CarbonAuthorityReference } from "@/lib/productsApi";
 
@@ -31,14 +31,7 @@ export const buildBuyerWebhookPayloadV2 = () =>
 export const downloadExportDocumentV2 = async (
   type: "commercial-invoice" | "packing-list" | "bill-of-lading"
 ) => {
-  const token = await ensureAccessToken();
-  const response = await fetch(resolveApiUrl(`/export/documents/${type}`), {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    credentials: "include"
-  });
-  if (!response.ok) {
-    throw new Error(`Download failed (${response.status})`);
-  }
+  const response = await api.raw(`/export/documents/${type}`);
   const blob = await response.blob();
   const disposition = response.headers.get("content-disposition") || "";
   const match = disposition.match(/filename="?([^"]+)"?/i);

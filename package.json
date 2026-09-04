@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run contract:check",
+    "check": "npm run lint && npm run typecheck && npm run contract:check && npm run network:check",
     "verify": "npm run check",
     "verify:full": "npm run check && npm run test",
     "prepare": "git config core.hooksPath .githooks || exit 0",
@@ -18,6 +18,9 @@
     "contract:generate": "node scripts/generate-openapi.mjs",
     "contract:check": "node scripts/generate-openapi.mjs --check",
     "contract:check:backend": "node scripts/generate-openapi.mjs --sync --check",
+    "network:check": "node scripts/audit-network-boundaries.mjs",
+    "performance:measure": "node scripts/measure-client-bundles.mjs",
+    "performance:check": "node scripts/measure-client-bundles.mjs --check",
     "test": "vitest run",
     "test:carbon": "vitest run lib/carbon"
   },

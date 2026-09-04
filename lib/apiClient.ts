@@ -32,6 +32,7 @@ export {
   setApiRequestAdapter,
   apiRequest,
   type ApiOptions,
+  type ApiResponseType,
   type ApiRequestAdapter,
   type ApiRequestAdapterRequest,
   type ApiRequestAdapterResult
@@ -42,20 +43,46 @@ import { apiRequest as _apiRequest, type ApiOptions as _ApiOptions } from "./api
 export const api = {
   get: <T,>(path: string, options: Omit<_ApiOptions, "method" | "body"> = {}) =>
     _apiRequest<T>(path, { ...options, method: "GET" }),
-  post: <T,>(path: string, body?: unknown) =>
+  post: <T,>(
+    path: string,
+    body?: unknown,
+    options: Omit<_ApiOptions, "method" | "body"> = {}
+  ) =>
     _apiRequest<T>(path, {
+      ...options,
       method: "POST",
       body: body as RequestInit["body"]
     }),
-  patch: <T,>(path: string, body?: unknown) =>
+  patch: <T,>(
+    path: string,
+    body?: unknown,
+    options: Omit<_ApiOptions, "method" | "body"> = {}
+  ) =>
     _apiRequest<T>(path, {
+      ...options,
       method: "PATCH",
       body: body as RequestInit["body"]
     }),
-  put: <T,>(path: string, body?: unknown) =>
+  put: <T,>(
+    path: string,
+    body?: unknown,
+    options: Omit<_ApiOptions, "method" | "body"> = {}
+  ) =>
     _apiRequest<T>(path, {
+      ...options,
       method: "PUT",
       body: body as RequestInit["body"]
     }),
-  delete: <T,>(path: string) => _apiRequest<T>(path, { method: "DELETE" })
+  delete: <T,>(
+    path: string,
+    options: Omit<_ApiOptions, "method" | "body"> = {}
+  ) => _apiRequest<T>(path, { ...options, method: "DELETE" }),
+  raw: (
+    path: string,
+    options: Omit<_ApiOptions, "responseType"> = {}
+  ) => _apiRequest<Response>(path, {
+    ...options,
+    disableResponseCache: true,
+    responseType: "raw"
+  })
 };

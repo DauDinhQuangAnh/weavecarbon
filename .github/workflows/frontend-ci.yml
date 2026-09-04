@@ -136,3 +136,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Enforce client bundle budgets
+        run: npm run performance:check

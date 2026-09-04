@@ -11,6 +11,12 @@ import {
   writeCachedGetResponse
 } from "./cache";
 import { NO_PERMISSION_MESSAGE } from "@/lib/permissions";
+import {
+  HTTP_REQUEST_DEFAULTS,
+  HttpTimeoutError,
+  createCorrelationId,
+  fetchWithPolicy
+} from "@/lib/http/requestPolicy";
 
 const DEFAULT_API_BASE_URL = "/api";
 
@@ -23,9 +29,17 @@ export const API_BASE_URL = normalizeBaseUrl(
   env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL
 );
 
+export type ApiResponseType = "auto" | "arrayBuffer" | "blob" | "raw" | "text";
+
 export type ApiOptions = RequestInit & {
   skipJson?: boolean;
   disableResponseCache?: boolean;
+  responseType?: ApiResponseType;
+  timeoutMs?: number;
+  retries?: number;
+  cacheTtlMs?: number;
+  cacheTags?: readonly string[];
+  invalidateCacheTags?: readonly string[];
 };
 
 interface ApiErrorPayload {
@@ -157,8 +171,16 @@ const shouldRetryWithForcedRefresh = ({
 let apiRequestAdapter: ApiRequestAdapter | null = null;
 let inflightAccessTokenRefresh: Promise<string | null> | null = null;
 
-const parseResponse = async (response: Response) => {
+const parseResponse = async (
+  response: Response,
+  responseType: ApiResponseType = "auto"
+) => {
   if (response.status === 204) return null;
+
+  if (responseType === "raw") return response;
+  if (responseType === "blob") return response.blob();
+  if (responseType === "arrayBuffer") return response.arrayBuffer();
+  if (responseType === "text") return response.text();
 
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -312,21 +334,34 @@ export const ensureAccessToken = async (options?: { forceRefresh?: boolean }): P
 
   inflightAccessTokenRefresh = (async () => {
     try {
-      const response = await fetch(buildUrl("/auth/refresh"), {
+      const response = await fetchWithPolicy(buildUrl("/auth/refresh"), {
         method: "POST",
         headers: {
-          "Content-Type": "application/json; charset=utf-8"
+          "Content-Type": "application/json; charset=utf-8",
+          "X-Correlation-ID": createCorrelationId()
         },
         body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
         credentials: "include",
         cache: "no-store"
+      }, {
+        retries: 0,
+        timeoutMs: HTTP_REQUEST_DEFAULTS.timeoutMs
       });
       const payload = await parseResponse(response);
 
       if (!response.ok) {
         const errorCode = getErrorCode(payload);
-        // 401 on /auth/refresh always means session is definitively dead — clear regardless of error code
-        if (response.status === 401 || isDefinitiveAuthExpiredCode(errorCode)) {
+        // Preserve a still-valid bearer token when only the optional cookie
+        // session is absent; definitive refresh failures still clear auth.
+        const hasStillValidAccessToken = Boolean(
+          accessToken && !isTokenExpired(accessToken, ACCESS_TOKEN_EXPIRY_SKEW_MS)
+        );
+        const cookieSessionMissingButBearerIsValid =
+          isCookieSessionMissingCode(errorCode) && hasStillValidAccessToken;
+        if (
+          !cookieSessionMissingButBearerIsValid &&
+          (response.status === 401 || isDefinitiveAuthExpiredCode(errorCode))
+        ) {
           authTokenStore.clear({ notify: true });
           invalidateApiResponseCache("refresh-expired");
         }
@@ -371,8 +406,12 @@ export const apiRequest = async <T,>(
 ): Promise<T> => {
   const url = buildUrl(path);
   const headers = new Headers(options.headers || {});
+  if (!headers.has("X-Correlation-ID")) {
+    headers.set("X-Correlation-ID", createCorrelationId());
+  }
   const hasExplicitAuthorization = headers.has("Authorization");
   const method = (options.method || "GET").toUpperCase();
+  const responseType = options.responseType || (options.skipJson ? "text" : "auto");
 
   if (apiRequestAdapter) {
     const adapterResult = await apiRequestAdapter<T>({
@@ -390,7 +429,10 @@ export const apiRequest = async <T,>(
         throw adapterResult.error;
       }
       if (method !== "GET") {
-        invalidateApiResponseCache("adapter-mutation");
+        invalidateApiResponseCache(
+          "adapter-mutation",
+          options.invalidateCacheTags
+        );
       }
       return adapterResult.value as T;
     }
@@ -421,22 +463,62 @@ export const apiRequest = async <T,>(
   }
 
   const body = serializeRequestBody(options.body, headers);
+  const {
+    cacheTags,
+    cacheTtlMs,
+    disableResponseCache,
+    invalidateCacheTags,
+    responseType: _responseType,
+    retries,
+    skipJson: _skipJson,
+    timeoutMs,
+    ...requestInit
+  } = options;
+  void _responseType;
+  void _skipJson;
   const dedupeKey =
-    method === "GET" && !options.disableResponseCache ?
-      `${url}|epoch=${getApiSessionEpoch()}|auth=${headers.get("Authorization") || ""}` :
+    method === "GET" &&
+    !disableResponseCache &&
+    !options.signal &&
+    (responseType === "auto" || responseType === "text") ?
+      `${url}|response=${responseType}|epoch=${getApiSessionEpoch()}|auth=${headers.has("Authorization") ? "authorized" : "anonymous"}` :
       null;
 
   const executeRequest = async (): Promise<T> => {
     const doFetch = async (requestHeaders: Headers) => {
-      const response = await fetch(url, {
-        ...options,
-        headers: requestHeaders,
-        body,
-        credentials: "include",
-        cache: options.cache ?? "no-store"
-      });
-      const payload = await parseResponse(response);
-      return { response, payload };
+      try {
+        const response = await fetchWithPolicy(url, {
+          ...requestInit,
+          headers: requestHeaders,
+          body,
+          credentials: "include",
+          cache: options.cache ?? "no-store"
+        }, {
+          retries,
+          timeoutMs
+        });
+        const payload = response.ok
+          ? await parseResponse(response, responseType)
+          : await parseResponse(response, "auto");
+        return { response, payload };
+      } catch (error) {
+        if (error instanceof HttpTimeoutError) {
+          throw new ApiError(error.message, {
+            status: 408,
+            code: "CLIENT_TIMEOUT",
+            details: { timeoutMs: error.timeoutMs }
+          });
+        }
+
+        if (options.signal?.aborted || error instanceof ApiError) {
+          throw error;
+        }
+
+        throw new ApiError("Unable to reach the API.", {
+          status: 0,
+          code: "NETWORK_ERROR"
+        });
+      }
     };
 
     let { response, payload } = await doFetch(headers);
@@ -482,7 +564,7 @@ export const apiRequest = async <T,>(
     const response = await executeRequest();
 
     if (method !== "GET") {
-      invalidateApiResponseCache("mutation");
+      invalidateApiResponseCache("mutation", invalidateCacheTags);
     }
     return response;
   }
@@ -501,7 +583,10 @@ export const apiRequest = async <T,>(
   inflightGetRequests.set(dedupeKey, requestPromise);
   try {
     const result = (await requestPromise) as T;
-    writeCachedGetResponse(dedupeKey, result);
+    writeCachedGetResponse(dedupeKey, result, {
+      tags: cacheTags,
+      ttlMs: cacheTtlMs
+    });
     return result;
   } finally {
     inflightGetRequests.delete(dedupeKey);

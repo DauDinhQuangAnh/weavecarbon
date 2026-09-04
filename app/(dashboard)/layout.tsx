@@ -2,7 +2,6 @@ import React from "react";
 import DashboardSidebarShell from "@/components/dashboard/DashboardSidebarShell";
 import PricingModalGate from "@/components/dashboard/PricingModalGate";
 import { DashboardProvider } from "@/contexts/DashboardContext";
-import { ProductProvider } from "@/contexts/ProductContext";
 import DashboardLayoutContent from "@/components/dashboard/DashboardLayoutContent";
 import RouteWeaveyChat from "@/components/ui/RouteWeaveyChat";
 import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
@@ -16,8 +15,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <ScopedIntlProvider namespaces={DASHBOARD_BASE_NAMESPACES}>
       <DashboardProvider>
-        <ProductProvider>
-          <div className="flex min-h-dvh w-full flex-col overflow-x-clip bg-background lg:flex-row">
+        <div className="flex min-h-dvh w-full flex-col overflow-x-clip bg-background lg:flex-row">
             <DashboardSidebarShell company={null} />
 
 
@@ -28,8 +26,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
             <PricingModalGate />
             <RouteWeaveyChat />
-          </div>
-        </ProductProvider>
+        </div>
       </DashboardProvider>
     </ScopedIntlProvider>);
 

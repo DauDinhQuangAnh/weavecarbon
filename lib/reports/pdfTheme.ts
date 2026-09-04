@@ -9,6 +9,7 @@
  * unit-tested in Node; the browser wrapper fetches fonts from /public/fonts.
  */
 import type { jsPDF } from "jspdf";
+import { fetchWithPolicy } from "@/lib/http/requestPolicy";
 
 export const PDF_FONT = "BeVietnamPro";
 
@@ -44,7 +45,9 @@ export function registerFonts(doc: jsPDF, fonts: FontPair): void {
 /** Browser-only: fetch the embedded fonts from /public/fonts as base64. Cached by the browser. */
 export async function loadPdfFonts(): Promise<FontPair> {
   const toB64 = async (url: string) => {
-    const buf = await (await fetch(url)).arrayBuffer();
+    const response = await fetchWithPolicy(url, {}, { retries: 1, timeoutMs: 10_000 });
+    if (!response.ok) throw new Error(`Unable to load PDF font (${response.status}).`);
+    const buf = await response.arrayBuffer();
     let binary = "";
     const bytes = new Uint8Array(buf);
     const chunk = 0x8000;

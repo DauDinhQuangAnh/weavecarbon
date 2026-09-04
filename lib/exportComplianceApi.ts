@@ -6,6 +6,7 @@ import {
   isApiError,
   resolveApiUrl
 } from "@/lib/apiClient";
+import { fetchWithPolicy } from "@/lib/http/requestPolicy";
 import {
   MARKET_CODES,
   MARKET_DOCUMENT_REQUIREMENTS,
@@ -541,7 +542,7 @@ const isDemoRuntime = () =>
 
 const fetchWithOptionalAuth = async (url: string, accessToken: string | null) => {
   const sameOrigin = isSameOriginAsApi(url);
-  return fetch(url, {
+  return fetchWithPolicy(url, {
     method: "GET",
     credentials: sameOrigin ? "include" : "omit",
     headers:
@@ -550,6 +551,9 @@ const fetchWithOptionalAuth = async (url: string, accessToken: string | null) =>
             Authorization: `Bearer ${accessToken}`
           }
         : undefined
+  }, {
+    retries: 1,
+    timeoutMs: 30_000
   });
 };
 
@@ -1495,14 +1499,8 @@ const fetchDocumentBlob = async (
 
   const path = `${withEncodedMarketPath(marketCode)}/documents/${encodeURIComponent(documentId)}/download`;
 
-  const response = await fetch(resolveApiUrl(path), {
-    method: "GET",
-    credentials: "include",
-    headers: accessToken
-      ? {
-          Authorization: `Bearer ${accessToken}`
-        }
-      : undefined
+  const response = await api.raw(path, {
+    timeoutMs: 30_000
   });
 
   return resolvePdfBlobFromResponse(

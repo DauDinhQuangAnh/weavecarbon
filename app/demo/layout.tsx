@@ -6,7 +6,6 @@ import DemoProvider from "@/components/demo/DemoProvider";
 import DemoRoutePrefetch from "@/components/demo/DemoRoutePrefetch";
 import DemoAutoTour from "@/components/demo/DemoAutoTour";
 import { DashboardProvider } from "@/contexts/DashboardContext";
-import { ProductProvider } from "@/contexts/ProductContext";
 import { DASHBOARD_BASE_NAMESPACES } from "@/lib/i18n/namespaces";
 import RouteWeaveyChat from "@/components/ui/RouteWeaveyChat";
 
@@ -14,8 +13,7 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <ScopedIntlProvider namespaces={DASHBOARD_BASE_NAMESPACES}>
       <DashboardProvider>
-        <ProductProvider>
-          <DemoProvider>
+        <DemoProvider>
             <DemoRoutePrefetch />
             <div className="flex min-h-dvh w-full flex-col overflow-x-clip bg-background lg:flex-row">
               <DashboardSidebarShell company={null} />
@@ -25,8 +23,7 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
               <RouteWeaveyChat />
               <DemoAutoTour />
             </div>
-          </DemoProvider>
-        </ProductProvider>
+        </DemoProvider>
       </DashboardProvider>
     </ScopedIntlProvider>
   );

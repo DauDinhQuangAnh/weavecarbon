@@ -97,3 +97,8 @@ ports (80/443); it routes frontend traffic to port 3000 and `/api/*` plus
 No optimization claim or target is established by WP-0B. Re-run the same method
 on the same class of runner before/after WP-FE3. Rollback is deletion/revert of
 this documentation-only commit; generated `.next` artifacts remain ignored.
+
+## M2 follow-up
+
+The completed frontend modernization measurements and enforced route budgets are
+recorded in [M2-FRONTEND-MODERNIZATION-PERFORMANCE.md](./M2-FRONTEND-MODERNIZATION-PERFORMANCE.md).
