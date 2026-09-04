@@ -11,6 +11,70 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout full history for secret scanning
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect committed secrets
+        uses: gitleaks/gitleaks-action@v2
+
+      - name: Scan source and lockfile
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Generate source SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: frontend-source-sbom.spdx.json
+          artifact-name: frontend-source-sbom-${{ github.run_id }}.spdx.json
+
+  compose-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate production Compose model
+        run: docker compose --env-file .env.vps.example -f docker-compose.vps.yml config --quiet
+
+      - name: Enforce isolation and immutable image inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose_json="$(docker compose --env-file .env.vps.example -f docker-compose.vps.yml config --format json)"
+          python -c '
+          import json, sys
+          model = json.load(sys.stdin)
+          services = model["services"]
+          assert "ports" not in services["db"]
+          assert "ports" not in services["be"]
+          assert "ports" not in services["rag"]
+          assert services["be"]["read_only"] is True
+          assert services["rag"]["read_only"] is True
+          assert services["fe"]["read_only"] is True
+          assert services["db"]["networks"] == {"data": None}
+          assert "data" not in services["proxy"]["networks"]
+          assert "build" not in services["rag"]
+          ' <<< "$compose_json"
+
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -18,6 +18,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - data
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
 
   be:
     image: ${BE_IMAGE:-ghcr.io/daudinhquanganh/be_weavecarbon:latest}
@@ -65,11 +70,19 @@ services:
       RAG_REQUIRE_INTERNAL_API_KEY: "true"
     volumes:
       - be_uploads:/app/uploads
+    networks:
+      - app
+      - data
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 45s
 
   rag:
-    build:
-      context: ${RAG_REPO_PATH:-../rag}
-      dockerfile: Dockerfile
+    image: ${RAG_IMAGE:-ghcr.io/daudinhquanganh/weavecarbon-rag:latest}
     restart: unless-stopped
     depends_on:
       db:
@@ -93,13 +106,23 @@ services:
     volumes:
       - rag_data:/app/db
       - rag_cache:/app/.cache
+    networks:
+      - app
+      - data
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 45s
     healthcheck:
       test:
         [
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready').read()",
         ]
       interval: 30s
       timeout: 10s
@@ -116,8 +139,17 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3000
-      BACKEND_HEALTH_URL: ${BACKEND_HEALTH_URL:-http://be:4000/health}
+      BACKEND_HEALTH_URL: ${BACKEND_HEALTH_URL:-http://be:4000/ready}
       AI_CONFIG_CONSOLE_ENABLED: ${AI_CONFIG_CONSOLE_ENABLED:-0}
+    networks:
+      - app
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
 
   proxy:
     image: caddy:2-alpine
@@ -137,6 +169,18 @@ services:
       - ./deploy/extra-sites:/etc/caddy/extra-sites:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - edge
+      - app
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+
+networks:
+  edge:
+  app:
+  data:
+    internal: true
 
 volumes:
   postgres_data:

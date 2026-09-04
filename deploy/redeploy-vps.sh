@@ -140,9 +140,18 @@ pull_images() {
   retry_command 3 20 compose pull "$@"
 }
 
+prepare_backend_runtime_volume() {
+  echo "Ensuring backend uploads are writable by the non-root node user..."
+  retry_command 3 20 compose run --rm --no-deps \
+    --user 0:0 \
+    --entrypoint sh \
+    be \
+    -c 'mkdir -p /app/uploads && chown -R 1000:1000 /app/uploads'
+}
+
 prepare_rag_runtime_volumes() {
-  echo "Building RAG and ensuring its persistent volumes are writable by UID/GID 10001..."
-  retry_command 3 20 compose build rag
+  echo "Ensuring the immutable RAG image and persistent volumes are ready for UID/GID 10001..."
+  pull_images rag
   retry_command 3 20 compose run --rm --no-deps \
     --user 0:0 \
     --entrypoint sh \
@@ -364,6 +373,7 @@ if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
 elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
   echo "Deploy mode: backend-only"
   pull_images be
+  prepare_backend_runtime_volume
   retry_command 3 20 compose up -d --no-deps be
   wait_for_service_health be 180
 elif [[ "${DEPLOY_MODE}" == "rag-only" ]]; then
@@ -375,7 +385,8 @@ elif [[ "${DEPLOY_MODE}" == "rag-only" ]]; then
   wait_for_service_health proxy 60
 else
   echo "Deploy mode: full stack"
-  pull_images be fe
+  pull_images be fe rag
+  prepare_backend_runtime_volume
   prepare_rag_runtime_volumes
   retry_command 3 20 compose up -d --no-build --remove-orphans
   wait_for_service_health db 180
