@@ -35,7 +35,9 @@ jobs:
         #   • Dependabot opens fix PRs automatically (.github/dependabot.yml)
         #   • the weekly "Dependency Audit (scheduled)" workflow files a tracking issue
         # The result still shows here as a visible signal.
-        run: npx audit-ci --config ./audit-ci.jsonc
+        # Keep this advisory signal bounded so registry latency cannot cancel the
+        # whole CI run and block an otherwise valid production deployment.
+        run: timeout 180s npx audit-ci --config ./audit-ci.jsonc
         continue-on-error: true
 
   contract:
