@@ -140,6 +140,16 @@ pull_images() {
   retry_command 3 20 compose pull "$@"
 }
 
+prepare_rag_runtime_volumes() {
+  echo "Building RAG and ensuring its persistent volumes are writable by UID/GID 10001..."
+  retry_command 3 20 compose build rag
+  retry_command 3 20 compose run --rm --no-deps \
+    --user 0:0 \
+    --entrypoint sh \
+    rag \
+    -c 'mkdir -p /app/db /app/.cache && chown -R 10001:10001 /app/db /app/.cache'
+}
+
 wait_for_service_health() {
   local service="$1"
   local timeout_seconds="${2:-120}"
@@ -358,14 +368,16 @@ elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
   wait_for_service_health be 180
 elif [[ "${DEPLOY_MODE}" == "rag-only" ]]; then
   echo "Deploy mode: rag-only"
-  retry_command 3 20 compose up -d --build --no-deps rag
+  prepare_rag_runtime_volumes
+  retry_command 3 20 compose up -d --no-build --no-deps rag
   wait_for_service_health rag 240
   retry_command 3 20 compose up -d --no-deps proxy
   wait_for_service_health proxy 60
 else
   echo "Deploy mode: full stack"
   pull_images be fe
-  retry_command 3 20 compose up -d --build --remove-orphans
+  prepare_rag_runtime_volumes
+  retry_command 3 20 compose up -d --no-build --remove-orphans
   wait_for_service_health db 180
   wait_for_service_health be 180
   wait_for_service_health rag 240

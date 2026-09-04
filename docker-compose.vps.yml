@@ -92,7 +92,7 @@ services:
       - "8000"
     volumes:
       - rag_data:/app/db
-      - rag_cache:/root/.cache
+      - rag_cache:/app/.cache
     healthcheck:
       test:
         [
