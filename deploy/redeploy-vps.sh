@@ -156,7 +156,12 @@ prepare_rag_runtime_volumes() {
     --user 0:0 \
     --entrypoint sh \
     rag \
-    -c 'mkdir -p /app/db /app/.cache && chown -R 10001:10001 /app/db /app/.cache'
+    -c 'mkdir -p /app/db /app/.cache && chown -R 10001:10001 /app/db /app/.cache && chmod -R u+rwX /app/db /app/.cache'
+  retry_command 3 5 compose run --rm --no-deps \
+    --user 10001:10001 \
+    --entrypoint sh \
+    rag \
+    -c 'probe=/app/db/.weavecarbon-write-probe && : > "$probe" && rm -f "$probe"'
 }
 
 wait_for_service_health() {
