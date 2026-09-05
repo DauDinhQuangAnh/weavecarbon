@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       release_mode:
-        description: Full is the only mode that can produce a release PASS
+        description: Full alone can PASS; deferred closes implementation as NOT READY
         required: true
         default: full
         type: choice
         options:
           - full
           - candidate
+          - deferred
 
 concurrency:
   group: m5-release-readiness
@@ -62,6 +63,7 @@ jobs:
 
   staging-gates:
     needs: exact-head-ci
+    if: inputs.release_mode != 'deferred'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: staging
@@ -226,4 +228,33 @@ jobs:
 
       - name: Add decision to workflow summary
         if: always() && hashFiles('artifacts/release/RELEASE_READINESS.md') != ''
+        run: cat artifacts/release/RELEASE_READINESS.md >> "$GITHUB_STEP_SUMMARY"
+
+  deferred-closeout:
+    needs: exact-head-ci
+    if: inputs.release_mode == 'deferred'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: m5-ci-gates-${{ github.run_id }}
+          path: artifacts/release
+
+      - name: Record implementation closeout with staging deferred
+        env:
+          RELEASE_MODE: deferred
+        run: node scripts/check-release-evidence.mjs artifacts/release artifacts/release/RELEASE_READINESS.md
+
+      - name: Publish deferred M5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: m5-release-readiness-${{ github.run_id }}
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Add deferred decision to workflow summary
         run: cat artifacts/release/RELEASE_READINESS.md >> "$GITHUB_STEP_SUMMARY"

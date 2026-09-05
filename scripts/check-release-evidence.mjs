@@ -25,6 +25,10 @@ export function verifyReleaseEvidence(root, { mode = 'full' } = {}) {
     throw new Error('All three exact-head cross-repository CI gates must PASS.');
   }
 
+  if (mode === 'deferred') {
+    return { ciRows, mode };
+  }
+
   const smoke = parseEnvReport(readFileSync(requiredFile(root, 'staging-smoke.env'), 'utf8'));
   if (smoke.status !== 'PASS' || smoke.production_target !== 'false') {
     throw new Error('Staging critical smoke did not pass safely.');
@@ -53,7 +57,17 @@ export function verifyReleaseEvidence(root, { mode = 'full' } = {}) {
   return { ciRows, smoke, restore, mode };
 }
 
-function render(result) {
+export function renderReleaseDecision(result) {
+  if (result.mode === 'deferred') {
+    return `# WeaveCarbon Release Readiness\n\n` +
+      `- Decision: **NOT READY**\n` +
+      `- Modernization implementation: **COMPLETE**\n` +
+      `- Staging verification: **DEFERRED BY PRODUCT OWNER**\n` +
+      `- Mode: deferred\n` +
+      `- Generated: ${new Date().toISOString()}\n\n` +
+      `All three exact-head repository CI gates passed. Capacity, performance, and recovery objectives remain uncertified until a full isolated staging run succeeds.\n`;
+  }
+
   return `# WeaveCarbon Release Readiness\n\n` +
     `- Decision: **PASS**\n` +
     `- Mode: ${result.mode}\n` +
@@ -69,6 +83,8 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   const root = path.resolve(process.argv[2] || process.env.RELEASE_EVIDENCE_DIR || 'artifacts/release');
   const output = path.resolve(process.argv[3] || path.join(root, 'RELEASE_READINESS.md'));
   const result = verifyReleaseEvidence(root, { mode: process.env.RELEASE_MODE || 'full' });
-  writeFileSync(output, render(result));
-  console.log(`Release readiness PASS: ${output}`);
+  writeFileSync(output, renderReleaseDecision(result));
+  console.log(result.mode === 'deferred'
+    ? `Modernization closeout recorded with staging deferred: ${output}`
+    : `Release readiness PASS: ${output}`);
 }
