@@ -75,35 +75,6 @@ jobs:
           assert "build" not in services["rag"]
           ' <<< "$compose_json"
 
-  audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Dependency vulnerability audit (advisory — does NOT block the push)
-        # Non-blocking on purpose: a newly-published advisory in a transitive dep
-        # must not block an unrelated code push. Enforcement lives elsewhere:
-        #   • Dependabot opens fix PRs automatically (.github/dependabot.yml)
-        #   • the weekly "Dependency Audit (scheduled)" workflow files a tracking issue
-        # The result still shows here as a visible signal.
-        # Keep this advisory signal bounded so registry latency cannot cancel the
-        # whole CI run and block an otherwise valid production deployment.
-        run: timeout 180s npx audit-ci --config ./audit-ci.jsonc
-        continue-on-error: true
-
   contract:
     runs-on: ubuntu-latest
     timeout-minutes: 10
