@@ -21,6 +21,7 @@
 /build
 /backups/
 /restore-drills/
+/artifacts/
 
 # misc
 .DS_Store

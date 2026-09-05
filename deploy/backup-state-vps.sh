@@ -8,6 +8,8 @@ ENV_FILE="${ROOT_DIR}/.env.vps"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.vps.yml"
 PROJECT_NAME="weavecarbon"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP_STARTED_EPOCH="$(date -u +%s)"
+BACKUP_STARTED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 BACKUP_ROOT="${ROOT_DIR}/backups"
 FINAL_DIR="${BACKUP_ROOT}/state-${TIMESTAMP}"
 WORK_DIR="${BACKUP_ROOT}/.partial-state-${TIMESTAMP}-$$"
@@ -113,6 +115,7 @@ docker volume inspect "${PROJECT_NAME}_rag_data" >/dev/null 2>&1 || \
 echo "Quiescing backend and RAG writes for a consistent backup..."
 SERVICES_QUIESCED=1
 compose stop be rag >/dev/null
+RECOVERY_POINT_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 mkdir -p "${BACKUP_ROOT}"
 BACKUP_ROOT="$(cd "${BACKUP_ROOT}" && pwd -P)"
@@ -147,15 +150,34 @@ compose run --rm --no-deps -T --entrypoint sh \
   > "${WORK_DIR}/rag-data.tar.gz"
 tar -tzf "${WORK_DIR}/rag-data.tar.gz" > "${WORK_DIR}/rag-data-members.txt"
 
+echo "Recording non-secret deployment provenance..."
+{
+  echo "FORMAT_VERSION=1"
+  echo "COMPOSE_FILE_SHA256=$(sha256sum "${COMPOSE_FILE}" | awk '{ print $1 }')"
+  for service in db be rag fe proxy; do
+    container_id="$(compose ps -aq "${service}")"
+    [[ -n "${container_id}" ]] || fail "cannot record image for stopped service ${service}"
+    image_ref="$(docker inspect --format '{{.Config.Image}}' "${container_id}")"
+    printf '%s_IMAGE=%s\n' "$(printf '%s' "${service}" | tr '[:lower:]' '[:upper:]')" "${image_ref}"
+  done
+  echo "FRONTEND_SOURCE_SHA=$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || echo unavailable)"
+} > "${WORK_DIR}/deployment-manifest.env"
+
 SOURCE_DATABASE="$(compose exec -T db sh -lc 'printf "%s" "$POSTGRES_DB"' | tr -d '\r')"
 TABLE_COUNT="$(awk 'NR > 1 { count++ } END { print count + 0 }' "${WORK_DIR}/database-counts.tsv")"
 TOTAL_ROWS="$(awk 'NR > 1 { total += $2 } END { print total + 0 }' "${WORK_DIR}/database-counts.tsv")"
 UPLOAD_MEMBER_COUNT="$(wc -l < "${WORK_DIR}/uploads-members.txt" | tr -d ' ')"
 RAG_MEMBER_COUNT="$(wc -l < "${WORK_DIR}/rag-data-members.txt" | tr -d ' ')"
+BACKUP_COMPLETED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+BACKUP_DURATION_SECONDS="$(( $(date -u +%s) - BACKUP_STARTED_EPOCH ))"
 
 cat > "${WORK_DIR}/metadata.env" <<EOF
-FORMAT_VERSION=1
+FORMAT_VERSION=2
 CREATED_AT_UTC=${TIMESTAMP}
+BACKUP_STARTED_AT_UTC=${BACKUP_STARTED_AT_UTC}
+RECOVERY_POINT_AT_UTC=${RECOVERY_POINT_AT_UTC}
+BACKUP_COMPLETED_AT_UTC=${BACKUP_COMPLETED_AT_UTC}
+BACKUP_DURATION_SECONDS=${BACKUP_DURATION_SECONDS}
 SOURCE_DATABASE=${SOURCE_DATABASE}
 POSTGRES_IMAGE=postgres:16-alpine
 DATABASE_DUMP_FORMAT=custom
@@ -179,6 +201,7 @@ EOF
     uploads-members.txt \
     rag-data.tar.gz \
     rag-data-members.txt \
+    deployment-manifest.env \
     metadata.env \
     > SHA256SUMS
 )

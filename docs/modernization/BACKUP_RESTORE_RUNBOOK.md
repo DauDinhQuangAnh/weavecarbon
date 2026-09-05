@@ -1,6 +1,6 @@
 # WP-S1 Backup and Restore Runbook
 
-- Date: 2026-08-27
+- Date: 2026-09-05
 - Scope: PostgreSQL, durable customer files in `be_uploads`, and the recoverable RAG index in `rag_data`
 - Production execution in this work package: **not authorized and not performed**
 - Destructive live restore: **not implemented**
@@ -41,6 +41,7 @@ The final directory is `backups/state-<UTC timestamp>/`. It appears only after a
 - `database-counts.tsv`: exact row count for every non-system table;
 - `uploads.tar.gz` and `uploads-members.txt`;
 - `rag-data.tar.gz` and `rag-data-members.txt`;
+- `deployment-manifest.env` with exact database/backend/RAG/frontend/proxy image references, Compose checksum and frontend source SHA, but no secrets;
 - `metadata.env` with non-secret backup facts;
 - `SHA256SUMS` covering every component.
 
@@ -64,14 +65,23 @@ An optional target can be supplied:
 
 The restore script has these hard stops:
 
-- it rejects the configured live database name;
-- it rejects any database that already exists;
+- it creates a uniquely named Docker network and a disposable PostgreSQL 16 container;
+- it never connects the restored applications to the configured live database or live volumes;
 - it rejects an existing restore directory;
 - it verifies every SHA-256 entry and both archive formats before restore;
 - it rejects absolute or parent-traversal archive paths;
 - it restores files only below `restore-drills/<target>/`, never into a live volume.
 
-A pass requires an empty database created from `template0`, a successful `pg_restore --exit-on-error`, an exact match of all table counts, and matching upload/RAG archive inventories. The report is written to `restore-drills/<target>/restore-report.txt`.
+A pass requires an empty database created from `template0`, a successful `pg_restore --exit-on-error`, an exact match of all table counts, matching upload/RAG archive inventories, and successful startup of the exact backend, RAG and frontend images currently deployed. The critical smoke creates only an isolated demo session and verifies auth, dashboard, product, evidence, RAG readiness and frontend health paths. The report is written to `restore-drills/<target>/restore-report.txt`.
+
+The default recovery objectives are RPO <= 24 hours and RTO <= 60 minutes. Override them only with approved positive integer seconds:
+
+```bash
+RPO_TARGET_SECONDS=86400 RTO_TARGET_SECONDS=3600 \
+  ./deploy/restore-state-drill-vps.sh --bundle ./backups/state-YYYYMMDDTHHMMSSZ
+```
+
+The script measures RPO from the quiesced backup recovery point and RTO from drill start through all critical smoke checks. It fails even after successful data integrity checks if either budget is exceeded. Disposable containers and their private network are always removed. The restored files and non-secret report remain for review; transient copies of container environment variables are deleted before reporting.
 
 Inspect representative records whose IDs and expected values are approved for the environment. Do not paste personal or customer data into the runbook. The automated CI drill uses synthetic calculation-history and tenant-evidence sentinels and verifies their exact values plus representative file hashes.
 
@@ -87,9 +97,9 @@ If backup fails:
 If restore verification fails:
 
 - do not run the migration;
-- preserve the isolated target database and `restore-drills/<target>/` for diagnosis;
+- preserve `restore-drills/<target>/` for diagnosis; the disposable database container is removed automatically;
 - create a new backup after correcting the cause and repeat the entire drill;
-- delete only the explicitly named isolated resources after the evidence has been reviewed.
+- delete only the explicitly named restore directory after the evidence has been reviewed.
 
 This procedure intentionally does not overwrite a live database or live volume. A real disaster recovery cutover requires separate incident authorization, a verified bundle, a fresh target, application maintenance mode, and an explicit cutover/rollback plan.
 

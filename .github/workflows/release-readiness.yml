@@ -1,0 +1,229 @@
+name: M5 Release Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_mode:
+        description: Full is the only mode that can produce a release PASS
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - candidate
+
+concurrency:
+  group: m5-release-readiness
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  exact-head-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify exact-head CI across all repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/release
+          printf 'repository\tstatus\tsha\turl\n' > artifacts/release/ci-gates.tsv
+
+          check_workflow() {
+            local repository="$1"
+            local workflow_name="$2"
+            local sha workflow_id run
+            sha="$(gh api "repos/${repository}/commits/main" --jq '.sha')"
+            workflow_id="$(gh api "repos/${repository}/actions/workflows" --paginate \
+              --jq ".workflows[] | select(.name == \"${workflow_name}\") | .id" | head -n 1)"
+            test -n "$workflow_id"
+            run="$(gh api "repos/${repository}/actions/workflows/${workflow_id}/runs?branch=main&head_sha=${sha}&status=completed&per_page=20" \
+              --jq '.workflow_runs | map(select(.conclusion == "success")) | first | [.head_sha, .html_url] | @tsv')"
+            test -n "$run"
+            test "${run%%$'\t'*}" = "$sha"
+            printf '%s\tPASS\t%s\n' "$repository" "$run" >> artifacts/release/ci-gates.tsv
+          }
+
+          check_workflow DauDinhQuangAnh/weavecarbon 'Frontend CI'
+          check_workflow DauDinhQuangAnh/BE_weavecarbon 'Backend CI'
+          check_workflow DauDinhQuangAnh/API_RAG 'RAG Deploy VPS'
+          cat artifacts/release/ci-gates.tsv
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m5-ci-gates-${{ github.run_id }}
+          path: artifacts/release/ci-gates.tsv
+          if-no-files-found: error
+
+  staging-gates:
+    needs: exact-head-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: staging
+    env:
+      LOAD_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+      LOAD_ENVIRONMENT: staging
+      LOAD_SHAPE: baseline
+      LOAD_ACCESS_TOKEN: ${{ secrets.STAGING_B2B_ACCESS_TOKEN }}
+      RAG_ACCESS_TOKEN: ${{ secrets.STAGING_ADMIN_ACCESS_TOKEN }}
+      LOAD_ALLOW_DEMO_LOGIN: ${{ vars.STAGING_ALLOW_DEMO_LOGIN || 'false' }}
+      LOAD_RAG_COLLECTION: ${{ vars.STAGING_RAG_COLLECTION }}
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_PORT: ${{ secrets.STAGING_PORT }}
+      STAGING_USER: ${{ secrets.STAGING_USER }}
+      STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+      STAGING_APP_DIR: ${{ vars.STAGING_APP_DIR || '/opt/weavecarbon/FE' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: m5-ci-gates-${{ github.run_id }}
+          path: artifacts/release
+
+      - name: Require isolated staging configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in LOAD_BASE_URL STAGING_HOST STAGING_USER STAGING_SSH_KEY LOAD_RAG_COLLECTION; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "::error title=Missing staging configuration::${variable} is required by the staging environment."
+              exit 1
+            fi
+          done
+          if [[ '${{ inputs.release_mode }}' == 'full' && -z "${RAG_ACCESS_TOKEN:-}" ]]; then
+            echo '::error title=Missing staging credential::STAGING_ADMIN_ACCESS_TOKEN is required for the privileged RAG profiles.'
+            exit 1
+          fi
+          npm run performance:policy:test
+          node scripts/run-performance.mjs --validate-only --profile core --shape baseline
+
+      - name: Configure staging SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh artifacts/release
+          chmod 700 ~/.ssh
+          printf '%s\n' "$STAGING_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
+          STAGING_PORT="${STAGING_PORT:-22}"
+          ssh-keyscan -H -p "$STAGING_PORT" "$STAGING_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Update staging operator scripts and capture pre-load metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGING_PORT="${STAGING_PORT:-22}"
+          ssh -T -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" \
+            "cd '$STAGING_APP_DIR' && git checkout main && git pull --ff-only origin main && bash deploy/capture-operational-snapshot-vps.sh /tmp/m5-operations-before-${GITHUB_RUN_ID}.txt && cat /tmp/m5-operations-before-${GITHUB_RUN_ID}.txt && rm -f /tmp/m5-operations-before-${GITHUB_RUN_ID}.txt" \
+            > artifacts/release/operations-before.txt
+
+      - name: Critical staging smoke
+        run: node scripts/smoke-staging.mjs
+        env:
+          SMOKE_REPORT_PATH: artifacts/release/staging-smoke.env
+
+      - name: Run core staging baseline and enforce budgets
+        shell: bash
+        env:
+          LOAD_ENABLE_MUTATIONS: 'true'
+          LOAD_ENABLE_REPORT_JOBS: 'true'
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e LOAD_BASE_URL -e LOAD_ENVIRONMENT -e LOAD_SHAPE -e LOAD_ACCESS_TOKEN -e LOAD_ALLOW_DEMO_LOGIN \
+            -e LOAD_ENABLE_MUTATIONS -e LOAD_ENABLE_REPORT_JOBS \
+            -e K6_TARGET_POLICY_VALIDATED=true \
+            grafana/k6:2.2.0 run \
+            --summary-export /work/artifacts/release/core-baseline-summary.json \
+            /work/performance/k6/core-workload.js
+
+      - name: Run isolated RAG performance profiles
+        if: inputs.release_mode == 'full'
+        shell: bash
+        env:
+          LOAD_ACCESS_TOKEN: ${{ secrets.STAGING_ADMIN_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e LOAD_BASE_URL -e LOAD_ENVIRONMENT -e LOAD_SHAPE -e LOAD_ACCESS_TOKEN -e LOAD_RAG_COLLECTION \
+            -e K6_TARGET_POLICY_VALIDATED=true \
+            grafana/k6:2.2.0 run \
+            --summary-export /work/artifacts/release/rag-query-baseline-summary.json \
+            /work/performance/k6/rag-query.js
+          docker run --rm \
+            -v "$PWD:/work" -w /work \
+            -e LOAD_BASE_URL -e LOAD_ENVIRONMENT -e LOAD_ACCESS_TOKEN -e LOAD_RAG_COLLECTION \
+            -e LOAD_ENABLE_RAG_INGEST=true -e K6_TARGET_POLICY_VALIDATED=true \
+            grafana/k6:2.2.0 run \
+            --summary-export /work/artifacts/release/rag-ingest-baseline-summary.json \
+            /work/performance/k6/rag-ingest.js
+
+      - name: Capture post-load metrics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGING_PORT="${STAGING_PORT:-22}"
+          ssh -T -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" \
+            "cd '$STAGING_APP_DIR' && bash deploy/capture-operational-snapshot-vps.sh /tmp/m5-operations-after-${GITHUB_RUN_ID}.txt && cat /tmp/m5-operations-after-${GITHUB_RUN_ID}.txt && rm -f /tmp/m5-operations-after-${GITHUB_RUN_ID}.txt" \
+            > artifacts/release/operations-after.txt
+
+      - name: Run complete isolated recovery drill
+        if: inputs.release_mode == 'full'
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGING_PORT="${STAGING_PORT:-22}"
+          ssh -T -p "$STAGING_PORT" "$STAGING_USER@$STAGING_HOST" \
+            "RPO_TARGET_SECONDS=86400 RTO_TARGET_SECONDS=3600 STAGING_APP_DIR='$STAGING_APP_DIR' GITHUB_RUN_ID='$GITHUB_RUN_ID' bash --noprofile --norc -se" \
+            > artifacts/release/restore-report.txt <<'REMOTE'
+          set -euo pipefail
+          cd "$STAGING_APP_DIR"
+          backup_log="$(mktemp /tmp/m5-backup.XXXXXX)"
+          restore_log="$(mktemp /tmp/m5-restore.XXXXXX)"
+          trap 'rm -f "$backup_log" "$restore_log"' EXIT
+          bash deploy/backup-state-vps.sh >"$backup_log" 2>&1
+          cat "$backup_log" >&2
+          bundle="$(awk '/Verified backup bundle created at / { sub(/^.* at /, ""); print }' "$backup_log" | tail -n 1)"
+          test -n "$bundle"
+          RPO_TARGET_SECONDS="$RPO_TARGET_SECONDS" RTO_TARGET_SECONDS="$RTO_TARGET_SECONDS" \
+            bash deploy/restore-state-drill-vps.sh --bundle "$bundle" >"$restore_log" 2>&1
+          cat "$restore_log" >&2
+          report="$(awk '/^Report: / { sub(/^Report: /, ""); print }' "$restore_log" | tail -n 1)"
+          test -s "$report"
+          cat "$report"
+          REMOTE
+
+      - name: Produce release decision
+        if: inputs.release_mode == 'full'
+        env:
+          RELEASE_MODE: full
+        run: node scripts/check-release-evidence.mjs artifacts/release artifacts/release/RELEASE_READINESS.md
+
+      - name: Candidate-mode decision
+        if: inputs.release_mode == 'candidate'
+        run: |
+          echo 'Candidate checks completed. A candidate run cannot issue a release PASS.' > artifacts/release/RELEASE_READINESS.md
+
+      - name: Publish M5 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m5-release-readiness-${{ github.run_id }}
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Add decision to workflow summary
+        if: always() && hashFiles('artifacts/release/RELEASE_READINESS.md') != ''
+        run: cat artifacts/release/RELEASE_READINESS.md >> "$GITHUB_STEP_SUMMARY"

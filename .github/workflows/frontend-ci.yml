@@ -56,6 +56,29 @@ jobs:
         run: |
           docker compose --env-file .env.vps.example -f docker-compose.vps.yml config --quiet
           bash -n deploy/redeploy-vps.sh
+          bash -n deploy/backup-state-vps.sh
+          bash -n deploy/restore-state-drill-vps.sh
+          bash -n deploy/capture-operational-snapshot-vps.sh
+
+      - name: Verify load-test target safety policy
+        run: npm run performance:policy:test
+
+      - name: Parse all k6 release profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          common=(
+            -v "$PWD:/work" -w /work
+            -e LOAD_BASE_URL=http://127.0.0.1:4100
+            -e LOAD_ENVIRONMENT=test
+            -e LOAD_ACCESS_TOKEN=ci-placeholder
+            -e LOAD_RAG_COLLECTION=ci-fixture
+            -e LOAD_ENABLE_RAG_INGEST=true
+            -e K6_TARGET_POLICY_VALIDATED=true
+          )
+          for profile in core-workload rag-query rag-ingest; do
+            docker run --rm "${common[@]}" grafana/k6:2.2.0 inspect --include-system-env-vars "/work/performance/k6/${profile}.js"
+          done
 
       - name: Enforce isolation and immutable image inputs
         shell: bash

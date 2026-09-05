@@ -1,0 +1,3 @@
+WeaveCarbon M5 isolated staging performance fixture.
+This synthetic document contains no customer, credential, or production data.
+It exists only to measure the separately rate-limited RAG ingestion path.
