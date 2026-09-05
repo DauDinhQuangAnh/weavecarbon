@@ -23,7 +23,7 @@ Usage: ./deploy/redeploy-vps.sh [--frontend-only|--backend-only|--rag-only]
 Options:
   --frontend-only  Pulls the configured frontend image and restarts only the frontend service.
   --backend-only   Pulls the configured backend image and restarts only the backend service.
-  --rag-only       Rebuilds RAG and reloads the proxy without pulling frontend/backend images.
+  --rag-only       Pulls RAG, ensures PostgreSQL, and refreshes the proxy.
   -h, --help       Show this help message.
 EOF
 }
@@ -205,22 +205,6 @@ wait_for_service_health() {
   return 1
 }
 
-promote_partial_deploy_if_stack_is_incomplete() {
-  local service
-
-  if [[ "${DEPLOY_MODE}" == "full" ]]; then
-    return
-  fi
-
-  for service in db be rag fe proxy; do
-    if [[ -z "$(compose ps -q "${service}")" ]]; then
-      echo "Service ${service} is absent; promoting ${DEPLOY_MODE} deploy to full-stack recovery."
-      DEPLOY_MODE="full"
-      return
-    fi
-  done
-}
-
 cleanup_legacy_containers() {
   mapfile -t legacy_container_ids < <(
     docker ps -a --format '{{.ID}}\t{{.Names}}' | awk -F '\t' '
@@ -387,7 +371,6 @@ acquire_deploy_lock
 validate_rag_internal_api_key
 refresh_ghcr_login
 compose config >/dev/null
-promote_partial_deploy_if_stack_is_incomplete
 if [[ "${DEPLOY_MODE}" == "full" ]]; then
   cleanup_legacy_containers
 fi
@@ -402,11 +385,17 @@ if [[ "${DEPLOY_MODE}" == "frontend-only" ]]; then
 elif [[ "${DEPLOY_MODE}" == "backend-only" ]]; then
   echo "Deploy mode: backend-only"
   pull_images be
+  pull_images db
+  retry_command 3 20 compose up -d --no-deps db
+  wait_for_service_health db 180
   prepare_backend_runtime_volume
   retry_command 3 20 compose up -d --no-deps be
   wait_for_service_health be 180
 elif [[ "${DEPLOY_MODE}" == "rag-only" ]]; then
   echo "Deploy mode: rag-only"
+  pull_images db
+  retry_command 3 20 compose up -d --no-deps db
+  wait_for_service_health db 180
   prepare_rag_runtime_volumes
   retry_command 3 20 compose up -d --no-build --no-deps rag
   wait_for_service_health rag 240
