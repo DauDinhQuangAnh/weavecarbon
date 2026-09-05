@@ -381,8 +381,6 @@ elif [[ "${DEPLOY_MODE}" == "rag-only" ]]; then
   prepare_rag_runtime_volumes
   retry_command 3 20 compose up -d --no-build --no-deps rag
   wait_for_service_health rag 240
-  retry_command 3 20 compose up -d --no-deps proxy
-  wait_for_service_health proxy 60
 else
   echo "Deploy mode: full stack"
   pull_images be fe rag
@@ -394,6 +392,13 @@ else
   wait_for_service_health rag 240
   wait_for_service_health fe 180
 fi
+
+# Compose can assign a new IP when an upstream container is recreated. Recreate
+# Caddy only after the selected upstream is healthy so it resolves the current
+# service addresses and does not keep returning 502 for a retired container.
+echo "Refreshing reverse proxy upstreams..."
+retry_command 3 20 compose up -d --no-deps --force-recreate proxy
+wait_for_service_health proxy 60
 
 cleanup_docker_disk
 compose ps
