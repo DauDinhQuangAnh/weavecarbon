@@ -52,7 +52,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.563.0",
     "mapbox-gl": "^3.18.1",
-    "maplibre-gl": "^5.24.0",
+    "maplibre-gl": "^6.6.0",
     "motion": "^12.29.2",
     "next": "^16.1.6",
     "next-intl": "^4.8.2",
