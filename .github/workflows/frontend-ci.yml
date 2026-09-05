@@ -53,7 +53,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate production Compose model
-        run: docker compose --env-file .env.vps.example -f docker-compose.vps.yml config --quiet
+        run: |
+          docker compose --env-file .env.vps.example -f docker-compose.vps.yml config --quiet
+          bash -n deploy/redeploy-vps.sh
 
       - name: Enforce isolation and immutable image inputs
         shell: bash

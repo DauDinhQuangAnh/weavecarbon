@@ -191,8 +191,34 @@ wait_for_service_health() {
   done
 
   echo "${service} did not become healthy within ${timeout_seconds}s."
+  local state_summary recent_logs
+  state_summary="$(docker inspect --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' "${container_id}" 2>/dev/null || true)"
+  recent_logs="$(
+    docker logs --tail 30 "${container_id}" 2>&1 \
+      | sed -E 's#(postgres(ql)?://)[^ @]+@#\1***@#g; s/((password|secret|token|api[_-]?key)["'"'"'= :]+)[^ ,}"'"'"']+/\1***/Ig' \
+      | tr '\r\n' '  ' \
+      | cut -c1-2400
+  )"
+  recent_logs="${recent_logs//'%'/'%25'}"
+  echo "::error title=${service} health check failed::${state_summary}; recent logs: ${recent_logs:-unavailable}"
   docker logs --tail 80 "${container_id}" || true
   return 1
+}
+
+promote_partial_deploy_if_stack_is_incomplete() {
+  local service
+
+  if [[ "${DEPLOY_MODE}" == "full" ]]; then
+    return
+  fi
+
+  for service in db be rag fe proxy; do
+    if [[ -z "$(compose ps -q "${service}")" ]]; then
+      echo "Service ${service} is absent; promoting ${DEPLOY_MODE} deploy to full-stack recovery."
+      DEPLOY_MODE="full"
+      return
+    fi
+  done
 }
 
 cleanup_legacy_containers() {
@@ -361,7 +387,10 @@ acquire_deploy_lock
 validate_rag_internal_api_key
 refresh_ghcr_login
 compose config >/dev/null
-cleanup_legacy_containers
+promote_partial_deploy_if_stack_is_incomplete
+if [[ "${DEPLOY_MODE}" == "full" ]]; then
+  cleanup_legacy_containers
+fi
 cleanup_docker_disk
 ensure_proxy_ports_available
 
