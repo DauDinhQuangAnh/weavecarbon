@@ -10,7 +10,14 @@ const normalizeDocumentKey = (value: string) =>
     .replace(/[^a-z0-9]+/g, "");
 
 export const isCompletedComplianceDocumentStatus = (status: DocumentStatus) =>
-  status === "uploaded" || status === "approved";
+  status === "approved";
+
+const isCompletedComplianceDocument = (document: ComplianceDocument) => {
+  if (!isCompletedComplianceDocumentStatus(document.status)) return false;
+  if (!document.validTo) return true;
+  const validTo = new Date(`${document.validTo}T23:59:59.999Z`);
+  return !Number.isNaN(validTo.getTime()) && validTo.getTime() >= Date.now();
+};
 
 export const summarizeRequiredExportDocuments = (
   exportDocuments: ComplianceDocument[],
@@ -20,9 +27,7 @@ export const summarizeRequiredExportDocuments = (
 ) => {
   const requiredDocsFromDocuments = exportDocuments.filter((document) => document.required);
   if (requiredDocsFromDocuments.length > 0) {
-    const completedRequiredCount = requiredDocsFromDocuments.filter((document) =>
-      isCompletedComplianceDocumentStatus(document.status)
-    ).length;
+    const completedRequiredCount = requiredDocsFromDocuments.filter(isCompletedComplianceDocument).length;
     return {
       total: requiredDocsFromDocuments.length,
       uploaded: completedRequiredCount,
@@ -35,7 +40,7 @@ export const summarizeRequiredExportDocuments = (
   const completedRequiredCount =
     requiredNameKeySet.size > 0
       ? exportDocuments.filter((document) => {
-          if (!isCompletedComplianceDocumentStatus(document.status)) return false;
+          if (!isCompletedComplianceDocument(document)) return false;
           const keys = [document.id, document.name, document.type]
             .map(normalizeDocumentKey)
             .filter(Boolean);

@@ -75,6 +75,9 @@ const parseHealthStatus = (payload: unknown) => {
   return null;
 };
 
+export const isBackendHealthyStatus = (status: string) =>
+  ["healthy", "ready"].includes(status.trim().toLowerCase());
+
 export interface BackendHealthResult {
   healthy: boolean;
   healthUrl: string;
@@ -98,7 +101,7 @@ export const getBackendHealth = async (): Promise<BackendHealthResult> => {
       .catch(() => null);
 
     const status = parseHealthStatus(payload) || (response.ok ? "healthy" : "unhealthy");
-    const healthy = response.ok && status.toLowerCase() === "healthy";
+    const healthy = response.ok && isBackendHealthyStatus(status);
 
     return {
       healthy,

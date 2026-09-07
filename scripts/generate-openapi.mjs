@@ -15,6 +15,8 @@ const syncBackend = process.argv.includes("--sync");
 
 let stale = false;
 
+const normalizeNewlines = (value) => value?.replace(/\r\n/g, "\n");
+
 function reportStale(message) {
   stale = true;
   console.error(message);
@@ -34,7 +36,7 @@ if (syncBackend) {
     : null;
 
   if (checkOnly) {
-    if (currentSnapshot !== backendArtifact) {
+    if (normalizeNewlines(currentSnapshot) !== normalizeNewlines(backendArtifact)) {
       reportStale(
         "Frontend OpenAPI snapshot differs from the backend artifact. " +
           "Run `npm run contract:sync` and commit the result."
@@ -61,7 +63,7 @@ if (checkOnly) {
   const currentGenerated = fs.existsSync(generatedPath)
     ? fs.readFileSync(generatedPath, "utf8")
     : null;
-  if (currentGenerated !== generated) {
+  if (normalizeNewlines(currentGenerated) !== normalizeNewlines(generated)) {
     reportStale(
       "Generated OpenAPI types are stale. Run `npm run contract:generate` and commit the result."
     );

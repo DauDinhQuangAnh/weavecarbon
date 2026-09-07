@@ -225,5 +225,10 @@ jobs:
             fi
             exit 1
           fi
-          printf '%s frontend %s %s\n' "$(date -u +%FT%TZ)" '${{ steps.release.outputs.sha }}' "$FE_IMAGE" >> .deploy-history
+          DEPLOY_HISTORY_FILE="${DEPLOY_HISTORY_FILE:-/var/lib/weavecarbon/deploy-history.log}"
+          install -d -m 0750 "$(dirname "$DEPLOY_HISTORY_FILE")"
+          (
+            flock -x 9
+            printf '%s frontend %s %s\n' "$(date -u +%FT%TZ)" '${{ steps.release.outputs.sha }}' "$FE_IMAGE" >&9
+          ) 9>>"$DEPLOY_HISTORY_FILE"
           EOF

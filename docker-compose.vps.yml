@@ -1,5 +1,11 @@
 name: weavecarbon
 
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:16-alpine
@@ -23,6 +29,7 @@ services:
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 30s
+    logging: *default-logging
 
   be:
     image: ${BE_IMAGE:-ghcr.io/daudinhquanganh/be_weavecarbon:latest}
@@ -68,6 +75,7 @@ services:
       RAG_PROXY_INTERNAL_BASE_URL: ${RAG_PROXY_INTERNAL_BASE_URL:-http://rag:8000}
       RAG_INTERNAL_API_KEY: ${RAG_INTERNAL_API_KEY:?RAG_INTERNAL_API_KEY must be set}
       RAG_REQUIRE_INTERNAL_API_KEY: "true"
+      JOB_RETENTION_DAYS: ${JOB_RETENTION_DAYS:-30}
     volumes:
       - be_uploads:/app/uploads
     networks:
@@ -80,9 +88,10 @@ services:
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 45s
+    logging: *default-logging
 
   rag:
-    image: ${RAG_IMAGE:-ghcr.io/daudinhquanganh/weavecarbon-rag:latest}
+    image: ${RAG_IMAGE:-ghcr.io/daudinhquanganh/api_rag:latest}
     restart: unless-stopped
     depends_on:
       db:
@@ -116,6 +125,7 @@ services:
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 45s
+    logging: *default-logging
     healthcheck:
       test:
         [
@@ -150,6 +160,7 @@ services:
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 30s
+    logging: *default-logging
 
   proxy:
     image: caddy:2-alpine
@@ -175,6 +186,7 @@ services:
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 30s
+    logging: *default-logging
 
 networks:
   edge:

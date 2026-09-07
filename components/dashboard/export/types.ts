@@ -251,14 +251,14 @@ export const MARKET_REGULATIONS: Record<MarketCode, MarketRegulation> = {
     description: "Vietnam domestic GHG reporting and MRV requirements."
   },
   EU: {
-    code: "EU CBAM",
-    name: "Carbon Border Adjustment Mechanism",
-    legalReference: "Regulation (EU) 2023/956",
+    code: "EU PRODUCT",
+    name: "EU Product and Import Compliance",
+    legalReference: "EU customs, REACH, textile labelling, GPSR; CBAM only for Annex I CN codes",
     guideUrl: "https://eur-lex.europa.eu/",
-    reportingScope: "Product level",
-    reportingFrequency: "Quarterly",
-    enforcementDate: "2026-01-01",
-    description: "EU carbon border mechanism and product compliance requirements."
+    reportingScope: "Shipment and product level",
+    reportingFrequency: "Per shipment / validity period",
+    enforcementDate: "Ruleset-versioned",
+    description: "Document completeness for EU market access. It is not an authority approval or customs filing."
   },
   US: {
     code: "US Climate Act",
@@ -434,7 +434,7 @@ export const STATUS_CONFIG: Record<
     bgColor: "bg-yellow-100"
   },
   ready: {
-    label: "Sẵn sàng xuất khẩu",
+    label: "Đủ tài liệu bắt buộc",
     color: "text-green-700",
     bgColor: "bg-green-100"
   },

@@ -558,7 +558,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
 
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-sm md:mt-4 md:p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">{t("readinessLevel")}</span>
+                <span className="text-sm font-medium">Mức hoàn thiện tài liệu</span>
                 <span className="text-xl font-bold text-primary md:text-2xl">{readinessScore}%</span>
               </div>
               <Progress value={readinessScore} className="h-3" />
@@ -569,7 +569,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
                 <span>
                   {readinessScore >= 80 && (
                     <span className="flex items-center gap-1 text-green-600">
-                      <CheckCircle2 className="h-3 w-3" /> {t("exportReady")}
+                      <CheckCircle2 className="h-3 w-3" /> Đủ tài liệu bắt buộc
                     </span>
                   )}
                   {readinessScore < 80 && readinessScore >= 50 && (
@@ -584,6 +584,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
                   )}
                 </span>
               </div>
+              <p className="mt-2 text-[11px] text-slate-500">Điểm này chỉ phản ánh tài liệu đã tải lên; không phải xác nhận thông quan hay phê duyệt của cơ quan có thẩm quyền.</p>
             </div>
 
           </DialogHeader>

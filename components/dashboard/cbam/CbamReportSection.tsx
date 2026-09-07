@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ProductProvider, useProducts } from '@/contexts/ProductContext';
 import { api } from '@/lib/apiClient';
+import { CBAM_RULESET, evaluateCbamApplicability, normalizeHsCode } from '@/lib/cbam/applicability';
 import { useAppRoutes } from '@/lib/demo/routes';
 import {
   Card,
@@ -1104,10 +1105,112 @@ function CbamReportSectionContent() {
   );
 }
 
+function ProductionCbamScopeSection() {
+  const { products, status } = useProducts();
+  const appRoutes = useAppRoutes();
+  const rows = useMemo(() => products.map((product) => {
+    const code = normalizeHsCode(product.cnCode || product.hsCode);
+    return {
+      ...product,
+      code,
+      applicability: evaluateCbamApplicability(code),
+    };
+  }), [products]);
+  const matched = rows.filter((row) => row.applicability === 'REVIEW_ANNEX_I_MATCH');
+  const missing = rows.filter((row) => row.applicability === 'CBAM_CODE_MISSING');
+
+  return (
+    <div className="flex-1 p-6 space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold">Kiểm tra phạm vi CBAM</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Sàng lọc HS/CN theo bộ quy tắc {CBAM_RULESET.version}; kết quả khớp phải được chuyên viên hải quan xác nhận.
+        </p>
+      </div>
+
+      {matched.length === 0 ? (
+        <Alert className="border-emerald-300 bg-emerald-50">
+          <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+          <AlertTitle className="text-emerald-900">CBAM_NOT_APPLICABLE</AlertTitle>
+          <AlertDescription className="text-emerald-800 text-xs">
+            Không có sản phẩm nào đang khớp danh mục Annex I. Hàng dệt may và giày dép thông thường thuộc chương 61, 62 và 64 không nằm trong phạm vi CBAM. Hệ thống không mở biểu mẫu hoặc xuất tờ khai CBAM cho nhóm này.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="border-amber-300 bg-amber-50">
+          <ShieldAlert className="h-4 w-4 text-amber-700" />
+          <AlertTitle className="text-amber-900">REVIEW_ANNEX_I_MATCH</AlertTitle>
+          <AlertDescription className="text-amber-800 text-xs">
+            Có {matched.length} sản phẩm khớp sơ bộ Annex I. Đây chưa phải kết luận pháp lý; cần xác nhận mã CN đầy đủ trước khi chuẩn bị dữ liệu CBAM. WeaveCarbon hiện không nộp tờ khai trực tiếp.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {missing.length > 0 && (
+        <Alert className="border-red-300 bg-red-50">
+          <XCircle className="h-4 w-4 text-red-700" />
+          <AlertTitle className="text-red-900">Thiếu mã HS/CN</AlertTitle>
+          <AlertDescription className="text-red-800 text-xs">
+            {missing.length} sản phẩm chưa thể kiểm tra. Cập nhật mã HS/CN trước khi dùng kết quả phạm vi.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Kết quả theo sản phẩm</CardTitle>
+          <CardDescription>
+            Bộ quy tắc hiệu lực từ {CBAM_RULESET.effectiveFrom}. Không có dữ liệu carbon hoặc bằng chứng nào được hệ thống tự tạo để thay thế hồ sơ thật.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>SKU</TableHead>
+                <TableHead>Sản phẩm</TableHead>
+                <TableHead>HS/CN</TableHead>
+                <TableHead>Kết quả</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="text-xs font-medium">{row.sku}</TableCell>
+                  <TableCell className="text-xs">{row.name}</TableCell>
+                  <TableCell className="font-mono text-xs">{row.code || '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={row.applicability === 'REVIEW_ANNEX_I_MATCH' ? 'border-amber-300 text-amber-700' : row.applicability === 'CBAM_CODE_MISSING' ? 'border-red-300 text-red-700' : 'border-emerald-300 text-emerald-700'}>
+                      {row.applicability}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
+                    {status === 'hydrating' ? 'Đang tải sản phẩm…' : 'Chưa có sản phẩm để kiểm tra.'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <div className="mt-4 flex gap-2">
+            <Button asChild size="sm"><Link href={appRoutes.toAppPath('/export')}>Mở hồ sơ xuất khẩu theo lô</Link></Button>
+            {missing.length > 0 && <Button asChild size="sm" variant="outline"><Link href={appRoutes.toAppPath('/products')}>Cập nhật HS/CN</Link></Button>}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function CbamReportSection() {
+  const pathname = usePathname();
+  const isDemoPath = pathname === '/demo' || pathname.startsWith('/demo/');
   return (
     <ProductProvider>
-      <CbamReportSectionContent />
+      {isDemoPath ? <CbamReportSectionContent /> : <ProductionCbamScopeSection />}
     </ProductProvider>
   );
 }

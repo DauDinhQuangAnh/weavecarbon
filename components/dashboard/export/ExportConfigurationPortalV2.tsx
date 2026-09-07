@@ -24,6 +24,7 @@ import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/e
 import { buildAuditPackJsonV2, buildAuditPackPayloadV2, buildAuditRowsCsvV2 } from "@/lib/weave-v2/auditPackV2";
 import CompanyDataExportCardV2 from "./CompanyDataExportCardV2";
 import ComplianceDetailModal from "./ComplianceDetailModal";
+import ShipmentExportPortal from "./ShipmentExportPortal";
 import { MARKET_REGULATIONS, type MarketCode, type MarketCompliance } from "./types";
 
 const downloadText = (filename: string, content: string, mime: string) => {
@@ -36,7 +37,7 @@ const downloadText = (filename: string, content: string, mime: string) => {
   URL.revokeObjectURL(url);
 };
 
-const ExportConfigurationPortalV2: React.FC = () => {
+const DemoExportConfigurationPortalV2: React.FC = () => {
   const pathname = usePathname();
   const isDemoRuntime = isDemoPath(pathname);
   const [cfg, setCfg] = useState<ExportConfigV2>(DEFAULT_EXPORT_CONFIG_V2);
@@ -903,6 +904,11 @@ const ExportConfigurationPortalV2: React.FC = () => {
       />
     </div>
   );
+};
+
+const ExportConfigurationPortalV2: React.FC = () => {
+  const pathname = usePathname();
+  return isDemoPath(pathname) ? <DemoExportConfigurationPortalV2 /> : <ShipmentExportPortal />;
 };
 
 export default ExportConfigurationPortalV2;

@@ -900,7 +900,7 @@ const ExportPage: React.FC = () => {
 
         <div className="border-t border-slate-200 pt-5">
           <h3 className="mb-3 text-base font-semibold text-slate-950">
-            Mức độ sẵn sàng theo thị trường
+            Mức hoàn thiện tài liệu theo thị trường
           </h3>
         </div>
 
@@ -909,7 +909,7 @@ const ExportPage: React.FC = () => {
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-primary">
                 <span className="font-semibold">{readyMarkets}</span>
-                <span className="font-semibold">{t("readyMarkets")}</span>
+                <span className="font-semibold">thị trường đủ tài liệu bắt buộc</span>
               </span>
               <span className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-red-700">
                 <span className="font-semibold">{needsWorkMarkets}</span>
@@ -1053,7 +1053,7 @@ const ExportPage: React.FC = () => {
                               <>
                                 <CheckCircle2 className="h-3 w-3 text-green-500 md:h-4 md:w-4" />
                                 <span className="truncate text-green-600 dark:text-green-400">
-                                  {t("exportReady")}
+                                  Đủ tài liệu bắt buộc
                                 </span>
                               </>
                             )}

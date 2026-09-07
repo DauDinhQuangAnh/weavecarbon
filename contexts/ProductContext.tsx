@@ -25,6 +25,8 @@ export interface DashboardProduct {
   id: string;
   name: string;
   sku: string;
+  hsCode?: string;
+  cnCode?: string;
   category: string;
   co2: number;
   status: ProductStatus;
@@ -97,6 +99,8 @@ const mapProductRecordToDashboardProduct = (product: ProductRecord): DashboardPr
   id: product.id,
   name: product.productName || product.productCode || "Untitled product",
   sku: product.productCode || product.id,
+  hsCode: product.hsCode,
+  cnCode: product.cnCode,
   category: product.productType || "other",
   co2: product.carbonResults?.perProduct?.total || product.carbonResults?.totalBatch?.total || 0,
   status: product.status as ProductStatus,
