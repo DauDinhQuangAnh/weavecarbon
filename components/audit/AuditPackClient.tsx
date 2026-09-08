@@ -4,8 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Shield,
   Download,
-  FileSpreadsheet,
   AlertTriangle,
+  LoaderCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,13 +15,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { DemoSkuV2 } from "@/lib/weave-v2/demoPackV2";
 import {
   buildAuditPackPayloadV2,
-  buildAuditPackJsonV2,
-  buildAuditRowsCsvV2,
   type AuditPackPayloadV2
 } from "@/lib/weave-v2/auditPackV2";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import { getProductAuthoritativeCarbonV2, productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
+import {
+  createAuditBundle,
+  downloadAuditBundle,
+  fetchAuditBundle,
+  type AuditBundleRecord
+} from "@/lib/weave-v2/auditBundleApi";
 
 const PAGE_LOAD_DATE = new Date().toISOString().slice(0, 10);
 
@@ -32,23 +36,14 @@ const formatNum = (v: number | string | null | undefined, digits = 3) => {
     : "—";
 };
 
-const downloadFile = (filename: string, content: string, mime: string) => {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
 export default function AuditPackClient() {
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
   const [productEvidence, setProductEvidence] = useState<Record<string, EvidenceDocumentV2[]>>({});
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [auditBundle, setAuditBundle] = useState<AuditBundleRecord | null>(null);
+  const [bundleBusy, setBundleBusy] = useState(false);
+  const [bundleError, setBundleError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -119,19 +114,47 @@ export default function AuditPackClient() {
     : null, [auditSku, selectedProduct]);
 
   const dataReady = auditPayload?.status === "internal_review";
-  // Production downloads stay disabled until the backend stores an immutable manifest + evidence bundle.
-  const canExport = false;
+  const canCreateBundle = Boolean(dataReady && selectedProduct);
 
-  const handleExportJson = () => {
-    if (!auditPayload || !auditSku || !canExport) return;
-    const json = JSON.stringify(buildAuditPackJsonV2(auditPayload), null, 2);
-    downloadFile(`AuditPack_${auditSku.sku}_${new Date().toISOString().slice(0, 10)}.json`, json, "application/json");
+  useEffect(() => {
+    if (!auditBundle || auditBundle.status !== "processing") return;
+    let cancelled = false;
+    const interval = window.setInterval(() => {
+      void fetchAuditBundle(auditBundle.id)
+        .then((next) => {
+          if (!cancelled) setAuditBundle(next);
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) setBundleError(error instanceof Error ? error.message : "Không thể kiểm tra trạng thái Audit Pack.");
+        });
+    }, 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [auditBundle]);
+
+  const handleAuditBundle = async () => {
+    if (!selectedProduct || !canCreateBundle || bundleBusy) return;
+    setBundleBusy(true);
+    setBundleError("");
+    try {
+      if (auditBundle?.status === "completed") {
+        await downloadAuditBundle(auditBundle);
+      } else {
+        setAuditBundle(await createAuditBundle(selectedProduct.id));
+      }
+    } catch (error) {
+      setBundleError(error instanceof Error ? error.message : "Không thể tạo Audit Pack.");
+    } finally {
+      setBundleBusy(false);
+    }
   };
 
-  const handleExportCsv = () => {
-    if (!auditPayload || !auditSku || !canExport) return;
-    const csv = buildAuditRowsCsvV2(auditPayload);
-    downloadFile(`AuditRows_${auditSku.sku}_${new Date().toISOString().slice(0, 10)}.csv`, csv, "text/csv;charset=utf-8;");
+  const handleProductChange = (productId: string) => {
+    setSelectedProductId(productId);
+    setAuditBundle(null);
+    setBundleError("");
   };
 
   if (!productsLoaded) {
@@ -165,23 +188,16 @@ export default function AuditPackClient() {
 
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-emerald-200 text-xs font-semibold text-emerald-900 hover:bg-emerald-50"
-              onClick={handleExportCsv}
-              disabled={!canExport}
-            >
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              Tải CSV
-            </Button>
-            <Button
               size="sm"
               className="gap-1.5 bg-emerald-800 text-xs font-semibold text-white hover:bg-emerald-900"
-              onClick={handleExportJson}
-              disabled={!canExport}
+              onClick={() => void handleAuditBundle()}
+              disabled={!canCreateBundle || bundleBusy || auditBundle?.status === "processing"}
             >
-              <Download className="h-3.5 w-3.5" />
-              Tải JSON Pack
+              {bundleBusy || auditBundle?.status === "processing"
+                ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                : <Download className="h-3.5 w-3.5" />}
+              {auditBundle?.status === "completed" ? "Tải Audit Pack ZIP" :
+                auditBundle?.status === "processing" ? "Đang tạo Audit Pack" : "Tạo Audit Pack"}
             </Button>
           </div>
         </div>
@@ -190,7 +206,7 @@ export default function AuditPackClient() {
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
         <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div className="text-sm"><b>{dataReady ? "Dữ liệu đủ để xem xét nội bộ; chưa thể tải gói" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập và chưa có liên kết chia sẻ được máy chủ ký/xác thực.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}{dataReady ? <p className="mt-1">• Máy chủ chưa tạo manifest và bundle bất biến nên nút tải vẫn bị khóa.</p> : null}</div>
+          <div className="text-sm"><b>{dataReady ? "Dữ liệu đủ để tạo gói xem xét nội bộ" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập và chưa có liên kết chia sẻ được máy chủ ký/xác thực.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}{auditBundle?.status === "completed" ? <p className="mt-1">• Bundle v{auditBundle.version} đã được máy chủ khóa nội dung; SHA-256: <span className="font-mono">{auditBundle.bundleSha256}</span>.</p> : null}{auditBundle?.status === "failed" ? <p className="mt-1">• Tạo bundle thất bại: {auditBundle.errorMessage || "Không xác định"}</p> : null}{bundleError ? <p className="mt-1">• {bundleError}</p> : null}</div>
         </div>
 
         {/* Hero Card */}
@@ -224,7 +240,7 @@ export default function AuditPackClient() {
             {products.length > 1 && (
               <div className="mb-6 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
                 <span className="text-xs font-semibold text-slate-700">Chọn sản phẩm đối soát:</span>
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                <Select value={selectedProductId} onValueChange={handleProductChange}>
                   <SelectTrigger className="h-9 w-[320px] rounded-lg border-slate-300 bg-white text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -392,7 +408,7 @@ export default function AuditPackClient() {
           <p className="mt-1">
             Màn hình này là bản chuẩn bị dữ liệu nội bộ. Nó không phải chứng nhận, kết luận đảm bảo, hồ sơ hải quan đã
             chấp nhận hoặc bằng chứng đã được SGS/TÜV/Bureau Veritas xác minh. Chỉ chứng từ thật đã duyệt và có SHA-256
-            mới được hiển thị; chức năng tải bị khóa cho đến khi máy chủ tạo và lưu manifest cùng bundle bất biến.
+            mới được hiển thị; chức năng tải chỉ mở sau khi máy chủ tạo, lưu và kiểm tra manifest cùng bundle bất biến.
           </p>
         </div>
       </main>
