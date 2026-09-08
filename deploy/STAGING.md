@@ -7,6 +7,7 @@ This staging stack is intentionally separate from production:
 - Database volume: `weavecarbon-staging_postgres_data`
 - Upload volume: `weavecarbon-staging_be_uploads`
 - HTTP bind: `127.0.0.1:18080` by default
+- Only the proxy joins the ingress bridge; BE and DB stay on internal networks
 - No RAG service, production database, production upload volume or production proxy dependency
 
 The loopback bind is a safety feature. Access the staging UI through an SSH tunnel:

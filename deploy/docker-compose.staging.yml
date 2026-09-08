@@ -121,6 +121,7 @@ services:
       - ./Caddyfile.staging:/etc/caddy/Caddyfile:ro
     networks:
       - app
+      - ingress
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 15s
@@ -131,6 +132,10 @@ networks:
     internal: true
   data:
     internal: true
+  # A non-internal bridge is required for Docker to install the loopback port
+  # binding. Only the proxy joins it; application and database traffic remain
+  # on their isolated internal networks.
+  ingress:
 
 volumes:
   postgres_data:
