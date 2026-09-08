@@ -26,6 +26,7 @@ import {
   updateShipmentExportLine,
   updateShipmentPackage,
   type ExportDocumentType,
+  type ExportParty,
   type ExportReadiness,
   type ShipmentExportBundle,
   type ShipmentExportProfile,
@@ -44,6 +45,9 @@ const DOCUMENT_LABELS: Record<ExportDocumentType, string> = {
 const fields: Array<{ key: keyof ShipmentExportProfile; label: string; type?: string; numeric?: boolean }> = [
   { key: 'invoiceNumber', label: 'Số Commercial Invoice' },
   { key: 'invoiceDate', label: 'Ngày invoice', type: 'date' },
+  { key: 'invoiceIssuePlace', label: 'Nơi phát hành invoice' },
+  { key: 'packingListNumber', label: 'Số Packing List' },
+  { key: 'packingListDate', label: 'Ngày Packing List', type: 'date' },
   { key: 'poContractId', label: 'PO / Contract ID' },
   { key: 'currency', label: 'Tiền tệ (ISO 4217)' },
   { key: 'paymentTerms', label: 'Điều khoản thanh toán' },
@@ -61,7 +65,17 @@ const fields: Array<{ key: keyof ShipmentExportProfile; label: string; type?: st
   { key: 'importerEori', label: 'EORI của importer' },
   { key: 'customsDeclarationNo', label: 'Số tờ khai hải quan (nếu có)' },
   { key: 'freightAmount', label: 'Cước vận chuyển', type: 'number', numeric: true },
-  { key: 'insuranceAmount', label: 'Bảo hiểm', type: 'number', numeric: true }
+  { key: 'insuranceAmount', label: 'Bảo hiểm', type: 'number', numeric: true },
+  { key: 'discountAmount', label: 'Chiết khấu', type: 'number', numeric: true },
+  { key: 'surchargeAmount', label: 'Phụ phí', type: 'number', numeric: true }
+];
+
+const transportModes = [
+  { value: 'sea', label: 'Đường biển' },
+  { value: 'air', label: 'Đường hàng không' },
+  { value: 'road', label: 'Đường bộ' },
+  { value: 'rail', label: 'Đường sắt' },
+  { value: 'multimodal', label: 'Đa phương thức' }
 ];
 
 const emptyPackageForm = () => ({
@@ -78,6 +92,9 @@ const formatPackageContents = (contents: unknown[]) => contents.map((item) => {
   const value = item as { lineNumber?: number; quantity?: number };
   return value.lineNumber && value.quantity ? `${value.lineNumber}:${value.quantity}` : '';
 }).filter(Boolean).join(',');
+
+const packageCbm = (pkg: Pick<ShipmentPackage, 'quantity' | 'lengthCm' | 'widthCm' | 'heightCm'>) =>
+  Number(pkg.quantity || 0) * Number(pkg.lengthCm || 0) * Number(pkg.widthCm || 0) * Number(pkg.heightCm || 0) / 1_000_000;
 
 export default function ShipmentExportPortal() {
   const [shipments, setShipments] = useState<LogisticsShipmentSummary[]>([]);
@@ -132,7 +149,11 @@ export default function ShipmentExportPortal() {
   const update = <K extends keyof ShipmentExportProfile>(key: K, value: ShipmentExportProfile[K]) =>
     setProfile((current) => ({ ...current, [key]: value }));
 
-  const updateParty = (key: 'exporter' | 'importer' | 'consignee', field: 'name' | 'address', value: string) =>
+  const updateParty = (
+    key: 'exporter' | 'importer' | 'consignee' | 'notifyParty',
+    field: keyof ExportParty,
+    value: string
+  ) =>
     setProfile((current) => ({ ...current, [key]: { ...current[key], [field]: value } }));
 
   const run = async (key: string, action: () => Promise<unknown>, success: string) => {
@@ -174,10 +195,11 @@ export default function ShipmentExportPortal() {
             <CardContent className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {fields.map((field) => <div key={field.key} className="space-y-1"><Label>{field.label}</Label><Input type={field.type || 'text'} value={String(profile[field.key] ?? '')} onChange={(event) => update(field.key, (field.numeric ? (event.target.value === '' ? null : Number(event.target.value)) : event.target.value) as never)} /></div>)}
+                <div className="space-y-1"><Label>Phương thức vận tải</Label><Select value={profile.transportMode} onValueChange={(value) => update('transportMode', value)}><SelectTrigger><SelectValue placeholder="Chọn phương thức" /></SelectTrigger><SelectContent>{transportModes.map((mode) => <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>)}</SelectContent></Select></div>
                 <div className="space-y-1"><Label>Yêu cầu ưu đãi xuất xứ EVFTA</Label><Select value={profile.preferentialOriginClaim ? 'yes' : 'no'} onValueChange={(value) => update('preferentialOriginClaim', value === 'yes')}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="no">Không</SelectItem><SelectItem value="yes">Có — cần bằng chứng xuất xứ đã duyệt</SelectItem></SelectContent></Select></div>
               </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                {(['exporter', 'importer', 'consignee'] as const).map((party) => <div key={party} className="space-y-2 rounded-lg border p-3"><b className="text-sm uppercase">{party}</b><Input placeholder="Tên pháp lý" value={profile[party].name || ''} onChange={(event) => updateParty(party, 'name', event.target.value)} /><Input placeholder="Địa chỉ đầy đủ" value={profile[party].address || ''} onChange={(event) => updateParty(party, 'address', event.target.value)} /></div>)}
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {(['exporter', 'importer', 'consignee', 'notifyParty'] as const).map((party) => <div key={party} className="space-y-2 rounded-lg border p-3"><b className="text-sm uppercase">{party}</b><Input placeholder="Tên pháp lý" value={profile[party].name || ''} onChange={(event) => updateParty(party, 'name', event.target.value)} /><Input placeholder="Địa chỉ đầy đủ" value={profile[party].address || ''} onChange={(event) => updateParty(party, 'address', event.target.value)} /><Input placeholder="Quốc gia (ISO 2 ký tự)" maxLength={2} value={profile[party].country || ''} onChange={(event) => updateParty(party, 'country', event.target.value.toUpperCase())} /><Input placeholder="Email / điện thoại liên hệ" value={profile[party].contact || ''} onChange={(event) => updateParty(party, 'contact', event.target.value)} /></div>)}
               </div>
               <Button disabled={Boolean(busy)} onClick={() => void run('save', () => saveShipmentExportProfile(shipmentId, profile), 'Đã lưu hồ sơ lô hàng.')}><Save className="mr-2 h-4 w-4" />Lưu hồ sơ</Button>
             </CardContent>
@@ -195,11 +217,16 @@ export default function ShipmentExportPortal() {
                     return <div key={line.id} className="grid gap-2 rounded border p-2 md:grid-cols-2 lg:grid-cols-4">
                       <Input disabled value={line.sku} aria-label="SKU" />
                       <Input placeholder="Mô tả hàng hóa" value={String(value('goodsDescription') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], goodsDescription: event.target.value } }))} />
-                      <Input placeholder="HS/CN" value={String(value('hsCode') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCode: event.target.value } }))} />
+                      <Input placeholder="HS/CN" value={String(value('hsCode') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCode: event.target.value, hsCodeConfirmed: false } }))} />
                       <Input placeholder="Xuất xứ" value={String(value('originCountry') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], originCountry: event.target.value } }))} />
+                      <Input placeholder="Style" value={String(value('styleCode') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], styleCode: event.target.value } }))} />
+                      <Input placeholder="Size" value={String(value('sizeLabel') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], sizeLabel: event.target.value } }))} />
+                      <Input placeholder="Màu" value={String(value('colorLabel') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], colorLabel: event.target.value } }))} />
+                      <Input placeholder="Lot / batch" value={String(value('lotNumber') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], lotNumber: event.target.value } }))} />
                       <Input type="number" placeholder="Đơn giá" value={String(value('unitPrice') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], unitPrice: event.target.value === '' ? null : Number(event.target.value) } }))} />
                       <Input type="number" placeholder="Net kg" value={String(value('netWeightKg') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], netWeightKg: event.target.value === '' ? null : Number(event.target.value) } }))} />
                       <Input type="number" placeholder="Gross kg" value={String(value('grossWeightKg') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], grossWeightKg: event.target.value === '' ? null : Number(event.target.value) } }))} />
+                      <Select value={value('hsCodeConfirmed') ? 'yes' : 'no'} onValueChange={(next) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCodeConfirmed: next === 'yes' } }))}><SelectTrigger aria-label="Xác nhận mã HS/CN"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="no">HS chưa xác nhận</SelectItem><SelectItem value="yes">Tôi xác nhận mã HS/CN</SelectItem></SelectContent></Select>
                       <Button size="sm" variant="outline" disabled={!lineEdits[line.id] || Boolean(busy)} onClick={() => void run(`line-${line.id}`, () => updateShipmentExportLine(shipmentId, line.id, lineEdits[line.id]), `Đã cập nhật ${line.sku}.`)}>Lưu dòng</Button>
                     </div>;
                   })}
@@ -229,7 +256,7 @@ export default function ShipmentExportPortal() {
                 {bundle.packages.map((pkg) => {
                   const edit = packageEdits[pkg.id] || {};
                   return <div key={pkg.id} className="grid gap-2 rounded border p-2 md:grid-cols-2 lg:grid-cols-4">
-                    <span className="self-center font-medium">{pkg.packageNumber} · {pkg.packageType}</span>
+                    <span className="self-center font-medium">{pkg.packageNumber} · {pkg.packageType} · {packageCbm({ ...pkg, ...edit }).toFixed(3)} CBM</span>
                     <Input placeholder="Marks & numbers" value={String(edit.marksAndNumbers ?? pkg.marksAndNumbers ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], marksAndNumbers: event.target.value } }))} />
                     <Input type="number" placeholder="Net kg" value={String(edit.netWeightKg ?? pkg.netWeightKg ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], netWeightKg: Number(event.target.value) } }))} />
                     <Input type="number" placeholder="Gross kg" value={String(edit.grossWeightKg ?? pkg.grossWeightKg ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], grossWeightKg: Number(event.target.value) } }))} />

@@ -7,22 +7,33 @@ export type ExportDocumentType =
   | 'origin_workbook'
   | 'ics2_dataset';
 
+export interface ExportParty {
+  name?: string;
+  address?: string;
+  country?: string;
+  contact?: string;
+  taxId?: string;
+}
+
 export interface ShipmentExportProfile {
   id?: string;
   shipmentId?: string;
   targetMarket: string;
   invoiceNumber: string;
   invoiceDate: string | null;
+  invoiceIssuePlace: string;
+  packingListNumber: string;
+  packingListDate: string | null;
   poContractId: string;
   incotermCode: string;
   incotermLocation: string;
   incotermVersion: string;
   currency: string;
   paymentTerms: string;
-  exporter: { name?: string; address?: string; country?: string };
-  importer: { name?: string; address?: string; country?: string };
-  consignee: { name?: string; address?: string; country?: string };
-  notifyParty: { name?: string; address?: string };
+  exporter: ExportParty;
+  importer: ExportParty;
+  consignee: ExportParty;
+  notifyParty: ExportParty;
   exporterTaxId: string;
   importerEori: string;
   portOfLoading: string;
@@ -36,6 +47,9 @@ export interface ShipmentExportProfile {
   customsDeclarationNo: string;
   freightAmount: number | null;
   insuranceAmount: number | null;
+  discountAmount: number | null;
+  surchargeAmount: number | null;
+  transportMode: string;
   preferentialOriginClaim: boolean;
   metadata: Record<string, unknown>;
 }
@@ -47,6 +61,13 @@ export interface ShipmentExportLine {
   goodsDescription: string;
   hsCode: string;
   originCountry: string;
+  styleCode: string;
+  sizeLabel: string;
+  colorLabel: string;
+  lotNumber: string;
+  hsCodeConfirmed: boolean;
+  hsCodeConfirmedBy: string | null;
+  hsCodeConfirmedAt: string | null;
   quantity: number;
   unit: string;
   unitPrice: number | null;
@@ -103,12 +124,14 @@ export interface ExportReadiness {
 }
 
 export const emptyShipmentExportProfile = (): ShipmentExportProfile => ({
-  targetMarket: 'EU', invoiceNumber: '', invoiceDate: null, poContractId: '',
+  targetMarket: 'EU', invoiceNumber: '', invoiceDate: null, invoiceIssuePlace: '',
+  packingListNumber: '', packingListDate: null, poContractId: '',
   incotermCode: '', incotermLocation: '', incotermVersion: 'Incoterms 2020',
   currency: '', paymentTerms: '', exporter: {}, importer: {}, consignee: {}, notifyParty: {},
   exporterTaxId: '', importerEori: '', portOfLoading: '', portOfDischarge: '', placeOfDelivery: '',
   vesselName: '', voyageNumber: '', billOfLadingNo: '', containerNo: '', sealNo: '',
   customsDeclarationNo: '', freightAmount: null, insuranceAmount: null,
+  discountAmount: null, surchargeAmount: null, transportMode: '',
   preferentialOriginClaim: false, metadata: {}
 });
 
