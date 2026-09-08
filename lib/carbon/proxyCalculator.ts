@@ -100,4 +100,3 @@ export const calculateProxyEmissions = (input: {
     biogenic
   };
 };
-

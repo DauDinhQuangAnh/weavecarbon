@@ -75,4 +75,3 @@ describe("proxy carbon calculator", () => {
     })).toThrow("INVALID_TRANSPORT_DISTANCE");
   });
 });
-
