@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: m5-ci-gates-${{ github.run_id }}
           path: artifacts/release
@@ -238,7 +238,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: m5-ci-gates-${{ github.run_id }}
           path: artifacts/release
