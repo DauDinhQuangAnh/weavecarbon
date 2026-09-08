@@ -10,6 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DemoSkuV2 } from "@/lib/weave-v2/demoPackV2";
@@ -24,10 +25,20 @@ import {
   createAuditBundle,
   downloadAuditBundle,
   fetchAuditBundle,
+  issueAuditBundle,
+  reviewAuditBundle,
   type AuditBundleRecord
 } from "@/lib/weave-v2/auditBundleApi";
 
 const PAGE_LOAD_DATE = new Date().toISOString().slice(0, 10);
+const COVERAGE_GAP_LABELS: Record<string, string> = {
+  activity_evidence: "thiếu chứng từ hoạt động đúng loại",
+  activity_evidence_term_mapping: "chưa gắn chứng từ hoạt động với số dòng tính",
+  activity_evidence_period: "chứng từ hoạt động thiếu/sai kỳ báo cáo",
+  factor_evidence: "thiếu tài liệu nguồn hệ số",
+  factor_evidence_version_mapping: "tài liệu hệ số chưa khai báo đúng Factor Version ID",
+  factor_evidence_period: "tài liệu hệ số thiếu/sai kỳ báo cáo"
+};
 
 const formatNum = (v: number | string | null | undefined, digits = 3) => {
   const num = typeof v === "number" ? v : parseFloat(String(v || 0));
@@ -44,6 +55,9 @@ export default function AuditPackClient() {
   const [auditBundle, setAuditBundle] = useState<AuditBundleRecord | null>(null);
   const [bundleBusy, setBundleBusy] = useState(false);
   const [bundleError, setBundleError] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [issueAssertion, setIssueAssertion] = useState("");
+  const [issueCriteria, setIssueCriteria] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -155,6 +169,45 @@ export default function AuditPackClient() {
     setSelectedProductId(productId);
     setAuditBundle(null);
     setBundleError("");
+    setReviewNotes("");
+    setIssueAssertion("");
+    setIssueCriteria("");
+  };
+
+  const refreshBundle = async () => {
+    if (!auditBundle) return;
+    setAuditBundle(await fetchAuditBundle(auditBundle.id));
+  };
+
+  const handleReview = async (decision: "approved" | "rejected") => {
+    if (!auditBundle || auditBundle.status !== "completed" || bundleBusy) return;
+    setBundleBusy(true);
+    setBundleError("");
+    try {
+      await reviewAuditBundle(auditBundle.id, { decision, notes: reviewNotes || undefined });
+      await refreshBundle();
+    } catch (error) {
+      setBundleError(error instanceof Error ? error.message : "Không thể ghi nhận kết quả rà soát.");
+    } finally {
+      setBundleBusy(false);
+    }
+  };
+
+  const handleIssue = async () => {
+    if (!auditBundle || auditBundle.lifecycleStatus !== "ready" || bundleBusy) return;
+    setBundleBusy(true);
+    setBundleError("");
+    try {
+      await issueAuditBundle(auditBundle.id, {
+        assertion: issueAssertion,
+        criteria: issueCriteria
+      });
+      await refreshBundle();
+    } catch (error) {
+      setBundleError(error instanceof Error ? error.message : "Không thể phát hành Audit Pack nội bộ.");
+    } finally {
+      setBundleBusy(false);
+    }
   };
 
   if (!productsLoaded) {
@@ -310,6 +363,7 @@ export default function AuditPackClient() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/70 text-xs">
+                  <TableHead className="w-12 py-3 font-semibold text-slate-700">#</TableHead>
                   <TableHead className="py-3 font-semibold text-slate-700">Phân khúc</TableHead>
                   <TableHead className="font-semibold text-slate-700">Chi tiết hoạt động</TableHead>
                   <TableHead className="text-right font-semibold text-slate-700">Khối lượng / Hoạt độ</TableHead>
@@ -321,13 +375,14 @@ export default function AuditPackClient() {
               <TableBody className="text-xs">
                 {auditPayload.rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-slate-500">
+                    <TableCell colSpan={7} className="py-8 text-center text-slate-500">
                       Chưa có dữ liệu phân rã cho sản phẩm này.
                     </TableCell>
                   </TableRow>
                 ) : (
                   auditPayload.rows.map((row, idx) => (
                     <TableRow key={idx} className={row.isDefault ? "bg-amber-50/40" : ""}>
+                      <TableCell className="font-mono text-slate-500">{idx + 1}</TableCell>
                       <TableCell className="font-medium">{row.segment}</TableCell>
                       <TableCell>{row.detail}</TableCell>
                       <TableCell className="text-right font-mono">{formatNum(row.activity, 4)} {row.activityUnit}</TableCell>
@@ -340,7 +395,7 @@ export default function AuditPackClient() {
                   ))
                 )}
                 <TableRow className="bg-emerald-50/60 font-bold">
-                  <TableCell colSpan={5} className="py-3 text-slate-900">
+                  <TableCell colSpan={6} className="py-3 text-slate-900">
                     Tổng cộng PCF (Cradle-to-Gate)
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-emerald-900">
@@ -401,6 +456,77 @@ export default function AuditPackClient() {
             </Table>
           </CardContent>
         </Card>
+
+        {auditBundle?.status === "completed" ? (
+          <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+            <CardHeader className="border-b border-slate-100 pb-4">
+              <CardTitle className="text-base font-bold text-slate-900">Rà soát và phát hành nội bộ</CardTitle>
+              <CardDescription className="text-xs">
+                Vòng đời hiện tại: {auditBundle.lifecycleStatus || "blocked"}. Phát hành nội bộ không thay đổi trạng thái đảm bảo “chưa xác minh”.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                <b>Độ phủ bằng chứng theo phép tính:</b>{" "}
+                {auditBundle.termEvidenceCoverage
+                  ? `${auditBundle.termEvidenceCoverage.coveredTermCount}/${auditBundle.termEvidenceCoverage.termCount} dòng đầy đủ bằng chứng hoạt động, hệ số và kỳ báo cáo.`
+                  : "Bundle cũ chưa có ma trận liên kết bằng chứng."}
+                {auditBundle.termEvidenceCoverage?.status !== "complete" ? (
+                  <div className="mt-1 text-amber-800">
+                    <p>Chưa thể phát hành: cần tạo bundle mới sau khi bổ sung và khóa chứng từ còn thiếu.</p>
+                    {auditBundle.termEvidenceCoverage?.terms
+                      .filter((term) => term.status === "incomplete")
+                      .slice(0, 10)
+                      .map((term) => (
+                        <p key={term.termKey} className="mt-1">
+                          • Dòng {term.termIndex + 1} ({term.detail || term.stage}): {term.missing
+                            .map((gap) => COVERAGE_GAP_LABELS[gap] || gap).join("; ")}.
+                        </p>
+                      ))}
+                  </div>
+                ) : null}
+              </div>
+              {!auditBundle.issuance && auditBundle.lifecycleStatus !== "superseded" ? (
+                <>
+                  <Textarea
+                    value={reviewNotes}
+                    onChange={(event) => setReviewNotes(event.target.value)}
+                    placeholder="Ghi chú rà soát của người duyệt (không ghi nhận xác minh độc lập nếu chưa có)."
+                    maxLength={5000}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" disabled={bundleBusy} onClick={() => void handleReview("rejected")}>Từ chối</Button>
+                    <Button disabled={bundleBusy} onClick={() => void handleReview("approved")}>Duyệt nội bộ</Button>
+                  </div>
+                  <Textarea
+                    value={issueAssertion}
+                    onChange={(event) => setIssueAssertion(event.target.value)}
+                    placeholder="Tuyên bố nội bộ đi kèm hồ sơ"
+                    maxLength={5000}
+                  />
+                  <Textarea
+                    value={issueCriteria}
+                    onChange={(event) => setIssueCriteria(event.target.value)}
+                    placeholder="Tiêu chí/phương pháp rà soát và phiên bản áp dụng"
+                    maxLength={5000}
+                  />
+                  <Button
+                    disabled={bundleBusy || auditBundle.lifecycleStatus !== "ready" || !issueAssertion.trim() || !issueCriteria.trim()}
+                    onClick={() => void handleIssue()}
+                  >
+                    Phát hành nội bộ
+                  </Button>
+                </>
+              ) : (
+                <p className="text-xs text-slate-600">
+                  {auditBundle.lifecycleStatus === "superseded"
+                    ? "Bundle này đã được phiên bản mới thay thế."
+                    : `Đã phát hành nội bộ lúc ${auditBundle.issuance?.issuedAt || "—"}; trạng thái đảm bảo vẫn là chưa xác minh.`}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Footer Disclaimer */}
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 shadow-sm">

@@ -38,6 +38,7 @@ import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
 import { EvidenceTrustBadge } from '@/components/evidence/EvidenceTrustBadge';
+import { fetchAllProducts, type ProductRecord } from '@/lib/productsApi';
 
 const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'electricity_bill', label: 'Hóa đơn điện' },
@@ -52,6 +53,9 @@ const DOC_TYPES: { value: string; label: string }[] = [
   { value: 'air_waybill', label: 'Air Waybill' },
   { value: 'export_invoice', label: 'Hóa đơn xuất khẩu' },
   { value: 'packing_list', label: 'Packing list' },
+  { value: 'emission_factor_source', label: 'Nguồn hệ số phát thải' },
+  { value: 'methodology', label: 'Tài liệu phương pháp tính' },
+  { value: 'pcf_source', label: 'Nguồn PCF bao quát hoạt động + hệ số' },
   { value: 'other', label: 'Khác' },
 ];
 
@@ -285,7 +289,11 @@ export default function EvidencePage() {
   const [periodEnd, setPeriodEnd] = useState('');
   const [supplier, setSupplier] = useState('');
   const [notes, setNotes] = useState('');
+  const [factorVersionIds, setFactorVersionIds] = useState('');
+  const [calculationTermNumbers, setCalculationTermNumbers] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [products, setProducts] = useState<ProductRecord[]>([]);
+  const [evidenceProductId, setEvidenceProductId] = useState('__company__');
 
   // Electricity bill structured fields → synced to electricity_invoices (CBAM Scope 2)
   const [elecFacilityName, setElecFacilityName] = useState('Main Facility');
@@ -318,6 +326,18 @@ export default function EvidencePage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchAllProducts({ sort_by: 'updated_at', sort_order: 'desc' })
+      .then((items) => {
+        if (!cancelled) setProducts(items || []);
+      })
+      .catch(() => {
+        if (!cancelled) setProducts([]);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => { load(page); }, [page, load]);
@@ -373,6 +393,8 @@ export default function EvidencePage() {
     setFile(null);
     setSupplier('');
     setNotes('');
+    setFactorVersionIds('');
+    setCalculationTermNumbers('');
     setPeriodStart('');
     setPeriodEnd('');
     setElecFacilityName('Main Facility');
@@ -400,6 +422,19 @@ export default function EvidencePage() {
       if (periodEnd) formData.append('reportingPeriodEnd', periodEnd);
       if (supplier) formData.append('supplierName', supplier);
       if (notes) formData.append('notes', notes);
+      if (evidenceProductId !== '__company__') formData.append('productId', evidenceProductId);
+      if (factorVersionIds.trim()) {
+        formData.append('factorVersionIds', JSON.stringify(
+          factorVersionIds.split(/[\n,]/).map((item) => item.trim()).filter(Boolean)
+        ));
+      }
+      if (calculationTermNumbers.trim()) {
+        formData.append('calculationTermNumbers', JSON.stringify(
+          calculationTermNumbers.split(/[\n,]/)
+            .map((item) => Number.parseInt(item.trim(), 10))
+            .filter((item) => Number.isInteger(item) && item > 0)
+        ));
+      }
 
       const uploadResult = await api.post<EvDoc>('/evidence/upload', formData);
       const evidenceId = uploadResult?.id;
@@ -703,6 +738,51 @@ export default function EvidencePage() {
                 placeholder="EVN HCMC, Petrolimex…"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>Gắn chứng từ với sản phẩm</Label>
+              <Select value={evidenceProductId} onValueChange={setEvidenceProductId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__company__">Hồ sơ chung của công ty</SelectItem>
+                  {products.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.productCode} - {product.productName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">
+                Audit Pack chỉ nhận chứng từ đã gắn đúng sản phẩm; hồ sơ chung của công ty không tự động được tính vào độ phủ.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Số dòng tính được chứng từ này chứng minh</Label>
+              <Input
+                value={calculationTermNumbers}
+                onChange={(event) => setCalculationTermNumbers(event.target.value)}
+                placeholder="Ví dụ: 1, 2, 5"
+              />
+              <p className="text-xs text-slate-500">
+                Lấy số thứ tự ở bảng Activity Data & Emission Factors của Audit Pack. Không khai báo thì chứng từ không
+                được tự suy diễn là bằng chứng cho một dòng tính cụ thể.
+              </p>
+            </div>
+
+            {['emission_factor_source', 'methodology', 'pcf_source'].includes(docType) && (
+              <div className="space-y-1.5 rounded-md border border-amber-200 bg-amber-50 p-3">
+                <Label>Factor Version ID được tài liệu chứng minh</Label>
+                <Textarea
+                  value={factorVersionIds}
+                  onChange={(event) => setFactorVersionIds(event.target.value)}
+                  placeholder="Ví dụ: cat-cotton-100:v1, energy-grid-vn-2023:v1"
+                  maxLength={20000}
+                />
+                <p className="text-xs text-amber-900">
+                  Nhập đúng mã phiên bản đang hiện trong dòng tính Audit Pack, phân cách bằng dấu phẩy hoặc xuống dòng.
+                  Tài liệu chỉ được nối với đúng các hệ số đã khai báo và sau khi được duyệt/khóa.
+                </p>
+              </div>
+            )}
 
             {/* Electricity bill → electricity_invoices (CBAM Scope 2) */}
             {docType === 'electricity_bill' && (

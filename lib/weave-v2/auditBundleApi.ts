@@ -1,5 +1,30 @@
 import { api } from "@/lib/apiClient";
 
+export interface AuditTermEvidenceCoverage {
+  status: "complete" | "incomplete";
+  termCount: number;
+  coveredTermCount: number;
+  missingTermCount: number;
+  terms: Array<{
+    termKey: string;
+    termIndex: number;
+    stage: string;
+    detail?: string | null;
+    factorVersionId: string;
+    activityEvidenceDocumentIds: string[];
+    factorEvidenceDocumentIds: string[];
+    missing: string[];
+    status: "covered" | "incomplete";
+  }>;
+}
+
+export interface AuditQaException {
+  code: string;
+  message: string;
+  severity?: "warning" | "blocking";
+  status?: "open" | "resolved";
+}
+
 export interface AuditBundleRecord {
   id: string;
   reportId: string;
@@ -7,7 +32,9 @@ export interface AuditBundleRecord {
   calculationSnapshotId?: string;
   version: number;
   status: "processing" | "completed" | "failed";
+  lifecycleStatus?: "draft" | "blocked" | "ready" | "issued" | "superseded";
   assuranceStatus: "not_verified";
+  termEvidenceCoverage?: AuditTermEvidenceCoverage | null;
   manifestSha256?: string | null;
   bundleSha256?: string | null;
   fileSizeBytes?: number;
@@ -16,6 +43,21 @@ export interface AuditBundleRecord {
   downloadUrl: string | null;
   completedAt?: string | null;
   createdAt?: string;
+  latestReview?: {
+    id: string;
+    decision: "approved" | "rejected";
+    qaExceptions: AuditQaException[];
+    notes?: string | null;
+    reviewedBy: string;
+    reviewedAt: string;
+  } | null;
+  issuance?: {
+    id: string;
+    assertion: string;
+    criteria: string;
+    issuedBy: string;
+    issuedAt: string;
+  } | null;
 }
 
 export const createAuditBundle = (productId: string) =>
@@ -23,6 +65,16 @@ export const createAuditBundle = (productId: string) =>
 
 export const fetchAuditBundle = (bundleId: string) =>
   api.get<AuditBundleRecord>(`/reports/v2/audit-packs/${encodeURIComponent(bundleId)}`);
+
+export const reviewAuditBundle = (
+  bundleId: string,
+  payload: { decision: "approved" | "rejected"; notes?: string; qaExceptions?: AuditQaException[] }
+) => api.post(`/reports/v2/audit-packs/${encodeURIComponent(bundleId)}/reviews`, payload);
+
+export const issueAuditBundle = (
+  bundleId: string,
+  payload: { assertion: string; criteria: string }
+) => api.post(`/reports/v2/audit-packs/${encodeURIComponent(bundleId)}/issue`, payload);
 
 export const downloadAuditBundle = async (bundle: AuditBundleRecord) => {
   if (bundle.status !== "completed" || !bundle.reportId) {
