@@ -11,6 +11,8 @@ export interface EvidenceDocumentV2 {
   sourceVendor?: string | null;
   reportingPeriodStart?: string | null;
   reportingPeriodEnd?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
   storageProvider?: string | null;
   storageBucket?: string | null;
   storageKey?: string | null;

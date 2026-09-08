@@ -74,9 +74,10 @@ const DemoExportConfigurationPortalV2: React.FC = () => {
       selectedSku,
       useRealProducts && selectedProduct
         ? getProductAuthoritativeCarbonV2(selectedProduct)
-        : null
+        : null,
+      { allowDemoPreview: isDemoRuntime }
     ),
-    [selectedProduct, selectedSku, useRealProducts]
+    [isDemoRuntime, selectedProduct, selectedSku, useRealProducts]
   );
   const selectedCarbon = auditPayload.totals;
   const auditRows = auditPayload.rows;

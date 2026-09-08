@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import {
   Shield,
-  CheckCircle2,
   Download,
   FileSpreadsheet,
   AlertTriangle,
@@ -14,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEMO_PACK_V2, type DemoSkuV2 } from "@/lib/weave-v2/demoPackV2";
+import type { DemoSkuV2 } from "@/lib/weave-v2/demoPackV2";
 import {
   buildAuditPackPayloadV2,
   buildAuditPackJsonV2,
@@ -24,6 +22,8 @@ import {
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import { getProductAuthoritativeCarbonV2, productToDemoSkuV2 } from "@/lib/weave-v2/productReportAdapter";
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
+
+const PAGE_LOAD_DATE = new Date().toISOString().slice(0, 10);
 
 const formatNum = (v: number | string | null | undefined, digits = 3) => {
   const num = typeof v === "number" ? v : parseFloat(String(v || 0));
@@ -45,32 +45,10 @@ const downloadFile = (filename: string, content: string, mime: string) => {
 };
 
 export default function AuditPackClient() {
-  const searchParams = useSearchParams();
-  const rawToken = searchParams?.get("token") || "";
-
   const [products, setProducts] = useState<ProductRecord[]>([]);
+  const [productsLoaded, setProductsLoaded] = useState(false);
   const [productEvidence, setProductEvidence] = useState<Record<string, EvidenceDocumentV2[]>>({});
   const [selectedProductId, setSelectedProductId] = useState<string>("");
-
-  // Token decoding & expiration validation
-  const tokenMeta = useMemo(() => {
-    if (!rawToken) return null;
-    try {
-      const decoded = typeof window !== "undefined" ? window.atob(decodeURIComponent(rawToken)) : "";
-      const parts = decoded.split(":");
-      if (parts.length >= 2) {
-        const userId = parts[0];
-        const timestamp = parseInt(parts[1], 10);
-        const createdAt = new Date(timestamp);
-        const expiresAt = new Date(timestamp + 7 * 24 * 60 * 60 * 1000);
-        const isExpired = Date.now() > expiresAt.getTime();
-        return { userId, timestamp, createdAt, expiresAt, isExpired, valid: true };
-      }
-    } catch {
-      // Invalid base64 token
-    }
-    return { valid: false, isExpired: false };
-  }, [rawToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +65,8 @@ export default function AuditPackClient() {
         if (!cancelled) {
           setProducts([]);
         }
+      } finally {
+        if (!cancelled) setProductsLoaded(true);
       }
     })();
     return () => {
@@ -119,29 +99,50 @@ export default function AuditPackClient() {
     };
   }, [selectedProduct, productEvidence]);
 
-  const auditSku: DemoSkuV2 = useMemo(() => {
-    if (selectedProduct) {
-      return productToDemoSkuV2(selectedProduct, productEvidence[selectedProduct.id] || []);
-    }
-    return DEMO_PACK_V2[0];
+  const approvedEvidence = useMemo(() => {
+    if (!selectedProduct) return [];
+    return (productEvidence[selectedProduct.id] || []).filter((item) =>
+      ["locked", "third_party_verified"].includes(item.status)
+      && /^[a-f0-9]{64}$/i.test(item.checksumSha256 || "")
+      && item.fileSizeBytes > 0
+      && Boolean(item.storageKey)
+      && (!item.validTo || item.validTo >= PAGE_LOAD_DATE)
+    );
   }, [selectedProduct, productEvidence]);
 
-  const auditPayload: AuditPackPayloadV2 = useMemo(() => {
-    return buildAuditPackPayloadV2(
-      auditSku,
-      selectedProduct ? getProductAuthoritativeCarbonV2(selectedProduct) : null
-    );
-  }, [auditSku, selectedProduct]);
+  const auditSku: DemoSkuV2 | null = useMemo(() => selectedProduct
+    ? productToDemoSkuV2(selectedProduct, approvedEvidence)
+    : null, [approvedEvidence, selectedProduct]);
+
+  const auditPayload: AuditPackPayloadV2 | null = useMemo(() => auditSku
+    ? buildAuditPackPayloadV2(auditSku, selectedProduct ? getProductAuthoritativeCarbonV2(selectedProduct) : null)
+    : null, [auditSku, selectedProduct]);
+
+  const canExport = auditPayload?.status === "internal_review";
 
   const handleExportJson = () => {
+    if (!auditPayload || !auditSku || !canExport) return;
     const json = JSON.stringify(buildAuditPackJsonV2(auditPayload), null, 2);
     downloadFile(`AuditPack_${auditSku.sku}_${new Date().toISOString().slice(0, 10)}.json`, json, "application/json");
   };
 
   const handleExportCsv = () => {
+    if (!auditPayload || !auditSku || !canExport) return;
     const csv = buildAuditRowsCsvV2(auditPayload);
     downloadFile(`AuditRows_${auditSku.sku}_${new Date().toISOString().slice(0, 10)}.csv`, csv, "text/csv;charset=utf-8;");
   };
+
+  if (!productsLoaded) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#F4F9F6] text-sm text-slate-600">Đang tải dữ liệu hồ sơ…</div>;
+  }
+
+  if (!selectedProduct || !auditSku || !auditPayload) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F9F6] p-6">
+        <Card className="max-w-xl border-amber-200 bg-amber-50"><CardContent className="flex gap-3 p-6 text-sm text-amber-950"><AlertTriangle className="h-5 w-5 shrink-0" /><div><b>Chưa thể lập Audit/Evidence Pack.</b><p className="mt-1">Tài khoản chưa có sản phẩm thật. Hệ thống không dùng dữ liệu demo thay thế trong màn hình production.</p></div></CardContent></Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F9F6] text-slate-900">
@@ -166,6 +167,7 @@ export default function AuditPackClient() {
               size="sm"
               className="gap-1.5 border-emerald-200 text-xs font-semibold text-emerald-900 hover:bg-emerald-50"
               onClick={handleExportCsv}
+              disabled={!canExport}
             >
               <FileSpreadsheet className="h-3.5 w-3.5" />
               Tải CSV
@@ -174,6 +176,7 @@ export default function AuditPackClient() {
               size="sm"
               className="gap-1.5 bg-emerald-800 text-xs font-semibold text-white hover:bg-emerald-900"
               onClick={handleExportJson}
+              disabled={!canExport}
             >
               <Download className="h-3.5 w-3.5" />
               Tải JSON Pack
@@ -183,39 +186,10 @@ export default function AuditPackClient() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
-        {/* Token Verification Banner */}
-        {tokenMeta && tokenMeta.valid && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-emerald-600 p-1 text-white">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-sm font-bold text-emerald-950">
-                  Liên kết kiểm toán hợp lệ (Chỉ xem - Read-only 7 ngày)
-                </p>
-                <p className="text-xs text-emerald-800">
-                  Ký số HMAC-SHA256 • Tạo lúc: {tokenMeta.createdAt?.toLocaleString("vi-VN")} • Hết hạn:{" "}
-                  {tokenMeta.expiresAt?.toLocaleString("vi-VN")}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge className="border-emerald-300 bg-emerald-100 font-mono text-xs text-emerald-900">
-                SHA-256 Verified
-              </Badge>
-            </div>
-          </div>
-        )}
-
-        {tokenMeta && tokenMeta.isExpired && (
-          <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-            <p className="text-sm">
-              <strong>Liên kết đã hết hạn</strong>: Token kiểm toán này đã quá thời hạn 7 ngày. Vui lòng liên hệ doanh nghiệp để tạo liên kết mới.
-            </p>
-          </div>
-        )}
+        <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="text-sm"><b>{canExport ? "Sẵn sàng xem xét nội bộ" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập và chưa có liên kết chia sẻ được máy chủ ký/xác thực.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}</div>
+        </div>
 
         {/* Hero Card */}
         <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
@@ -234,7 +208,7 @@ export default function AuditPackClient() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <Badge className="border-white/30 bg-emerald-800 text-white">
-                  Chuẩn ISO 14067:2018
+                  Tham chiếu ISO 14067 · Chưa xác minh độc lập
                 </Badge>
                 <span className="text-[11px] text-emerald-200">
                   Cấp thẩm tra: {auditSku.verifier || "Chờ kiểm toán độc lập"}
@@ -399,7 +373,7 @@ export default function AuditPackClient() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
-                          Verified
+                          Đã duyệt + SHA-256
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -414,8 +388,9 @@ export default function AuditPackClient() {
         <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 shadow-sm">
           <p className="font-semibold text-slate-700">Tuyên bố miễn trừ & Chuẩn mực:</p>
           <p className="mt-1">
-            Báo cáo Pre-Audit Pack này được xuất tự động từ hệ thống WeaveCarbon với liên kết chỉ-xem dành riêng cho kiểm toán viên và cơ quan chứng nhận độc lập (SGS, TÜV, Bureau Veritas, Hải quan EU/US).
-            Phương pháp luận tính toán tuân thủ theo tiêu chuẩn ISO 14067:2018 và GHG Protocol Product Life Cycle Standard.
+            Màn hình này là bản chuẩn bị dữ liệu nội bộ. Nó không phải chứng nhận, kết luận đảm bảo, hồ sơ hải quan đã
+            chấp nhận hoặc bằng chứng đã được SGS/TÜV/Bureau Veritas xác minh. Chỉ chứng từ thật đã duyệt và có SHA-256
+            mới được hiển thị; chức năng tải bị khóa cho đến khi máy chủ cung cấp đầy đủ dữ liệu hoạt động × hệ số phát thải.
           </p>
         </div>
       </main>

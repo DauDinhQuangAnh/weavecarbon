@@ -26,24 +26,18 @@ export interface AuditPackPayloadV2 {
   rows: AuditPanelRowV2[];
   evidence: AuditEvidenceV2[];
   methodology: string;
+  status: "blocked" | "internal_review" | "demo_preview";
+  blockers: string[];
+  immutable: false;
+  assuranceStatus: "not_verified";
   carbonAuthority?: AuthoritativeCarbonArtifactV2["carbonAuthority"];
   carbonResults?: AuthoritativeCarbonArtifactV2["carbonResults"];
 }
 
-const FALLBACK_EVIDENCE: AuditEvidenceV2[] = [
-  {
-    kind: "EVN bill",
-    fileName: "Hoa_don_dien_EVN_Thang4.pdf",
-    lookupCode: "EVN-HN-009412",
-    sha256: "19f3c68fabf151b798d6c3b9c58a7836b14e5ab01d6d8b19b7f4c44d2b34afb1"
-  },
-  {
-    kind: "Material origin",
-    fileName: "Phieu_nhap_kho_va_chung_nhan_nguon_goc_soi.pdf",
-    lookupCode: "112455",
-    sha256: "0ce6eb6f09f99a18405a98df89fbe847dcc8f33a28f6f0ae1d11e2f16ff209f9"
-  }
-];
+export interface BuildAuditPackOptionsV2 {
+  allowDemoPreview?: boolean;
+  authoritativeRows?: AuditPanelRowV2[];
+}
 
 const buildPreviewRows = (sku: DemoSkuV2): AuditPanelRowV2[] => {
   const materialRows = sku.materials.map((material) => ({
@@ -78,7 +72,8 @@ const buildPreviewRows = (sku: DemoSkuV2): AuditPanelRowV2[] => {
 
 export const buildAuditPackPayloadV2 = (
   sku: DemoSkuV2,
-  authoritative: AuthoritativeCarbonArtifactV2 | null = null
+  authoritative: AuthoritativeCarbonArtifactV2 | null = null,
+  options: BuildAuditPackOptionsV2 = {}
 ): AuditPackPayloadV2 => {
   const previewTotals = computeSkuCarbonV2(sku);
   const perProduct = authoritative?.carbonResults.perProduct;
@@ -96,30 +91,32 @@ export const buildAuditPackPayloadV2 = (
         )
       }
     : previewTotals;
-  const rows: AuditPanelRowV2[] = perProduct
-    ? [
-        ["Materials", perProduct.materials],
-        ["Finished goods manufacturing", perProduct.production],
-        ["Energy", perProduct.energy],
-        ["Logistics and storage", perProduct.transport],
-        ["Packaging", perProduct.packaging || 0]
-      ].filter(([, value]) => Number(value) > 0).map(([segment, value]) => ({
-        segment: String(segment),
-        detail: "Server-authoritative product assessment",
-        activity: Number(value),
-        factor: 1,
-        source: authoritative.carbonAuthority.source,
-        kgCo2e: Number(value),
-        isDefault: false
-      }))
-    : buildPreviewRows(sku);
+  const evidence = sku.evidence.filter((item) => /^[a-f0-9]{64}$/i.test(item.sha256));
+  const authoritativeRows = options.authoritativeRows || [];
+  const rows = options.allowDemoPreview ? buildPreviewRows(sku) : authoritativeRows;
+  const blockers: string[] = [];
+  if (!options.allowDemoPreview && !authoritative) {
+    blockers.push("Thiếu phép tính carbon có định danh máy chủ.");
+  }
+  if (!options.allowDemoPreview && authoritativeRows.length === 0) {
+    blockers.push("Chưa có dữ liệu hoạt động × hệ số phát thải gốc; không được thay bằng tổng phát thải × 1.");
+  }
+  if (!options.allowDemoPreview && evidence.length === 0) {
+    blockers.push("Chưa có bằng chứng đã duyệt kèm SHA-256 thực.");
+  }
 
   return {
     sku,
     totals,
     rows,
-    evidence: sku.evidence.length > 0 ? sku.evidence : FALLBACK_EVIDENCE,
-    methodology: "ISO 14067:2018 - server-authoritative WeaveCarbon calculation",
+    evidence,
+    methodology: options.allowDemoPreview
+      ? "DEMO PREVIEW — dữ liệu minh họa, không dùng đối ngoại"
+      : "WeaveCarbon climate-only partial CFP — tham chiếu ISO 14067, chưa được đảm bảo độc lập",
+    status: options.allowDemoPreview ? "demo_preview" : (blockers.length ? "blocked" : "internal_review"),
+    blockers,
+    immutable: false,
+    assuranceStatus: "not_verified",
     carbonAuthority: authoritative?.carbonAuthority,
     carbonResults: authoritative?.carbonResults
   };
@@ -128,7 +125,11 @@ export const buildAuditPackPayloadV2 = (
 export const buildAuditPackJsonV2 = (payload: AuditPackPayloadV2) => ({
   sku: payload.sku.sku,
   productName: payload.sku.name,
-  locked: true,
+  status: payload.status,
+  blockers: payload.blockers,
+  locked: false,
+  immutable: payload.immutable,
+  assuranceStatus: payload.assuranceStatus,
   methodology: payload.methodology,
   carbonAuthority: payload.carbonAuthority,
   carbonResults: payload.carbonResults,

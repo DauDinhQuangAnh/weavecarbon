@@ -1213,8 +1213,8 @@ const ReportsPage: React.FC = () => {
               <h3 className="font-semibold text-slate-950">Pre-Audit Pack — Chia sẻ cho kiểm toán viên</h3>
             </div>
             <p className="text-sm leading-6 text-slate-600">
-              Tạo link chỉ-xem chứa toàn bộ phép tính CO₂e + chứng từ gốc (hóa đơn EVN, ERP) + lô vận chuyển.
-              Token có hiệu lực 7 ngày, ký HMAC-SHA256, không thể giả mạo. SGS / Bureau Veritas chỉ cần URL — không cần tài khoản Weave Carbon.
+              Tính năng tạo gói bằng chứng bất biến và liên kết chia sẻ do máy chủ ký chưa được phát hành.
+              Nút được khóa để không tạo cảm giác rằng dữ liệu đã được kiểm toán hoặc xác minh bởi bên thứ ba.
             </p>
             <Button
               type="button"
@@ -1229,7 +1229,7 @@ const ReportsPage: React.FC = () => {
 
         <div className="border-t border-emerald-100 bg-emerald-50/40 px-1 py-3 text-xs text-emerald-900">
           <Shield className="mr-2 inline h-3.5 w-3.5 align-[-2px]" />
-          Phương pháp toán: 100% ISO 14067:2018. Hệ số phát thải đồng bộ từ Ecoinvent v3.10, DEFRA 2024 và Niên giám Hệ số phát thải của Bộ TN&MT Việt Nam.
+          Phương pháp tính là climate-only partial CFP có tham chiếu ISO 14067; không phải chứng nhận tuân thủ hay kết luận đảm bảo độc lập. Nguồn và phiên bản hệ số phải được kiểm tra trong từng phép tính.
         </div>
       </div>
 
