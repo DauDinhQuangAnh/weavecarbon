@@ -71,7 +71,7 @@ Before and after staging work, record:
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 git -C /opt/weavecarbon/FE status -sb
 git -C /opt/weavecarbon/BE_Carbon-main status -sb
-curl --fail --show-error https://weavecarbon.com/ready
+curl --fail --show-error https://weavecarbon.com/
 ```
 
 Production containers must remain under the `weavecarbon-*` project. Staging containers must be named
