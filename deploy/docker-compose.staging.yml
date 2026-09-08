@@ -1,0 +1,137 @@
+name: weavecarbon-staging
+
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../BE/DATABASE_SCHEMA.sql:/docker-entrypoint-initdb.d/01_database_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - data
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    logging: *default-logging
+
+  be:
+    build:
+      context: ../../BE
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: 8h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      FRONTEND_URL: ${STAGING_PUBLIC_URL}
+      FRONTEND_URLS: ${STAGING_PUBLIC_URL}
+      CORS_ORIGIN: ${STAGING_PUBLIC_URL}
+      AUTH_PUBLIC_BASE_URL: ${STAGING_PUBLIC_URL}
+      API_BASE_URL: ${STAGING_PUBLIC_URL}
+      BACKEND_URL: ${STAGING_PUBLIC_URL}
+      VNPAY_MODE: mock
+      RAG_PROXY_ALLOWED_BASE_URLS: ${STAGING_PUBLIC_URL}/rag
+      RAG_PROXY_INTERNAL_BASE_URL: http://127.0.0.1:65535
+      RAG_INTERNAL_API_KEY: ${RAG_INTERNAL_API_KEY}
+      RAG_REQUIRE_INTERNAL_API_KEY: "true"
+      JOB_RETENTION_DAYS: 7
+    volumes:
+      - be_uploads:/app/uploads
+    networks:
+      - app
+      - data
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 45s
+    logging: *default-logging
+
+  fe:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api
+        NEXT_PUBLIC_RAG_API_BASE_URL: /api
+        NEXT_PUBLIC_AUTH_DISABLED: "0"
+        NEXT_PUBLIC_ENFORCE_CLIENT_ROLE_GUARD: "1"
+    restart: unless-stopped
+    depends_on:
+      be:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      BACKEND_HEALTH_URL: http://be:4000/ready
+      AI_CONFIG_CONSOLE_ENABLED: "0"
+    networks:
+      - app
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    logging: *default-logging
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      be:
+        condition: service_healthy
+      fe:
+        condition: service_healthy
+    ports:
+      - "${STAGING_BIND_ADDRESS:-127.0.0.1}:${STAGING_HTTP_PORT:-18080}:80"
+    volumes:
+      - ./Caddyfile.staging:/etc/caddy/Caddyfile:ro
+    networks:
+      - app
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+    logging: *default-logging
+
+networks:
+  app:
+    internal: true
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  be_uploads:
