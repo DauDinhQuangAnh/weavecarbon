@@ -53,17 +53,47 @@ describe("audit pack production guardrails", () => {
 
   it("allows internal review only with authoritative AD x EF rows and checksummed evidence", () => {
     const row: AuditPanelRowV2 = {
-      segment: "Material",
+      segment: "materials",
       detail: "Cotton",
       activity: 0.2,
+      activityUnit: "kg",
       factor: 10,
+      factorUnit: "kgCO2e/kg",
       source: "factor registry snapshot",
       kgCo2e: 2
     };
-    const payload = buildAuditPackPayloadV2(sku, authority, { authoritativeRows: [row] });
+    const authorityWithTerms = {
+      ...authority,
+      carbonResults: {
+        ...authority.carbonResults,
+        calculationTermsSchemaVersion: "carbon-contribution-terms-v1",
+        calculationTerms: [{
+          stage: "materials",
+          detail: row.detail,
+          activity: row.activity,
+          activityUnit: "kg",
+          factorId: "cat-cotton-100",
+          factorVersionId: "cat-cotton-100:v1",
+          factorValue: row.factor,
+          factorUnit: row.factorUnit,
+          source: row.source,
+          sourceUrl: "https://example.test/factor",
+          sourceYear: 2024,
+          geography: "global",
+          boundaryType: "cradle_to_gate",
+          gwpBasis: "IPCC_AR5_100y",
+          factorClass: "documented_secondary",
+          isProxy: false,
+          kgCo2e: row.kgCo2e,
+          allocation: null
+        }]
+      }
+    } as AuthoritativeCarbonArtifactV2;
+    const payload = buildAuditPackPayloadV2(sku, authorityWithTerms);
 
     expect(payload.status).toBe("internal_review");
-    expect(payload.rows[0]).toEqual(row);
+    expect(payload.rows[0]).toMatchObject(row);
+    expect(payload.rows[0].factorVersionId).toBe("cat-cotton-100:v1");
     expect(payload.evidence.length).toBeGreaterThan(0);
   });
 

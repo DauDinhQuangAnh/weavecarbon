@@ -118,7 +118,9 @@ export default function AuditPackClient() {
     ? buildAuditPackPayloadV2(auditSku, selectedProduct ? getProductAuthoritativeCarbonV2(selectedProduct) : null)
     : null, [auditSku, selectedProduct]);
 
-  const canExport = auditPayload?.status === "internal_review";
+  const dataReady = auditPayload?.status === "internal_review";
+  // Production downloads stay disabled until the backend stores an immutable manifest + evidence bundle.
+  const canExport = false;
 
   const handleExportJson = () => {
     if (!auditPayload || !auditSku || !canExport) return;
@@ -188,7 +190,7 @@ export default function AuditPackClient() {
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
         <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div className="text-sm"><b>{canExport ? "Sẵn sàng xem xét nội bộ" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập và chưa có liên kết chia sẻ được máy chủ ký/xác thực.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}</div>
+          <div className="text-sm"><b>{dataReady ? "Dữ liệu đủ để xem xét nội bộ; chưa thể tải gói" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập và chưa có liên kết chia sẻ được máy chủ ký/xác thực.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}{dataReady ? <p className="mt-1">• Máy chủ chưa tạo manifest và bundle bất biến nên nút tải vẫn bị khóa.</p> : null}</div>
         </div>
 
         {/* Hero Card */}
@@ -312,9 +314,9 @@ export default function AuditPackClient() {
                     <TableRow key={idx} className={row.isDefault ? "bg-amber-50/40" : ""}>
                       <TableCell className="font-medium">{row.segment}</TableCell>
                       <TableCell>{row.detail}</TableCell>
-                      <TableCell className="text-right font-mono">{formatNum(row.activity, 2)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatNum(row.factor, 4)}</TableCell>
-                      <TableCell className="text-slate-600">{row.source}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNum(row.activity, 4)} {row.activityUnit}</TableCell>
+                      <TableCell className="text-right font-mono">{formatNum(row.factor, 6)} {row.factorUnit}</TableCell>
+                      <TableCell className="text-slate-600">{row.source}{row.factorVersionId ? <span className="block font-mono text-[10px]">{row.factorVersionId}</span> : null}</TableCell>
                       <TableCell className="text-right font-mono font-semibold text-emerald-950">
                         {formatNum(row.kgCo2e, 3)}
                       </TableCell>
@@ -390,7 +392,7 @@ export default function AuditPackClient() {
           <p className="mt-1">
             Màn hình này là bản chuẩn bị dữ liệu nội bộ. Nó không phải chứng nhận, kết luận đảm bảo, hồ sơ hải quan đã
             chấp nhận hoặc bằng chứng đã được SGS/TÜV/Bureau Veritas xác minh. Chỉ chứng từ thật đã duyệt và có SHA-256
-            mới được hiển thị; chức năng tải bị khóa cho đến khi máy chủ cung cấp đầy đủ dữ liệu hoạt động × hệ số phát thải.
+            mới được hiển thị; chức năng tải bị khóa cho đến khi máy chủ tạo và lưu manifest cùng bundle bất biến.
           </p>
         </div>
       </main>

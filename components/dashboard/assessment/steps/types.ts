@@ -152,6 +152,8 @@ export interface CarbonAssessmentResult extends Partial<Pick<
   | "factorSources"
   | "warnings"
   | "trace"
+  | "calculationTermsSchemaVersion"
+  | "calculationTerms"
   | "stageBreakdown"
 >> {
   perProduct: CarbonBreakdown;

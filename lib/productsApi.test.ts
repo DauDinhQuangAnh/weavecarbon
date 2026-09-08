@@ -70,7 +70,28 @@ const serverMutation = {
     confidenceScore: 77,
     scope1: 0,
     scope2: 1.591,
-    scope3: 2.986
+    scope3: 2.986,
+    calculationTermsSchemaVersion: "carbon-contribution-terms-v1",
+    calculationTerms: [{
+      stage: "materials",
+      detail: "Cotton",
+      activity: 0.2,
+      activityUnit: "kg",
+      factorId: "cat-cotton-100",
+      factorVersionId: "cat-cotton-100:v1",
+      factorValue: 14.32,
+      factorUnit: "kgCO2e/kg",
+      source: "factor source",
+      sourceUrl: "https://example.test/factor",
+      sourceYear: 2024,
+      geography: "global",
+      boundaryType: "cradle_to_gate",
+      gwpBasis: "IPCC_AR5_100y",
+      factorClass: "documented_secondary",
+      isProxy: false,
+      kgCo2e: 2.864,
+      allocation: { percentage: 100 }
+    }]
   },
   carbonAuthority: {
     authoritative: true,
@@ -106,6 +127,12 @@ describe("authoritative product mutation results", () => {
     );
     expect(result.carbonResults?.perProduct.total).toBe(4.577);
     expect(result.carbonResults?.confidenceScore).toBe(77);
+    expect(result.carbonResults?.calculationTerms?.[0]).toMatchObject({
+      activity: 0.2,
+      activityUnit: "kg",
+      factorVersionId: "cat-cotton-100:v1",
+      kgCo2e: 2.864
+    });
     expect(result.carbonAuthority?.calculationVersion).toBe(7);
     expect(result.carbonAuthority).toMatchObject({
       engineVersion: "scope-quality-rss-1.0.0",

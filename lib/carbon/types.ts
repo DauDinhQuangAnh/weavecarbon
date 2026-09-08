@@ -103,6 +103,27 @@ export interface CarbonStageBreakdown {
   isEstimated: boolean;
 }
 
+export interface CarbonCalculationTerm {
+  stage: CarbonStageKey;
+  detail: string;
+  activity: number;
+  activityUnit: "kg" | "kWh" | "tonne.km";
+  factorId: string;
+  factorVersionId: string;
+  factorValue: number;
+  factorUnit: string;
+  source: string;
+  sourceUrl: string;
+  sourceYear: number | null;
+  geography?: string;
+  boundaryType: CarbonFactorMetadata["boundaryType"];
+  gwpBasis: string;
+  factorClass: CarbonFactorClass;
+  isProxy: boolean;
+  kgCo2e: number;
+  allocation: Record<string, unknown> | null;
+}
+
 export interface CarbonMaterialInput {
   id: string;
   factorId?: string;
@@ -267,6 +288,8 @@ export interface CarbonComputationResult {
     ruleEngineVersion: string;
   };
   assumptionsUsed: string[];
+  calculationTermsSchemaVersion?: "carbon-contribution-terms-v1";
+  calculationTerms?: CarbonCalculationTerm[];
   factorSourceSummary: CarbonFactorSummaryItem[];
   dataQualityBreakdown: CarbonDataQualityBreakdown;
   stageBreakdown: CarbonStageBreakdown[];

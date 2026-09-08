@@ -1419,6 +1419,43 @@ quantityFallback = 1)
     )
       .map((item) => asString(item))
       .filter(Boolean),
+    calculationTermsSchemaVersion: (() => {
+      const value = asString(
+        structured?.calculationTermsSchemaVersion ??
+        structured?.calculation_terms_schema_version ??
+        source.calculationTermsSchemaVersion ??
+        source.calculation_terms_schema_version
+      );
+      return value === "carbon-contribution-terms-v1" ? value : undefined;
+    })(),
+    calculationTerms: asArray(
+      structured?.calculationTerms ??
+      structured?.calculation_terms ??
+      source.calculationTerms ??
+      source.calculation_terms
+    )
+      .filter(isObject)
+      .map((item) => ({
+        stage: asString(item.stage) as NonNullable<CarbonAssessmentResult["calculationTerms"]>[number]["stage"],
+        detail: asString(item.detail),
+        activity: asNumber(item.activity),
+        activityUnit: asString(item.activityUnit ?? item.activity_unit) as NonNullable<CarbonAssessmentResult["calculationTerms"]>[number]["activityUnit"],
+        factorId: asString(item.factorId ?? item.factor_id),
+        factorVersionId: asString(item.factorVersionId ?? item.factor_version_id),
+        factorValue: asNumber(item.factorValue ?? item.factor_value),
+        factorUnit: asString(item.factorUnit ?? item.factor_unit),
+        source: asString(item.source),
+        sourceUrl: asString(item.sourceUrl ?? item.source_url),
+        sourceYear: asNullableNumber(item.sourceYear ?? item.source_year),
+        geography: asNonEmptyString(item.geography) ?? undefined,
+        boundaryType: asString(item.boundaryType ?? item.boundary_type, "unknown") as NonNullable<CarbonAssessmentResult["calculationTerms"]>[number]["boundaryType"],
+        gwpBasis: asString(item.gwpBasis ?? item.gwp_basis, "IPCC_AR5_100y"),
+        factorClass: asString(item.factorClass ?? item.factor_class) as NonNullable<CarbonAssessmentResult["calculationTerms"]>[number]["factorClass"],
+        isProxy: asBoolean(item.isProxy ?? item.is_proxy),
+        kgCo2e: asNumber(item.kgCo2e ?? item.kg_co2e),
+        allocation: isObject(item.allocation) ? item.allocation : null
+      }))
+      .filter((item) => item.factorId && item.factorVersionId && item.activityUnit && item.factorUnit),
     factorSourceSummary: asArray(
       structured?.factorSourceSummary ??
       structured?.factor_source_summary ??
