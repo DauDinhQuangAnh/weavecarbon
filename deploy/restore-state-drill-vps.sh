@@ -213,6 +213,7 @@ diff -u "${BUNDLE_DIR}/rag-data-members.txt" "${RESTORE_DIR}/rag-data-members.tx
 docker network create "${DRILL_NETWORK}" >/dev/null
 POSTGRES_PASSWORD="restore-${DRILL_SUFFIX}"
 docker run -d --name "${DB_CONTAINER}" --network "${DRILL_NETWORK}" \
+  --user postgres \
   --security-opt no-new-privileges:true \
   -e POSTGRES_DB=postgres -e POSTGRES_USER="${POSTGRES_USER}" -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
   "${DB_IMAGE}" >/dev/null
