@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import maplibregl from "maplibre-gl";
-import type { GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import type { ErrorEvent as MapLibreErrorEvent, GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { buildSupplyChainRouteGeometry } from "@/lib/transportRouteGeometry";
 import {
@@ -254,7 +254,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
       }
     };
 
-    const handleError = (event: { error: Error }) => {
+    const handleError = (event: MapLibreErrorEvent) => {
       // MapLibre fires "error" for per-tile fetch failures as well as fatal
       // style/init errors. A single failed tile shouldn't tear down a map
       // that already rendered — only surface the fatal error screen when the
