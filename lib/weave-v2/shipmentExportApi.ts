@@ -7,6 +7,8 @@ export type ExportDocumentType =
   | 'origin_workbook'
   | 'ics2_dataset';
 
+export type ExportOutputFormat = 'xlsx' | 'pdf' | 'csv';
+
 export interface ExportParty {
   name?: string;
   address?: string;
@@ -82,6 +84,12 @@ export interface ShipmentPackage {
   packageNumber: string;
   packageType: string;
   marksAndNumbers: string;
+  containerId: string | null;
+  containerNumber: string;
+  sealNumber: string;
+  parentPackageId: string | null;
+  parentPackageNumber: string;
+  sequenceNo: number | null;
   quantity: number;
   netWeightKg: number | null;
   grossWeightKg: number | null;
@@ -91,11 +99,23 @@ export interface ShipmentPackage {
   contents: unknown[];
 }
 
+export interface ShipmentContainer {
+  id: string;
+  containerNumber: string;
+  sealNumber: string;
+  equipmentType: string;
+  marksAndNumbers: string;
+  tareWeightKg: number | null;
+  maxGrossWeightKg: number | null;
+  metadata: Record<string, unknown>;
+}
+
 export interface ShipmentExportDocument {
   id: string;
   shipmentId: string;
   reportId: string;
   type: ExportDocumentType;
+  outputFormat: ExportOutputFormat | null;
   version: number;
   status: 'draft' | 'blocked' | 'ready' | 'issued' | 'superseded' | 'failed';
   reportStatus: string | null;
@@ -109,6 +129,7 @@ export interface ShipmentExportBundle {
   shipment: { id: string; referenceNumber: string; status: string; originCountry: string; destinationCountry: string };
   profile: ShipmentExportProfile | null;
   lines: ShipmentExportLine[];
+  containers: ShipmentContainer[];
   packages: ShipmentPackage[];
   carrierDocuments: Array<{ id: string; type: string; name: string; status: string; checksumSha256?: string | null }>;
   documents: ShipmentExportDocument[];
@@ -147,12 +168,16 @@ export const updateShipmentExportLine = (shipmentId: string, lineId: string, pay
   api.patch<ShipmentExportLine>(`${base(shipmentId)}/lines/${encodeURIComponent(lineId)}`, payload);
 export const fetchShipmentExportReadiness = (shipmentId: string) =>
   api.get<ExportReadiness>(`${base(shipmentId)}/readiness`);
+export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
+  api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
+export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
+  api.patch<ShipmentContainer>(`${base(shipmentId)}/containers/${encodeURIComponent(containerId)}`, payload);
 export const createShipmentPackage = (shipmentId: string, payload: Partial<ShipmentPackage>) =>
   api.post<ShipmentPackage>(`${base(shipmentId)}/packages`, payload);
 export const updateShipmentPackage = (shipmentId: string, packageId: string, payload: Partial<ShipmentPackage>) =>
   api.patch<ShipmentPackage>(`${base(shipmentId)}/packages/${encodeURIComponent(packageId)}`, payload);
-export const generateShipmentExportDocument = (shipmentId: string, type: ExportDocumentType) =>
-  api.post<ShipmentExportDocument>(`${base(shipmentId)}/documents/${type}/generate`, {});
+export const generateShipmentExportDocument = (shipmentId: string, type: ExportDocumentType, outputFormat?: ExportOutputFormat) =>
+  api.post<ShipmentExportDocument>(`${base(shipmentId)}/documents/${type}/generate`, outputFormat ? { outputFormat } : {});
 export const issueShipmentExportDocument = (shipmentId: string, documentId: string) =>
   api.post<ShipmentExportDocument>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/issue`, {});
 
