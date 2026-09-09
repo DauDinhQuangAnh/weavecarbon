@@ -6,6 +6,10 @@ import {
   Download,
   AlertTriangle,
   LoaderCircle,
+  Copy,
+  Link2,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,11 +27,17 @@ import { getProductAuthoritativeCarbonV2, productToDemoSkuV2 } from "@/lib/weave
 import { listProductEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import {
   createAuditBundle,
+  createAuditBundleAssuranceRecord,
+  createAuditBundleShare,
   downloadAuditBundle,
   fetchAuditBundle,
   issueAuditBundle,
   reviewAuditBundle,
-  type AuditBundleRecord
+  revokeAuditBundleShare,
+  type AuditAssuranceOutcome,
+  type AuditBundleRecord,
+  type AuditQaException,
+  type CreatedAuditBundleShare
 } from "@/lib/weave-v2/auditBundleApi";
 
 const PAGE_LOAD_DATE = new Date().toISOString().slice(0, 10);
@@ -58,6 +68,21 @@ export default function AuditPackClient() {
   const [reviewNotes, setReviewNotes] = useState("");
   const [issueAssertion, setIssueAssertion] = useState("");
   const [issueCriteria, setIssueCriteria] = useState("");
+  const [qaExceptions, setQaExceptions] = useState<AuditQaException[]>([]);
+  const [signatureAcknowledged, setSignatureAcknowledged] = useState(false);
+  const [shareLabel, setShareLabel] = useState("Đối tác kiểm toán");
+  const [shareExpiresInHours, setShareExpiresInHours] = useState("168");
+  const [shareMaxDownloads, setShareMaxDownloads] = useState("10");
+  const [createdShare, setCreatedShare] = useState<CreatedAuditBundleShare | null>(null);
+  const [actionNotice, setActionNotice] = useState("");
+  const [assuranceOutcome, setAssuranceOutcome] = useState<AuditAssuranceOutcome>("requested");
+  const [assuranceProvider, setAssuranceProvider] = useState("");
+  const [assurancePractitioner, setAssurancePractitioner] = useState("");
+  const [assuranceStandard, setAssuranceStandard] = useState("");
+  const [assuranceScope, setAssuranceScope] = useState("");
+  const [assuranceStatementDate, setAssuranceStatementDate] = useState("");
+  const [assuranceValidTo, setAssuranceValidTo] = useState("");
+  const [assuranceEvidenceId, setAssuranceEvidenceId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +144,11 @@ export default function AuditPackClient() {
     );
   }, [selectedProduct, productEvidence]);
 
+  const thirdPartyEvidence = useMemo(
+    () => approvedEvidence.filter((item) => item.status === "third_party_verified"),
+    [approvedEvidence]
+  );
+
   const auditSku: DemoSkuV2 | null = useMemo(() => selectedProduct
     ? productToDemoSkuV2(selectedProduct, approvedEvidence)
     : null, [approvedEvidence, selectedProduct]);
@@ -129,6 +159,13 @@ export default function AuditPackClient() {
 
   const dataReady = auditPayload?.status === "internal_review";
   const canCreateBundle = Boolean(dataReady && selectedProduct);
+  const assuranceNeedsEvidence = !["requested", "withdrawn"].includes(assuranceOutcome);
+  const parsedShareExpiry = Number(shareExpiresInHours);
+  const parsedShareDownloadLimit = Number(shareMaxDownloads);
+  const shareInputsValid = Number.isInteger(parsedShareExpiry)
+    && parsedShareExpiry >= 1 && parsedShareExpiry <= 720
+    && Number.isInteger(parsedShareDownloadLimit)
+    && parsedShareDownloadLimit >= 1 && parsedShareDownloadLimit <= 100;
 
   useEffect(() => {
     if (!auditBundle || auditBundle.status !== "processing") return;
@@ -172,6 +209,11 @@ export default function AuditPackClient() {
     setReviewNotes("");
     setIssueAssertion("");
     setIssueCriteria("");
+    setQaExceptions([]);
+    setSignatureAcknowledged(false);
+    setCreatedShare(null);
+    setActionNotice("");
+    setAssuranceEvidenceId("");
   };
 
   const refreshBundle = async () => {
@@ -184,7 +226,11 @@ export default function AuditPackClient() {
     setBundleBusy(true);
     setBundleError("");
     try {
-      await reviewAuditBundle(auditBundle.id, { decision, notes: reviewNotes || undefined });
+      await reviewAuditBundle(auditBundle.id, {
+        decision,
+        notes: reviewNotes || undefined,
+        qaExceptions
+      });
       await refreshBundle();
     } catch (error) {
       setBundleError(error instanceof Error ? error.message : "Không thể ghi nhận kết quả rà soát.");
@@ -194,17 +240,92 @@ export default function AuditPackClient() {
   };
 
   const handleIssue = async () => {
-    if (!auditBundle || auditBundle.lifecycleStatus !== "ready" || bundleBusy) return;
+    if (!auditBundle || auditBundle.lifecycleStatus !== "ready" || bundleBusy || !signatureAcknowledged) return;
     setBundleBusy(true);
     setBundleError("");
     try {
       await issueAuditBundle(auditBundle.id, {
         assertion: issueAssertion,
-        criteria: issueCriteria
+        criteria: issueCriteria,
+        signatureAcknowledged: true
       });
       await refreshBundle();
     } catch (error) {
       setBundleError(error instanceof Error ? error.message : "Không thể phát hành Audit Pack nội bộ.");
+    } finally {
+      setBundleBusy(false);
+    }
+  };
+
+  const updateQaException = (index: number, patch: Partial<AuditQaException>) => {
+    setQaExceptions((current) => current.map((item, itemIndex) =>
+      itemIndex === index ? { ...item, ...patch } : item
+    ));
+  };
+
+  const handleCreateShare = async () => {
+    if (!auditBundle?.issuance?.signatureValid || bundleBusy || !shareInputsValid) return;
+    setBundleBusy(true);
+    setBundleError("");
+    setActionNotice("");
+    try {
+      const share = await createAuditBundleShare(auditBundle.id, {
+        label: shareLabel.trim() || undefined,
+        expiresInHours: parsedShareExpiry,
+        maxDownloads: parsedShareDownloadLimit
+      });
+      setCreatedShare(share);
+      await refreshBundle();
+      setActionNotice("Link chỉ hiển thị đầy đủ một lần. Hãy sao chép và gửi qua kênh an toàn.");
+    } catch (error) {
+      setBundleError(error instanceof Error ? error.message : "Không thể tạo link chia sẻ.");
+    } finally {
+      setBundleBusy(false);
+    }
+  };
+
+  const handleCopyShare = async () => {
+    if (!createdShare || typeof window === "undefined") return;
+    const fullUrl = new URL(createdShare.shareUrl, window.location.origin).toString();
+    await navigator.clipboard.writeText(fullUrl);
+    setActionNotice("Đã sao chép link chia sẻ có hạn dùng.");
+  };
+
+  const handleRevokeShare = async (shareId: string) => {
+    if (!auditBundle || bundleBusy) return;
+    setBundleBusy(true);
+    setBundleError("");
+    try {
+      await revokeAuditBundleShare(auditBundle.id, shareId);
+      if (createdShare?.id === shareId) setCreatedShare(null);
+      await refreshBundle();
+      setActionNotice("Đã thu hồi link chia sẻ.");
+    } catch (error) {
+      setBundleError(error instanceof Error ? error.message : "Không thể thu hồi link chia sẻ.");
+    } finally {
+      setBundleBusy(false);
+    }
+  };
+
+  const handleRecordAssurance = async () => {
+    if (!auditBundle?.issuance?.signatureValid || bundleBusy) return;
+    setBundleBusy(true);
+    setBundleError("");
+    try {
+      await createAuditBundleAssuranceRecord(auditBundle.id, {
+        outcome: assuranceOutcome,
+        providerName: assuranceProvider.trim(),
+        practitionerName: assurancePractitioner.trim() || undefined,
+        standard: assuranceStandard.trim() || undefined,
+        scope: assuranceScope.trim(),
+        statementDate: assuranceNeedsEvidence ? assuranceStatementDate : undefined,
+        validTo: assuranceValidTo || undefined,
+        evidenceDocumentId: assuranceNeedsEvidence ? assuranceEvidenceId : undefined
+      });
+      await refreshBundle();
+      setActionNotice("Đã ghi thêm một bản ghi assurance bất biến; chứng từ gốc không bị thay đổi.");
+    } catch (error) {
+      setBundleError(error instanceof Error ? error.message : "Không thể ghi nhận external assurance.");
     } finally {
       setBundleBusy(false);
     }
@@ -259,7 +380,7 @@ export default function AuditPackClient() {
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
         <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-          <div className="text-sm"><b>{dataReady ? "Dữ liệu đủ để tạo gói xem xét nội bộ" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập và chưa có liên kết chia sẻ được máy chủ ký/xác thực.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}{auditBundle?.status === "completed" ? <p className="mt-1">• Bundle v{auditBundle.version} đã được máy chủ khóa nội dung; SHA-256: <span className="font-mono">{auditBundle.bundleSha256}</span>.</p> : null}{auditBundle?.status === "failed" ? <p className="mt-1">• Tạo bundle thất bại: {auditBundle.errorMessage || "Không xác định"}</p> : null}{bundleError ? <p className="mt-1">• {bundleError}</p> : null}</div>
+          <div className="text-sm"><b>{dataReady ? "Dữ liệu đủ để tạo gói xem xét nội bộ" : "Đang bị chặn phát hành"}</b><p className="mt-1">Đây chưa phải hồ sơ đảm bảo độc lập. Link chia sẻ chỉ được tạo sau khi có review, phát hành và chữ ký platform hợp lệ.</p>{auditPayload.blockers.map((blocker) => <p key={blocker} className="mt-1">• {blocker}</p>)}{auditBundle?.status === "completed" ? <p className="mt-1">• Bundle v{auditBundle.version} đã được máy chủ khóa nội dung; SHA-256: <span className="font-mono">{auditBundle.bundleSha256}</span>.</p> : null}{auditBundle?.status === "failed" ? <p className="mt-1">• Tạo bundle thất bại: {auditBundle.errorMessage || "Không xác định"}</p> : null}{bundleError ? <p className="mt-1">• {bundleError}</p> : null}</div>
         </div>
 
         {/* Hero Card */}
@@ -279,10 +400,10 @@ export default function AuditPackClient() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <Badge className="border-white/30 bg-emerald-800 text-white">
-                  Tham chiếu ISO 14067 · Chưa xác minh độc lập
+                  Trạng thái assurance: {auditBundle?.assuranceStatus || "not_verified"}
                 </Badge>
                 <span className="text-[11px] text-emerald-200">
-                  Cấp thẩm tra: {auditSku.verifier || "Chờ kiểm toán độc lập"}
+                  Hồ sơ mới nhất: {auditBundle?.externalAssurance?.providerName || "Chưa có bản ghi external assurance"}
                 </span>
               </div>
             </div>
@@ -486,8 +607,77 @@ export default function AuditPackClient() {
                   </div>
                 ) : null}
               </div>
+              {auditBundle.latestReview ? (
+                <div className="rounded-xl border border-slate-200 p-3 text-xs text-slate-700">
+                  <b>Review gần nhất:</b> {auditBundle.latestReview.decision} — {auditBundle.latestReview.reviewerName || auditBundle.latestReview.reviewedBy}
+                  {auditBundle.latestReview.reviewerEmail ? ` (${auditBundle.latestReview.reviewerEmail})` : ""}.
+                  {auditBundle.latestReview.qaExceptions.length > 0 ? (
+                    <p className="mt-1">Có {auditBundle.latestReview.qaExceptions.length} QA exception được đóng băng trong quyết định này.</p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {!auditBundle.issuance && auditBundle.lifecycleStatus !== "superseded" ? (
-                <>
+                <div className="space-y-4">
+                  <div className="space-y-2 rounded-xl border border-slate-200 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">QA exceptions có cấu trúc</p>
+                        <p className="text-xs text-slate-500">Mỗi lần duyệt sẽ đóng băng toàn bộ danh sách hiện tại.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setQaExceptions((current) => [...current, {
+                          code: `QA-${current.length + 1}`,
+                          message: "",
+                          severity: "blocking",
+                          status: "open"
+                        }])}
+                      >
+                        <Plus className="mr-1 h-3.5 w-3.5" /> Thêm lỗi
+                      </Button>
+                    </div>
+                    {qaExceptions.map((item, index) => (
+                      <div key={index} className="grid gap-2 rounded-lg bg-slate-50 p-3 md:grid-cols-[120px_1fr_140px_120px_auto]">
+                        <input
+                          className="h-9 rounded-md border border-slate-300 bg-white px-2 text-xs"
+                          value={item.code}
+                          maxLength={100}
+                          placeholder="Mã lỗi"
+                          onChange={(event) => updateQaException(index, { code: event.target.value })}
+                        />
+                        <input
+                          className="h-9 rounded-md border border-slate-300 bg-white px-2 text-xs"
+                          value={item.message}
+                          maxLength={1000}
+                          placeholder="Mô tả lỗi/ngoại lệ"
+                          onChange={(event) => updateQaException(index, { message: event.target.value })}
+                        />
+                        <select
+                          className="h-9 rounded-md border border-slate-300 bg-white px-2 text-xs"
+                          value={item.severity || "blocking"}
+                          onChange={(event) => updateQaException(index, { severity: event.target.value as "warning" | "blocking" })}
+                        >
+                          <option value="warning">Cảnh báo</option>
+                          <option value="blocking">Chặn</option>
+                        </select>
+                        <select
+                          className="h-9 rounded-md border border-slate-300 bg-white px-2 text-xs"
+                          value={item.status || "open"}
+                          onChange={(event) => updateQaException(index, { status: event.target.value as "open" | "resolved" })}
+                        >
+                          <option value="open">Đang mở</option>
+                          <option value="resolved">Đã xử lý</option>
+                        </select>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => setQaExceptions((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
                   <Textarea
                     value={reviewNotes}
                     onChange={(event) => setReviewNotes(event.target.value)}
@@ -496,34 +686,129 @@ export default function AuditPackClient() {
                   />
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" disabled={bundleBusy} onClick={() => void handleReview("rejected")}>Từ chối</Button>
-                    <Button disabled={bundleBusy} onClick={() => void handleReview("approved")}>Duyệt nội bộ</Button>
+                    <Button disabled={bundleBusy || qaExceptions.some((item) => !item.code.trim() || !item.message.trim())} onClick={() => void handleReview("approved")}>Duyệt nội bộ</Button>
                   </div>
-                  <Textarea
-                    value={issueAssertion}
-                    onChange={(event) => setIssueAssertion(event.target.value)}
-                    placeholder="Tuyên bố nội bộ đi kèm hồ sơ"
-                    maxLength={5000}
-                  />
-                  <Textarea
-                    value={issueCriteria}
-                    onChange={(event) => setIssueCriteria(event.target.value)}
-                    placeholder="Tiêu chí/phương pháp rà soát và phiên bản áp dụng"
-                    maxLength={5000}
-                  />
-                  <Button
-                    disabled={bundleBusy || auditBundle.lifecycleStatus !== "ready" || !issueAssertion.trim() || !issueCriteria.trim()}
-                    onClick={() => void handleIssue()}
-                  >
-                    Phát hành nội bộ
-                  </Button>
-                </>
+
+                  <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                    <p className="text-sm font-semibold text-emerald-950">Tuyên bố và chữ ký phát hành</p>
+                    <p className="text-xs text-emerald-900">Người phát hành phải khác người review gần nhất. Máy chủ ký Ed25519 vào đúng assertion, criteria, bundle hash, manifest hash, danh tính và thời điểm.</p>
+                    <Textarea
+                      value={issueAssertion}
+                      onChange={(event) => setIssueAssertion(event.target.value)}
+                      placeholder="Tuyên bố nội bộ đi kèm hồ sơ"
+                      maxLength={5000}
+                    />
+                    <Textarea
+                      value={issueCriteria}
+                      onChange={(event) => setIssueCriteria(event.target.value)}
+                      placeholder="Tiêu chí/phương pháp rà soát và phiên bản áp dụng"
+                      maxLength={5000}
+                    />
+                    <label className="flex items-start gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4"
+                        checked={signatureAcknowledged}
+                        onChange={(event) => setSignatureAcknowledged(event.target.checked)}
+                      />
+                      Tôi xác nhận phát hành assertion này với danh tính tài khoản hiện tại. Đây là platform attestation nội bộ, không phải chữ ký số đủ điều kiện hoặc kết luận assurance độc lập.
+                    </label>
+                    <Button
+                      disabled={bundleBusy || auditBundle.lifecycleStatus !== "ready" || !issueAssertion.trim() || !issueCriteria.trim() || !signatureAcknowledged}
+                      onClick={() => void handleIssue()}
+                    >
+                      Phát hành nội bộ có chữ ký
+                    </Button>
+                  </div>
+                </div>
               ) : (
-                <p className="text-xs text-slate-600">
-                  {auditBundle.lifecycleStatus === "superseded"
-                    ? "Bundle này đã được phiên bản mới thay thế."
-                    : `Đã phát hành nội bộ lúc ${auditBundle.issuance?.issuedAt || "—"}; trạng thái đảm bảo vẫn là chưa xác minh.`}
-                </p>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-950">
+                  {auditBundle.lifecycleStatus === "superseded" ? (
+                    <p>Bundle này đã được phiên bản mới thay thế; các link cũ tự động hết hiệu lực.</p>
+                  ) : (
+                    <>
+                      <p><b>Đã phát hành nội bộ:</b> {auditBundle.issuance?.issuedAt || "—"} bởi {auditBundle.issuance?.signerName || auditBundle.issuance?.issuedBy || "—"}.</p>
+                      <p className="mt-1"><b>Chữ ký platform:</b> {auditBundle.issuance?.signatureValid ? "Hợp lệ" : "Thiếu/không hợp lệ"} · {auditBundle.issuance?.signatureAlgorithm || "legacy unsigned"}</p>
+                      {auditBundle.issuance?.signaturePayloadSha256 ? <p className="mt-1 break-all font-mono">Payload SHA-256: {auditBundle.issuance.signaturePayloadSha256}</p> : null}
+                    </>
+                  )}
+                </div>
               )}
+
+              {auditBundle.issuance?.signatureValid && auditBundle.lifecycleStatus === "issued" ? (
+                <div className="space-y-4 border-t border-slate-200 pt-5">
+                  <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+                    <div>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-slate-900"><Link2 className="h-4 w-4" /> Link chia sẻ chỉ đọc</p>
+                      <p className="mt-1 text-xs text-slate-500">Token chỉ được trả về một lần; máy chủ chỉ lưu hash. Link hết hạn, giới hạn lượt tải và có thể thu hồi.</p>
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-3">
+                      <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" value={shareLabel} maxLength={200} onChange={(event) => setShareLabel(event.target.value)} placeholder="Nhãn người nhận" />
+                      <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" type="number" min={1} max={720} value={shareExpiresInHours} onChange={(event) => setShareExpiresInHours(event.target.value)} placeholder="Số giờ hiệu lực" />
+                      <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" type="number" min={1} max={100} value={shareMaxDownloads} onChange={(event) => setShareMaxDownloads(event.target.value)} placeholder="Lượt tải tối đa" />
+                    </div>
+                    <Button size="sm" disabled={bundleBusy || !shareInputsValid} onClick={() => void handleCreateShare()}><Link2 className="mr-1 h-4 w-4" /> Tạo link có hạn dùng</Button>
+                    {createdShare ? (
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+                        <span className="break-all">{typeof window !== "undefined" ? new URL(createdShare.shareUrl, window.location.origin).toString() : createdShare.shareUrl}</span>
+                        <Button type="button" size="sm" variant="outline" onClick={() => void handleCopyShare()}><Copy className="mr-1 h-3.5 w-3.5" /> Sao chép</Button>
+                      </div>
+                    ) : null}
+                    {(auditBundle.shareLinks || []).map((share) => (
+                      <div key={share.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+                        <span>{share.label || "Không nhãn"} · hết hạn {share.expiresAt} · {share.downloadCount}/{share.maxDownloads ?? "∞"} lượt tải{share.revokedAt ? " · đã thu hồi" : ""}</span>
+                        {!share.revokedAt ? <Button type="button" size="sm" variant="ghost" disabled={bundleBusy} onClick={() => void handleRevokeShare(share.id)}>Thu hồi</Button> : null}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">External assurance — bản ghi append-only</p>
+                      <p className="mt-1 text-xs text-slate-500">WeaveCarbon không tự xác minh. Kết luận assurance chỉ được ghi khi có file third-party đã khóa, đúng sản phẩm và còn hiệu lực.</p>
+                    </div>
+                    {auditBundle.externalAssurance ? (
+                      <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+                        <b>{auditBundle.externalAssurance.outcome}</b> — {auditBundle.externalAssurance.providerName}; phạm vi: {auditBundle.externalAssurance.scope}.
+                      </div>
+                    ) : null}
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <select className="h-9 rounded-md border border-slate-300 bg-white px-2 text-xs" value={assuranceOutcome} onChange={(event) => setAssuranceOutcome(event.target.value as AuditAssuranceOutcome)}>
+                        <option value="requested">Đã yêu cầu assurance</option>
+                        <option value="evidence_received">Đã nhận statement — chưa kết luận</option>
+                        <option value="limited_assurance">Limited assurance</option>
+                        <option value="reasonable_assurance">Reasonable assurance</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="adverse">Adverse</option>
+                        <option value="withdrawn">Thu hồi kết luận trước</option>
+                      </select>
+                      <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" value={assuranceProvider} maxLength={300} onChange={(event) => setAssuranceProvider(event.target.value)} placeholder="Tổ chức assurance" />
+                      <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" value={assurancePractitioner} maxLength={300} onChange={(event) => setAssurancePractitioner(event.target.value)} placeholder="Người hành nghề/phụ trách" />
+                      <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" value={assuranceStandard} maxLength={500} onChange={(event) => setAssuranceStandard(event.target.value)} placeholder="Chuẩn/criteria do bên assurance nêu" />
+                    </div>
+                    <Textarea value={assuranceScope} onChange={(event) => setAssuranceScope(event.target.value)} maxLength={5000} placeholder="Phạm vi assurance chính xác" />
+                    {assuranceNeedsEvidence ? (
+                      <div className="grid gap-2 md:grid-cols-3">
+                        <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" type="date" value={assuranceStatementDate} onChange={(event) => setAssuranceStatementDate(event.target.value)} />
+                        <input className="h-9 rounded-md border border-slate-300 px-2 text-xs" type="date" value={assuranceValidTo} onChange={(event) => setAssuranceValidTo(event.target.value)} />
+                        <select className="h-9 rounded-md border border-slate-300 bg-white px-2 text-xs" value={assuranceEvidenceId} onChange={(event) => setAssuranceEvidenceId(event.target.value)}>
+                          <option value="">Chọn statement third-party đã xác minh</option>
+                          {thirdPartyEvidence.map((evidence) => <option key={evidence.id} value={evidence.id}>{evidence.documentName}</option>)}
+                        </select>
+                      </div>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={bundleBusy || !assuranceProvider.trim() || !assuranceScope.trim() || (assuranceNeedsEvidence && (!assuranceStatementDate || !assuranceEvidenceId))}
+                      onClick={() => void handleRecordAssurance()}
+                    >
+                      Ghi bản assurance mới
+                    </Button>
+                  </div>
+                  {actionNotice ? <p className="text-xs text-emerald-800">{actionNotice}</p> : null}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}
@@ -535,6 +820,8 @@ export default function AuditPackClient() {
             Màn hình này là bản chuẩn bị dữ liệu nội bộ. Nó không phải chứng nhận, kết luận đảm bảo, hồ sơ hải quan đã
             chấp nhận hoặc bằng chứng đã được SGS/TÜV/Bureau Veritas xác minh. Chỉ chứng từ thật đã duyệt và có SHA-256
             mới được hiển thị; chức năng tải chỉ mở sau khi máy chủ tạo, lưu và kiểm tra manifest cùng bundle bất biến.
+            Chữ ký Ed25519 ở đây là platform attestation nội bộ; external assurance chỉ phản ánh bản ghi và statement đã gắn,
+            không biến WeaveCarbon thành tổ chức chứng nhận.
           </p>
         </div>
       </main>
