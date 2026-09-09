@@ -267,7 +267,7 @@ docker run -d --name "${FE_CONTAINER}" --network "${DRILL_NETWORK}" --env-file "
   -e PORT=3000 -e HOSTNAME=0.0.0.0 -e BACKEND_HEALTH_URL="http://${BE_CONTAINER}:4000/ready" \
   --read-only --tmpfs /tmp:rw,noexec,nosuid,size=32m --security-opt no-new-privileges:true \
   "${FE_IMAGE}" >/dev/null
-wait_for_http "${FE_CONTAINER}" node http://127.0.0.1:3000/health 60
+wait_for_http "${FE_CONTAINER}" node http://127.0.0.1:3000/ 60
 
 DRILL_COMPLETED_AT_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 RTO_SECONDS="$(( $(date -u +%s) - DRILL_STARTED_EPOCH ))"
