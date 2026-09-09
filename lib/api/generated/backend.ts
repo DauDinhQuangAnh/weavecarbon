@@ -1592,6 +1592,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/documents/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/documents/{id}/reviews */
+        get: operations["getExportShipmentsByShipmentIdDocumentsByIdReviews"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/documents/{id}/reviews */
+        post: operations["postExportShipmentsByShipmentIdDocumentsByIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/documents/{type}/generate": {
         parameters: {
             query?: never;
@@ -5792,6 +5810,56 @@ export interface operations {
         };
     };
     postExportShipmentsByShipmentIdDocumentsByIdIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdDocumentsByIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdDocumentsByIdReviews: {
         parameters: {
             query?: never;
             header?: never;

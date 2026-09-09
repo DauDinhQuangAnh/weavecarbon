@@ -21,6 +21,7 @@ import {
   fetchShipmentExportReadiness,
   generateShipmentExportDocument,
   issueShipmentExportDocument,
+  reviewShipmentExportDocument,
   saveShipmentExportProfile,
   syncShipmentExportLines,
   uploadCarrierDocument,
@@ -46,6 +47,11 @@ const DOCUMENT_LABELS: Record<ExportDocumentType, string> = {
   ics2_dataset: 'ICS2 Data Package'
 };
 
+const REVIEW_ROLE_LABELS = {
+  export_operator: 'nhân viên xuất nhập khẩu',
+  warehouse_reviewer: 'nhân viên kho'
+} as const;
+
 const fields: Array<{ key: keyof ShipmentExportProfile; label: string; type?: string; numeric?: boolean }> = [
   { key: 'invoiceNumber', label: 'Số Commercial Invoice' },
   { key: 'invoiceDate', label: 'Ngày invoice', type: 'date' },
@@ -64,12 +70,16 @@ const fields: Array<{ key: keyof ShipmentExportProfile; label: string; type?: st
   { key: 'vesselName', label: 'Tên tàu/chuyến bay' },
   { key: 'voyageNumber', label: 'Số voyage/chuyến' },
   { key: 'billOfLadingNo', label: 'Số B/L/AWB/CMR do carrier cấp' },
+  { key: 'carrierName', label: 'Hãng vận tải / carrier' },
   { key: 'importerEori', label: 'EORI của importer' },
+  { key: 'importerVatId', label: 'VAT ID của importer (nếu buyer yêu cầu)' },
   { key: 'customsDeclarationNo', label: 'Số tờ khai hải quan (nếu có)' },
   { key: 'freightAmount', label: 'Cước vận chuyển', type: 'number', numeric: true },
   { key: 'insuranceAmount', label: 'Bảo hiểm', type: 'number', numeric: true },
   { key: 'discountAmount', label: 'Chiết khấu', type: 'number', numeric: true },
-  { key: 'surchargeAmount', label: 'Phụ phí', type: 'number', numeric: true }
+  { key: 'surchargeAmount', label: 'Phụ phí', type: 'number', numeric: true },
+  { key: 'customsValueAmount', label: 'Customs value để đối soát', type: 'number', numeric: true },
+  { key: 'customsValueBasis', label: 'Cơ sở/điều chỉnh customs value' }
 ];
 
 const transportModes = [
@@ -83,7 +93,9 @@ const transportModes = [
 const emptyPackageForm = () => ({
   packageNumber: '', packageType: 'carton', marksAndNumbers: '', quantity: '1',
   netWeightKg: '', grossWeightKg: '', lengthCm: '', widthCm: '', heightCm: '', contentsText: '',
-  containerId: '', parentPackageId: '', sequenceNo: ''
+  containerId: '', parentPackageId: '', sequenceNo: '',
+  weightMeasurementBasis: 'per_package' as ShipmentPackage['weightMeasurementBasis'],
+  dimensionMeasurementBasis: 'per_package' as ShipmentPackage['dimensionMeasurementBasis']
 });
 
 const emptyContainerForm = () => ({
@@ -101,8 +113,9 @@ const formatPackageContents = (contents: unknown[]) => contents.map((item) => {
   return value.lineNumber && value.quantity ? `${value.lineNumber}:${value.quantity}` : '';
 }).filter(Boolean).join(',');
 
-const packageCbm = (pkg: Pick<ShipmentPackage, 'quantity' | 'lengthCm' | 'widthCm' | 'heightCm'>) =>
-  Number(pkg.quantity || 0) * Number(pkg.lengthCm || 0) * Number(pkg.widthCm || 0) * Number(pkg.heightCm || 0) / 1_000_000;
+const packageCbm = (pkg: Pick<ShipmentPackage, 'quantity' | 'lengthCm' | 'widthCm' | 'heightCm' | 'dimensionMeasurementBasis'>) =>
+  (pkg.dimensionMeasurementBasis === 'group_total' ? 1 : Number(pkg.quantity || 0))
+  * Number(pkg.lengthCm || 0) * Number(pkg.widthCm || 0) * Number(pkg.heightCm || 0) / 1_000_000;
 
 export default function ShipmentExportPortal() {
   const [shipments, setShipments] = useState<LogisticsShipmentSummary[]>([]);
@@ -121,6 +134,7 @@ export default function ShipmentExportPortal() {
   const [documentFormats, setDocumentFormats] = useState<Partial<Record<ExportDocumentType, ExportOutputFormat>>>({
     commercial_invoice: 'pdf', packing_list: 'pdf'
   });
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void (async () => {
@@ -265,6 +279,9 @@ export default function ShipmentExportPortal() {
                       <Input disabled value={line.sku} aria-label="SKU" />
                       <Input placeholder="Mô tả hàng hóa" value={String(value('goodsDescription') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], goodsDescription: event.target.value } }))} />
                       <Input placeholder="HS/CN" value={String(value('hsCode') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCode: event.target.value, hsCodeConfirmed: false } }))} />
+                      <Input placeholder="Nguồn mã HS/CN, vd EU TARIC" value={String(value('hsCodeSource') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCodeSource: event.target.value, hsCodeConfirmed: false } }))} />
+                      <Input placeholder="Phiên bản ruleset HS/CN" value={String(value('hsCodeRuleset') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCodeRuleset: event.target.value, hsCodeConfirmed: false } }))} />
+                      <Input type="date" aria-label="Ngày hiệu lực mã HS/CN" value={String(value('hsCodeEffectiveDate') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], hsCodeEffectiveDate: event.target.value || null, hsCodeConfirmed: false } }))} />
                       <Input placeholder="Xuất xứ" value={String(value('originCountry') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], originCountry: event.target.value } }))} />
                       <Input placeholder="Style" value={String(value('styleCode') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], styleCode: event.target.value } }))} />
                       <Input placeholder="Size" value={String(value('sizeLabel') ?? '')} onChange={(event) => setLineEdits((current) => ({ ...current, [line.id]: { ...current[line.id], sizeLabel: event.target.value } }))} />
@@ -288,9 +305,11 @@ export default function ShipmentExportPortal() {
                   <Input type="number" placeholder="Số kiện" value={newPackage.quantity} onChange={(event) => setNewPackage((current) => ({ ...current, quantity: event.target.value }))} />
                   <Input type="number" placeholder="Net kg" value={newPackage.netWeightKg} onChange={(event) => setNewPackage((current) => ({ ...current, netWeightKg: event.target.value }))} />
                   <Input type="number" placeholder="Gross kg" value={newPackage.grossWeightKg} onChange={(event) => setNewPackage((current) => ({ ...current, grossWeightKg: event.target.value }))} />
+                  <Select value={newPackage.weightMeasurementBasis} onValueChange={(value: 'per_package' | 'group_total') => setNewPackage((current) => ({ ...current, weightMeasurementBasis: value }))}><SelectTrigger aria-label="Cơ sở trọng lượng"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="per_package">Trọng lượng mỗi kiện</SelectItem><SelectItem value="group_total">Trọng lượng tổng nhóm</SelectItem></SelectContent></Select>
                   <Input type="number" placeholder="Dài cm" value={newPackage.lengthCm} onChange={(event) => setNewPackage((current) => ({ ...current, lengthCm: event.target.value }))} />
                   <Input type="number" placeholder="Rộng cm" value={newPackage.widthCm} onChange={(event) => setNewPackage((current) => ({ ...current, widthCm: event.target.value }))} />
                   <Input type="number" placeholder="Cao cm" value={newPackage.heightCm} onChange={(event) => setNewPackage((current) => ({ ...current, heightCm: event.target.value }))} />
+                  <Select value={newPackage.dimensionMeasurementBasis} onValueChange={(value: 'per_package' | 'group_total') => setNewPackage((current) => ({ ...current, dimensionMeasurementBasis: value }))}><SelectTrigger aria-label="Cơ sở kích thước"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="per_package">Kích thước mỗi kiện</SelectItem><SelectItem value="group_total">Kích thước tổng nhóm</SelectItem></SelectContent></Select>
                   <Input placeholder="Phân bổ dòng, vd 1:100,2:50" value={newPackage.contentsText} onChange={(event) => setNewPackage((current) => ({ ...current, contentsText: event.target.value }))} />
                   <Button size="sm" variant="outline" onClick={() => void run('package', async () => {
                     await createShipmentPackage(shipmentId, {
@@ -300,7 +319,9 @@ export default function ShipmentExportPortal() {
                       lengthCm: Number(newPackage.lengthCm), widthCm: Number(newPackage.widthCm), heightCm: Number(newPackage.heightCm),
                       contents: newPackage.packageType === 'pallet' ? [] : parsePackageContents(newPackage.contentsText),
                       containerId: newPackage.containerId, parentPackageId: newPackage.parentPackageId || null,
-                      sequenceNo: newPackage.sequenceNo === '' ? null : Number(newPackage.sequenceNo)
+                      sequenceNo: newPackage.sequenceNo === '' ? null : Number(newPackage.sequenceNo),
+                      weightMeasurementBasis: newPackage.weightMeasurementBasis,
+                      dimensionMeasurementBasis: newPackage.dimensionMeasurementBasis
                     });
                     setNewPackage(emptyPackageForm());
                   }, 'Đã thêm kiện hàng.')} disabled={!newPackage.packageNumber || !newPackage.containerId || (newPackage.packageType !== 'pallet' && !newPackage.parentPackageId) || !newPackage.marksAndNumbers || !newPackage.quantity || !newPackage.netWeightKg || !newPackage.grossWeightKg || !newPackage.lengthCm || !newPackage.widthCm || !newPackage.heightCm || (newPackage.packageType !== 'pallet' && parsePackageContents(newPackage.contentsText).length === 0) || Boolean(busy)}><PackagePlus className="mr-2 h-4 w-4" />Thêm kiện</Button>
@@ -314,7 +335,9 @@ export default function ShipmentExportPortal() {
                     <Input placeholder="Marks & numbers" value={String(edit.marksAndNumbers ?? pkg.marksAndNumbers ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], marksAndNumbers: event.target.value } }))} />
                     <Input type="number" placeholder="Net kg" value={String(edit.netWeightKg ?? pkg.netWeightKg ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], netWeightKg: Number(event.target.value) } }))} />
                     <Input type="number" placeholder="Gross kg" value={String(edit.grossWeightKg ?? pkg.grossWeightKg ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], grossWeightKg: Number(event.target.value) } }))} />
+                    <Select value={String(edit.weightMeasurementBasis ?? pkg.weightMeasurementBasis)} onValueChange={(value: 'per_package' | 'group_total') => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], weightMeasurementBasis: value } }))}><SelectTrigger aria-label={`Cơ sở trọng lượng ${pkg.packageNumber}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="per_package">Trọng lượng mỗi kiện</SelectItem><SelectItem value="group_total">Trọng lượng tổng nhóm</SelectItem></SelectContent></Select>
                     {(['lengthCm', 'widthCm', 'heightCm'] as const).map((key) => <Input key={key} type="number" placeholder={key === 'lengthCm' ? 'Dài cm' : key === 'widthCm' ? 'Rộng cm' : 'Cao cm'} value={String(edit[key] ?? pkg[key] ?? '')} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], [key]: event.target.value === '' ? null : Number(event.target.value) } }))} />)}
+                    <Select value={String(edit.dimensionMeasurementBasis ?? pkg.dimensionMeasurementBasis)} onValueChange={(value: 'per_package' | 'group_total') => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], dimensionMeasurementBasis: value } }))}><SelectTrigger aria-label={`Cơ sở kích thước ${pkg.packageNumber}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="per_package">Kích thước mỗi kiện</SelectItem><SelectItem value="group_total">Kích thước tổng nhóm</SelectItem></SelectContent></Select>
                     <Input placeholder="Phân bổ dòng, vd 1:100" defaultValue={formatPackageContents(pkg.contents)} onChange={(event) => setPackageEdits((current) => ({ ...current, [pkg.id]: { ...current[pkg.id], contents: parsePackageContents(event.target.value) } }))} />
                     <Button size="sm" variant="outline" disabled={!packageEdits[pkg.id] || Boolean(busy)} onClick={() => void run(`pkg-${pkg.id}`, () => updateShipmentPackage(shipmentId, pkg.id, packageEdits[pkg.id]), `Đã cập nhật ${pkg.packageNumber}.`)}>Lưu kiện</Button>
                   </div>;
@@ -350,10 +373,19 @@ export default function ShipmentExportPortal() {
                     <Badge variant={ready ? 'default' : 'outline'}>{doc.status}</Badge>
                     {!ready && doc.messages.slice(0, 3).map((message) => <p key={message} className="text-xs text-red-700">• {message}</p>)}
                     {supportsPdf && <Select value={selectedFormat} onValueChange={(value) => setDocumentFormats((current) => ({ ...current, [doc.type]: value as ExportOutputFormat }))}><SelectTrigger aria-label={`Định dạng ${DOCUMENT_LABELS[doc.type]}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pdf">PDF / bản in</SelectItem><SelectItem value="xlsx">XLSX / bảng tính</SelectItem></SelectContent></Select>}
+                    {existing?.reportStatus === 'completed' && existing.requiredReviewerRole && existing.status === 'ready' && <div className="space-y-2 rounded border border-slate-200 p-2">
+                      <p className="text-xs"><b>Duyệt nghiệp vụ:</b> {REVIEW_ROLE_LABELS[existing.requiredReviewerRole]}. Chỉ quản trị viên công ty được ghi nhận quyết định; quyết định được khóa theo checksum của đúng file này.</p>
+                      <Input placeholder="Ghi chú đối chiếu với chứng từ thực tế" value={reviewNotes[existing.id] || ''} onChange={(event) => setReviewNotes((current) => ({ ...current, [existing.id]: event.target.value }))} />
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void run(`review-${existing.id}`, () => reviewShipmentExportDocument(shipmentId, existing.id, { reviewerRole: existing.requiredReviewerRole!, decision: 'approved', notes: reviewNotes[existing.id] }), 'Đã ghi nhận phê duyệt cho đúng phiên bản file.')}>Duyệt</Button>
+                        <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void run(`review-${existing.id}`, () => reviewShipmentExportDocument(shipmentId, existing.id, { reviewerRole: existing.requiredReviewerRole!, decision: 'changes_requested', notes: reviewNotes[existing.id] }), 'Đã yêu cầu chỉnh sửa; file chưa được phép phát hành.')}>Yêu cầu sửa</Button>
+                      </div>
+                      {existing.latestReview && <p className={existing.latestReview.decision === 'approved' ? 'text-xs text-emerald-700' : 'text-xs text-amber-700'}>{existing.latestReview.decision} · {existing.latestReview.reviewerName} · {new Date(existing.latestReview.reviewedAt).toLocaleString('vi-VN')}</p>}
+                    </div>}
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" disabled={!ready || Boolean(busy)} onClick={() => void run(`generate-${doc.type}`, () => generateShipmentExportDocument(shipmentId, doc.type, selectedFormat), `Đã đưa bản ${selectedFormat.toUpperCase()} vào hàng đợi tạo file.`)}>Tạo bản review</Button>
                       {existing?.reportStatus === 'completed' && existing.reportId && <Button size="sm" variant="outline" onClick={() => void downloadReportFile(existing.reportId, existing.filename || `${doc.type}.${existing.outputFormat || 'xlsx'}`)}><Download className="mr-1 h-3 w-3" />Tải</Button>}
-                      {existing?.reportStatus === 'completed' && existing.status === 'ready' && <Button size="sm" variant="outline" onClick={() => void run(`issue-${existing.id}`, () => issueShipmentExportDocument(shipmentId, existing.id), 'Đã phát hành phiên bản bất biến.')}><FileCheck2 className="mr-1 h-3 w-3" />Phát hành</Button>}
+                      {existing?.reportStatus === 'completed' && existing.status === 'ready' && <Button size="sm" variant="outline" disabled={!existing.readyToIssue || Boolean(busy)} title={existing.readyToIssue ? undefined : 'Cần phê duyệt hợp lệ cho đúng checksum trước khi phát hành.'} onClick={() => void run(`issue-${existing.id}`, () => issueShipmentExportDocument(shipmentId, existing.id), 'Đã phát hành phiên bản bất biến.')}><FileCheck2 className="mr-1 h-3 w-3" />Phát hành</Button>}
                     </div>
                     {existing && <p className="text-[11px] text-slate-500">v{existing.version} · {existing.outputFormat?.toUpperCase() || 'FILE'} · {existing.reportStatus || 'processing'} · {existing.status}</p>}
                   </div>;

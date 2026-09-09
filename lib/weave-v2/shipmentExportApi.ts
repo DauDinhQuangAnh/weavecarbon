@@ -38,11 +38,13 @@ export interface ShipmentExportProfile {
   notifyParty: ExportParty;
   exporterTaxId: string;
   importerEori: string;
+  importerVatId: string;
   portOfLoading: string;
   portOfDischarge: string;
   placeOfDelivery: string;
   vesselName: string;
   voyageNumber: string;
+  carrierName: string;
   billOfLadingNo: string;
   containerNo: string;
   sealNo: string;
@@ -51,6 +53,8 @@ export interface ShipmentExportProfile {
   insuranceAmount: number | null;
   discountAmount: number | null;
   surchargeAmount: number | null;
+  customsValueAmount: number | null;
+  customsValueBasis: string;
   transportMode: string;
   preferentialOriginClaim: boolean;
   metadata: Record<string, unknown>;
@@ -68,6 +72,9 @@ export interface ShipmentExportLine {
   colorLabel: string;
   lotNumber: string;
   hsCodeConfirmed: boolean;
+  hsCodeSource: string;
+  hsCodeRuleset: string;
+  hsCodeEffectiveDate: string | null;
   hsCodeConfirmedBy: string | null;
   hsCodeConfirmedAt: string | null;
   quantity: number;
@@ -96,6 +103,8 @@ export interface ShipmentPackage {
   lengthCm: number | null;
   widthCm: number | null;
   heightCm: number | null;
+  weightMeasurementBasis: 'per_package' | 'group_total';
+  dimensionMeasurementBasis: 'per_package' | 'group_total';
   contents: unknown[];
 }
 
@@ -122,7 +131,23 @@ export interface ShipmentExportDocument {
   downloadUrl: string | null;
   filename: string | null;
   fileSha256: string | null;
+  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | null;
+  latestReview: ExportDocumentReview | null;
+  readyToIssue: boolean;
   issuedAt: string | null;
+}
+
+export interface ExportDocumentReview {
+  id: string;
+  documentId: string;
+  reviewerRole: 'export_operator' | 'warehouse_reviewer';
+  decision: 'approved' | 'rejected' | 'changes_requested' | 'stale';
+  originalDecision?: 'approved' | 'rejected' | 'changes_requested';
+  notes: string;
+  reviewerName: string;
+  reviewerEmail: string | null;
+  reviewedAt: string;
+  stale?: boolean;
 }
 
 export interface ShipmentExportBundle {
@@ -149,10 +174,10 @@ export const emptyShipmentExportProfile = (): ShipmentExportProfile => ({
   packingListNumber: '', packingListDate: null, poContractId: '',
   incotermCode: '', incotermLocation: '', incotermVersion: 'Incoterms 2020',
   currency: '', paymentTerms: '', exporter: {}, importer: {}, consignee: {}, notifyParty: {},
-  exporterTaxId: '', importerEori: '', portOfLoading: '', portOfDischarge: '', placeOfDelivery: '',
-  vesselName: '', voyageNumber: '', billOfLadingNo: '', containerNo: '', sealNo: '',
+  exporterTaxId: '', importerEori: '', importerVatId: '', portOfLoading: '', portOfDischarge: '', placeOfDelivery: '',
+  vesselName: '', voyageNumber: '', carrierName: '', billOfLadingNo: '', containerNo: '', sealNo: '',
   customsDeclarationNo: '', freightAmount: null, insuranceAmount: null,
-  discountAmount: null, surchargeAmount: null, transportMode: '',
+  discountAmount: null, surchargeAmount: null, customsValueAmount: null, customsValueBasis: '', transportMode: '',
   preferentialOriginClaim: false, metadata: {}
 });
 
@@ -180,6 +205,11 @@ export const generateShipmentExportDocument = (shipmentId: string, type: ExportD
   api.post<ShipmentExportDocument>(`${base(shipmentId)}/documents/${type}/generate`, outputFormat ? { outputFormat } : {});
 export const issueShipmentExportDocument = (shipmentId: string, documentId: string) =>
   api.post<ShipmentExportDocument>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/issue`, {});
+export const reviewShipmentExportDocument = (
+  shipmentId: string,
+  documentId: string,
+  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
+) => api.post<ExportDocumentReview>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/reviews`, payload);
 
 export const uploadCarrierDocument = async (shipmentId: string, file: File, kind = 'carrier_bill_of_lading') => {
   const body = new FormData();
