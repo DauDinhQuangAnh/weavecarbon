@@ -1540,6 +1540,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/carrier-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/carrier-documents */
+        post: operations["postExportShipmentsByShipmentIdCarrierDocuments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** DELETE /export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId} */
+        delete: operations["deleteExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentId"];
+        options?: never;
+        head?: never;
+        /** PATCH /export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId} */
+        patch: operations["patchExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentId"];
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId}/confirm */
+        post: operations["postExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentIdConfirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId}/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/carrier-documents/{carrierDocumentId}/reconciliation */
+        get: operations["getExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentIdReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/containers": {
         parameters: {
             query?: never;
@@ -5806,6 +5875,251 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdCarrierDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    authenticationMethod?: string;
+                    authenticationReference?: string;
+                    /** @enum {string} */
+                    authenticityStatus?: "unverified" | "operator_confirmed" | "issuer_verified" | "rejected";
+                    consignee?: {
+                        [key: string]: unknown;
+                    };
+                    containerNumbers?: string[];
+                    /** @enum {string} */
+                    contractLevel?: "master" | "house" | "direct";
+                    documentNumber: string;
+                    /** @enum {string} */
+                    documentType: "bill_of_lading" | "fbl" | "air_waybill" | "cmr" | "cim";
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    flightNumber?: string;
+                    /** @enum {string} */
+                    freightTerms?: "prepaid" | "collect" | "other";
+                    goodsDescription?: string;
+                    grossWeightKg?: number;
+                    /** Format: date */
+                    issueDate?: string;
+                    issuePlace?: string;
+                    issuerIdentifier?: string;
+                    issuerName?: string;
+                    marksAndNumbers?: string;
+                    measurementCbm?: number;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    /** @enum {string} */
+                    metadataSource?: "manual" | "ocr_confirmed" | "carrier_api";
+                    negotiable?: boolean | null;
+                    notifyParty?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date */
+                    onBoardDate?: string;
+                    /** @enum {string} */
+                    originalStatus?: "original" | "copy" | "electronic" | "sea_waybill" | "non_negotiable" | "unknown";
+                    packageCount?: number;
+                    packageType?: string;
+                    paymentTerms?: string;
+                    placeOfDelivery?: string;
+                    placeOfDischarge?: string;
+                    placeOfLoading?: string;
+                    placeOfReceipt?: string;
+                    sealNumbers?: string[];
+                    shipper?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: uuid */
+                    supersedesId?: string | null;
+                    trainNumber?: string;
+                    /** @enum {string} */
+                    transportMode: "sea" | "air" | "road" | "rail" | "multimodal";
+                    vehicleRegistration?: string;
+                    vesselName?: string;
+                    voyageNumber?: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                carrierDocumentId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    patchExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                carrierDocumentId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    authenticationMethod?: string;
+                    authenticationReference?: string;
+                    /** @enum {string} */
+                    authenticityStatus?: "unverified" | "operator_confirmed" | "issuer_verified" | "rejected";
+                    consignee?: {
+                        [key: string]: unknown;
+                    };
+                    containerNumbers?: string[];
+                    /** @enum {string} */
+                    contractLevel?: "master" | "house" | "direct";
+                    documentNumber?: string;
+                    /** @enum {string} */
+                    documentType?: "bill_of_lading" | "fbl" | "air_waybill" | "cmr" | "cim";
+                    /** Format: uuid */
+                    evidenceDocumentId?: string;
+                    flightNumber?: string;
+                    /** @enum {string} */
+                    freightTerms?: "prepaid" | "collect" | "other";
+                    goodsDescription?: string;
+                    grossWeightKg?: number;
+                    /** Format: date */
+                    issueDate?: string;
+                    issuePlace?: string;
+                    issuerIdentifier?: string;
+                    issuerName?: string;
+                    marksAndNumbers?: string;
+                    measurementCbm?: number;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    /** @enum {string} */
+                    metadataSource?: "manual" | "ocr_confirmed" | "carrier_api";
+                    negotiable?: boolean | null;
+                    notifyParty?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date */
+                    onBoardDate?: string;
+                    /** @enum {string} */
+                    originalStatus?: "original" | "copy" | "electronic" | "sea_waybill" | "non_negotiable" | "unknown";
+                    packageCount?: number;
+                    packageType?: string;
+                    paymentTerms?: string;
+                    placeOfDelivery?: string;
+                    placeOfDischarge?: string;
+                    placeOfLoading?: string;
+                    placeOfReceipt?: string;
+                    sealNumbers?: string[];
+                    shipper?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: uuid */
+                    supersedesId?: string | null;
+                    trainNumber?: string;
+                    /** @enum {string} */
+                    transportMode?: "sea" | "air" | "road" | "rail" | "multimodal";
+                    vehicleRegistration?: string;
+                    vesselName?: string;
+                    voyageNumber?: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentIdConfirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                carrierDocumentId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    confirmationNote: string;
+                    /** @enum {boolean} */
+                    metadataConfirmed: true;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdCarrierDocumentsByCarrierDocumentIdReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                carrierDocumentId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];

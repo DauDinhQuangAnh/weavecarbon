@@ -8,6 +8,8 @@ export type ExportDocumentType =
   | 'ics2_dataset';
 
 export type ExportOutputFormat = 'xlsx' | 'pdf' | 'csv';
+export type CarrierDocumentType = 'bill_of_lading' | 'fbl' | 'air_waybill' | 'cmr' | 'cim';
+export type CarrierTransportMode = 'sea' | 'air' | 'road' | 'rail' | 'multimodal';
 
 export interface ExportParty {
   name?: string;
@@ -84,6 +86,110 @@ export interface ShipmentExportLine {
   netWeightKg: number | null;
   grossWeightKg: number | null;
   embeddedCo2eKg: number | null;
+  carbonAuthority: {
+    authoritative: true;
+    snapshotId: string;
+    snapshotVersion: number;
+    engineVersion: string;
+    methodologyVersion: string;
+    factorRegistryVersion: string;
+    gwpBasis: string;
+    boundary: string;
+    canonicalInputHash: string;
+    factorSnapshot: unknown[];
+    allocationMethod: string;
+  } | null;
+}
+
+export interface CarrierDocumentMetadata {
+  id?: string;
+  evidenceDocumentId: string;
+  documentType: CarrierDocumentType;
+  contractLevel: 'master' | 'house' | 'direct';
+  transportMode: CarrierTransportMode;
+  documentNumber: string;
+  version?: number;
+  status?: 'draft' | 'confirmed' | 'superseded' | 'rejected';
+  issuerName: string;
+  issuerIdentifier: string;
+  issueDate: string | null;
+  issuePlace: string;
+  onBoardDate: string | null;
+  shipper: ExportParty;
+  consignee: ExportParty;
+  notifyParty: ExportParty;
+  vesselName: string;
+  voyageNumber: string;
+  flightNumber: string;
+  vehicleRegistration: string;
+  trainNumber: string;
+  placeOfReceipt: string;
+  placeOfLoading: string;
+  placeOfDischarge: string;
+  placeOfDelivery: string;
+  goodsDescription: string;
+  packageCount: number | null;
+  packageType: string;
+  marksAndNumbers: string;
+  grossWeightKg: number | null;
+  measurementCbm: number | null;
+  containerNumbers: string[];
+  sealNumbers: string[];
+  freightTerms: 'prepaid' | 'collect' | 'other' | '';
+  paymentTerms: string;
+  authenticationMethod: string;
+  authenticationReference: string;
+  authenticityStatus: 'unverified' | 'operator_confirmed' | 'issuer_verified' | 'rejected';
+  originalStatus: 'original' | 'copy' | 'electronic' | 'sea_waybill' | 'non_negotiable' | 'unknown';
+  negotiable: boolean | null;
+  metadataSource: 'manual' | 'ocr_confirmed' | 'carrier_api';
+  metadata: Record<string, unknown>;
+  supersedesId: string | null;
+  confirmerName?: string | null;
+  confirmationNote?: string | null;
+  confirmedAt?: string | null;
+}
+
+export interface CarrierReconciliationCheck {
+  code: string;
+  status: 'ready' | 'missing' | 'invalid';
+  message: string | null;
+  fieldPath: string;
+  expected: unknown;
+  actual: unknown;
+  blocking: boolean;
+}
+
+export interface CarrierDocumentReconciliation {
+  status: 'passed' | 'failed';
+  checks: CarrierReconciliationCheck[];
+  rulesetVersion: string;
+  sourceSnapshotSha256: string;
+  confirmedAndCurrent: boolean;
+  summary: {
+    expectedPackageCount: number;
+    expectedGrossWeightKg: number;
+    expectedMeasurementCbm: number;
+    expectedContainerNumbers: string[];
+    expectedSealNumbers: string[];
+  };
+}
+
+export interface CarrierEvidenceDocument {
+  id: string;
+  type: string;
+  name: string;
+  status: string;
+  checksumSha256?: string | null;
+  fileSizeBytes?: number;
+  validFrom?: string | null;
+  validTo?: string | null;
+  structured: CarrierDocumentMetadata | null;
+  latestReconciliation: (CarrierDocumentReconciliation & {
+    id: string;
+    reconcilerName: string;
+    reconciledAt: string;
+  }) | null;
 }
 
 export interface ShipmentPackage {
@@ -156,7 +262,7 @@ export interface ShipmentExportBundle {
   lines: ShipmentExportLine[];
   containers: ShipmentContainer[];
   packages: ShipmentPackage[];
-  carrierDocuments: Array<{ id: string; type: string; name: string; status: string; checksumSha256?: string | null }>;
+  carrierDocuments: CarrierEvidenceDocument[];
   documents: ShipmentExportDocument[];
 }
 
@@ -211,7 +317,7 @@ export const reviewShipmentExportDocument = (
   payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
 ) => api.post<ExportDocumentReview>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/reviews`, payload);
 
-export const uploadCarrierDocument = async (shipmentId: string, file: File, kind = 'carrier_bill_of_lading') => {
+export const uploadCarrierDocument = async (shipmentId: string, file: File, kind: CarrierDocumentType = 'bill_of_lading') => {
   const body = new FormData();
   body.append('file', file);
   body.append('shipmentId', shipmentId);
@@ -221,11 +327,22 @@ export const uploadCarrierDocument = async (shipmentId: string, file: File, kind
   const payload = await response.json() as { data?: { id?: string }; success?: boolean };
   const id = payload.data?.id;
   if (!id) throw new Error('Carrier document upload did not return an evidence id.');
-  return payload.data;
+  return { ...payload.data, id };
 };
 
-export const approveCarrierDocument = (evidenceId: string) =>
-  api.post(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+export const createCarrierDocumentMetadata = (shipmentId: string, payload: CarrierDocumentMetadata) =>
+  api.post<CarrierEvidenceDocument>(`${base(shipmentId)}/carrier-documents`, payload);
+export const updateCarrierDocumentMetadata = (shipmentId: string, carrierDocumentId: string, payload: Partial<CarrierDocumentMetadata>) =>
+  api.patch<CarrierEvidenceDocument>(`${base(shipmentId)}/carrier-documents/${encodeURIComponent(carrierDocumentId)}`, payload);
+export const deleteCarrierDocumentMetadata = (shipmentId: string, carrierDocumentId: string) =>
+  api.delete<{ deleted: true }>(`${base(shipmentId)}/carrier-documents/${encodeURIComponent(carrierDocumentId)}`);
+export const fetchCarrierDocumentReconciliation = (shipmentId: string, carrierDocumentId: string) =>
+  api.get<CarrierDocumentReconciliation>(`${base(shipmentId)}/carrier-documents/${encodeURIComponent(carrierDocumentId)}/reconciliation`);
+export const confirmCarrierDocument = (
+  shipmentId: string,
+  carrierDocumentId: string,
+  payload: { metadataConfirmed: true; confirmationNote: string }
+) => api.post<CarrierEvidenceDocument>(`${base(shipmentId)}/carrier-documents/${encodeURIComponent(carrierDocumentId)}/confirm`, payload);
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
   const response = await api.raw(`/reports/${encodeURIComponent(reportId)}/download`);

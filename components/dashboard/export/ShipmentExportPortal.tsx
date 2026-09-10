@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Download, FileCheck2, Loader2, PackagePlus, RefreshCw, Save, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, FileCheck2, Loader2, PackagePlus, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchAllLogisticsShipments, type LogisticsShipmentSummary } from '@/lib/logisticsApi';
+import CarrierDocumentPanel from './CarrierDocumentPanel';
 import {
   createShipmentPackage,
   createShipmentContainer,
-  approveCarrierDocument,
   downloadReportFile,
   emptyShipmentExportProfile,
   fetchShipmentExportProfile,
@@ -24,7 +24,6 @@ import {
   reviewShipmentExportDocument,
   saveShipmentExportProfile,
   syncShipmentExportLines,
-  uploadCarrierDocument,
   updateShipmentExportLine,
   updateShipmentPackage,
   updateShipmentContainer,
@@ -125,7 +124,6 @@ export default function ShipmentExportPortal() {
   const [readiness, setReadiness] = useState<ExportReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [carrierFile, setCarrierFile] = useState<File | null>(null);
   const [lineEdits, setLineEdits] = useState<Record<string, Partial<ShipmentExportLine>>>({});
   const [containerEdits, setContainerEdits] = useState<Record<string, Partial<ShipmentContainer>>>({});
   const [packageEdits, setPackageEdits] = useState<Record<string, Partial<ShipmentPackage>>>({});
@@ -345,15 +343,7 @@ export default function ShipmentExportPortal() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle className="text-base">4. Chứng từ hãng vận tải</CardTitle></CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <Input type="file" accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg" onChange={(event) => setCarrierFile(event.target.files?.[0] || null)} />
-                <Button size="sm" disabled={!carrierFile || Boolean(busy)} onClick={() => carrierFile && void run('carrier', () => uploadCarrierDocument(shipmentId, carrierFile), 'Đã upload chứng từ carrier; cần duyệt trước khi sử dụng.')}><Upload className="mr-2 h-4 w-4" />Upload B/L/AWB/CMR</Button>
-                {bundle.carrierDocuments.map((doc) => <div key={doc.id} className="flex items-center justify-between gap-2 rounded border p-2"><span>{doc.name}</span><div className="flex items-center gap-2"><Badge variant={doc.status === 'locked' ? 'default' : 'outline'}>{doc.status}</Badge>{doc.status !== 'locked' && <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void run(`approve-${doc.id}`, () => approveCarrierDocument(doc.id), 'Đã duyệt chứng từ carrier.')}>Duyệt</Button>}</div></div>)}
-                {!bundle.carrierDocuments.length && <p className="text-red-700">Chưa có chứng từ carrier được duyệt.</p>}
-              </CardContent>
-            </Card>
+            <CarrierDocumentPanel shipmentId={shipmentId} bundle={bundle} onChanged={reload} />
           </div>
 
           <Card>
