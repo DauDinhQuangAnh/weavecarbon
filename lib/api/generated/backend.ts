@@ -1818,6 +1818,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/vn-customs/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/vn-customs/events */
+        get: operations["getExportShipmentsByShipmentIdVnCustomsEvents"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/vn-customs/events */
+        post: operations["postExportShipmentsByShipmentIdVnCustomsEvents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/vn-customs/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/vn-customs/profile */
+        get: operations["getExportShipmentsByShipmentIdVnCustomsProfile"];
+        /** PUT /export/shipments/{shipmentId}/vn-customs/profile */
+        put: operations["putExportShipmentsByShipmentIdVnCustomsProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/vn-customs/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/vn-customs/reconciliation */
+        get: operations["getExportShipmentsByShipmentIdVnCustomsReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fuel-invoices": {
         parameters: {
             query?: never;
@@ -6544,6 +6597,177 @@ export interface operations {
         };
     };
     getExportShipmentsByShipmentIdReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdVnCustomsEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdVnCustomsEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    actorIdentifier?: string;
+                    actorName: string;
+                    /** @enum {string} */
+                    eventType: "broker_received" | "broker_validated" | "broker_rejected" | "authority_submitted" | "authority_accepted" | "authority_rejected" | "authority_released" | "authority_cancelled" | "amendment_requested" | "amendment_submitted";
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    /** Format: uuid */
+                    exportDocumentId: string;
+                    externalReference: string;
+                    messageCode?: string;
+                    messageText?: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    occurredAt: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdVnCustomsProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putExportShipmentsByShipmentIdVnCustomsProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    brokerTargetSchemaId: string;
+                    brokerTargetSchemaVersion: string;
+                    cargoClassificationCode: string;
+                    customsBroker: {
+                        [key: string]: unknown;
+                    };
+                    customsOfficeCode: string;
+                    declarant: {
+                        [key: string]: unknown;
+                    };
+                    declarationNotes?: string;
+                    declarationTypeCode: string;
+                    destinationCountryCode: string;
+                    exchangeRate: number;
+                    exitCustomsOfficeCode: string;
+                    exportDutyAmount?: number | null;
+                    exportDutyRate?: number | null;
+                    inspectionReferences?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    inspectionRequirementStatus: "unknown" | "not_required" | "required";
+                    invoiceClassificationCode: string;
+                    invoicePaymentMethodCode: string;
+                    loadingLocationCode: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    permitReferences?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    permitRequirementStatus: "unknown" | "not_required" | "required";
+                    supportingDocuments: {
+                        [key: string]: unknown;
+                    }[];
+                    taxBasis?: string;
+                    /** @enum {string} */
+                    taxTreatment: "unknown" | "not_subject" | "exempt" | "taxable";
+                    transportMethodCode: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdVnCustomsReconciliation: {
         parameters: {
             query?: never;
             header?: never;

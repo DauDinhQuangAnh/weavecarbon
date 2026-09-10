@@ -5,9 +5,10 @@ export type ExportDocumentType =
   | 'packing_list'
   | 'carbon_annex'
   | 'origin_workbook'
-  | 'ics2_dataset';
+  | 'ics2_dataset'
+  | 'vn_customs_handoff';
 
-export type ExportOutputFormat = 'xlsx' | 'pdf' | 'csv';
+export type ExportOutputFormat = 'xlsx' | 'pdf' | 'csv' | 'json';
 export type CarrierDocumentType = 'bill_of_lading' | 'fbl' | 'air_waybill' | 'cmr' | 'cim';
 export type CarrierTransportMode = 'sea' | 'air' | 'road' | 'rail' | 'multimodal';
 
@@ -86,6 +87,7 @@ export interface ShipmentExportLine {
   netWeightKg: number | null;
   grossWeightKg: number | null;
   embeddedCo2eKg: number | null;
+  packageRefs?: Array<{ packageNumber: string; quantity: number }>;
   carbonAuthority: {
     authoritative: true;
     snapshotId: string;
@@ -192,6 +194,87 @@ export interface CarrierEvidenceDocument {
   }) | null;
 }
 
+export interface VnCustomsProfile {
+  id?: string;
+  shipmentId?: string;
+  updatedAt?: string;
+  schemaId: 'weavecarbon.vn-export-broker-handoff';
+  schemaVersion: '1.0.0';
+  rulesetVersion: string;
+  regulatoryBasisVersion: string;
+  filingPurpose: 'broker_handoff';
+  declarant: ExportParty & { role?: 'exporter' | 'customs_broker' };
+  customsBroker: ExportParty & { code?: string };
+  customsOfficeCode: string;
+  declarationTypeCode: string;
+  cargoClassificationCode: string;
+  transportMethodCode: string;
+  exitCustomsOfficeCode: string;
+  loadingLocationCode: string;
+  destinationCountryCode: string;
+  invoiceClassificationCode: string;
+  invoicePaymentMethodCode: string;
+  exchangeRate: number | null;
+  permitRequirementStatus: 'unknown' | 'not_required' | 'required';
+  permitReferences: Array<Record<string, unknown>>;
+  inspectionRequirementStatus: 'unknown' | 'not_required' | 'required';
+  inspectionReferences: Array<Record<string, unknown>>;
+  taxTreatment: 'unknown' | 'not_subject' | 'exempt' | 'taxable';
+  exportDutyRate: number | null;
+  exportDutyAmount: number | null;
+  taxBasis: string;
+  supportingDocuments: Array<Record<string, unknown>>;
+  brokerTargetSchemaId: string;
+  brokerTargetSchemaVersion: string;
+  declarationNotes: string;
+  metadata: Record<string, unknown>;
+}
+
+export type VnCustomsEventType =
+  | 'broker_received' | 'broker_validated' | 'broker_rejected'
+  | 'authority_submitted' | 'authority_accepted' | 'authority_rejected'
+  | 'authority_released' | 'authority_cancelled'
+  | 'amendment_requested' | 'amendment_submitted';
+
+export interface VnCustomsExternalEvent {
+  id: string;
+  shipmentId: string;
+  exportDocumentId: string;
+  eventType: VnCustomsEventType;
+  sourceType: 'broker' | 'authority';
+  externalReference: string;
+  messageCode: string;
+  messageText: string;
+  evidenceDocumentId: string;
+  evidenceSha256: string;
+  evidenceFileSizeBytes: number;
+  documentPayloadSha256: string;
+  documentFileSha256: string;
+  actorName: string;
+  actorIdentifier: string;
+  occurredAt: string;
+  recorderName: string;
+  recorderEmail: string | null;
+  createdAt: string;
+}
+
+export interface VnCustomsReconciliation {
+  status: 'passed' | 'failed';
+  rulesetVersion: string;
+  sourceSnapshotSha256: string;
+  schema: { id: string; version: string; regulatoryBasisVersion: string };
+  checks: CarrierReconciliationCheck[];
+  summary: {
+    goodsLineCount: number;
+    packageCount: number;
+    netWeightKg: number;
+    grossWeightKg: number;
+    invoiceTotal: number;
+    customsValue: number | null;
+    carrierDocumentId: string | null;
+  };
+}
+
 export interface ShipmentPackage {
   id: string;
   packageNumber: string;
@@ -237,7 +320,7 @@ export interface ShipmentExportDocument {
   downloadUrl: string | null;
   filename: string | null;
   fileSha256: string | null;
-  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | null;
+  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | null;
   latestReview: ExportDocumentReview | null;
   readyToIssue: boolean;
   issuedAt: string | null;
@@ -246,7 +329,7 @@ export interface ShipmentExportDocument {
 export interface ExportDocumentReview {
   id: string;
   documentId: string;
-  reviewerRole: 'export_operator' | 'warehouse_reviewer';
+  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer';
   decision: 'approved' | 'rejected' | 'changes_requested' | 'stale';
   originalDecision?: 'approved' | 'rejected' | 'changes_requested';
   notes: string;
@@ -263,6 +346,13 @@ export interface ShipmentExportBundle {
   containers: ShipmentContainer[];
   packages: ShipmentPackage[];
   carrierDocuments: CarrierEvidenceDocument[];
+  vnCustomsProfile: VnCustomsProfile | null;
+  vnCustomsEvents: VnCustomsExternalEvent[];
+  vnCustomsEvidence: Array<{
+    id: string; type: string; name: string; status: string; checksumSha256: string | null;
+    fileSizeBytes: number; validFrom: string | null; validTo: string | null;
+    mimeType: string | null; uploadedAt: string; approvedAt: string | null; approvedBy: string | null;
+  }>;
   documents: ShipmentExportDocument[];
 }
 
@@ -287,6 +377,24 @@ export const emptyShipmentExportProfile = (): ShipmentExportProfile => ({
   preferentialOriginClaim: false, metadata: {}
 });
 
+export const emptyVnCustomsProfile = (): VnCustomsProfile => ({
+  schemaId: 'weavecarbon.vn-export-broker-handoff', schemaVersion: '1.0.0',
+  rulesetVersion: 'R04-VN-CUSTOMS-HANDOFF-2026.09.1',
+  regulatoryBasisVersion: 'TT38/2015+TT39/2018+TT121/2025@2026-02-01',
+  filingPurpose: 'broker_handoff', declarant: { role: 'exporter' }, customsBroker: {},
+  customsOfficeCode: '', declarationTypeCode: '', cargoClassificationCode: '',
+  transportMethodCode: '', exitCustomsOfficeCode: '', loadingLocationCode: '',
+  destinationCountryCode: '', invoiceClassificationCode: '', invoicePaymentMethodCode: '',
+  exchangeRate: null, permitRequirementStatus: 'unknown', permitReferences: [],
+  inspectionRequirementStatus: 'unknown', inspectionReferences: [], taxTreatment: 'unknown',
+  exportDutyRate: null, exportDutyAmount: null, taxBasis: '',
+  supportingDocuments: [
+    { type: 'commercial_invoice', reference: '' },
+    { type: 'packing_list', reference: '' }
+  ],
+  brokerTargetSchemaId: '', brokerTargetSchemaVersion: '', declarationNotes: '', metadata: {}
+});
+
 const base = (shipmentId: string) => `/export/shipments/${encodeURIComponent(shipmentId)}`;
 
 export const fetchShipmentExportProfile = (shipmentId: string) =>
@@ -299,6 +407,20 @@ export const updateShipmentExportLine = (shipmentId: string, lineId: string, pay
   api.patch<ShipmentExportLine>(`${base(shipmentId)}/lines/${encodeURIComponent(lineId)}`, payload);
 export const fetchShipmentExportReadiness = (shipmentId: string) =>
   api.get<ExportReadiness>(`${base(shipmentId)}/readiness`);
+export const saveVnCustomsProfile = (shipmentId: string, profile: VnCustomsProfile) =>
+  api.put<VnCustomsProfile>(`${base(shipmentId)}/vn-customs/profile`, profile);
+export const fetchVnCustomsReconciliation = (shipmentId: string) =>
+  api.get<VnCustomsReconciliation>(`${base(shipmentId)}/vn-customs/reconciliation`);
+export const fetchVnCustomsEvents = (shipmentId: string) =>
+  api.get<VnCustomsExternalEvent[]>(`${base(shipmentId)}/vn-customs/events`);
+export const recordVnCustomsEvent = (
+  shipmentId: string,
+  payload: {
+    exportDocumentId: string; eventType: VnCustomsEventType; externalReference: string;
+    evidenceDocumentId: string; actorName: string; actorIdentifier?: string;
+    messageCode?: string; messageText?: string; occurredAt: string;
+  }
+) => api.post<VnCustomsExternalEvent>(`${base(shipmentId)}/vn-customs/events`, payload);
 export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
   api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
 export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
@@ -314,7 +436,7 @@ export const issueShipmentExportDocument = (shipmentId: string, documentId: stri
 export const reviewShipmentExportDocument = (
   shipmentId: string,
   documentId: string,
-  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
+  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
 ) => api.post<ExportDocumentReview>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/reviews`, payload);
 
 export const uploadCarrierDocument = async (shipmentId: string, file: File, kind: CarrierDocumentType = 'bill_of_lading') => {
@@ -343,6 +465,25 @@ export const confirmCarrierDocument = (
   carrierDocumentId: string,
   payload: { metadataConfirmed: true; confirmationNote: string }
 ) => api.post<CarrierEvidenceDocument>(`${base(shipmentId)}/carrier-documents/${encodeURIComponent(carrierDocumentId)}/confirm`, payload);
+
+export const uploadVnCustomsEvidence = async (
+  shipmentId: string,
+  file: File,
+  kind: 'customs_broker_response' | 'customs_authority_response' | 'customs_declaration'
+) => {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('shipmentId', shipmentId);
+  body.append('kind', kind);
+  body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string }; success?: boolean };
+  if (!payload.data?.id) throw new Error('Customs response upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockVnCustomsEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
   const response = await api.raw(`/reports/${encodeURIComponent(reportId)}/download`);
