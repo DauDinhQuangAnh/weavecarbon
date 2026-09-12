@@ -14,6 +14,7 @@ import { fetchAllLogisticsShipments, type LogisticsShipmentSummary } from '@/lib
 import CarrierDocumentPanel from './CarrierDocumentPanel';
 import EuImportHandoffPanel from './EuImportHandoffPanel';
 import Ics2HandoffPanel from './Ics2HandoffPanel';
+import OriginHandoffPanel from './OriginHandoffPanel';
 import VnCustomsHandoffPanel from './VnCustomsHandoffPanel';
 import {
   createShipmentPackage,
@@ -45,7 +46,7 @@ const DOCUMENT_LABELS: Record<ExportDocumentType, string> = {
   commercial_invoice: 'Commercial Invoice',
   packing_list: 'Packing List',
   carbon_annex: 'Carbon Annex (không phải B/L)',
-  origin_workbook: 'EVFTA Origin Workbook',
+  origin_workbook: 'EVFTA Origin Support Handoff (không phải EUR.1)',
   ics2_dataset: 'ICS2/ENS Filer Handoff',
   vn_customs_handoff: 'Vietnam Customs Broker Handoff',
   eu_import_handoff: 'EU Import Declarant Handoff (EUCDM)'
@@ -56,7 +57,8 @@ const REVIEW_ROLE_LABELS = {
   warehouse_reviewer: 'nhân viên kho',
   customs_declaration_reviewer: 'chuyên viên khai báo hải quan Việt Nam',
   eu_import_declaration_reviewer: 'chuyên viên khai báo nhập khẩu EU',
-  ics2_filing_reviewer: 'chuyên viên filing ICS2 của carrier/ITSP'
+  ics2_filing_reviewer: 'chuyên viên filing ICS2 của carrier/ITSP',
+  origin_specialist_reviewer: 'chuyên viên xuất xứ EVFTA'
 } as const;
 
 const fields: Array<{ key: keyof ShipmentExportProfile; label: string; type?: string; numeric?: boolean }> = [
@@ -376,8 +378,15 @@ export default function ShipmentExportPortal() {
             onChanged={reload}
           />
 
+          <OriginHandoffPanel
+            key={`${shipmentId}:${bundle.originProfile?.updatedAt || 'new'}:${bundle.carrierDocuments.filter((item) => item.type === 'origin_support').length}`}
+            shipmentId={shipmentId}
+            bundle={bundle}
+            onChanged={reload}
+          />
+
           <Card>
-            <CardHeader><CardTitle className="text-base">8. Mức hoàn thiện tài liệu</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">9. Mức hoàn thiện tài liệu</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3"><Progress value={readiness?.documentCompleteness || 0} className="h-2 flex-1" /><b>{readiness?.documentCompleteness || 0}%</b><Badge>{readiness?.status || 'blocked'}</Badge></div>
               <p className="text-xs text-slate-600">Đây là mức hoàn thiện dữ liệu, không phải xác nhận của hải quan hoặc cơ quan có thẩm quyền.</p>
@@ -387,7 +396,7 @@ export default function ShipmentExportPortal() {
                   const existing = latestDocuments.get(doc.type);
                   const ready = doc.status === 'ready';
                   const supportsPdf = ['commercial_invoice', 'packing_list'].includes(doc.type);
-                  const supportsHandoffFormats = ['ics2_dataset', 'vn_customs_handoff', 'eu_import_handoff'].includes(doc.type);
+                  const supportsHandoffFormats = ['ics2_dataset', 'vn_customs_handoff', 'eu_import_handoff', 'origin_workbook'].includes(doc.type);
                   const selectedFormat = documentFormats[doc.type]
                     || (supportsHandoffFormats ? 'json' : 'xlsx');
                   return <div key={doc.type} className="space-y-2 rounded-lg border p-3">
@@ -408,7 +417,7 @@ export default function ShipmentExportPortal() {
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" disabled={!ready || Boolean(busy)} onClick={() => void run(`generate-${doc.type}`, () => generateShipmentExportDocument(shipmentId, doc.type, selectedFormat), `Đã đưa bản ${selectedFormat.toUpperCase()} vào hàng đợi tạo file.`)}>Tạo bản review</Button>
                       {existing?.reportStatus === 'completed' && existing.reportId && <Button size="sm" variant="outline" onClick={() => void downloadReportFile(existing.reportId, existing.filename || `${doc.type}.${existing.outputFormat || 'xlsx'}`)}><Download className="mr-1 h-3 w-3" />Tải</Button>}
-                      {existing?.reportStatus === 'completed' && existing.status === 'ready' && <Button size="sm" variant="outline" disabled={!existing.readyToIssue || Boolean(busy)} title={existing.readyToIssue ? undefined : 'Cần phê duyệt hợp lệ cho đúng checksum trước khi phát hành.'} onClick={() => void run(`issue-${existing.id}`, () => issueShipmentExportDocument(shipmentId, existing.id), 'Đã phát hành phiên bản bất biến.')}><FileCheck2 className="mr-1 h-3 w-3" />Phát hành</Button>}
+                      {existing?.reportStatus === 'completed' && existing.status === 'ready' && <Button size="sm" variant="outline" disabled={!existing.readyToIssue || Boolean(busy)} title={existing.readyToIssue ? undefined : 'Cần phê duyệt hợp lệ cho đúng checksum trước khi khóa phiên bản.'} onClick={() => void run(`issue-${existing.id}`, () => issueShipmentExportDocument(shipmentId, existing.id), doc.type === 'origin_workbook' ? 'Đã khóa bản bàn giao nội bộ; đây không phải chứng từ xuất xứ.' : 'Đã phát hành phiên bản bất biến.')}><FileCheck2 className="mr-1 h-3 w-3" />{doc.type === 'origin_workbook' ? 'Khóa bản bàn giao' : 'Phát hành'}</Button>}
                     </div>
                     {existing && <p className="text-[11px] text-slate-500">v{existing.version} · {existing.outputFormat?.toUpperCase() || 'FILE'} · {existing.reportStatus || 'processing'} · {existing.status}</p>}
                   </div>;

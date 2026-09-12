@@ -461,6 +461,45 @@ export interface Ics2Reconciliation {
   blockingCodes: string[];
 }
 
+export type OriginRuleCode =
+  | 'CH61_CUT_SEWN_KNITTING_AND_MAKING_UP'
+  | 'CH61_KNITTED_TO_SHAPE_SPINNING_OR_EXTRUSION_AND_KNITTING'
+  | 'CH62_GENERAL_WEAVING_AND_MAKING_UP'
+  | 'CH64_GENERAL_EXCLUDES_6406_UPPER_ASSEMBLY'
+  | 'SPECIALIST_RULE_REVIEW';
+
+export interface OriginMaterial {
+  id: string; reference: string; description: string; hsCode: string; supplierName: string;
+  originCountry: string; originStatus: 'originating' | 'non_originating' | 'cumulated' | 'unknown';
+  cumulationBasis: 'none' | 'eu_bilateral' | 'asean_article_3_2' | 'korea_fabric_article_3_7';
+  value: number | null; weightKg: number | null; evidenceDocumentId: string;
+  isUpperAssemblyAffixedToSole: boolean | null; notes: string;
+}
+
+export interface OriginLineAssessment {
+  exportLineId: string; ruleCode: OriginRuleCode | ''; ruleSourcePage: string;
+  specialistRuleText: string; productionProcesses: string[]; exWorksPrice: number | null;
+  nonOriginatingMaterialValue: number | null; materials: OriginMaterial[]; notes: string;
+}
+
+export interface OriginProfile {
+  id?: string; shipmentId?: string; updatedAt?: string;
+  schemaId: 'weavecarbon.evfta-origin-support-handoff'; schemaVersion: '1.0.0';
+  rulesetVersion: string; regulatoryBasisVersion: string; handoffPurpose: 'origin_specialist_review';
+  claimType: 'certificate_application' | 'origin_declaration_draft'; invoiceTotalEur: number | null;
+  exporterAuthorizationType: 'none' | 'approved' | 'registered'; exporterAuthorizationReference: string;
+  territorialityConfirmed: boolean; nonAlterationConfirmed: boolean;
+  insufficientProcessingExcluded: boolean; lineAssessments: OriginLineAssessment[];
+  notes: string; metadata: Record<string, unknown>;
+}
+
+export interface OriginReconciliation {
+  status: 'not_applicable' | 'blocked' | 'ready_for_specialist_review';
+  applicability: 'PREFERENCE_NOT_CLAIMED' | 'PREFERENCE_CLAIMED';
+  sourceSnapshotSha256: string; schema: { id: string; version: string; rulesetVersion: string };
+  checks: CarrierReconciliationCheck[]; blockingCodes: string[];
+}
+
 export interface ShipmentPackage {
   id: string;
   packageNumber: string;
@@ -506,7 +545,7 @@ export interface ShipmentExportDocument {
   downloadUrl: string | null;
   filename: string | null;
   fileSha256: string | null;
-  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer' | null;
+  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer' | 'origin_specialist_reviewer' | null;
   latestReview: ExportDocumentReview | null;
   readyToIssue: boolean;
   issuedAt: string | null;
@@ -515,7 +554,7 @@ export interface ShipmentExportDocument {
 export interface ExportDocumentReview {
   id: string;
   documentId: string;
-  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer';
+  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer' | 'origin_specialist_reviewer';
   decision: 'approved' | 'rejected' | 'changes_requested' | 'stale';
   originalDecision?: 'approved' | 'rejected' | 'changes_requested';
   notes: string;
@@ -554,6 +593,7 @@ export interface ShipmentExportBundle {
     fileSizeBytes: number; validFrom: string | null; validTo: string | null;
     mimeType: string | null; uploadedAt: string; approvedAt: string | null; approvedBy: string | null;
   }>;
+  originProfile: OriginProfile | null;
   documents: ShipmentExportDocument[];
 }
 
@@ -631,6 +671,16 @@ export const emptyIcs2Profile = (): Ics2Profile => ({
   houseConsignments: [], filingNotes: '', metadata: {}
 });
 
+export const emptyOriginProfile = (): OriginProfile => ({
+  schemaId: 'weavecarbon.evfta-origin-support-handoff', schemaVersion: '1.0.0',
+  rulesetVersion: 'R07-EVFTA-ORIGIN-2026.09.1',
+  regulatoryBasisVersion: 'EVFTA-PROTOCOL-1-ART2-6+12-16+ANNEX-II@OJ-L186-2020',
+  handoffPurpose: 'origin_specialist_review', claimType: 'certificate_application',
+  invoiceTotalEur: null, exporterAuthorizationType: 'none', exporterAuthorizationReference: '',
+  territorialityConfirmed: false, nonAlterationConfirmed: false,
+  insufficientProcessingExcluded: false, lineAssessments: [], notes: '', metadata: {}
+});
+
 const base = (shipmentId: string) => `/export/shipments/${encodeURIComponent(shipmentId)}`;
 
 export const fetchShipmentExportProfile = (shipmentId: string) =>
@@ -699,6 +749,14 @@ export const recordIcs2Event = (
     messageCode?: string; messageText?: string; occurredAt: string;
   }
 ) => api.post<Ics2ExternalEvent>(`${base(shipmentId)}/ics2/events`, payload);
+export const saveOriginProfile = (shipmentId: string, profile: OriginProfile) => {
+  const input = { ...profile } as Record<string, unknown>;
+  ['id', 'shipmentId', 'updatedAt', 'schemaId', 'schemaVersion', 'rulesetVersion',
+    'regulatoryBasisVersion', 'handoffPurpose'].forEach((key) => delete input[key]);
+  return api.put<OriginProfile>(`${base(shipmentId)}/origin/profile`, input);
+};
+export const fetchOriginReconciliation = (shipmentId: string) =>
+  api.get<OriginReconciliation>(`${base(shipmentId)}/origin/reconciliation`);
 export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
   api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
 export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
@@ -714,7 +772,7 @@ export const issueShipmentExportDocument = (shipmentId: string, documentId: stri
 export const reviewShipmentExportDocument = (
   shipmentId: string,
   documentId: string,
-  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
+  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer' | 'origin_specialist_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
 ) => api.post<ExportDocumentReview>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/reviews`, payload);
 
 export const uploadCarrierDocument = async (shipmentId: string, file: File, kind: CarrierDocumentType = 'bill_of_lading') => {
@@ -799,6 +857,19 @@ export const uploadIcs2Evidence = async (
 };
 
 export const lockIcs2Evidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadOriginEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData();
+  body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'origin_support'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('Origin-support upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockOriginEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
