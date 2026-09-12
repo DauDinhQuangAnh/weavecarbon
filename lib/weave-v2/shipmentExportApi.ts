@@ -377,6 +377,90 @@ export interface EuImportReconciliation {
   };
 }
 
+export interface Ics2Party extends ExportParty {
+  eori?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface Ics2HouseConsignment {
+  id: string;
+  transportDocumentType: string;
+  transportDocumentNumber: string;
+  ucr: string;
+  consignor: Ics2Party;
+  consignee: Ics2Party;
+  buyer: Ics2Party;
+  seller: Ics2Party;
+  destinationCountry: string;
+  placeOfDelivery: string;
+  grossMassKg: number | null;
+  packageCount: number | null;
+  goodsLineIds: string[];
+  additionalSupplyChainActors: Ics2Party[];
+  metadata: Record<string, unknown>;
+}
+
+export interface Ics2Profile {
+  id?: string;
+  shipmentId?: string;
+  updatedAt?: string;
+  schemaId: 'weavecarbon.ics2-filing-handoff';
+  schemaVersion: '1.0.0';
+  rulesetVersion: string;
+  regulatoryBasisVersion: string;
+  filingPurpose: 'filer_handoff';
+  ics2Release: 'R3';
+  htiAgreementRef: 'EU-ICS2-TI-V2.0';
+  transportMode: 'sea' | 'inland_waterway' | 'air' | 'road' | 'rail';
+  messageDatasetCode: string;
+  filingRole: 'carrier' | 'house_level_filer' | 'express_carrier' | 'postal_operator' | 'representative';
+  filingArrangement: 'single' | 'multiple';
+  localReferenceNumber: string;
+  sender: Ics2Party;
+  declarant: Ics2Party;
+  representative: Ics2Party;
+  customsOfficeFirstEntry: string;
+  firstEntryCountry: string;
+  estimatedArrivalAt: string;
+  itineraryCountries: string[];
+  conveyanceReference: string;
+  containerIndicator: boolean;
+  masterTransportDocument: { type: string; number: string };
+  activeBorderTransportMeans: { identificationType: string; identificationNumber: string; nationality: string };
+  seals: string[];
+  paymentMethodCode: string;
+  targetSystemSchemaId: string;
+  targetSystemSchemaVersion: string;
+  technicalPackageId: string;
+  technicalPackageVersion: string;
+  messageNamespace: string;
+  houseConsignments: Ics2HouseConsignment[];
+  filingNotes: string;
+  metadata: Record<string, unknown>;
+}
+
+export type Ics2EventType =
+  | 'filer_received' | 'filer_validated' | 'filer_rejected'
+  | 'authority_registered' | 'authority_rejected' | 'risk_referral' | 'do_not_load'
+  | 'assessment_complete' | 'amendment_requested' | 'amendment_registered'
+  | 'invalidation_requested' | 'invalidated';
+
+export interface Ics2ExternalEvent extends Omit<VnCustomsExternalEvent, 'eventType' | 'sourceType'> {
+  eventType: Ics2EventType;
+  sourceType: 'filer' | 'authority';
+}
+
+export interface Ics2Reconciliation {
+  status: 'ready' | 'blocked';
+  rulesetVersion: string;
+  sourceSnapshotSha256: string;
+  schema: { id: string; version: string; regulatoryBasisVersion: string; ics2Release: string };
+  checks: CarrierReconciliationCheck[];
+  blockingCodes: string[];
+}
+
 export interface ShipmentPackage {
   id: string;
   packageNumber: string;
@@ -422,7 +506,7 @@ export interface ShipmentExportDocument {
   downloadUrl: string | null;
   filename: string | null;
   fileSha256: string | null;
-  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | null;
+  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer' | null;
   latestReview: ExportDocumentReview | null;
   readyToIssue: boolean;
   issuedAt: string | null;
@@ -431,7 +515,7 @@ export interface ShipmentExportDocument {
 export interface ExportDocumentReview {
   id: string;
   documentId: string;
-  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer';
+  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer';
   decision: 'approved' | 'rejected' | 'changes_requested' | 'stale';
   originalDecision?: 'approved' | 'rejected' | 'changes_requested';
   notes: string;
@@ -459,6 +543,13 @@ export interface ShipmentExportBundle {
   euImportLineDetails: EuImportLineDetail[];
   euImportEvents: EuImportExternalEvent[];
   euImportEvidence: Array<{
+    id: string; type: string; name: string; status: string; checksumSha256: string | null;
+    fileSizeBytes: number; validFrom: string | null; validTo: string | null;
+    mimeType: string | null; uploadedAt: string; approvedAt: string | null; approvedBy: string | null;
+  }>;
+  ics2Profile: Ics2Profile | null;
+  ics2Events: Ics2ExternalEvent[];
+  ics2Evidence: Array<{
     id: string; type: string; name: string; status: string; checksumSha256: string | null;
     fileSizeBytes: number; validFrom: string | null; validTo: string | null;
     mimeType: string | null; uploadedAt: string; approvedAt: string | null; approvedBy: string | null;
@@ -525,6 +616,21 @@ export const emptyEuImportProfile = (): EuImportProfile => ({
   targetSystemSchemaId: '', targetSystemSchemaVersion: '', declarationNotes: '', metadata: {}
 });
 
+export const emptyIcs2Profile = (): Ics2Profile => ({
+  schemaId: 'weavecarbon.ics2-filing-handoff', schemaVersion: '1.0.0',
+  rulesetVersion: 'R06-ICS2-FILING-HANDOFF-2026.09.1',
+  regulatoryBasisVersion: 'UCC-952/2013-ART127+UCC-DA-2015/2446-ANNEX-B@2026-09-12',
+  filingPurpose: 'filer_handoff', ics2Release: 'R3', htiAgreementRef: 'EU-ICS2-TI-V2.0',
+  transportMode: 'sea', messageDatasetCode: 'F11', filingRole: 'carrier', filingArrangement: 'multiple',
+  localReferenceNumber: '', sender: {}, declarant: {}, representative: {}, customsOfficeFirstEntry: '',
+  firstEntryCountry: '', estimatedArrivalAt: '', itineraryCountries: [], conveyanceReference: '',
+  containerIndicator: true, masterTransportDocument: { type: '', number: '' },
+  activeBorderTransportMeans: { identificationType: '', identificationNumber: '', nationality: '' },
+  seals: [], paymentMethodCode: '', targetSystemSchemaId: '', targetSystemSchemaVersion: '',
+  technicalPackageId: '', technicalPackageVersion: '', messageNamespace: 'urn:wco:datamodel:eu:ics2:2',
+  houseConsignments: [], filingNotes: '', metadata: {}
+});
+
 const base = (shipmentId: string) => `/export/shipments/${encodeURIComponent(shipmentId)}`;
 
 export const fetchShipmentExportProfile = (shipmentId: string) =>
@@ -573,6 +679,26 @@ export const recordEuImportEvent = (
     messageCode?: string; messageText?: string; occurredAt: string;
   }
 ) => api.post<EuImportExternalEvent>(`${base(shipmentId)}/eu-import/events`, payload);
+export const saveIcs2Profile = (shipmentId: string, profile: Ics2Profile) => {
+  const input = { ...profile } as Record<string, unknown>;
+  [
+    'id', 'shipmentId', 'updatedAt', 'schemaId', 'schemaVersion', 'rulesetVersion',
+    'regulatoryBasisVersion', 'filingPurpose', 'ics2Release', 'htiAgreementRef'
+  ].forEach((key) => delete input[key]);
+  return api.put<Ics2Profile>(`${base(shipmentId)}/ics2/profile`, input);
+};
+export const fetchIcs2Reconciliation = (shipmentId: string) =>
+  api.get<Ics2Reconciliation>(`${base(shipmentId)}/ics2/reconciliation`);
+export const fetchIcs2Events = (shipmentId: string) =>
+  api.get<Ics2ExternalEvent[]>(`${base(shipmentId)}/ics2/events`);
+export const recordIcs2Event = (
+  shipmentId: string,
+  payload: {
+    exportDocumentId: string; eventType: Ics2EventType; externalReference: string;
+    evidenceDocumentId: string; actorName: string; actorIdentifier?: string;
+    messageCode?: string; messageText?: string; occurredAt: string;
+  }
+) => api.post<Ics2ExternalEvent>(`${base(shipmentId)}/ics2/events`, payload);
 export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
   api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
 export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
@@ -588,7 +714,7 @@ export const issueShipmentExportDocument = (shipmentId: string, documentId: stri
 export const reviewShipmentExportDocument = (
   shipmentId: string,
   documentId: string,
-  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
+  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | 'ics2_filing_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
 ) => api.post<ExportDocumentReview>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/reviews`, payload);
 
 export const uploadCarrierDocument = async (shipmentId: string, file: File, kind: CarrierDocumentType = 'bill_of_lading') => {
@@ -654,6 +780,25 @@ export const uploadEuImportEvidence = async (
 };
 
 export const lockEuImportEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadIcs2Evidence = async (
+  shipmentId: string,
+  file: File,
+  kind: 'ics2_filer_response' | 'ics2_customs_response' | 'ics2_ens_declaration'
+) => {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('shipmentId', shipmentId);
+  body.append('kind', kind);
+  body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('ICS2 evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockIcs2Evidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
