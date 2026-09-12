@@ -4,7 +4,7 @@ import React from 'react';
 import { AlertTriangle, ShieldCheck, FileWarning } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CBAM_PRICE_PER_TON, DEFAULT_VALUE_MULTIPLIER } from '@/config/penalties';
+import { DEFAULT_VALUE_MULTIPLIER, ILLUSTRATIVE_CARBON_PRICE_PER_TON } from '@/config/penalties';
 import type { CredibilityResult } from '@/lib/credibilityEngine';
 
 interface Props {
@@ -15,8 +15,7 @@ interface Props {
 /**
  * Red-Flag mechanism UI.
  * When the calculation falls back to Ecoinvent worst-case (no supplier evidence),
- * surfaces the CBAM-equivalent financial risk so the buyer pushes the supplier
- * to upload real invoices/ERP exports.
+ * surfaces an internal proxy-sensitivity scenario and requests source evidence.
  */
 const RedFlagBanner: React.FC<Props> = ({ result, className }) => {
   if (!result.hasRedFlag) {
@@ -27,10 +26,10 @@ const RedFlagBanner: React.FC<Props> = ({ result, className }) => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-emerald-700">
-                Dữ liệu sơ cấp đầy đủ — Sẵn sàng kiểm toán
+                Không phát hiện proxy mặc định — vẫn cần review
               </p>
               <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700">
-                AUDIT-READY
+                DATA-COMPLETE
               </Badge>
             </div>
             <p className="text-xs text-emerald-700/80">{result.methodology}</p>
@@ -56,9 +55,9 @@ const RedFlagBanner: React.FC<Props> = ({ result, className }) => {
             </Badge>
           </div>
           <p className="text-xs text-foreground/80 leading-relaxed">
-            Không có hóa đơn / ERP của nhà cung cấp. Hệ thống đã áp <strong>hệ số worst-case Ecoinvent</strong> theo
-            ISO 14067 — đồng nghĩa số liệu carbon của bạn có thể bị đội <strong>+{upliftPct}%</strong> khi cơ quan
-            kiểm toán EU (SGS/Bureau Veritas) thẩm định.
+            Không có hóa đơn hoặc dữ liệu ERP của nhà cung cấp. Hệ thống đang dùng giả định proxy nội bộ làm kết quả
+            tăng <strong>+{upliftPct}%</strong>. Đây là phân tích độ nhạy, không phải quy tắc ISO, kết luận kiểm toán
+            hoặc giá trị do cơ quan EU xác định.
           </p>
 
           <div className="grid sm:grid-cols-2 gap-2 pt-1">
@@ -72,11 +71,12 @@ const RedFlagBanner: React.FC<Props> = ({ result, className }) => {
             </div>
             <div className="rounded-md border border-destructive/30 bg-background/60 p-2.5">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Thuế CBAM ước tính ({CBAM_PRICE_PER_TON} €/tấn)
+                Minh họa chi phí carbon ({ILLUSTRATIVE_CARBON_PRICE_PER_TON} €/tấn)
               </p>
               <p className="text-base font-bold text-destructive">
                 ≈ {result.cbamPenaltyEur.toLocaleString('vi-VN')} EUR
               </p>
+              <p className="text-[10px] text-muted-foreground">Không phải thuế hoặc nghĩa vụ CBAM.</p>
             </div>
           </div>
 

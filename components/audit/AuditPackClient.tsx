@@ -818,7 +818,7 @@ export default function AuditPackClient() {
           <p className="font-semibold text-slate-700">Tuyên bố miễn trừ & Chuẩn mực:</p>
           <p className="mt-1">
             Màn hình này là bản chuẩn bị dữ liệu nội bộ. Nó không phải chứng nhận, kết luận đảm bảo, hồ sơ hải quan đã
-            chấp nhận hoặc bằng chứng đã được SGS/TÜV/Bureau Veritas xác minh. Chỉ chứng từ thật đã duyệt và có SHA-256
+            chấp nhận hoặc bằng chứng đã được bên xác minh độc lập xác nhận. Chỉ chứng từ thật đã duyệt và có SHA-256
             mới được hiển thị; chức năng tải chỉ mở sau khi máy chủ tạo, lưu và kiểm tra manifest cùng bundle bất biến.
             Chữ ký Ed25519 ở đây là platform attestation nội bộ; external assurance chỉ phản ánh bản ghi và statement đã gắn,
             không biến WeaveCarbon thành tổ chức chứng nhận.

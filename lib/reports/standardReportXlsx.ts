@@ -22,6 +22,11 @@ const KG3 = "#,##0.000";
 const KG4 = "#,##0.0000";
 const str = (v: unknown) => (v == null ? "" : String(v));
 const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const cbamScreeningLabel = (status: ReportPayloadV2["cbamApplicability"]): string => {
+  if (status === "REVIEW_ANNEX_I_MATCH") return "Cần customs/legal review";
+  if (status === "CBAM_CODE_MISSING") return "Thiếu mã CN";
+  return "Không thuộc phạm vi sơ bộ";
+};
 
 export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Promise<Workbook> {
   const wb = await newBrandedWorkbook();
@@ -32,15 +37,15 @@ export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Pro
     const s = addWorksheet(wb, "Tổng quan");
     let r = addTitleBlock(
       s,
-      `Hộ chiếu Sản phẩm — ${str(sku.name)}`,
+      `Báo cáo dữ liệu sản phẩm — ${str(sku.name)}`,
       `SKU ${str(sku.sku)} · Mã CN ${str(sku.cnCode)} · ${str(payload.facility.name)}`,
       7,
-      `ISO 14067:2018 · GHG Protocol · ${new Date(payload.generatedAt).toLocaleDateString("vi-VN")}`,
+      `Tham chiếu ISO 14067:2018 và GHG Protocol · chưa xác minh độc lập · ${new Date(payload.generatedAt).toLocaleDateString("vi-VN")}`,
     );
     r = addKpiStrip(s, r, [
       { label: "PCF / sản phẩm", value: n(payload.totals.pcfKgPerUnit).toFixed(3), unit: "kg CO₂e" },
       { label: "Tối ưu", value: n(payload.totals.optimalKgPerUnit).toFixed(3), unit: "kg CO₂e" },
-      { label: "Rủi ro CBAM", value: n(payload.totals.cbamRiskEurPerUnit).toFixed(2), unit: "EUR/SP" },
+      { label: "Sàng lọc CBAM", value: cbamScreeningLabel(payload.cbamApplicability), unit: "sơ bộ" },
       { label: "Cả lô", value: n(payload.totals.batchTonnes).toFixed(3), unit: "tCO₂e" },
     ]);
     const cols: TemplateColumn<ReportPayloadV2["breakdownRows"][number]>[] = [
@@ -99,7 +104,7 @@ export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Pro
   // ── ISO 14067 ─────────────────────────────────────────────────────────────
   {
     const s = addWorksheet(wb, "ISO 14067");
-    const r = addTitleBlock(s, "Vết tính toán ISO 14067", "Chi tiết theo từng giai đoạn vòng đời", 6);
+    const r = addTitleBlock(s, "Vết tính PCF tham chiếu ISO 14067", "Phép tính nội bộ; chưa xác minh độc lập", 6);
     const rows = payload.breakdownRows.map((b, i) => ({ ...b, idx: i + 1 }));
     const cols: TemplateColumn<(typeof rows)[number]>[] = [
       { header: "#", width: 6, align: "right", value: (b) => String(b.idx) },
@@ -124,10 +129,10 @@ export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Pro
     addDataTable(s, { startRow: r, columns: cols, rows: payload.esgRows, emptyText: "Chưa có dữ liệu ESG." });
   }
 
-  // ── CBAM EU ───────────────────────────────────────────────────────────────
+  // ── Sàng lọc phạm vi CBAM ─────────────────────────────────────────────────
   {
     const s = addWorksheet(wb, "CBAM EU");
-    const r = addTitleBlock(s, "Chỉ tiêu CBAM EU (DG TAXUD)", "Embedded emissions & mô phỏng rủi ro", 3);
+    const r = addTitleBlock(s, "Sàng lọc phạm vi CBAM", "Chỉ báo sơ bộ; mã có khả năng khớp Annex I cần customs/legal review", 3);
     const cols: TemplateColumn<Record<string, string | number>>[] = [
       { header: "Trường", width: 40, value: (c) => str(c.field) },
       { header: "Giá trị", width: 26, align: "right", value: (c) => (typeof c.value === "number" ? n(c.value) : str(c.value)) },
@@ -141,5 +146,5 @@ export async function buildStandardReportWorkbook(payload: ReportPayloadV2): Pro
 
 export async function downloadStandardReportXlsx(payload: ReportPayloadV2): Promise<void> {
   const wb = await buildStandardReportWorkbook(payload);
-  await downloadWorkbook(wb, `WeaveCarbon_HoChieu_${str(payload.sku.sku)}.xlsx`);
+  await downloadWorkbook(wb, `WeaveCarbon_BaoCaoNoiBo_${str(payload.sku.sku)}.xlsx`);
 }

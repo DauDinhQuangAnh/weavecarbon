@@ -17,9 +17,9 @@ export const WEAVE_V2_COLORS = {
 export const REPORT_TABS_V2 = [
   { key: "overview", label: "Tổng quan", sheetName: "Dashboard Tổng Quan" },
   { key: "input", label: "Nhập liệu", sheetName: "Nhập Liệu Sản Phẩm" },
-  { key: "iso14067", label: "ISO 14067", sheetName: "ISO 14067" },
+  { key: "iso14067", label: "PCF tham chiếu", sheetName: "ISO 14067" },
   { key: "esgTt01", label: "ESG · Kiểm kê KNK", sheetName: "ESG KNK VN" },
-  { key: "cbamEu", label: "CBAM EU", sheetName: "CBAM EU" }
+  { key: "cbamEu", label: "Kiểm tra phạm vi CBAM", sheetName: "CBAM EU" }
 ] as const;
 
 export const OFFICIAL_CBAM_TABS = [

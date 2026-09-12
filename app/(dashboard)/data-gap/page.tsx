@@ -136,7 +136,7 @@ export default function DataGapPage() {
 
   const markUploaded = async (r: GapRow) => {
     try {
-      await api.put(`/data-gaps/${r.id}`, { currentStatus: 'uploaded', riskLevel: 'low' });
+      await api.put(`/data-gaps/${r.id}`, { currentStatus: 'uploaded' });
       await load();
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi cập nhật', variant: 'destructive' });
@@ -144,15 +144,16 @@ export default function DataGapPage() {
   };
 
   const total = rows.length || 1;
-  const verifiedOrUploaded = rows.filter(
+  const availableCount = rows.filter(
     (r) => r.currentStatus === 'verified' || r.currentStatus === 'uploaded'
   ).length;
+  const verifiedCount = rows.filter((r) => r.currentStatus === 'verified').length;
   const proxyCount = rows.filter((r) => r.currentStatus === 'proxy').length;
   const missingCount = rows.filter(
     (r) => r.currentStatus === 'missing'
   ).length;
-  const score = Math.round((verifiedOrUploaded / total) * 100);
-  const primaryPct = Math.round((verifiedOrUploaded / total) * 100);
+  const score = Math.round((availableCount / total) * 100);
+  const primaryPct = Math.round((verifiedCount / total) * 100);
   const proxyPct = Math.round((proxyCount / total) * 100);
 
   return (
@@ -162,9 +163,8 @@ export default function DataGapPage() {
           <AlertCircle className="w-6 h-6 text-amber-600" /> Data Gap Checker
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Theo dõi 6 nhóm dữ liệu carbon trọng yếu (ISO 14067 / Ecoinvent
-          v3.10 / DEFRA 2024). Bổ sung trước khi xuất Audit Pack hoặc gửi
-          buyer.
+          Theo dõi độ đầy đủ của 6 nhóm dữ liệu carbon nội bộ. Việc tải tệp lên
+          không đồng nghĩa dữ liệu đã được xác minh, phù hợp ISO hoặc được kiểm toán.
         </p>
       </div>
 
@@ -172,7 +172,7 @@ export default function DataGapPage() {
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground">
-              Audit-ready Score
+              Độ đầy đủ hồ sơ
             </div>
             <div
               className={`text-3xl font-bold ${score >= 75 ? 'text-emerald-600' : 'text-amber-600'}`}
@@ -183,7 +183,7 @@ export default function DataGapPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">Primary data</div>
+            <div className="text-xs text-muted-foreground">Đã xác minh nguồn</div>
             <div className="text-3xl font-bold">{primaryPct}%</div>
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-import { Lock, Download, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Download, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -22,8 +22,7 @@ interface Props {
 }
 
 /**
- * Audit Compliance Panel — locked SKU, AD × EF table with provenance,
- * and download buttons SGS/TÜV expect.
+ * Internal data-trace panel. It does not express audit, ISO or CBAM approval.
  */
 export function CompliancePanel({
   skuCode,
@@ -38,22 +37,22 @@ export function CompliancePanel({
       {/* Header */}
       <div className="border-b border-dashed border-foreground/20 bg-muted/40 px-4 py-3">
         <div className="text-center text-xs font-bold tracking-widest text-muted-foreground">
-          WEAVE CARBON CORE ENGINE — AUDIT COMPLIANCE PANEL
+          WEAVE CARBON CORE ENGINE — INTERNAL DATA TRACE
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="rounded-sm font-mono">SKU: {skuCode}</Badge>
-            <Badge className="rounded-sm bg-emerald-600 font-mono hover:bg-emerald-600">
-              <Lock className="mr-1 h-3 w-3" /> ĐÃ KHÓA SỬA ĐỔI (SHA-256)
+            <Badge variant="outline" className="rounded-sm font-mono">
+              SHA-256 TRACE DISPLAYED
             </Badge>
           </div>
           {result.hasRedFlag ? (
             <Badge variant="destructive" className="rounded-sm font-mono">
-              <AlertTriangle className="mr-1 h-3 w-3" /> +{Math.round(((result.totalKgCo2e / Math.max(result.bestCaseKgCo2e, 1)) - 1) * 100)}% PROXY (EU 2023/1773)
+              <AlertTriangle className="mr-1 h-3 w-3" /> +{Math.round(((result.totalKgCo2e / Math.max(result.bestCaseKgCo2e, 1)) - 1) * 100)}% INTERNAL PROXY
             </Badge>
           ) : (
             <Badge className="rounded-sm bg-emerald-700 font-mono hover:bg-emerald-700">
-              <ShieldCheck className="mr-1 h-3 w-3" /> AUDIT-READY
+              <ShieldCheck className="mr-1 h-3 w-3" /> DATA-COMPLETE · REVIEW REQUIRED
             </Badge>
           )}
         </div>
@@ -98,7 +97,7 @@ export function CompliancePanel({
           <tfoot>
             <tr className="border-t-2 border-foreground/20 bg-muted/40">
               <td colSpan={5} className="px-3 py-2 font-bold">
-                TỔNG DẤU CHÂN CARBON SẢN PHẨM (ISO 14067)
+                KẾT QUẢ PCF NỘI BỘ — CHƯA XÁC MINH ĐỘC LẬP
               </td>
               <td className="px-3 py-2 text-right text-base font-bold tabular-nums">
                 {result.totalKgCo2e.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/chiếc</span>
@@ -107,7 +106,7 @@ export function CompliancePanel({
             {result.hasRedFlag && (
               <tr className="bg-destructive/10">
                 <td colSpan={5} className="px-3 py-2 text-destructive">
-                  Mô phỏng rủi ro kiểu CBAM (pre-audit, giả định 85 €/tCO₂e × dư phát thải {result.excessTonsCo2e.toFixed(4)} t — không phải khoản phí CBAM thực tế)
+                  Độ nhạy chi phí carbon nội bộ (giả định 85 €/tCO₂e × phần phát thải vượt ngưỡng nội bộ {result.excessTonsCo2e.toFixed(4)} t)
                 </td>
                 <td className="px-3 py-2 text-right font-bold text-destructive tabular-nums">
                   € {result.cbamPenaltyEur.toFixed(2)}
@@ -121,7 +120,7 @@ export function CompliancePanel({
       {/* Evidence + downloads */}
       <div className="space-y-3 border-t border-dashed border-foreground/20 p-4">
         <div className="text-xs font-bold tracking-wide text-muted-foreground">
-          &gt;&gt;&gt; HỒ SƠ CHỨNG TỪ GỐC (TẢI VỀ CHO KIỂM TOÁN VIÊN SGS / TÜV RHEINLAND) &lt;&lt;&lt;
+          &gt;&gt;&gt; TỆP NGUỒN ĐÃ LIÊN KẾT — CẦN REVIEW PHẠM VI VÀ TÍNH HỢP LỆ &lt;&lt;&lt;
         </div>
         <ul className="space-y-1 text-xs">
           {evidence.map((e, i) => (
@@ -153,7 +152,7 @@ export function CompliancePanel({
           )}
           {onDownloadCbam && (
             <Button size="sm" variant="outline" onClick={onDownloadCbam}>
-              <Download className="mr-1 h-3 w-3" /> CBAM-style template (DG TAXUD, pre-audit)
+              <Download className="mr-1 h-3 w-3" /> Phiếu kiểm tra phạm vi CBAM (nội bộ)
             </Button>
           )}
         </div>

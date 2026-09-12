@@ -109,8 +109,8 @@ const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | number)[][]
     sheet: 'Chung_chi_NCC',
     rows: [
       ['Tên nhà cung ứng', 'Loại chứng chỉ', 'Số chứng chỉ', 'Ngày cấp', 'Ngày hết hạn', 'Phạm vi / Sản phẩm', 'Cơ quan cấp', 'Link xác minh'],
-      ['Bông Việt JSC', 'GOTS', 'GOTS-VN-2024-1234', '2024-01-15', '2025-01-14', 'Cotton yarn & fabric', 'Control Union', 'https://global-standard.org/...'],
-      ['Toray VN', 'GRS', 'GRS-VN-2024-5678', '2024-03-01', '2025-02-28', 'Recycled polyester fiber', 'Bureau Veritas', 'https://textileexchange.org/...'],
+      ['Nhà cung ứng mẫu A', 'GOTS', 'SAMPLE-GOTS-001', '2024-01-15', '2025-01-14', 'Cotton yarn & fabric', 'Tổ chức chứng nhận mẫu', 'https://example.invalid/verify'],
+      ['Nhà cung ứng mẫu B', 'GRS', 'SAMPLE-GRS-002', '2024-03-01', '2025-02-28', 'Recycled polyester fiber', 'Tổ chức chứng nhận mẫu', 'https://example.invalid/verify'],
     ],
   },
   supplier_declaration: {

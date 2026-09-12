@@ -45,4 +45,23 @@ describe("buildReportPayloadV2 consistency", () => {
       expect(slice.value).toBeLessThanOrEqual(100);
     }
   });
+
+  it("keeps baseline textile reports outside CBAM and emits no monetary simulation", () => {
+    const p = buildReportPayloadV2();
+    expect(p.cbamApplicability).toBe("CBAM_NOT_APPLICABLE");
+    expect(p.totals.cbamRiskEurPerUnit).toBe(0);
+    expect(p.cbamRows).toEqual([
+      { field: "Applicability", value: "CBAM_NOT_APPLICABLE" },
+      { field: "CN code", value: p.sku.cnCode }
+    ]);
+    expect(Object.values(p.officialCbamRows).every((rows) => rows.length === 0)).toBe(true);
+  });
+
+  it("requires customs review for an Annex-I prefix without estimating a CBAM charge", () => {
+    const p = buildReportPayloadV2({ ...DEMO_PACK_V2[0], cnCode: "76011000", cbamPenaltyEurPerUnit: 999 });
+    expect(p.cbamApplicability).toBe("REVIEW_ANNEX_I_MATCH");
+    expect(p.totals.cbamRiskEurPerUnit).toBe(0);
+    expect(p.cbamRows).toContainEqual({ field: "Review status", value: "CUSTOMS_REVIEW_REQUIRED_BEFORE_CBAM_USE" });
+    expect(JSON.stringify(p.cbamRows)).not.toMatch(/risk|penalty|EUR\/product/i);
+  });
 });

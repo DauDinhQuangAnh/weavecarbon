@@ -25,13 +25,18 @@ const num = (v: unknown, d = 3): string => {
   return Number.isFinite(x) ? x.toLocaleString("vi-VN", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
 };
 const str = (v: unknown): string => (v == null ? "" : String(v));
+const cbamScreeningLabel = (status: ReportPayloadV2["cbamApplicability"]): string => {
+  if (status === "REVIEW_ANNEX_I_MATCH") return "Cần review";
+  if (status === "CBAM_CODE_MISSING") return "Thiếu mã CN";
+  return "Không thuộc phạm vi";
+};
 
 /** Draw the standard report into an existing (font-registered) jsPDF document. */
 export function buildStandardReportPdf(doc: jsPDF, payload: ReportPayloadV2): void {
   const sku = payload.sku;
   let y = header(
     doc,
-    `Hộ chiếu Sản phẩm — ${str(sku.name)}`,
+    `Báo cáo dữ liệu sản phẩm — ${str(sku.name)}`,
     `SKU ${str(sku.sku)} · Mã CN ${str(sku.cnCode)} · ${str(payload.facility.name)}`,
     new Date(payload.generatedAt).toLocaleDateString("vi-VN"),
   );
@@ -39,12 +44,12 @@ export function buildStandardReportPdf(doc: jsPDF, payload: ReportPayloadV2): vo
   y = kpiRow(doc, y, [
     { label: "PCF / sản phẩm", value: num(payload.totals.pcfKgPerUnit, 2), unit: "kg CO₂e" },
     { label: "Tối ưu (tiềm năng)", value: num(payload.totals.optimalKgPerUnit, 2), unit: "kg CO₂e" },
-    { label: "Rủi ro CBAM", value: num(payload.totals.cbamRiskEurPerUnit, 2), unit: "EUR/sản phẩm" },
+    { label: "Sàng lọc CBAM", value: cbamScreeningLabel(payload.cbamApplicability), unit: "sơ bộ" },
     { label: "Cả lô hàng", value: num(payload.totals.batchTonnes, 3), unit: "tCO₂e" },
   ]);
 
-  // ── Bóc tách PCF (ISO 14067) ──────────────────────────────────────────────
-  y = section(doc, y, "Bóc tách phát thải theo giai đoạn (ISO 14067)");
+  // ── Bóc tách PCF nội bộ ───────────────────────────────────────────────────
+  y = section(doc, y, "Bóc tách PCF nội bộ theo giai đoạn");
   const bcols: PdfColumn<ReportPayloadV2["breakdownRows"][number]>[] = [
     { header: "Giai đoạn", width: 26, value: (r) => str(r.stage) },
     { header: "Hoạt động", width: 40, value: (r) => str(r.activity) },
@@ -75,8 +80,8 @@ export function buildStandardReportPdf(doc: jsPDF, payload: ReportPayloadV2): vo
   ];
   y = table(doc, y, ecols, payload.esgRows, { emptyText: "Chưa có dữ liệu ESG." });
 
-  // ── CBAM EU (DG TAXUD) ────────────────────────────────────────────────────
-  y = section(doc, y, "Chỉ tiêu CBAM EU (DG TAXUD)");
+  // ── Sàng lọc phạm vi CBAM ─────────────────────────────────────────────────
+  y = section(doc, y, "Sàng lọc phạm vi CBAM (nội bộ)");
   const ccols: PdfColumn<Record<string, string | number>>[] = [
     { header: "Trường", width: 70, value: (r) => str(r.field) },
     { header: "Giá trị", width: 70, align: "right", value: (r) => (typeof r.value === "number" ? num(r.value, 4) : str(r.value)) },
@@ -99,14 +104,14 @@ export function buildStandardReportPdf(doc: jsPDF, payload: ReportPayloadV2): vo
   paragraph(
     doc,
     y,
-    "Báo cáo tiền-thẩm tra (pre-audit) tạo tự động từ dữ liệu người dùng, không phải chứng nhận CBAM chính thức " +
-      "và cần đơn vị thẩm tra độc lập để dùng trong giao dịch thương mại. " +
+    "Báo cáo dữ liệu nội bộ tạo tự động từ dữ liệu người dùng; không phải chứng nhận, kết luận phù hợp ISO, hồ sơ CBAM đã nộp hoặc đảm bảo độc lập. " +
+      "Kết quả sàng lọc mã CN chỉ là chỉ báo sơ bộ và phải được customs/legal review trước khi sử dụng. " +
       "Đây là PCF bán phần (cradle-to-gate + gate-to-market), loại trừ giai đoạn sử dụng (B) và cuối vòng đời (C); không đại diện toàn bộ vòng đời sản phẩm. " +
       "GHG được báo cáo tách biệt theo ISO 14067 (6.4.9): carbon sinh học (GWP-biogenic) báo cáo riêng, không trừ vào tổng phát thải hoá thạch; GWP-luluc chưa được mô hình hoá. " +
       `Nguồn hệ số: ${payload.sources.join(" · ")}.`,
   );
 
-  footers(doc, "Phương pháp: ISO 14067:2018 · GHG Protocol · DEFRA 2024 · Ecoinvent v3.10 · WeaveCarbon");
+  footers(doc, "Nguồn tham chiếu: ISO 14067:2018 · GHG Protocol · DEFRA 2024 · Ecoinvent v3.10 · Chưa xác minh độc lập");
 }
 
 /** Browser: fetch fonts, build, and trigger the download. */
@@ -114,7 +119,7 @@ export async function downloadStandardReportPdf(payload: ReportPayloadV2): Promi
   const fonts = await loadPdfFonts();
   const doc = await newPdf(fonts);
   buildStandardReportPdf(doc, payload);
-  doc.save(`WeaveCarbon_HoChieu_${str(payload.sku.sku)}.pdf`);
+  doc.save(`WeaveCarbon_BaoCaoNoiBo_${str(payload.sku.sku)}.pdf`);
 }
 
 /** Test/Node helper: build with explicitly-provided font bytes and return the document. */

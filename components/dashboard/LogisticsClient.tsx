@@ -916,7 +916,7 @@ const LogisticsClient: React.FC = () => {
                               DEFRA {DEFRA_VERSION}
                             </Badge>
                           </p>
-                          <p className="text-[11px] text-muted-foreground">Phân bổ tonne-km · audit-ready</p>
+                          <p className="text-[11px] text-muted-foreground">Phân bổ tonne-km · có nguồn hệ số và vết tính</p>
                         </div>
                       </div>
                       <div className="overflow-x-auto">

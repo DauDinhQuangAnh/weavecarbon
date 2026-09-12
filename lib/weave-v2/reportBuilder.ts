@@ -1,6 +1,7 @@
 import { DEMO_FACILITY_V2, DEMO_PACK_V2, type DemoSkuV2 } from "./demoPackV2";
 import { OFFICIAL_CBAM_TABS, REPORT_SOURCES_V2, WEAVE_V2_COLORS } from "./reportTemplate";
 import type { CarbonAuthorityReference } from "@/lib/productsApi";
+import { evaluateCbamApplicability, type CbamApplicabilityStatus } from "@/lib/cbam/applicability";
 
 export interface ReportBreakdownRowV2 {
   stage: string;
@@ -28,6 +29,7 @@ export interface ReportPayloadV2 {
   pieData: Array<{ name: string; value: number; color: string }>;
   esgRows: Array<Record<string, string | number>>;
   cbamRows: Array<Record<string, string | number>>;
+  cbamApplicability: CbamApplicabilityStatus;
   officialCbamRows: Record<(typeof OFFICIAL_CBAM_TABS)[number], Array<Record<string, string | number>>>;
   evidence: DemoSkuV2["evidence"];
   sources: string[];
@@ -145,6 +147,25 @@ export function buildReportPayloadV2(
     { name: "Vận chuyển", value: round((computed.transport / totalPositive) * 100, 1), color: "#219E9A" },
     { name: "Khuyết dữ liệu", value: round((computed.gap / totalPositive) * 100, 1), color: "#EF4444" }
   ];
+  const cbamApplicability = evaluateCbamApplicability(sku.cnCode);
+  const cbamReviewRequired = cbamApplicability === "REVIEW_ANNEX_I_MATCH";
+  const cbamRows: Array<Record<string, string | number>> = [
+    { field: "Applicability", value: cbamApplicability },
+    { field: "CN code", value: sku.cnCode },
+    ...(cbamReviewRequired ? [
+      { field: "Review status", value: "CUSTOMS_REVIEW_REQUIRED_BEFORE_CBAM_USE" },
+      { field: "Route", value: sku.routeCode },
+      { field: "Internal direct-emissions estimate", value: round((computed.scope1 * sku.units) / 1000, 4), unit: "tCO2e" },
+      { field: "Internal indirect-emissions estimate", value: round((computed.energy * sku.units) / 1000, 4), unit: "tCO2e" },
+      { field: "Internal total estimate", value: round(computed.batchTonnes, 4), unit: "tCO2e" }
+    ] : [])
+  ];
+  const emptyOfficialCbamRows: Record<
+    (typeof OFFICIAL_CBAM_TABS)[number], Array<Record<string, string | number>>
+  > = {
+    A_INSTDATA: [], B_EMINST: [], C_EMISSIONS_ENERGY: [],
+    D_PROCESSES: [], E_PURCHPREC: [], SUMMARY_COMMUNICATION: []
+  };
 
   return {
     sku,
@@ -153,7 +174,7 @@ export function buildReportPayloadV2(
     totals: {
       pcfKgPerUnit: round(computed.total, 3),
       optimalKgPerUnit: round(computed.optimal, 3),
-      cbamRiskEurPerUnit: sku.cbamPenaltyEurPerUnit,
+      cbamRiskEurPerUnit: 0,
       batchTonnes: round(computed.batchTonnes, 4)
     },
     breakdownRows,
@@ -163,15 +184,9 @@ export function buildReportPayloadV2(
       { scope: "Scope 2", tCO2e: round((computed.energy * sku.units) / 1000, 4), source: "EVN grid bill allocation" },
       { scope: "Scope 3", tCO2e: round(((computed.materials + computed.transport) * sku.units) / 1000, 4), source: "Materials + DEFRA transport" }
     ],
-    cbamRows: [
-      { field: "CN code", value: sku.cnCode },
-      { field: "Route", value: sku.routeCode },
-      { field: "Direct embedded emissions", value: round((computed.scope1 * sku.units) / 1000, 4), unit: "tCO2e" },
-      { field: "Indirect embedded emissions", value: round((computed.energy * sku.units) / 1000, 4), unit: "tCO2e" },
-      { field: "Total embedded emissions", value: round(computed.batchTonnes, 4), unit: "tCO2e" },
-      { field: "CBAM risk simulation", value: sku.cbamPenaltyEurPerUnit, unit: "EUR/product" }
-    ],
-    officialCbamRows: {
+    cbamRows,
+    cbamApplicability,
+    officialCbamRows: cbamReviewRequired ? {
       A_INSTDATA: [
         { field: "Installation name", value: facility.name },
         { field: "Address", value: facility.address },
@@ -199,9 +214,12 @@ export function buildReportPayloadV2(
       })),
       E_PURCHPREC: [],
       SUMMARY_COMMUNICATION: [
-        { cn_code: sku.cnCode, sku: sku.sku, route: sku.routeCode, embedded_tco2e: round(computed.batchTonnes, 4), determination: "(D)" }
+        {
+          status: "CUSTOMS_REVIEW_REQUIRED_BEFORE_CBAM_USE", cn_code: sku.cnCode,
+          sku: sku.sku, route: sku.routeCode, internal_estimate_tco2e: round(computed.batchTonnes, 4)
+        }
       ]
-    },
+    } : emptyOfficialCbamRows,
     evidence: sku.evidence,
     sources: REPORT_SOURCES_V2,
     colors: WEAVE_V2_COLORS

@@ -58,7 +58,7 @@ export const getProductFacility = (product: ProductRecord) => ({
   unLocode: (product.originAddress?.city || "").toLowerCase().includes("hanoi") || (product.originAddress?.city || "").toLowerCase().includes("hà nội") ? "VNHAN" : "VNSGN",
   naceCode: "14.13",
   customsOffice: (product.originAddress?.city || "").toLowerCase().includes("hanoi") || (product.originAddress?.city || "").toLowerCase().includes("hà nội") ? "VN HAN" : "VN SGN",
-  verifier: "Chờ kiểm toán độc lập (SGS / Bureau Veritas)"
+  verifier: "Chưa có bản ghi đảm bảo độc lập"
 });
 
 const normalizeConfidence = (product: ProductRecord) => {
@@ -253,10 +253,6 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
     ];
   }
 
-  const destLower = (product.destinationMarket || product.destinationAddress?.country || "").toLowerCase();
-  const isEuTarget = destLower.includes("eu") || destLower.includes("châu âu") || destLower.includes("europe") || destLower.includes("germany") || destLower.includes("pháp") || destLower.includes("hà lan");
-  const cbamPenaltyEurPerUnit = isEuTarget ? Number(((materialsKg + productionKg) * 0.01).toFixed(2)) : 0;
-
   return {
     id: product.id,
     sku: product.productCode || product.id,
@@ -274,9 +270,9 @@ export const productToDemoSkuV2 = (product: ProductRecord, evidence: EvidenceDoc
     energy: mappedEnergy,
     transport: mappedTransport,
     scope1KgCo2eBatch: Number((productionKg * quantity).toFixed(2)),
-    cbamPenaltyEurPerUnit,
+    cbamPenaltyEurPerUnit: 0,
     evidence: mapEvidence(product, evidence),
-    verifier: "Chờ kiểm toán độc lập (SGS / Bureau Veritas)",
+    verifier: "Chưa có bản ghi đảm bảo độc lập",
     confidence: normalizeConfidence(product)
   };
 };

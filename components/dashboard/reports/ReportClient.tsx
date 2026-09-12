@@ -90,10 +90,10 @@ const CbamReportSection = dynamic(
 type ReportCategory = "esg" | "ghg" | "cbam" | "iso";
 
 const REPORT_CATEGORIES = [
-  { key: "esg" as const, label: "ESG", icon: Leaf, desc: "Phát triển bền vững & sẵn sàng tuân thủ" },
+  { key: "esg" as const, label: "ESG", icon: Leaf, desc: "Dữ liệu phát triển bền vững & theo dõi yêu cầu" },
   { key: "ghg" as const, label: "GHG", icon: Building2, desc: "GHG Protocol · Kiểm kê phát thải Scope 1/2/3" },
-  { key: "cbam" as const, label: "CBAM", icon: FileBarChart, desc: "EU CBAM pre-audit · 6 tab phỏng theo mẫu EU" },
-  { key: "iso" as const, label: "ISO", icon: BadgeCheck, desc: "ISO 14067 · Dấu chân carbon sản phẩm (PCF)" },
+  { key: "cbam" as const, label: "CBAM", icon: FileBarChart, desc: "Sàng lọc sơ bộ · mã có khả năng khớp Annex I phải được customs/legal review" },
+  { key: "iso" as const, label: "PCF", icon: BadgeCheck, desc: "PCF nội bộ có tham chiếu ISO 14067 · chưa xác minh độc lập" },
 ];
 
 // Which PDF report card belongs under which standard tab (one primary home each).
@@ -158,7 +158,7 @@ const PDF_REPORT_TITLE_MAP: Record<string, string> = {
   product: "Báo cáo PCF Sản phẩm",
   batch: "Báo cáo Lô Xuất khẩu",
   facility: "Báo cáo Phát thải Cơ sở",
-  compliance: "Sẵn sàng Tuân thủ",
+  compliance: "Theo dõi Yêu cầu",
 };
 
 const CREATE_REPORT_TYPE_OPTIONS: ReportType[] = [
@@ -1092,8 +1092,8 @@ const ReportsPage: React.FC = () => {
                 iconBg: "bg-emerald-100 text-emerald-700",
                 title: "Báo cáo PCF Sản phẩm",
                 desc: locale === "vi"
-                  ? "ISO 14067 · Bóc tách Scope 1/2/3 theo từng SKU"
-                  : "ISO 14067 · Scope 1/2/3 breakdown per SKU",
+                  ? "PCF nội bộ tham chiếu ISO 14067 · theo từng SKU"
+                  : "Internal PCF referencing ISO 14067 · by SKU",
               },
               {
                 key: "batch",
@@ -1101,8 +1101,8 @@ const ReportsPage: React.FC = () => {
                 iconBg: "bg-blue-100 text-blue-700",
                 title: "Báo cáo Lô Xuất khẩu",
                 desc: locale === "vi"
-                  ? "CBAM-ready · Nhóm sản phẩm theo lô vận chuyển"
-                  : "CBAM-ready · Products grouped by shipment batch",
+                  ? "Lô vận chuyển · phải qua kiểm tra phạm vi CBAM"
+                  : "Shipment batch · CBAM scope screening required",
               },
               {
                 key: "facility",
@@ -1117,7 +1117,7 @@ const ReportsPage: React.FC = () => {
                 key: "compliance",
                 icon: ClipboardCheck,
                 iconBg: "bg-purple-100 text-purple-700",
-                title: "Sẵn sàng Tuân thủ",
+                title: "Theo dõi Yêu cầu",
                 desc: locale === "vi"
                   ? "EU ESPR/DPP · EPR dệt may · Kiểm kê KNK VN (TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
                   : "EU ESPR/DPP · Textile EPR · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
@@ -1191,7 +1191,7 @@ const ReportsPage: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-slate-950">Xem trước Báo cáo Chuẩn (5 phần)</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Dashboard PCF + ISO 14067 + ESG · Kiểm kê KNK (TT 38/2023/TT-BCT) + CBAM EU — bóc tách theo SKU, cùng định dạng chuẩn cho mọi tài khoản.
+                  Bản xem trước nội bộ gồm PCF tham chiếu ISO 14067, dữ liệu ESG, kiểm kê KNK và kiểm tra phạm vi CBAM. Không phải chứng nhận, kết luận đảm bảo hay hồ sơ đã nộp.
                 </p>
               </div>
             </div>

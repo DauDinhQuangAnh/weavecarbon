@@ -151,23 +151,23 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
     };
   }, [open, productEvidence, selectedProduct]);
 
-  const getOfficialPayload = async () => {
+  const getPersistedPayload = async () => {
     if (!payload) throw new Error("No report payload is available.");
     if (isDemoRuntime) return payload;
     const snapshot = await saveReportSnapshotV2(payload);
     return snapshot.payload;
   };
 
-  const exportOfficialReport = async (
-    exporter: (officialPayload: typeof payload) => void | Promise<void>
+  const exportInternalReport = async (
+    exporter: (persistedPayload: typeof payload) => void | Promise<void>
   ) => {
     try {
-      await exporter(await getOfficialPayload());
+      await exporter(await getPersistedPayload());
     } catch (error) {
       toast.error(
         error instanceof Error && error.message.trim()
-          ? `Unable to prepare authoritative report: ${error.message}`
-          : "Unable to prepare authoritative report."
+          ? `Unable to prepare the internal report snapshot: ${error.message}`
+          : "Unable to prepare the internal report snapshot."
       );
     }
   };
@@ -190,7 +190,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                 Xem trước báo cáo - WEAVE_CARBON_TEMPLATE_v2.0
               </DialogTitle>
               <p className="mt-1 text-sm text-slate-600">
-                Bóc tách theo đúng format chuẩn: Tổng quan, Nhập liệu, ISO 14067, ESG · Kiểm kê KNK, CBAM EU.
+                Bản xem trước nội bộ: Tổng quan, Nhập liệu, PCF tham chiếu ISO 14067, kiểm kê KNK và kiểm tra phạm vi CBAM.
               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
@@ -220,7 +220,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                   <Button
                     variant="outline"
                     className="gap-2"
-                    onClick={() => void exportOfficialReport(downloadReportCsvV2)}
+                    onClick={() => void exportInternalReport(downloadReportCsvV2)}
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     Tải CSV
@@ -228,14 +228,14 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                   <Button
                     variant="outline"
                     className="gap-2"
-                    onClick={() => void exportOfficialReport(downloadReportXlsxV2)}
+                    onClick={() => void exportInternalReport(downloadReportXlsxV2)}
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     Tải Excel (5 sheet + công thức)
                   </Button>
                   <Button
                     className="gap-2 bg-emerald-800 hover:bg-emerald-900"
-                    onClick={() => void exportOfficialReport(downloadReportPdfV2)}
+                    onClick={() => void exportInternalReport(downloadReportPdfV2)}
                   >
                     <Printer className="h-4 w-4" />
                     Tải PDF (đầy đủ màu & biểu đồ)
@@ -278,7 +278,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                 Tài khoản chưa có sản phẩm nào
               </h3>
               <p className="mt-2 max-w-md text-sm text-slate-600">
-                Bạn chưa tạo sản phẩm hoặc chưa hoàn tất tính toán phát thải (PCF). Vui lòng thêm sản phẩm và nguyên phụ liệu tại mục <strong>Sản phẩm</strong> để xuất báo cáo chính thức cho doanh nghiệp.
+                Bạn chưa tạo sản phẩm hoặc chưa hoàn tất tính toán phát thải (PCF). Vui lòng thêm sản phẩm và nguyên phụ liệu tại mục <strong>Sản phẩm</strong> để tạo báo cáo nội bộ.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <Button
@@ -299,12 +299,12 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
               <div className="rounded-xl px-4 py-3 text-white" style={{ backgroundColor: WEAVE_V2_COLORS.primary }}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-bold">WEAVE CARBON v2.0 - DẤU CHÂN CARBON SẢN PHẨM & TUÂN THỦ ESG</h2>
+                    <h2 className="text-lg font-bold">WEAVE CARBON v2.0 - DỮ LIỆU DẤU CHÂN CARBON & ESG NỘI BỘ</h2>
                     <p className="text-xs text-white/85">SECTOR: DỆT MAY - HÀNG MAY MẶC VIỆT NAM</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge className="border-white/40 bg-emerald-700 text-white">Audit-Ready</Badge>
-                    <Badge className="border-white/40 bg-sky-700 text-white">SHA-256 Certified</Badge>
+                    <Badge className="border-white/40 bg-emerald-700 text-white">INTERNAL REVIEW</Badge>
+                    <Badge className="border-white/40 bg-sky-700 text-white">SHA-256 RECORDED</Badge>
                   </div>
                 </div>
               </div>
@@ -324,9 +324,9 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                       <p className="text-sm">kg CO2e/chiếc</p>
                     </div>
                     <div className="rounded-xl p-4 text-white" style={{ backgroundColor: WEAVE_V2_COLORS.red }}>
-                      <p className="text-sm font-semibold">3. Rủi ro phạt CBAM ước tính</p>
-                      <p className="mt-3 text-4xl font-bold">{payload.totals.cbamRiskEurPerUnit.toFixed(2)}</p>
-                      <p className="text-sm">EUR/sản phẩm</p>
+                      <p className="text-sm font-semibold">3. Kiểm tra phạm vi CBAM</p>
+                      <p className="mt-3 text-lg font-bold">{payload.cbamApplicability}</p>
+                      <p className="text-sm">Không phải kết luận hoặc nghĩa vụ thanh toán</p>
                     </div>
                   </div>
 
@@ -384,7 +384,7 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                       </div>
                     </div>
                     <div className="rounded-xl border border-slate-200 p-3">
-                      <h3 className="mb-3 text-sm font-bold">THEO DÕI ĐỘ HOÀN THIỆN DỮ LIỆU & KIỂM TOÁN</h3>
+                      <h3 className="mb-3 text-sm font-bold">THEO DÕI ĐỘ HOÀN THIỆN VÀ NGUỒN DỮ LIỆU</h3>
                       <div className="space-y-2 text-sm">
                         <p>
                           <span className="text-slate-500">Tên cơ sở:</span> {payload.facility.name}
@@ -396,10 +396,10 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                           Cảnh báo: {gapRow ? "CẢNH BÁO ĐỎ: KHUYẾT SCOPE 3" : "Không có red flag"}
                         </p>
                         <p>
-                          <span className="text-slate-500">Dấu vết:</span> SHA-256 Verified
+                          <span className="text-slate-500">Dấu vết:</span> SHA-256 đã ghi nhận, chưa phải chứng nhận
                         </p>
                         <div>
-                          <span className="text-slate-500">Audit evidence:</span>
+                          <span className="text-slate-500">Tệp nguồn đã liên kết:</span>
                           {payload.evidence.length > 0 ? (
                             <ul className="mt-1 list-disc pl-5 text-emerald-800">
                               {payload.evidence.map((evidence) => (
@@ -464,7 +464,8 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
               )}
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-900">
-                Nguồn: {payload.sources.join(" · ")}
+                Nguồn tham chiếu: {payload.sources.join(" · ")}. Báo cáo này phục vụ review nội bộ, không phải chứng nhận,
+                kết luận phù hợp ISO, hồ sơ CBAM đã nộp hoặc đảm bảo độc lập.
               </div>
             </div>
           )}
