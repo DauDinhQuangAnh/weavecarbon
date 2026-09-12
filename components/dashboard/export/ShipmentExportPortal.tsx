@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fetchAllLogisticsShipments, type LogisticsShipmentSummary } from '@/lib/logisticsApi';
 import CarrierDocumentPanel from './CarrierDocumentPanel';
+import EuImportHandoffPanel from './EuImportHandoffPanel';
 import VnCustomsHandoffPanel from './VnCustomsHandoffPanel';
 import {
   createShipmentPackage,
@@ -45,13 +46,15 @@ const DOCUMENT_LABELS: Record<ExportDocumentType, string> = {
   carbon_annex: 'Carbon Annex (không phải B/L)',
   origin_workbook: 'EVFTA Origin Workbook',
   ics2_dataset: 'ICS2 Data Package',
-  vn_customs_handoff: 'Vietnam Customs Broker Handoff'
+  vn_customs_handoff: 'Vietnam Customs Broker Handoff',
+  eu_import_handoff: 'EU Import Declarant Handoff (EUCDM)'
 };
 
 const REVIEW_ROLE_LABELS = {
   export_operator: 'nhân viên xuất nhập khẩu',
   warehouse_reviewer: 'nhân viên kho',
-  customs_declaration_reviewer: 'chuyên viên khai báo hải quan'
+  customs_declaration_reviewer: 'chuyên viên khai báo hải quan Việt Nam',
+  eu_import_declaration_reviewer: 'chuyên viên khai báo nhập khẩu EU'
 } as const;
 
 const fields: Array<{ key: keyof ShipmentExportProfile; label: string; type?: string; numeric?: boolean }> = [
@@ -133,7 +136,7 @@ export default function ShipmentExportPortal() {
   const [newContainer, setNewContainer] = useState(emptyContainerForm);
   const [newPackage, setNewPackage] = useState(emptyPackageForm);
   const [documentFormats, setDocumentFormats] = useState<Partial<Record<ExportDocumentType, ExportOutputFormat>>>({
-    commercial_invoice: 'pdf', packing_list: 'pdf', vn_customs_handoff: 'json'
+    commercial_invoice: 'pdf', packing_list: 'pdf', vn_customs_handoff: 'json', eu_import_handoff: 'json'
   });
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
 
@@ -356,8 +359,15 @@ export default function ShipmentExportPortal() {
             onChanged={reload}
           />
 
+          <EuImportHandoffPanel
+            key={`${shipmentId}:${bundle.euImportProfile?.updatedAt || 'new'}:${bundle.euImportLineDetails.length}:${bundle.euImportEvents.length}:${bundle.euImportEvidence.length}`}
+            shipmentId={shipmentId}
+            bundle={bundle}
+            onChanged={reload}
+          />
+
           <Card>
-            <CardHeader><CardTitle className="text-base">6. Mức hoàn thiện tài liệu</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">7. Mức hoàn thiện tài liệu</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3"><Progress value={readiness?.documentCompleteness || 0} className="h-2 flex-1" /><b>{readiness?.documentCompleteness || 0}%</b><Badge>{readiness?.status || 'blocked'}</Badge></div>
               <p className="text-xs text-slate-600">Đây là mức hoàn thiện dữ liệu, không phải xác nhận của hải quan hoặc cơ quan có thẩm quyền.</p>
@@ -367,7 +377,7 @@ export default function ShipmentExportPortal() {
                   const existing = latestDocuments.get(doc.type);
                   const ready = doc.status === 'ready';
                   const supportsPdf = ['commercial_invoice', 'packing_list'].includes(doc.type);
-                  const supportsCustomsFormats = doc.type === 'vn_customs_handoff';
+                  const supportsCustomsFormats = ['vn_customs_handoff', 'eu_import_handoff'].includes(doc.type);
                   const selectedFormat = documentFormats[doc.type]
                     || (doc.type === 'ics2_dataset' ? 'csv' : supportsCustomsFormats ? 'json' : 'xlsx');
                   return <div key={doc.type} className="space-y-2 rounded-lg border p-3">

@@ -1696,6 +1696,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/eu-import/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/eu-import/events */
+        get: operations["getExportShipmentsByShipmentIdEuImportEvents"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/eu-import/events */
+        post: operations["postExportShipmentsByShipmentIdEuImportEvents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/eu-import/lines/{lineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** PUT /export/shipments/{shipmentId}/eu-import/lines/{lineId} */
+        put: operations["putExportShipmentsByShipmentIdEuImportLinesByLineId"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/eu-import/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/eu-import/profile */
+        get: operations["getExportShipmentsByShipmentIdEuImportProfile"];
+        /** PUT /export/shipments/{shipmentId}/eu-import/profile */
+        put: operations["putExportShipmentsByShipmentIdEuImportProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/eu-import/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/eu-import/reconciliation */
+        get: operations["getExportShipmentsByShipmentIdEuImportReconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/lines": {
         parameters: {
             query?: never;
@@ -6356,6 +6426,238 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdEuImportEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdEuImportEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    actorIdentifier?: string;
+                    actorName: string;
+                    /** @enum {string} */
+                    eventType: "declarant_received" | "declarant_validated" | "declarant_rejected" | "authority_submitted" | "authority_accepted" | "authority_rejected" | "authority_released" | "authority_cancelled" | "amendment_requested" | "amendment_submitted";
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    /** Format: uuid */
+                    exportDocumentId: string;
+                    externalReference: string;
+                    messageCode?: string;
+                    messageText?: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    occurredAt: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putExportShipmentsByShipmentIdEuImportLinesByLineId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lineId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    additionalCodes?: string[];
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    nationalAdditionalCodes?: string[];
+                    preferenceCode?: string;
+                    previousProcedureCode?: string;
+                    requestedProcedureCode?: string;
+                    supplementaryUnitCode?: string;
+                    taricCode?: string;
+                    taricConfirmed?: boolean;
+                    /** Format: date */
+                    taricEffectiveDate?: string;
+                    taricSource?: string;
+                    taricVersion?: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdEuImportProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putExportShipmentsByShipmentIdEuImportProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    additionalDeclarationType: string;
+                    borderTransportIdentity: string;
+                    customsOfficeCode: string;
+                    customsValueAmount: number;
+                    customsValueCurrency: string;
+                    declarant: {
+                        [key: string]: unknown;
+                    };
+                    declarationDatasetCode: string;
+                    declarationNotes?: string;
+                    deliveryTermsLocation?: string;
+                    dutyAmount?: number | null;
+                    dutyRate?: number | null;
+                    /** @enum {string} */
+                    dutyTreatment: "unknown" | "not_subject" | "exempt" | "payable";
+                    exchangeRate: number;
+                    guaranteeReferences?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    guaranteeRequirementStatus: "unknown" | "not_required" | "required";
+                    importer: {
+                        [key: string]: unknown;
+                    };
+                    inlandModeOfTransport: string;
+                    memberStateCode: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    modeOfTransportAtBorder: string;
+                    placeOfGoodsCode: string;
+                    /** @enum {string} */
+                    preferenceClaimStatus: "no_claim" | "claimed";
+                    preferenceReferences?: {
+                        [key: string]: unknown;
+                    }[];
+                    previousProcedureCode: string;
+                    /** @enum {string} */
+                    representationType: "none" | "direct" | "indirect";
+                    representative?: {
+                        [key: string]: unknown;
+                    };
+                    requestedProcedureCode: string;
+                    restrictionReferences?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    restrictionStatus: "unknown" | "not_required" | "required";
+                    supportingDocuments: {
+                        [key: string]: unknown;
+                    }[];
+                    targetSystemSchemaId: string;
+                    targetSystemSchemaVersion: string;
+                    taxBasis?: string;
+                    valuationMethodCode: string;
+                    vatAmount?: number | null;
+                    vatRate?: number | null;
+                    /** @enum {string} */
+                    vatTreatment: "unknown" | "not_subject" | "exempt" | "payable";
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdEuImportReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];

@@ -6,7 +6,8 @@ export type ExportDocumentType =
   | 'carbon_annex'
   | 'origin_workbook'
   | 'ics2_dataset'
-  | 'vn_customs_handoff';
+  | 'vn_customs_handoff'
+  | 'eu_import_handoff';
 
 export type ExportOutputFormat = 'xlsx' | 'pdf' | 'csv' | 'json';
 export type CarrierDocumentType = 'bill_of_lading' | 'fbl' | 'air_waybill' | 'cmr' | 'cim';
@@ -275,6 +276,107 @@ export interface VnCustomsReconciliation {
   };
 }
 
+export interface EuImportParty extends ExportParty {
+  eori?: string;
+}
+
+export interface EuImportProfile {
+  id?: string;
+  shipmentId?: string;
+  updatedAt?: string;
+  schemaId: 'weavecarbon.eu-import-declarant-handoff';
+  schemaVersion: '1.0.0';
+  rulesetVersion: string;
+  regulatoryBasisVersion: string;
+  filingPurpose: 'declarant_handoff';
+  memberStateCode: string;
+  importer: EuImportParty;
+  declarant: EuImportParty;
+  representative: EuImportParty;
+  representationType: 'none' | 'direct' | 'indirect';
+  customsOfficeCode: string;
+  declarationDatasetCode: string;
+  additionalDeclarationType: string;
+  requestedProcedureCode: string;
+  previousProcedureCode: string;
+  modeOfTransportAtBorder: string;
+  inlandModeOfTransport: string;
+  borderTransportIdentity: string;
+  placeOfGoodsCode: string;
+  deliveryTermsLocation: string;
+  valuationMethodCode: string;
+  exchangeRate: number | null;
+  customsValueCurrency: string;
+  customsValueAmount: number | null;
+  dutyTreatment: 'unknown' | 'not_subject' | 'exempt' | 'payable';
+  dutyRate: number | null;
+  dutyAmount: number | null;
+  vatTreatment: 'unknown' | 'not_subject' | 'exempt' | 'payable';
+  vatRate: number | null;
+  vatAmount: number | null;
+  taxBasis: string;
+  restrictionStatus: 'unknown' | 'not_required' | 'required';
+  restrictionReferences: Array<Record<string, unknown>>;
+  preferenceClaimStatus: 'no_claim' | 'claimed';
+  preferenceReferences: Array<Record<string, unknown>>;
+  guaranteeRequirementStatus: 'unknown' | 'not_required' | 'required';
+  guaranteeReferences: Array<Record<string, unknown>>;
+  supportingDocuments: Array<Record<string, unknown>>;
+  targetSystemSchemaId: string;
+  targetSystemSchemaVersion: string;
+  declarationNotes: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface EuImportLineDetail {
+  id?: string;
+  shipmentId?: string;
+  exportLineId: string;
+  taricCode: string;
+  taricSource: string;
+  taricVersion: string;
+  taricEffectiveDate: string | null;
+  taricConfirmed: boolean;
+  taricConfirmedBy?: string | null;
+  taricConfirmedAt?: string | null;
+  supplementaryUnitCode: string;
+  additionalCodes: string[];
+  nationalAdditionalCodes: string[];
+  preferenceCode: string;
+  requestedProcedureCode: string;
+  previousProcedureCode: string;
+  metadata: Record<string, unknown>;
+}
+
+export type EuImportEventType =
+  | 'declarant_received' | 'declarant_validated' | 'declarant_rejected'
+  | 'authority_submitted' | 'authority_accepted' | 'authority_rejected'
+  | 'authority_released' | 'authority_cancelled'
+  | 'amendment_requested' | 'amendment_submitted';
+
+export interface EuImportExternalEvent extends Omit<VnCustomsExternalEvent, 'eventType' | 'sourceType'> {
+  eventType: EuImportEventType;
+  sourceType: 'declarant' | 'authority';
+}
+
+export interface EuImportReconciliation {
+  status: 'passed' | 'failed';
+  rulesetVersion: string;
+  sourceSnapshotSha256: string;
+  schema: { id: string; version: string; regulatoryBasisVersion: string; eucdmVersion?: string };
+  checks: CarrierReconciliationCheck[];
+  summary: {
+    memberStateCode: string;
+    goodsLineCount: number;
+    mappedLineCount: number;
+    packageCount: number;
+    netWeightKg: number;
+    grossWeightKg: number;
+    customsValue: number | null;
+    carrierDocumentId: string | null;
+  };
+}
+
 export interface ShipmentPackage {
   id: string;
   packageNumber: string;
@@ -320,7 +422,7 @@ export interface ShipmentExportDocument {
   downloadUrl: string | null;
   filename: string | null;
   fileSha256: string | null;
-  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | null;
+  requiredReviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer' | null;
   latestReview: ExportDocumentReview | null;
   readyToIssue: boolean;
   issuedAt: string | null;
@@ -329,7 +431,7 @@ export interface ShipmentExportDocument {
 export interface ExportDocumentReview {
   id: string;
   documentId: string;
-  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer';
+  reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer';
   decision: 'approved' | 'rejected' | 'changes_requested' | 'stale';
   originalDecision?: 'approved' | 'rejected' | 'changes_requested';
   notes: string;
@@ -349,6 +451,14 @@ export interface ShipmentExportBundle {
   vnCustomsProfile: VnCustomsProfile | null;
   vnCustomsEvents: VnCustomsExternalEvent[];
   vnCustomsEvidence: Array<{
+    id: string; type: string; name: string; status: string; checksumSha256: string | null;
+    fileSizeBytes: number; validFrom: string | null; validTo: string | null;
+    mimeType: string | null; uploadedAt: string; approvedAt: string | null; approvedBy: string | null;
+  }>;
+  euImportProfile: EuImportProfile | null;
+  euImportLineDetails: EuImportLineDetail[];
+  euImportEvents: EuImportExternalEvent[];
+  euImportEvidence: Array<{
     id: string; type: string; name: string; status: string; checksumSha256: string | null;
     fileSizeBytes: number; validFrom: string | null; validTo: string | null;
     mimeType: string | null; uploadedAt: string; approvedAt: string | null; approvedBy: string | null;
@@ -395,6 +505,26 @@ export const emptyVnCustomsProfile = (): VnCustomsProfile => ({
   brokerTargetSchemaId: '', brokerTargetSchemaVersion: '', declarationNotes: '', metadata: {}
 });
 
+export const emptyEuImportProfile = (): EuImportProfile => ({
+  schemaId: 'weavecarbon.eu-import-declarant-handoff', schemaVersion: '1.0.0',
+  rulesetVersion: 'R05-EU-IMPORT-HANDOFF-2026.09.1',
+  regulatoryBasisVersion: 'UCC-DA-2015/2446-ANNEX-B+UCC-IA-2015/2447-ANNEX-B@EUCDM-7.0.11',
+  filingPurpose: 'declarant_handoff', memberStateCode: '', importer: {}, declarant: {}, representative: {},
+  representationType: 'none', customsOfficeCode: '', declarationDatasetCode: '',
+  additionalDeclarationType: '', requestedProcedureCode: '', previousProcedureCode: '',
+  modeOfTransportAtBorder: '', inlandModeOfTransport: '', borderTransportIdentity: '',
+  placeOfGoodsCode: '', deliveryTermsLocation: '', valuationMethodCode: '', exchangeRate: null,
+  customsValueCurrency: '', customsValueAmount: null, dutyTreatment: 'unknown', dutyRate: null,
+  dutyAmount: null, vatTreatment: 'unknown', vatRate: null, vatAmount: null, taxBasis: '',
+  restrictionStatus: 'unknown', restrictionReferences: [], preferenceClaimStatus: 'no_claim',
+  preferenceReferences: [], guaranteeRequirementStatus: 'unknown', guaranteeReferences: [],
+  supportingDocuments: [
+    { type: 'commercial_invoice', reference: '' }, { type: 'packing_list', reference: '' },
+    { type: 'carrier_document', reference: '' }
+  ],
+  targetSystemSchemaId: '', targetSystemSchemaVersion: '', declarationNotes: '', metadata: {}
+});
+
 const base = (shipmentId: string) => `/export/shipments/${encodeURIComponent(shipmentId)}`;
 
 export const fetchShipmentExportProfile = (shipmentId: string) =>
@@ -421,6 +551,28 @@ export const recordVnCustomsEvent = (
     messageCode?: string; messageText?: string; occurredAt: string;
   }
 ) => api.post<VnCustomsExternalEvent>(`${base(shipmentId)}/vn-customs/events`, payload);
+export const saveEuImportProfile = (shipmentId: string, profile: EuImportProfile) => {
+  const input = { ...profile } as Record<string, unknown>;
+  [
+    'id', 'shipmentId', 'updatedAt', 'schemaId', 'schemaVersion',
+    'rulesetVersion', 'regulatoryBasisVersion', 'filingPurpose'
+  ].forEach((key) => delete input[key]);
+  return api.put<EuImportProfile>(`${base(shipmentId)}/eu-import/profile`, input);
+};
+export const saveEuImportLineDetail = (shipmentId: string, lineId: string, detail: Partial<EuImportLineDetail>) =>
+  api.put<EuImportLineDetail>(`${base(shipmentId)}/eu-import/lines/${encodeURIComponent(lineId)}`, detail);
+export const fetchEuImportReconciliation = (shipmentId: string) =>
+  api.get<EuImportReconciliation>(`${base(shipmentId)}/eu-import/reconciliation`);
+export const fetchEuImportEvents = (shipmentId: string) =>
+  api.get<EuImportExternalEvent[]>(`${base(shipmentId)}/eu-import/events`);
+export const recordEuImportEvent = (
+  shipmentId: string,
+  payload: {
+    exportDocumentId: string; eventType: EuImportEventType; externalReference: string;
+    evidenceDocumentId: string; actorName: string; actorIdentifier?: string;
+    messageCode?: string; messageText?: string; occurredAt: string;
+  }
+) => api.post<EuImportExternalEvent>(`${base(shipmentId)}/eu-import/events`, payload);
 export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
   api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
 export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
@@ -436,7 +588,7 @@ export const issueShipmentExportDocument = (shipmentId: string, documentId: stri
 export const reviewShipmentExportDocument = (
   shipmentId: string,
   documentId: string,
-  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
+  payload: { reviewerRole: 'export_operator' | 'warehouse_reviewer' | 'customs_declaration_reviewer' | 'eu_import_declaration_reviewer'; decision: 'approved' | 'rejected' | 'changes_requested'; notes?: string }
 ) => api.post<ExportDocumentReview>(`${base(shipmentId)}/documents/${encodeURIComponent(documentId)}/reviews`, payload);
 
 export const uploadCarrierDocument = async (shipmentId: string, file: File, kind: CarrierDocumentType = 'bill_of_lading') => {
@@ -483,6 +635,25 @@ export const uploadVnCustomsEvidence = async (
 };
 
 export const lockVnCustomsEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadEuImportEvidence = async (
+  shipmentId: string,
+  file: File,
+  kind: 'eu_declarant_response' | 'eu_customs_authority_response' | 'eu_import_declaration'
+) => {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('shipmentId', shipmentId);
+  body.append('kind', kind);
+  body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('EU customs evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockEuImportEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
