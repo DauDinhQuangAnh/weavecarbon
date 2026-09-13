@@ -500,6 +500,50 @@ export interface OriginReconciliation {
   checks: CarrierReconciliationCheck[]; blockingCodes: string[];
 }
 
+export interface ComplianceMaterialFact {
+  reference: string; description: string; hsCode: string; originCountry: string;
+  percentageByWeight: number | null; animalOrigin: boolean | null; substancesScreened: boolean | null;
+}
+
+export interface ComplianceApplicabilityInput {
+  assessmentDate: string; productCategory: string; intendedUse: string; consumerGroup: string;
+  importerRole: string; salesChannels: string[]; consumerProduct: boolean;
+  placedOnEuMarket: boolean; textileFibrePercent: number | null;
+  materialFacts: ComplianceMaterialFact[]; notes: string;
+}
+
+export interface ComplianceApplicabilityMatch {
+  code: string;
+  decision: 'not_triggered' | 'requirements_identified' | 'specialist_review_required';
+  risk: string; matchPrecision: string; reason: string; sourceId: string | null;
+  matchedProductCodes: string[]; requiredEvidenceTypes: string[];
+}
+
+export interface ComplianceApplicabilityReview {
+  id: string; evaluationId: string; reviewerId: string; reviewerRole: 'compliance_specialist';
+  reviewerName: string | null; reviewerEmail: string | null;
+  decision: 'confirmed_for_internal_planning' | 'needs_information' | 'rejected';
+  notes: string; inputSha256: string; resultSha256: string;
+  evidenceSnapshot: Array<{ id: string; type?: string; name?: string; checksumSha256?: string }>;
+  createdAt: string;
+}
+
+export interface ComplianceApplicabilityEvaluation {
+  id: string; shipmentId: string; rulesetId: string; rulesetVersion: string;
+  rulesetCoverage: 'limited' | 'complete'; sourceManifestSha256: string;
+  assessmentDate: string; input: Record<string, unknown>; inputSha256: string;
+  result: {
+    status: 'not_applicable' | 'requirements_identified' | 'specialist_review_required';
+    specialistReviewRequired: boolean; missingInputs: string[]; matches: ComplianceApplicabilityMatch[];
+    requiredEvidenceTypes: string[];
+    sources: Array<{ id: string; title: string; url: string; version: string }>;
+    disclaimer: string; resultSha256: string;
+  };
+  resultSha256: string;
+  status: 'not_applicable' | 'requirements_identified' | 'specialist_review_required';
+  createdBy: string; createdAt: string; latestReview: ComplianceApplicabilityReview | null;
+}
+
 export interface ShipmentPackage {
   id: string;
   packageNumber: string;
@@ -757,6 +801,23 @@ export const saveOriginProfile = (shipmentId: string, profile: OriginProfile) =>
 };
 export const fetchOriginReconciliation = (shipmentId: string) =>
   api.get<OriginReconciliation>(`${base(shipmentId)}/origin/reconciliation`);
+export const fetchComplianceApplicabilityEvaluations = (shipmentId: string) =>
+  api.get<ComplianceApplicabilityEvaluation[]>(`${base(shipmentId)}/compliance/applicability-evaluations`);
+export const evaluateComplianceApplicability = (
+  shipmentId: string, payload: ComplianceApplicabilityInput
+) => api.post<ComplianceApplicabilityEvaluation>(
+  `${base(shipmentId)}/compliance/applicability-evaluations`, payload
+);
+export const reviewComplianceApplicability = (
+  shipmentId: string, evaluationId: string,
+  payload: {
+    reviewerRole: 'compliance_specialist';
+    decision: 'confirmed_for_internal_planning' | 'needs_information' | 'rejected';
+    notes: string; evidenceDocumentIds?: string[];
+  }
+) => api.post<ComplianceApplicabilityReview>(
+  `${base(shipmentId)}/compliance/applicability-evaluations/${encodeURIComponent(evaluationId)}/reviews`, payload
+);
 export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
   api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
 export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
@@ -870,6 +931,19 @@ export const uploadOriginEvidence = async (shipmentId: string, file: File) => {
 };
 
 export const lockOriginEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadComplianceApplicabilityEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData();
+  body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'compliance_assessment'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('Compliance evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockComplianceApplicabilityEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
