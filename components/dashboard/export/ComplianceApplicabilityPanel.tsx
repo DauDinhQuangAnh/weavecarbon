@@ -26,7 +26,13 @@ const today = () => {
 const emptyInput = (): ComplianceApplicabilityInput => ({
   assessmentDate: today(), productCategory: '', intendedUse: '', consumerGroup: '', importerRole: '',
   salesChannels: [], consumerProduct: true, placedOnEuMarket: true,
-  textileFibrePercent: null, materialFacts: [{
+  textileFibrePercent: null, reachContext: {
+    directAndProlongedSkinOrOralContact: null,
+    washableInWaterDuringNormalLifecycle: null,
+    secondHand: null,
+    exclusivelyRecycledWithoutNpe: null,
+    leatherPartsContactSkin: null
+  }, materialFacts: [{
     reference: '', description: '', hsCode: '', originCountry: '', percentageByWeight: null,
     animalOrigin: null, substancesScreened: null
   }], packagingContext: {
@@ -133,6 +139,17 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
         </div>
       </div>
       <div className="space-y-2 rounded border p-3">
+        <b className="text-sm">Dữ kiện phạm vi REACH Annex XVII</b>
+        <p className="text-xs text-slate-600">Dùng để định tuyến ngưỡng sàng lọc; không phải kết luận hóa chất đạt/không đạt.</p>
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+          <div><Label>Tiếp xúc trực tiếp và kéo dài với da/miệng</Label><Select value={nullableBooleanValue(input.reachContext.directAndProlongedSkinOrOralContact)} onValueChange={(value) => setInput((current) => ({ ...current, reachContext: { ...current.reachContext, directAndProlongedSkinOrOralContact: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không ghi nhận</SelectItem></SelectContent></Select></div>
+          <div><Label>Có thể giặt nước trong vòng đời bình thường</Label><Select value={nullableBooleanValue(input.reachContext.washableInWaterDuringNormalLifecycle)} onValueChange={(value) => setInput((current) => ({ ...current, reachContext: { ...current.reachContext, washableInWaterDuringNormalLifecycle: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không</SelectItem></SelectContent></Select></div>
+          <div><Label>Hàng đã qua sử dụng</Label><Select value={nullableBooleanValue(input.reachContext.secondHand)} onValueChange={(value) => setInput((current) => ({ ...current, reachContext: { ...current.reachContext, secondHand: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không</SelectItem></SelectContent></Select></div>
+          <div><Label>Dệt tái chế hoàn toàn, không dùng NPE</Label><Select value={nullableBooleanValue(input.reachContext.exclusivelyRecycledWithoutNpe)} onValueChange={(value) => setInput((current) => ({ ...current, reachContext: { ...current.reachContext, exclusivelyRecycledWithoutNpe: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có tuyên bố</SelectItem><SelectItem value="no">Không</SelectItem></SelectContent></Select></div>
+          <div><Label>Phần da tiếp xúc với da người</Label><Select value={nullableBooleanValue(input.reachContext.leatherPartsContactSkin)} onValueChange={(value) => setInput((current) => ({ ...current, reachContext: { ...current.reachContext, leatherPartsContactSkin: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không ghi nhận</SelectItem></SelectContent></Select></div>
+        </div>
+      </div>
+      <div className="space-y-2 rounded border p-3">
         <b className="text-sm">Dữ kiện vật liệu bổ sung</b>
         <p className="text-xs text-slate-600">BOM R07 được lấy tự động; hàng này dùng để ghi nhận thành phần cần sàng lọc thêm.</p>
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
@@ -164,6 +181,14 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
           <p>Dataset: {classification.datasetDescription || 'ngoài coverage'} · {classification.datasetVersion}</p>
           {classification.consultationUrl && <a className="text-blue-700 underline" href={classification.consultationUrl} target="_blank" rel="noreferrer">Mở snapshot TARIC chính thức</a>}
           {classification.operatorDescriptionReviewRequired && <p className="text-amber-800">Phải đối chiếu mô tả kỹ thuật; dataset không phải quyết định phân loại hải quan hoặc BTI.</p>}
+        </div>)}
+        {(latest.result.restrictionScreenings || []).map((screening) => <div key={screening.ruleId} className="rounded border border-amber-200 bg-amber-50 p-2 text-xs">
+          <div className="flex flex-wrap gap-2"><b>REACH Annex XVII · {screening.entryNumber}</b><Badge variant="outline">{screening.scopeStatus}</Badge></div>
+          <p>{screening.substanceGroup}: {screening.threshold.operator} {screening.threshold.value} {screening.threshold.unit}</p>
+          <p>{screening.reason}</p>
+          <p>Phạm vi: {screening.scope}</p>
+          {screening.missingScopeFacts.length > 0 && <p className="text-amber-800">Thiếu dữ kiện: {screening.missingScopeFacts.join(', ')}</p>}
+          <p className="text-amber-900">Ngưỡng chỉ để sàng lọc; phải hoàn tất hồ sơ R11 và review chuyên viên hóa chất.</p>
         </div>)}
         {latest.result.matches.map((match) => {
           const source = match.sourceId ? sourceById.get(match.sourceId) : null;

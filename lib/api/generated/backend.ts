@@ -7457,6 +7457,13 @@ export interface operations {
                     };
                     placedOnEuMarket: boolean;
                     productCategory: string;
+                    reachContext?: {
+                        directAndProlongedSkinOrOralContact: boolean | null;
+                        exclusivelyRecycledWithoutNpe: boolean | null;
+                        leatherPartsContactSkin: boolean | null;
+                        secondHand: boolean | null;
+                        washableInWaterDuringNormalLifecycle: boolean | null;
+                    };
                     salesChannels: string[];
                     textileFibrePercent?: number | null;
                 };

@@ -23,6 +23,18 @@ describe('R20 compliance applicability panel claims', () => {
     expect(source).toContain('latest.result.classifications || []');
     expect(source).toContain('dataset không phải quyết định phân loại hải quan hoặc BTI');
     expect(source).toContain('Mở snapshot TARIC chính thức');
+    expect(source).toContain('latest.result.restrictionScreenings || []');
+    expect(source).toContain('REACH Annex XVII · {screening.entryNumber}');
+    expect(source).toContain('Ngưỡng chỉ để sàng lọc; phải hoàn tất hồ sơ R11');
+  });
+
+  it('captures bounded Annex XVII scope facts without claiming chemical conformity', () => {
+    expect(source).toContain('Dữ kiện phạm vi REACH Annex XVII');
+    expect(source).toContain('directAndProlongedSkinOrOralContact');
+    expect(source).toContain('washableInWaterDuringNormalLifecycle');
+    expect(source).toContain('exclusivelyRecycledWithoutNpe');
+    expect(source).toContain('leatherPartsContactSkin');
+    expect(source).toContain('không phải kết luận hóa chất đạt/không đạt');
   });
 
   it('captures PPWR packaging context without presenting an EPR compliance conclusion', () => {

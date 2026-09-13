@@ -15,6 +15,13 @@ const input: ComplianceApplicabilityInput = {
   assessmentDate: '2026-09-14', productCategory: 'apparel', intendedUse: 'wearing',
   consumerGroup: 'adults', importerRole: 'EU importer', salesChannels: ['retail'],
   consumerProduct: true, placedOnEuMarket: true, textileFibrePercent: 100,
+  reachContext: {
+    directAndProlongedSkinOrOralContact: true,
+    washableInWaterDuringNormalLifecycle: true,
+    secondHand: false,
+    exclusivelyRecycledWithoutNpe: false,
+    leatherPartsContactSkin: false
+  },
   packagingContext: {
     present: true, types: ['sales'], materials: ['paper'], reusable: false,
     supplierIdentified: true, customerIdentified: true, directDistanceSaleToEuEndUser: false,

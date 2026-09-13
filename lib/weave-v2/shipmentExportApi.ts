@@ -509,6 +509,12 @@ export interface ComplianceApplicabilityInput {
   assessmentDate: string; productCategory: string; intendedUse: string; consumerGroup: string;
   importerRole: string; salesChannels: string[]; consumerProduct: boolean;
   placedOnEuMarket: boolean; textileFibrePercent: number | null;
+  reachContext: {
+    directAndProlongedSkinOrOralContact: boolean | null;
+    washableInWaterDuringNormalLifecycle: boolean | null;
+    secondHand: boolean | null; exclusivelyRecycledWithoutNpe: boolean | null;
+    leatherPartsContactSkin: boolean | null;
+  };
   packagingContext: {
     present: boolean | null; types: string[]; materials: string[]; reusable: boolean | null;
     supplierIdentified: boolean | null; customerIdentified: boolean | null;
@@ -546,6 +552,13 @@ export interface ComplianceApplicabilityEvaluation {
       datasetId: string; datasetVersion: string; datasetDescription: string | null;
       category: string | null; legalRouteCodes: string[]; matchStatus: string; matchPrecision: string;
       operatorDescriptionReviewRequired: boolean; consultationUrl: string | null;
+    }>;
+    restrictionScreenings?: Array<{
+      ruleId: string; entryNumber: string; substanceGroup: string;
+      threshold: { operator: string; value: number; unit: string };
+      scope: string; scopeStatus: string; reason: string; missingScopeFacts: string[];
+      matchedProductCodes: string[]; sourceId: string; datasetId: string; datasetVersion: string;
+      requiredEvidenceTypes: string[];
     }>;
     requiredEvidenceTypes: string[];
     datasets?: Array<{ id: string; version: string; coverageStatus: string; sha256: string }>;
