@@ -19,5 +19,13 @@ describe('R20 compliance applicability panel claims', () => {
     expect(source).toContain('match.reason');
     expect(source).toContain('match.requiredEvidenceTypes');
     expect(source).toContain('latest.resultSha256');
+    expect(source).toContain('latest.result.datasets || []');
+  });
+
+  it('captures PPWR packaging context without presenting an EPR compliance conclusion', () => {
+    expect(source).toContain('Dữ kiện bao bì PPWR');
+    expect(source).toContain('directDistanceSaleToEuEndUser');
+    expect(source).toContain('producerRoleAssessed');
+    expect(source).toContain('không xác nhận đăng ký, phí hoặc báo cáo theo quốc gia');
   });
 });

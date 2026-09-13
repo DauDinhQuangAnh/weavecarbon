@@ -15,6 +15,11 @@ const input: ComplianceApplicabilityInput = {
   assessmentDate: '2026-09-13', productCategory: 'apparel', intendedUse: 'wearing',
   consumerGroup: 'adults', importerRole: 'EU importer', salesChannels: ['retail'],
   consumerProduct: true, placedOnEuMarket: true, textileFibrePercent: 100,
+  packagingContext: {
+    present: true, types: ['sales'], materials: ['paper'], reusable: false,
+    supplierIdentified: true, customerIdentified: true, directDistanceSaleToEuEndUser: false,
+    producerRoleAssessed: false
+  },
   materialFacts: [], notes: 'Internal triage only.'
 };
 

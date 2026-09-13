@@ -7445,6 +7445,16 @@ export interface operations {
                         substancesScreened?: boolean | null;
                     }[];
                     notes?: string;
+                    packagingContext?: {
+                        customerIdentified: boolean | null;
+                        directDistanceSaleToEuEndUser: boolean | null;
+                        materials: string[];
+                        present: boolean | null;
+                        producerRoleAssessed: boolean | null;
+                        reusable: boolean | null;
+                        supplierIdentified: boolean | null;
+                        types: ("sales" | "grouped" | "transport" | "ecommerce")[];
+                    };
                     placedOnEuMarket: boolean;
                     productCategory: string;
                     salesChannels: string[];

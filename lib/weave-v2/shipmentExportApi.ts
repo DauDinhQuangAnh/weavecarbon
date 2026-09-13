@@ -509,6 +509,11 @@ export interface ComplianceApplicabilityInput {
   assessmentDate: string; productCategory: string; intendedUse: string; consumerGroup: string;
   importerRole: string; salesChannels: string[]; consumerProduct: boolean;
   placedOnEuMarket: boolean; textileFibrePercent: number | null;
+  packagingContext: {
+    present: boolean | null; types: string[]; materials: string[]; reusable: boolean | null;
+    supplierIdentified: boolean | null; customerIdentified: boolean | null;
+    directDistanceSaleToEuEndUser: boolean | null; producerRoleAssessed: boolean | null;
+  };
   materialFacts: ComplianceMaterialFact[]; notes: string;
 }
 
@@ -536,6 +541,7 @@ export interface ComplianceApplicabilityEvaluation {
     status: 'not_applicable' | 'requirements_identified' | 'specialist_review_required';
     specialistReviewRequired: boolean; missingInputs: string[]; matches: ComplianceApplicabilityMatch[];
     requiredEvidenceTypes: string[];
+    datasets?: Array<{ id: string; version: string; coverageStatus: string; sha256: string }>;
     sources: Array<{ id: string; title: string; url: string; version: string }>;
     disclaimer: string; resultSha256: string;
   };

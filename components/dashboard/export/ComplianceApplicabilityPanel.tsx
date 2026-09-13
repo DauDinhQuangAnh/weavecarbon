@@ -29,8 +29,16 @@ const emptyInput = (): ComplianceApplicabilityInput => ({
   textileFibrePercent: null, materialFacts: [{
     reference: '', description: '', hsCode: '', originCountry: '', percentageByWeight: null,
     animalOrigin: null, substancesScreened: null
-  }], notes: ''
+  }], packagingContext: {
+    present: null, types: [], materials: [], reusable: null,
+    supplierIdentified: null, customerIdentified: null,
+    directDistanceSaleToEuEndUser: null, producerRoleAssessed: null
+  }, notes: ''
 });
+
+const nullableBooleanValue = (value: boolean | null) => value === null ? 'unknown' : value ? 'yes' : 'no';
+const nullableBoolean = (value: string) => value === 'unknown' ? null : value === 'yes';
+const commaList = (value: string) => value.split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
 
 export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentId: string }) {
   const [input, setInput] = useState<ComplianceApplicabilityInput>(emptyInput);
@@ -108,6 +116,22 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
         <div><Label>Sản phẩm tiêu dùng</Label><Select value={input.consumerProduct ? 'yes' : 'no'} onValueChange={(value) => setInput((current) => ({ ...current, consumerProduct: value === 'yes' }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không / cần kiểm tra</SelectItem></SelectContent></Select></div>
         <div><Label>Đưa ra thị trường EU</Label><Select value={input.placedOnEuMarket ? 'yes' : 'no'} onValueChange={(value) => setInput((current) => ({ ...current, placedOnEuMarket: value === 'yes' }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không / cần kiểm tra</SelectItem></SelectContent></Select></div>
       </div>
+      <div className="space-y-3 rounded border p-3">
+        <div>
+          <b className="text-sm">Dữ kiện bao bì PPWR</b>
+          <p className="text-xs text-slate-600">Dùng để định tuyến phạm vi, truy xuất và review producer/EPR; không xác nhận đăng ký, phí hoặc báo cáo theo quốc gia.</p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div><Label>Có bao bì</Label><Select value={nullableBooleanValue(input.packagingContext.present)} onValueChange={(value) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, present: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không ghi nhận</SelectItem></SelectContent></Select></div>
+          <div><Label>Loại (sales/grouped/transport/ecommerce)</Label><Input placeholder="sales, ecommerce" value={input.packagingContext.types.join(', ')} onChange={(event) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, types: commaList(event.target.value) } }))} /></div>
+          <div><Label>Vật liệu bao bì</Label><Input placeholder="paper, plastic" value={input.packagingContext.materials.join(', ')} onChange={(event) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, materials: commaList(event.target.value) } }))} /></div>
+          <div><Label>Bao bì tái sử dụng</Label><Select value={nullableBooleanValue(input.packagingContext.reusable)} onValueChange={(value) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, reusable: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không</SelectItem></SelectContent></Select></div>
+          <div><Label>Đã định danh nhà cung cấp</Label><Select value={nullableBooleanValue(input.packagingContext.supplierIdentified)} onValueChange={(value) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, supplierIdentified: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Chưa</SelectItem></SelectContent></Select></div>
+          <div><Label>Đã định danh khách hàng</Label><Select value={nullableBooleanValue(input.packagingContext.customerIdentified)} onValueChange={(value) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, customerIdentified: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Chưa</SelectItem></SelectContent></Select></div>
+          <div><Label>Bán từ xa trực tiếp tới người dùng EU</Label><Select value={nullableBooleanValue(input.packagingContext.directDistanceSaleToEuEndUser)} onValueChange={(value) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, directDistanceSaleToEuEndUser: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Có</SelectItem><SelectItem value="no">Không</SelectItem></SelectContent></Select></div>
+          <div><Label>Đã đánh giá vai trò producer</Label><Select value={nullableBooleanValue(input.packagingContext.producerRoleAssessed)} onValueChange={(value) => setInput((current) => ({ ...current, packagingContext: { ...current.packagingContext, producerRoleAssessed: nullableBoolean(value) } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unknown">Chưa rõ</SelectItem><SelectItem value="yes">Đã đánh giá</SelectItem><SelectItem value="no">Chưa đánh giá</SelectItem></SelectContent></Select></div>
+        </div>
+      </div>
       <div className="space-y-2 rounded border p-3">
         <b className="text-sm">Dữ kiện vật liệu bổ sung</b>
         <p className="text-xs text-slate-600">BOM R07 được lấy tự động; hàng này dùng để ghi nhận thành phần cần sàng lọc thêm.</p>
@@ -130,6 +154,9 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
           <span className="text-xs text-slate-500">{missingCount} dữ kiện còn thiếu · SHA {latest.resultSha256.slice(0, 12)}…</span>
           <Button size="sm" variant="ghost" onClick={() => void load()}><RefreshCw className="h-3 w-3" /></Button>
         </div>
+        {(latest.result.datasets || []).map((dataset) => <p key={dataset.id} className="text-xs text-slate-600">
+          Dataset: {dataset.id} · {dataset.version} · {dataset.coverageStatus} · SHA {dataset.sha256.slice(0, 12)}…
+        </p>)}
         {latest.result.matches.map((match) => {
           const source = match.sourceId ? sourceById.get(match.sourceId) : null;
           return <div key={match.code} className="rounded border p-2">
