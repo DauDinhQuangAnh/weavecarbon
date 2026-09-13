@@ -17,6 +17,7 @@ import EnvironmentalClaimRegisterPanel from './EnvironmentalClaimRegisterPanel';
 import TextileFibreLabelPanel from './TextileFibreLabelPanel';
 import GpsrTechnicalFilePanel from './GpsrTechnicalFilePanel';
 import ReachSvhcDossierPanel from './ReachSvhcDossierPanel';
+import PcfStudyPanel from './PcfStudyPanel';
 import EuImportHandoffPanel from './EuImportHandoffPanel';
 import Ics2HandoffPanel from './Ics2HandoffPanel';
 import OriginHandoffPanel from './OriginHandoffPanel';
@@ -400,8 +401,10 @@ export default function ShipmentExportPortal() {
 
           <ReachSvhcDossierPanel shipmentId={shipmentId} />
 
+          <PcfStudyPanel shipmentId={shipmentId} />
+
           <Card>
-            <CardHeader><CardTitle className="text-base">14. Mức hoàn thiện tài liệu</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">15. Mức hoàn thiện tài liệu</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3"><Progress value={readiness?.documentCompleteness || 0} className="h-2 flex-1" /><b>{readiness?.documentCompleteness || 0}%</b><Badge>{readiness?.status || 'blocked'}</Badge></div>
               <p className="text-xs text-slate-600">Đây là mức hoàn thiện dữ liệu, không phải xác nhận của hải quan hoặc cơ quan có thẩm quyền.</p>

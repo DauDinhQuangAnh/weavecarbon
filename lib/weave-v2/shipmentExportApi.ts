@@ -711,6 +711,59 @@ export interface ReachObligationEvent {
   metadata: Record<string, unknown>; createdAt: string;
 }
 
+export interface PcfCalculationSnapshot {
+  id: string; productId: string; productReference: string; productName: string; version: number; latestVersion: number;
+  calculatedAt: string; finalizedAt: string; canonicalInputHash: string; engineVersion: string;
+  methodologyVersion: string; factorRegistryVersion: string; gwpBasis: string; reportedTotalKgCO2e: number | null;
+  boundary: { includedStages?: string[]; excludedStages?: string[]; partialCfp?: boolean } | null;
+  quality: Record<string, unknown> | null; uncertainty: Record<string, unknown> | null;
+}
+export interface PcfStudyInput {
+  studyReference: string; studyDate: string; calculationSnapshotId: string; productReference: string; productName: string;
+  reportingPeriodStart: string; reportingPeriodEnd: string; intendedApplication: string; intendedAudience: string;
+  comparativeAssertion: boolean; functionalUnit: { quantity: number; unit: string; description: string };
+  referenceFlow: { amount: number; unit: string; basis: string }; boundaryType: string; includedStages: string[];
+  processMap: Array<{ processReference: string; processName: string; stage: string; included: boolean;
+    dataSource: string; evidenceDocumentIds: string[] }>;
+  excludedProcesses: Array<{ processName: string; rationale: string; estimatedImpactPercent: number }>;
+  cutoff: { massPercent: number; energyPercent: number; environmentalSignificanceApplied: boolean; rationale: string };
+  pcr: { status: 'applicable' | 'not_identified' | 'not_applicable'; name: string; publisher: string; version: string;
+    validFrom: string | null; validTo: string | null; rationale: string };
+  allocation: { required: boolean; method: 'physical' | 'economic' | 'mass' | 'energy' | 'other' | '';
+    rationale: string; hierarchyJustification: string; sensitivityPerformed: boolean; sensitivitySummary: string };
+  recyclingModel: { method: string; rationale: string }; dataQualityAssessment: string; dataImprovementPlan: string;
+  uncertaintyAssessment: { method: 'qualitative' | 'rss_fallback' | 'monte_carlo'; parameter: string;
+    scenario: string; model: string; sensitivityScenarios: string[] };
+  landUseChangeMethod: string; biogenicCarbonTreatment: string; evidenceDocumentIds: string[];
+  externalAssuranceRecordId: string | null; limitations: string; notes: string;
+}
+export interface PcfStudyReview {
+  id: string; studyId: string; reviewerId: string; reviewerName: string; reviewerEmail: string | null;
+  reviewerRole: 'pcf_practitioner_reviewer'; decision: 'approved_for_internal_report' | 'needs_information' | 'rejected';
+  notes: string; inputSha256: string; resultSha256: string; calculationCanonicalInputHash: string;
+  evidenceSnapshot: Array<{ id: string; type: string; name: string; status: string; checksumSha256: string; fileSizeBytes: number }>;
+  createdAt: string;
+}
+export interface PcfStudy {
+  id: string; shipmentId: string; productId: string; calculationSnapshotId: string; studyReference: string; revision: number;
+  rulesetId: string; rulesetVersion: string; rulesetCoverage: 'limited' | 'complete'; sourceManifestSha256: string;
+  studyDate: string; reportingPeriodStart: string; reportingPeriodEnd: string; calculationCanonicalInputHash: string;
+  input: PcfStudyInput; inputSha256: string; resultSha256: string; evidenceSnapshot: PcfStudyReview['evidenceSnapshot'];
+  automatedStatus: 'needs_information' | 'practitioner_review_required';
+  result: { automatedStatus: PcfStudy['automatedStatus']; missingInputs: string[];
+    findings: Array<{ code: string; severity: 'blocker' | 'specialist' | 'warning'; message: string; path: string | null }>;
+    sources: Array<{ id: string; title: string; url: string; version: string }>;
+    calculation: { snapshotId: string; snapshotVersion: number; canonicalInputHash: string; engineVersion: string;
+      methodologyVersion: string; factorRegistryVersion: string; gwpBasis: string; contributionTermCount: number;
+      factorCount: number; reportedTotalKgCO2e: number; reproducedTotalKgCO2e: number;
+      gwpBreakdown: Record<string, unknown> | null; quality: Record<string, unknown> | null; uncertainty: Record<string, unknown> | null };
+    assurance: { id: string; outcome: string; providerName: string; statementDate: string | null } | null;
+    claimStatus: 'assurance_record_linked' | 'not_independently_verified'; disclaimer: string; resultSha256: string };
+  studyStatus: 'needs_information' | 'practitioner_review_required' | 'approved_for_internal_report'
+    | 'evidence_review_required' | 'calculation_superseded' | 'rejected' | 'superseded';
+  staleEvidenceIds: string[]; createdBy: string; createdAt: string; latestReview: PcfStudyReview | null;
+}
+
 export type EnvironmentalClaimKind =
   | 'generic_environmental' | 'specific_environmental' | 'comparative' | 'future_performance'
   | 'sustainability_label' | 'offset_based_product_climate' | 'legal_requirement_feature' | 'other';
@@ -1076,6 +1129,15 @@ export const recordReachObligationEvent = (shipmentId: string, dossierId: string
   payload: Pick<ReachObligationEvent, 'eventType' | 'eventReference' | 'occurredAt' | 'summary'>
     & { externalReference?: string; evidenceDocumentId?: string; consumerPersonalDataIncluded?: false; metadata?: Record<string, unknown> }) =>
   api.post<ReachObligationEvent>(`${base(shipmentId)}/reach/dossiers/${encodeURIComponent(dossierId)}/obligation-events`, payload);
+export const fetchPcfCalculationSnapshots = (shipmentId: string) =>
+  api.get<PcfCalculationSnapshot[]>(`${base(shipmentId)}/pcf/calculation-snapshots`);
+export const fetchPcfStudies = (shipmentId: string) =>
+  api.get<PcfStudy[]>(`${base(shipmentId)}/pcf/studies`);
+export const createPcfStudy = (shipmentId: string, payload: PcfStudyInput) =>
+  api.post<PcfStudy>(`${base(shipmentId)}/pcf/studies`, payload);
+export const reviewPcfStudy = (shipmentId: string, studyId: string,
+  payload: { reviewerRole: 'pcf_practitioner_reviewer'; decision: PcfStudyReview['decision']; notes: string }) =>
+  api.post<PcfStudyReview>(`${base(shipmentId)}/pcf/studies/${encodeURIComponent(studyId)}/reviews`, payload);
 export const fetchEnvironmentalClaimDossiers = (shipmentId: string) =>
   api.get<EnvironmentalClaimDossier[]>(`${base(shipmentId)}/environmental-claims`);
 export const createEnvironmentalClaimDossier = (shipmentId: string, payload: EnvironmentalClaimInput) =>
@@ -1249,6 +1311,17 @@ export const uploadReachEvidence = async (shipmentId: string, file: File) => {
   return payload.data as { id: string };
 };
 export const lockReachEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadPcfStudyEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData(); body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'pcf_source'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('PCF evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+export const lockPcfStudyEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const uploadEnvironmentalClaimEvidence = async (shipmentId: string, file: File) => {

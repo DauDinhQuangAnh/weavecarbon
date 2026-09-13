@@ -2080,6 +2080,58 @@ export interface paths {
         patch: operations["patchExportShipmentsByShipmentIdPackagesByPackageId"];
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/pcf/calculation-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/pcf/calculation-snapshots */
+        get: operations["getExportShipmentsByShipmentIdPcfCalculationSnapshots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/pcf/studies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/pcf/studies */
+        get: operations["getExportShipmentsByShipmentIdPcfStudies"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/pcf/studies */
+        post: operations["postExportShipmentsByShipmentIdPcfStudies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/pcf/studies/{studyId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/pcf/studies/{studyId}/reviews */
+        post: operations["postExportShipmentsByShipmentIdPcfStudiesByStudyIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/profile": {
         parameters: {
             query?: never;
@@ -3328,6 +3380,95 @@ export interface components {
             total_pages?: number;
         } & {
             [key: string]: unknown;
+        };
+        PcfStudyInput: {
+            allocation: {
+                hierarchyJustification: string;
+                /** @enum {string} */
+                method: "physical" | "economic" | "mass" | "energy" | "other" | "";
+                rationale: string;
+                required: boolean;
+                sensitivityPerformed: boolean;
+                sensitivitySummary: string;
+            };
+            biogenicCarbonTreatment: string;
+            boundaryType: string;
+            /** Format: uuid */
+            calculationSnapshotId: string;
+            comparativeAssertion: boolean;
+            cutoff: {
+                energyPercent: number;
+                environmentalSignificanceApplied: boolean;
+                massPercent: number;
+                rationale: string;
+            };
+            dataImprovementPlan: string;
+            dataQualityAssessment: string;
+            evidenceDocumentIds: string[];
+            excludedProcesses: {
+                estimatedImpactPercent: number;
+                processName: string;
+                rationale: string;
+            }[];
+            /** Format: uuid */
+            externalAssuranceRecordId?: string | null;
+            functionalUnit: {
+                description: string;
+                quantity: number;
+                unit: string;
+            };
+            includedStages: string[];
+            intendedApplication: string;
+            intendedAudience: string;
+            landUseChangeMethod: string;
+            limitations: string;
+            notes?: string;
+            pcr: {
+                name: string;
+                publisher: string;
+                rationale: string;
+                /** @enum {string} */
+                status: "applicable" | "not_identified" | "not_applicable";
+                /** Format: date */
+                validFrom: string | null;
+                /** Format: date */
+                validTo: string | null;
+                version: string;
+            };
+            processMap: {
+                dataSource: string;
+                evidenceDocumentIds: string[];
+                included: boolean;
+                processName: string;
+                processReference: string;
+                stage: string;
+            }[];
+            productName: string;
+            productReference: string;
+            recyclingModel: {
+                method: string;
+                rationale: string;
+            };
+            referenceFlow: {
+                amount: number;
+                basis: string;
+                unit: string;
+            };
+            /** Format: date */
+            reportingPeriodEnd: string;
+            /** Format: date */
+            reportingPeriodStart: string;
+            /** Format: date */
+            studyDate: string;
+            studyReference: string;
+            uncertaintyAssessment: {
+                /** @enum {string} */
+                method: "qualitative" | "rss_fallback" | "monte_carlo";
+                model: string;
+                parameter: string;
+                scenario: string;
+                sensitivityScenarios: string[];
+            };
         };
         /**
          * @example {
@@ -7991,6 +8132,105 @@ export interface operations {
             content: {
                 "application/json": {
                     [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdPcfCalculationSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdPcfStudies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdPcfStudies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PcfStudyInput"];
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdPcfStudiesByStudyIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+                studyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_internal_report" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "pcf_practitioner_reviewer";
                 };
             };
         };
