@@ -938,6 +938,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/corporate-ghg-inventories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /corporate-ghg-inventories */
+        get: operations["getCorporateGhgInventories"];
+        put?: never;
+        /** POST /corporate-ghg-inventories */
+        post: operations["postCorporateGhgInventories"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/corporate-ghg-inventories/{inventoryId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /corporate-ghg-inventories/{inventoryId}/reviews */
+        post: operations["postCorporateGhgInventoriesByInventoryIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard/overview": {
         parameters: {
             query?: never;
@@ -3336,6 +3371,98 @@ export interface components {
             invited: number;
             total: number;
         };
+        CorporateGhgInventoryInput: {
+            additionalSources: components["schemas"]["GhgActivitySourceInput"][];
+            assurance: {
+                /** Format: uuid */
+                evidenceDocumentId: string | null;
+                /** @enum {string} */
+                level: "" | "limited_assurance" | "reasonable_assurance";
+                providerName: string;
+                /** Format: date */
+                statementDate: string | null;
+                verifiedLanguageRequested: boolean;
+            };
+            baseYear: {
+                emissionsKgCo2e: number | null;
+                recalculationPolicy: string;
+                significanceThresholdPercent: number;
+                structuralChanges: string;
+                year: number;
+            };
+            biogenicCo2Kg: number;
+            dataCompletenessPercent: number;
+            dataImprovementPlan: string;
+            dataQualityAssessment: string;
+            defaultFuelFacilityReference: string;
+            evidenceDocumentIds: string[];
+            exclusions: {
+                estimatedImpactPercent: number;
+                rationale: string;
+                source: string;
+            }[];
+            facilities: {
+                country: string;
+                evidenceDocumentIds: string[];
+                included: boolean;
+                name: string;
+                rationale: string;
+                reference: string;
+            }[];
+            fuelFactorMetadata: {
+                fuelType: string;
+                gwpBasis: string;
+                source: string;
+                version: string;
+            }[];
+            gasCoverage: {
+                /** @enum {string} */
+                gas: "CO2" | "CH4" | "N2O" | "HFCs" | "PFCs" | "SF6" | "NF3";
+                rationale: string;
+                /** @enum {string} */
+                status: "quantified" | "not_relevant";
+            }[];
+            intendedUse: string;
+            /** Format: date */
+            inventoryDate: string;
+            inventoryReference: string;
+            limitations: string;
+            notes?: string;
+            offsetsRetiredKgCo2e: number;
+            operationalBoundary: {
+                scope1: components["schemas"]["GhgBoundaryDecision"][];
+                scope2: components["schemas"]["GhgBoundaryDecision"][];
+                scope3: components["schemas"]["GhgBoundaryDecision"][];
+                /** @enum {string} */
+                scope3Claim: "not_included" | "screened" | "full_inventory";
+            };
+            organizationalBoundary: {
+                /** @enum {string} */
+                approach: "equity_share" | "financial_control" | "operational_control";
+                description: string;
+                entities: {
+                    included: boolean;
+                    name: string;
+                    ownershipPercent: number;
+                    rationale: string;
+                    reference: string;
+                }[];
+            };
+            removalsCo2Kg: number;
+            reportingEntityName: string;
+            /** Format: date */
+            reportingPeriodEnd: string;
+            /** Format: date */
+            reportingPeriodStart: string;
+            scope2Accounting: {
+                contractualInstrumentEvidenceIds: string[];
+                gwpBasis: string;
+                locationBasedFactorVersion: string;
+                marketBasedApplicable: boolean;
+                marketBasedMethod: string;
+            };
+            uncertaintyAssessment: string;
+        };
         ErrorDetail: {
             /** @example VALIDATION_ERROR */
             code: string;
@@ -3364,6 +3491,30 @@ export interface components {
             meta?: components["schemas"]["GenericData"];
             /** @enum {boolean} */
             success: true;
+        };
+        GhgActivitySourceInput: {
+            /** @enum {string} */
+            accountingMethod: "location_based" | "market_based";
+            activityUnit: string;
+            activityValue: number;
+            category: string;
+            emissionFactor: number;
+            evidenceDocumentIds: string[];
+            facilityReference: string;
+            factorSource: string;
+            factorUnit: string;
+            factorVersion: string;
+            gas: string;
+            gwpBasis: string;
+            /** @enum {string} */
+            scope: "scope1" | "scope2" | "scope3";
+            sourceReference: string;
+        };
+        GhgBoundaryDecision: {
+            category: string;
+            rationale: string;
+            /** @enum {string} */
+            status: "quantified" | "not_relevant" | "excluded";
         };
         GpsrEconomicOperator: {
             contactPoint?: string;
@@ -5504,6 +5655,79 @@ export interface operations {
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getCorporateGhgInventories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postCorporateGhgInventories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CorporateGhgInventoryInput"];
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postCorporateGhgInventoriesByInventoryIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inventoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_internal_report" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "corporate_ghg_inventory_reviewer";
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationError"];
             429: components["responses"]["TooManyRequests"];

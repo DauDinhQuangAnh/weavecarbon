@@ -80,6 +80,10 @@ import { isDemoPath } from "@/lib/demo/routes";
 import { downloadDemoReportFromPath } from "@/lib/demo/domain/reports";
 import { cn } from "@/lib/utils";import MobileDataCard from "./mobile/MobileDataCard";
 const ReportPreviewModal = dynamic(() => import("./ReportPreviewModal"), { ssr: false });
+const CorporateGhgInventoryPanel = dynamic(
+  () => import("./CorporateGhgInventoryPanel"),
+  { ssr: false }
+);
 // CBAM pre-audit tool is heavy (loads invoices/evidence/calcs); only load it when its
 // tab is selected. Merged in from the former standalone /cbam-report page.
 const CbamReportSection = dynamic(
@@ -1174,6 +1178,8 @@ const ReportsPage: React.FC = () => {
             })}
           </div>
         </div>
+
+        {activeCategory === "ghg" && <CorporateGhgInventoryPanel />}
 
         {/* CBAM pre-audit tool (merged from the former /cbam-report page) */}
         {activeCategory === "cbam" && (
