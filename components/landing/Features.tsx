@@ -47,21 +47,14 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({
   t,
   reducedEffects = false,
 }) => {
-  const locale = "vi";
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const isSliderInView = useInView(sliderRef, { amount: 0.35 });
   const activeFeature = features[activeIndex];
-  const mobileHeaderTitle =
-    locale === "vi" ?
-      ["Tính năng mạnh mẽ", "thời trang bền vững"] :
-      [t("title")];
-  const mobileHeaderSubtitle =
-    locale === "vi" ?
-      t("subtitle").replace("khí thải carbon", "khí thải\u00a0carbon") :
-      t("subtitle");
+  const mobileHeaderTitle = [t("title")];
+  const mobileHeaderSubtitle = t("subtitle");
 
   const selectIndex = (index: number) => {
     const safeIndex = Math.max(0, Math.min(index, features.length - 1));

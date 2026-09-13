@@ -9,15 +9,16 @@
     "getStarted": "Bắt đầu"
   },
   "hero": {
-    "badge": "Vietnam-Native Carbon Intelligence Platform",
+    "badge": "Nền tảng dữ liệu và kiểm soát nội bộ cho dệt may Việt Nam",
     "title": "Nền tảng dữ liệu carbon cho dệt may",
     "titleHighlight": "xuất khẩu",
-    "subtitle": "WeaveCarbon biến ảnh hóa đơn, file Excel và chứng từ giấy thành hồ sơ carbon chuẩn EU — tự động, có truy vết, sẵn sàng cho buyer audit.",
+    "subtitle": "WeaveCarbon hỗ trợ chuyển ảnh hóa đơn, file Excel và chứng từ giấy thành dữ liệu carbon có phiên bản, nguồn gốc và bước rà soát rõ ràng.",
+    "boundary": "WeaveCarbon là phần mềm chuẩn bị dữ liệu nội bộ. Kết quả proxy không phải chứng nhận ISO, ý kiến pháp lý, kết luận tuân thủ, hồ sơ đã nộp hay xác minh độc lập.",
     "cta": {
       "calculate": "Tính toán ngay",
       "start": "Đăng nhập"
     },
-    "trust": "Được tin dùng bởi các nhà sản xuất hàng đầu Việt Nam"
+    "trust": "Thiết kế cho đội ngũ dữ liệu, sản xuất và xuất khẩu tại Việt Nam"
   },
   "userType": {
     "title": "Bạn là ai?",
@@ -32,49 +33,49 @@
   },
   "features": {
     "badge": "Tính năng",
-    "title": "Từ chứng từ rời rạc đến hồ sơ carbon chuẩn EU",
-    "subtitle": "Đầy đủ công cụ để thu thập dữ liệu, tính phát thải, xác minh nguồn gốc và xuất hồ sơ tuân thủ",
+    "title": "Từ chứng từ rời rạc đến dữ liệu có truy vết",
+    "subtitle": "Công cụ thu thập, ước tính, kiểm soát bằng chứng và chuẩn bị bộ dữ liệu nội bộ; không thay thế chuyên gia hay cơ quan có thẩm quyền.",
     "docAI": {
-      "title": "AI đọc chứng từ",
-      "desc": "Tải ảnh hóa đơn, PDF scan, file Excel hay BOM — AI tự đọc và bóc tách số liệu (kWh, lít nhiên liệu, khối lượng, nhà cung ứng) để bạn không phải nhập tay."
+      "title": "AI hỗ trợ đọc chứng từ",
+      "desc": "Tải ảnh hóa đơn, PDF scan, file Excel hay BOM để AI đề xuất dữ liệu trích xuất; người dùng vẫn rà soát trước khi sử dụng."
     },
     "carbonProxy": {
-      "title": "Tính carbon theo ISO 14067",
-      "desc": "Ước tính CO₂e cho vật liệu, sản xuất, vận chuyển và đóng gói bằng hệ số Ecoinvent v3.10 — dùng được ngay cả khi dữ liệu chuỗi cung ứng chưa đầy đủ."
+      "title": "Ước tính carbon proxy có phạm vi",
+      "desc": "Ước tính CO₂e cho các phần dữ liệu được ghi nhận bằng registry hệ số có phiên bản. Kết quả khi thiếu dữ liệu là proxy nội bộ, không phải PCF được chứng nhận ISO 14067."
     },
     "auditTrail": {
-      "title": "Truy vết & mức tin cậy",
-      "desc": "Mỗi chứng từ có mức xác minh L0–L5, mã băm SHA-256 và nhật ký thay đổi — chứng minh được số liệu đến từ đâu khi buyer hoặc kiểm toán viên hỏi."
+      "title": "Truy vết & trạng thái bằng chứng",
+      "desc": "Mỗi chứng từ có trạng thái kiểm soát, mã băm SHA-256 và nhật ký thay đổi để chỉ ra dữ liệu được ghi nhận từ nguồn nào."
     },
     "cbamDpp": {
-      "title": "Hồ sơ CBAM & EU DPP",
-      "desc": "Xuất báo cáo cấu trúc CBAM, hộ chiếu sản phẩm số (DPP) và bộ hồ sơ PDF sẵn sàng nộp cho đối tác nhập khẩu."
+      "title": "Bộ dữ liệu xuất khẩu & hộ chiếu sản phẩm",
+      "desc": "Chuẩn bị bộ dữ liệu nội bộ, kiểm tra phạm vi CBAM và hộ chiếu sản phẩm có kiểm soát. Đây không phải tờ khai registry, DPP theo delegated act hay hồ sơ đã được chấp thuận."
     },
     "dataGap": {
       "title": "Kiểm tra khoảng trống dữ liệu",
-      "desc": "Chấm điểm độ đầy đủ dữ liệu và chỉ đúng chứng từ nào còn thiếu, mức độ nghiêm trọng ra sao — biết phải bổ sung gì trước khi bị hỏi."
+      "desc": "Đánh giá nội bộ độ đầy đủ dữ liệu và chỉ ra chứng từ còn thiếu để người phụ trách quyết định bước bổ sung."
     },
     "transportCalc": {
-      "title": "Vận chuyển & bản đồ chuỗi cung ứng",
-      "desc": "Tính phát thải theo từng chặng (biển, hàng không, đường bộ, đường sắt) và theo dõi lô hàng trên bản đồ tuyến vận chuyển."
+      "title": "Ước tính vận chuyển & bản đồ tuyến",
+      "desc": "Ước tính phát thải theo dữ liệu từng chặng và registry hệ số có phiên bản, đồng thời hiển thị lô hàng trên bản đồ tuyến vận chuyển."
     },
     "exportReady": {
-      "title": "Mức sẵn sàng theo thị trường",
-      "desc": "Chấm điểm mức độ đáp ứng cho từng thị trường xuất khẩu (EU, Hoa Kỳ, Nhật, Hàn, Anh, ASEAN…) kèm danh sách hồ sơ còn thiếu."
+      "title": "Đánh giá dữ liệu theo thị trường",
+      "desc": "Hiển thị phạm vi quy tắc đang được hỗ trợ và danh sách dữ liệu còn thiếu theo thị trường; không phải kết luận tuân thủ pháp lý."
     },
     "recommendations": {
-      "title": "Khuyến nghị giảm phát thải",
-      "desc": "AI phân tích cơ cấu phát thải và đề xuất hướng giảm cụ thể theo thứ tự ưu tiên, kèm mức giảm ước tính cho từng phương án."
+      "title": "Kịch bản thay đổi dữ liệu phát thải",
+      "desc": "AI đề xuất các kịch bản proxy và mức thay đổi ước tính để người dùng phân tích; mọi kết quả cần được xác nhận trước khi dùng trong claim."
     },
     "circularHub": {
-      "title": "Ứng dụng tuần hoàn cho người dùng cuối",
-      "desc": "Ứng dụng B2C đi kèm: bản đồ điểm thu gom, quyên góp và tái chế quần áo, tích điểm đổi ưu đãi — mở rộng câu chuyện bền vững tới người tiêu dùng."
+      "title": "Quy trình thu gom cho người dùng cuối",
+      "desc": "Ứng dụng B2C cung cấp bản đồ điểm thu gom, ghi nhận quyên góp hoặc phân loại quần áo và tích điểm theo dữ liệu vận hành."
     }
   },
   "howItWorks": {
     "badge": "Cách hoạt động",
     "title": "Cách hoạt động",
-    "subtitle": "Bốn bước từ chứng từ thô đến hồ sơ nộp được cho buyer",
+    "subtitle": "Bốn bước từ chứng từ thô đến bộ dữ liệu nội bộ có thể rà soát",
     "step1": {
       "title": "Tải chứng từ lên",
       "desc": "Ảnh hóa đơn, PDF, Excel hoặc nhập SKU — AI đọc và bóc tách số liệu",
@@ -84,41 +85,41 @@
     },
     "step2": {
       "title": "Tính & rà soát",
-      "desc": "Hệ thống tính CO₂e theo giai đoạn và chỉ ra dữ liệu còn thiếu",
-      "item1": "Hệ số Ecoinvent",
+      "desc": "Hệ thống ước tính CO₂e theo phạm vi dữ liệu và chỉ ra phần còn thiếu",
+      "item1": "Registry hệ số có phiên bản",
       "item2": "Phân rã theo giai đoạn",
       "item3": "Kiểm tra khoảng trống"
     },
     "step3": {
-      "title": "Xác minh & truy vết",
-      "desc": "Nâng mức tin cậy của chứng từ và khóa lại để phục vụ kiểm toán",
-      "item1": "Mức xác minh L0–L5",
+      "title": "Kiểm soát & truy vết",
+      "desc": "Ghi trạng thái nguồn, khóa chứng từ và lưu lịch sử cho bước rà soát",
+      "item1": "Mức bằng chứng L0–L5",
       "item2": "Mã băm SHA-256",
       "item3": "Nhật ký thay đổi"
     },
     "step4": {
-      "title": "Xuất hồ sơ tuân thủ",
-      "desc": "Kết xuất hồ sơ theo chuẩn thị trường đích để nộp cho đối tác",
-      "item1": "Báo cáo CBAM",
-      "item2": "Hộ chiếu số EU DPP",
-      "item3": "Bộ hồ sơ tiền kiểm toán"
+      "title": "Xuất bộ dữ liệu nội bộ",
+      "desc": "Kết xuất dữ liệu có phiên bản để người phụ trách và đối tác tiếp tục rà soát",
+      "item1": "Kiểm tra phạm vi CBAM",
+      "item2": "Hộ chiếu sản phẩm có kiểm soát",
+      "item3": "Bộ dữ liệu tiền rà soát"
     }
   },
   "stats": {
     "badge": "Năng lực nền tảng",
-    "title": "Tính theo chuẩn, chứng minh được nguồn gốc",
-    "subtitle": "Phương pháp ISO 14067:2018 và GHG Protocol, hệ số Ecoinvent v3.10 — mỗi con số đều truy ngược được về chứng từ gốc",
+    "title": "Tính có phiên bản, truy ngược được nguồn dữ liệu",
+    "subtitle": "Phương pháp nội bộ có phạm vi, registry hệ số và mã băm chứng từ giúp tái hiện đầu vào; không đồng nghĩa với chứng nhận hay assurance.",
     "docTypes": {
       "title": "Loại chứng từ",
       "description": "Hóa đơn điện, nhiên liệu, BOM, vận đơn, tờ khai NCC…"
     },
     "verification": {
-      "title": "Mức xác minh",
-      "description": "Từ chứng từ mới tải đến đã kiểm định độc lập"
+      "title": "Mức kiểm soát bằng chứng",
+      "description": "Từ chứng từ mới tải đến bằng chứng bên thứ ba được ghi nhận"
     },
     "markets": {
-      "title": "Thị trường xuất khẩu",
-      "description": "Chấm điểm mức sẵn sàng theo từng thị trường đích"
+      "title": "Bối cảnh thị trường",
+      "description": "Đánh giá dữ liệu theo phạm vi quy tắc đang hỗ trợ"
     },
     "stages": {
       "title": "Giai đoạn phát thải",
@@ -127,8 +128,8 @@
   },
   "cta": {
     "badge": "Bắt đầu ngay",
-    "title": "Sẵn sàng cho yêu cầu carbon từ buyer?",
-    "subtitle": "Bắt đầu từ những hóa đơn bạn đang có — dựng hồ sơ carbon truy vết được trước khi đối tác nhập khẩu hỏi tới",
+    "title": "Bắt đầu chuẩn bị dữ liệu carbon cho buyer",
+    "subtitle": "Bắt đầu từ chứng từ hiện có để xây dựng bộ dữ liệu có nguồn gốc và trạng thái rà soát rõ ràng",
     "email": "Nhập email của bạn",
     "button": "Đăng ký sớm",
     "submitting": "Đang gửi...",
@@ -138,7 +139,7 @@
     "terms": "Bằng việc đăng ký, bạn đồng ý với Điều khoản và Chính sách Bảo mật của chúng tôi"
   },
   "footer": {
-    "desc": "Hỗ trợ các thương hiệu thời trang đo lường, giảm thiểu và báo cáo dấu chân carbon trong khi xây dựng nền kinh tế tuần hoàn.",
+    "desc": "Phần mềm hỗ trợ đội ngũ dệt may thu thập, ước tính và kiểm soát dữ liệu carbon cùng hồ sơ vận hành liên quan.",
     "platform": "Nền tảng",
     "company": "Công ty",
     "resources": "Tài nguyên",

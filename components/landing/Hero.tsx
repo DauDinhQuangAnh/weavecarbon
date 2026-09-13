@@ -134,6 +134,16 @@ const Hero = () => {
             {t("subtitle")}
           </motion.p>
 
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.12 }}
+            className="mb-8 rounded-xl border border-slate-300 bg-white/75 px-4 py-3 text-sm leading-6 text-slate-700 sm:mb-10 md:max-w-2xl"
+          >
+            {t("boundary")}
+          </motion.p>
+
           {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
