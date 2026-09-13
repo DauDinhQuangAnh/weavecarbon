@@ -544,6 +544,55 @@ export interface ComplianceApplicabilityEvaluation {
   createdBy: string; createdAt: string; latestReview: ComplianceApplicabilityReview | null;
 }
 
+export type EnvironmentalClaimKind =
+  | 'generic_environmental' | 'specific_environmental' | 'comparative' | 'future_performance'
+  | 'sustainability_label' | 'offset_based_product_climate' | 'legal_requirement_feature' | 'other';
+
+export interface EnvironmentalClaimInput {
+  claimReference: string; exactClaimText: string; publicCommunication: boolean;
+  channel: 'website' | 'product_label' | 'marketplace' | 'advertising' | 'sales_material' | 'report' | 'other';
+  marketCodes: string[]; languageCode: string; communicationStart: string; communicationEnd: string | null;
+  subjectType: 'product' | 'sku' | 'batch' | 'shipment' | 'brand' | 'company';
+  subjectReference: string; scopeStatement: string; claimKind: EnvironmentalClaimKind;
+  specificationText: string; claimScopeMode: 'entire_subject' | 'specific_aspect';
+  actualCoverage: 'entire_subject' | 'aspect_only'; recognizedExcellentPerformance: boolean;
+  methodology: { standard: string; version: string; pcr: string; calculationSha256: string; datasetReferences: string[]; factorReferences: string[] };
+  comparison: { baseline: string; comparator: string; sameMethodAndScope: boolean };
+  futureCommitment: { implementationPlanUrl: string; milestones: string[]; independentMonitoring: boolean };
+  labelScheme: { schemeType: 'certification_scheme' | 'public_authority' | 'self_declared' | 'other'; schemeName: string; publicCriteriaUrl: string };
+  limitations: string[]; exclusions: string[]; uncertaintyStatement: string; qualifiers: string[];
+  updateTriggers: string[]; withdrawalTriggers: string[]; assuranceReference: string;
+  evidenceDocumentIds: string[]; notes: string;
+}
+
+export interface EnvironmentalClaimReview {
+  id: string; dossierId: string; reviewerId: string; reviewerName: string; reviewerEmail: string | null;
+  reviewerRole: 'legal_claim_reviewer';
+  decision: 'approved_for_publication' | 'needs_information' | 'rejected' | 'withdrawn';
+  notes: string; inputSha256: string; resultSha256: string;
+  evidenceSnapshot: Array<{ id: string; type: string; name: string; status: string; checksumSha256: string; fileSizeBytes: number; validTo: string | null }>;
+  createdAt: string;
+}
+
+export interface EnvironmentalClaimDossier {
+  id: string; shipmentId: string; claimReference: string; revision: number;
+  rulesetId: string; rulesetVersion: string; rulesetCoverage: 'limited' | 'complete';
+  sourceManifestSha256: string; communicationStart: string; communicationEnd: string | null;
+  input: EnvironmentalClaimInput; inputSha256: string;
+  result: {
+    automatedStatus: 'blocked_prohibited' | 'needs_information' | 'ready_for_legal_review' | 'internal_draft';
+    amendedRulesApply: boolean; euConsumerClaim: boolean; missingInputs: string[];
+    findings: Array<{ code: string; severity: 'prohibited' | 'blocker' | 'warning' | 'info'; message: string; sourceId: string | null }>;
+    sources: Array<{ id: string; title: string; url: string; version: string; appliesFrom: string }>;
+    disclaimer: string; resultSha256: string;
+  };
+  resultSha256: string; evidenceSnapshot: EnvironmentalClaimReview['evidenceSnapshot'];
+  automatedStatus: EnvironmentalClaimDossier['result']['automatedStatus'];
+  publicationStatus: 'blocked_prohibited' | 'needs_information' | 'internal_draft' | 'legal_review_required'
+    | 'evidence_review_required' | 'approved_scheduled' | 'approved_current' | 'expired' | 'withdrawn' | 'rejected' | 'superseded';
+  staleEvidenceIds: string[]; createdBy: string; createdAt: string; latestReview: EnvironmentalClaimReview | null;
+}
+
 export interface ShipmentPackage {
   id: string;
   packageNumber: string;
@@ -818,6 +867,16 @@ export const reviewComplianceApplicability = (
 ) => api.post<ComplianceApplicabilityReview>(
   `${base(shipmentId)}/compliance/applicability-evaluations/${encodeURIComponent(evaluationId)}/reviews`, payload
 );
+export const fetchEnvironmentalClaimDossiers = (shipmentId: string) =>
+  api.get<EnvironmentalClaimDossier[]>(`${base(shipmentId)}/environmental-claims`);
+export const createEnvironmentalClaimDossier = (shipmentId: string, payload: EnvironmentalClaimInput) =>
+  api.post<EnvironmentalClaimDossier>(`${base(shipmentId)}/environmental-claims`, payload);
+export const reviewEnvironmentalClaimDossier = (
+  shipmentId: string, dossierId: string,
+  payload: { reviewerRole: 'legal_claim_reviewer'; decision: EnvironmentalClaimReview['decision']; notes: string }
+) => api.post<EnvironmentalClaimReview>(
+  `${base(shipmentId)}/environmental-claims/${encodeURIComponent(dossierId)}/reviews`, payload
+);
 export const createShipmentContainer = (shipmentId: string, payload: Partial<ShipmentContainer>) =>
   api.post<ShipmentContainer>(`${base(shipmentId)}/containers`, payload);
 export const updateShipmentContainer = (shipmentId: string, containerId: string, payload: Partial<ShipmentContainer>) =>
@@ -944,6 +1003,19 @@ export const uploadComplianceApplicabilityEvidence = async (shipmentId: string, 
 };
 
 export const lockComplianceApplicabilityEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadEnvironmentalClaimEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData();
+  body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'environmental_claim_substantiation'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('Environmental-claim evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockEnvironmentalClaimEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const downloadReportFile = async (reportId: string, fallbackName: string) => {
