@@ -1609,6 +1609,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/compliance/applicability-evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/compliance/applicability-evaluations */
+        get: operations["getExportShipmentsByShipmentIdComplianceApplicabilityEvaluations"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/compliance/applicability-evaluations */
+        post: operations["postExportShipmentsByShipmentIdComplianceApplicabilityEvaluations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/compliance/applicability-evaluations/{evaluationId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/compliance/applicability-evaluations/{evaluationId}/reviews */
+        post: operations["postExportShipmentsByShipmentIdComplianceApplicabilityEvaluationsByEvaluationIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/containers": {
         parameters: {
             query?: never;
@@ -1696,6 +1731,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/environmental-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/environmental-claims */
+        get: operations["getExportShipmentsByShipmentIdEnvironmentalClaims"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/environmental-claims */
+        post: operations["postExportShipmentsByShipmentIdEnvironmentalClaims"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/environmental-claims/{dossierId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/environmental-claims/{dossierId}/reviews */
+        post: operations["postExportShipmentsByShipmentIdEnvironmentalClaimsByDossierIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/eu-import/events": {
         parameters: {
             query?: never;
@@ -1766,6 +1836,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/ics2/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/ics2/events */
+        get: operations["getExportShipmentsByShipmentIdIcs2Events"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/ics2/events */
+        post: operations["postExportShipmentsByShipmentIdIcs2Events"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/ics2/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/ics2/profile */
+        get: operations["getExportShipmentsByShipmentIdIcs2Profile"];
+        /** PUT /export/shipments/{shipmentId}/ics2/profile */
+        put: operations["putExportShipmentsByShipmentIdIcs2Profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/ics2/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/ics2/reconciliation */
+        get: operations["getExportShipmentsByShipmentIdIcs2Reconciliation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/lines": {
         parameters: {
             query?: never;
@@ -1812,6 +1935,41 @@ export interface paths {
         put?: never;
         /** POST /export/shipments/{shipmentId}/lines/sync */
         post: operations["postExportShipmentsByShipmentIdLinesSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/origin/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/origin/profile */
+        get: operations["getExportShipmentsByShipmentIdOriginProfile"];
+        /** PUT /export/shipments/{shipmentId}/origin/profile */
+        put: operations["putExportShipmentsByShipmentIdOriginProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/origin/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/origin/reconciliation */
+        get: operations["getExportShipmentsByShipmentIdOriginReconciliation"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1882,6 +2040,41 @@ export interface paths {
         get: operations["getExportShipmentsByShipmentIdReadiness"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/textile-fibre-labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/textile-fibre-labels */
+        get: operations["getExportShipmentsByShipmentIdTextileFibreLabels"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/textile-fibre-labels */
+        post: operations["postExportShipmentsByShipmentIdTextileFibreLabels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/textile-fibre-labels/{specificationId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/textile-fibre-labels/{specificationId}/reviews */
+        post: operations["postExportShipmentsByShipmentIdTextileFibreLabelsBySpecificationIdReviews"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6254,6 +6447,106 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getExportShipmentsByShipmentIdComplianceApplicabilityEvaluations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdComplianceApplicabilityEvaluations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    assessmentDate: string;
+                    consumerGroup: string;
+                    consumerProduct: boolean;
+                    importerRole: string;
+                    intendedUse: string;
+                    materialFacts?: {
+                        animalOrigin?: boolean | null;
+                        description?: string;
+                        hsCode?: string;
+                        originCountry?: string;
+                        percentageByWeight?: number | null;
+                        reference?: string;
+                        substancesScreened?: boolean | null;
+                    }[];
+                    notes?: string;
+                    placedOnEuMarket: boolean;
+                    productCategory: string;
+                    salesChannels: string[];
+                    textileFibrePercent?: number | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdComplianceApplicabilityEvaluationsByEvaluationIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evaluationId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "confirmed_for_internal_planning" | "needs_information" | "rejected";
+                    evidenceDocumentIds?: string[];
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "compliance_specialist";
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     postExportShipmentsByShipmentIdContainers: {
         parameters: {
             query?: never;
@@ -6423,6 +6716,141 @@ export interface operations {
             content: {
                 "application/json": {
                     [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdEnvironmentalClaims: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdEnvironmentalClaims: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    actualCoverage?: "entire_subject" | "aspect_only";
+                    assuranceReference?: string;
+                    /** @enum {string} */
+                    channel: "website" | "product_label" | "marketplace" | "advertising" | "sales_material" | "report" | "other";
+                    /** @enum {string} */
+                    claimKind: "generic_environmental" | "specific_environmental" | "comparative" | "future_performance" | "sustainability_label" | "offset_based_product_climate" | "legal_requirement_feature" | "other";
+                    claimReference: string;
+                    /** @enum {string} */
+                    claimScopeMode?: "entire_subject" | "specific_aspect";
+                    /** Format: date */
+                    communicationEnd?: string | null;
+                    /** Format: date */
+                    communicationStart: string;
+                    comparison?: {
+                        baseline?: string;
+                        comparator?: string;
+                        sameMethodAndScope?: boolean;
+                    };
+                    evidenceDocumentIds: string[];
+                    exactClaimText: string;
+                    exclusions?: string[];
+                    futureCommitment?: {
+                        implementationPlanUrl?: string;
+                        independentMonitoring?: boolean;
+                        milestones?: string[];
+                    };
+                    labelScheme?: {
+                        publicCriteriaUrl?: string;
+                        schemeName?: string;
+                        /** @enum {string} */
+                        schemeType?: "certification_scheme" | "public_authority" | "self_declared" | "other";
+                    };
+                    languageCode: string;
+                    limitations?: string[];
+                    marketCodes: string[];
+                    methodology: {
+                        calculationSha256?: string;
+                        datasetReferences?: string[];
+                        factorReferences?: string[];
+                        pcr?: string;
+                        standard?: string;
+                        version?: string;
+                    };
+                    notes?: string;
+                    publicCommunication: boolean;
+                    qualifiers?: string[];
+                    recognizedExcellentPerformance?: boolean;
+                    scopeStatement: string;
+                    specificationText: string;
+                    subjectReference: string;
+                    /** @enum {string} */
+                    subjectType: "product" | "sku" | "batch" | "shipment" | "brand" | "company";
+                    uncertaintyStatement: string;
+                    updateTriggers: string[];
+                    withdrawalTriggers: string[];
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdEnvironmentalClaimsByDossierIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dossierId: string;
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_publication" | "needs_information" | "rejected" | "withdrawn";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "legal_claim_reviewer";
                 };
             };
         };
@@ -6669,6 +7097,181 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getExportShipmentsByShipmentIdIcs2Events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdIcs2Events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    actorIdentifier?: string;
+                    actorName: string;
+                    /** @enum {string} */
+                    eventType: "filer_received" | "filer_validated" | "filer_rejected" | "authority_registered" | "authority_rejected" | "risk_referral" | "do_not_load" | "assessment_complete" | "amendment_requested" | "amendment_registered" | "invalidation_requested" | "invalidated";
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    /** Format: uuid */
+                    exportDocumentId: string;
+                    externalReference: string;
+                    messageCode?: string;
+                    messageText?: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    occurredAt: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdIcs2Profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putExportShipmentsByShipmentIdIcs2Profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    activeBorderTransportMeans: {
+                        [key: string]: unknown;
+                    };
+                    containerIndicator?: boolean;
+                    conveyanceReference: string;
+                    customsOfficeFirstEntry: string;
+                    declarant: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    estimatedArrivalAt: string;
+                    /** @enum {string} */
+                    filingArrangement: "single" | "multiple";
+                    filingNotes?: string;
+                    /** @enum {string} */
+                    filingRole: "carrier" | "house_level_filer" | "express_carrier" | "postal_operator" | "representative";
+                    firstEntryCountry: string;
+                    houseConsignments: {
+                        [key: string]: unknown;
+                    }[];
+                    itineraryCountries: string[];
+                    localReferenceNumber: string;
+                    masterTransportDocument: {
+                        [key: string]: unknown;
+                    };
+                    messageDatasetCode: string;
+                    messageNamespace?: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    paymentMethodCode?: string;
+                    representative?: {
+                        [key: string]: unknown;
+                    };
+                    seals?: string[];
+                    sender: {
+                        [key: string]: unknown;
+                    };
+                    targetSystemSchemaId: string;
+                    targetSystemSchemaVersion: string;
+                    technicalPackageId: string;
+                    technicalPackageVersion: string;
+                    /** @enum {string} */
+                    transportMode: "sea" | "inland_waterway" | "air" | "road" | "rail";
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdIcs2Reconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     postExportShipmentsByShipmentIdLines: {
         parameters: {
             query?: never;
@@ -6762,6 +7365,117 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdOriginProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    putExportShipmentsByShipmentIdOriginProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    claimType: "certificate_application" | "origin_declaration_draft";
+                    exporterAuthorizationReference?: string;
+                    /** @enum {string} */
+                    exporterAuthorizationType?: "none" | "approved" | "registered";
+                    insufficientProcessingExcluded: boolean;
+                    invoiceTotalEur: number;
+                    lineAssessments: {
+                        /** Format: uuid */
+                        exportLineId: string;
+                        exWorksPrice: number;
+                        materials: {
+                            /** @enum {string} */
+                            cumulationBasis?: "none" | "eu_bilateral" | "asean_article_3_2" | "korea_fabric_article_3_7";
+                            description: string;
+                            /** Format: uuid */
+                            evidenceDocumentId: string;
+                            hsCode: string;
+                            id?: string;
+                            isUpperAssemblyAffixedToSole?: boolean | null;
+                            notes?: string;
+                            originCountry: string;
+                            /** @enum {string} */
+                            originStatus: "originating" | "non_originating" | "cumulated" | "unknown";
+                            reference: string;
+                            supplierName?: string;
+                            value: number;
+                            weightKg?: number;
+                        }[];
+                        nonOriginatingMaterialValue: number;
+                        notes?: string;
+                        productionProcesses: string[];
+                        /** @enum {string} */
+                        ruleCode: "CH61_CUT_SEWN_KNITTING_AND_MAKING_UP" | "CH61_KNITTED_TO_SHAPE_SPINNING_OR_EXTRUSION_AND_KNITTING" | "CH62_GENERAL_WEAVING_AND_MAKING_UP" | "CH64_GENERAL_EXCLUDES_6406_UPPER_ASSEMBLY" | "SPECIALIST_RULE_REVIEW";
+                        ruleSourcePage: string;
+                        specialistRuleText?: string;
+                    }[];
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    nonAlterationConfirmed: boolean;
+                    notes?: string;
+                    territorialityConfirmed: boolean;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdOriginReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
@@ -6908,6 +7622,129 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdTextileFibreLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdTextileFibreLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    animalOriginPresence: "present" | "absent" | "unknown";
+                    /** Format: date */
+                    assessmentDate: string;
+                    components: {
+                        componentName: string;
+                        componentReference: string;
+                        fibres: {
+                            fibreCode: string;
+                            percentage: number;
+                        }[];
+                        mainLining: boolean;
+                        weightPercent: number;
+                    }[];
+                    economicOperator: {
+                        address: string;
+                        name: string;
+                        role: string;
+                    };
+                    evidenceDocumentIds: string[];
+                    languageLabels: {
+                        animalOriginStatementIncluded: boolean;
+                        labelText: string;
+                        languageCode: string;
+                        marketCode: string;
+                        operatorApproved: boolean;
+                    }[];
+                    marketCodes: string[];
+                    notes?: string;
+                    placement: {
+                        accessible: boolean;
+                        durable: boolean;
+                        easilyLegible: boolean;
+                        method: string;
+                        onlineBeforePurchase: boolean;
+                        securelyAttached: boolean;
+                        visible: boolean;
+                    };
+                    productCategory: string;
+                    productReference: string;
+                    /** @enum {string} */
+                    specialProductCategory: "standard" | "annex_iv" | "annex_v" | "annex_vi" | "unknown";
+                    specificationReference: string;
+                    textileFibrePercent: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdTextileFibreLabelsBySpecificationIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+                specificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_internal_artwork" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "textile_label_reviewer";
+                };
+            };
+        };
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];

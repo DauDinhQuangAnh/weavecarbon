@@ -7527,6 +7527,320 @@
         ]
       }
     },
+    "/export/shipments/{shipmentId}/compliance/applicability-evaluations": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdComplianceApplicabilityEvaluations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/compliance/applicability-evaluations",
+        "tags": [
+          "Export"
+        ]
+      },
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdComplianceApplicabilityEvaluations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "assessmentDate": {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "consumerGroup": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "consumerProduct": {
+                    "type": "boolean"
+                  },
+                  "importerRole": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "intendedUse": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "materialFacts": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "animalOrigin": {
+                          "nullable": true,
+                          "type": "boolean"
+                        },
+                        "description": {
+                          "maxLength": 1000,
+                          "type": "string"
+                        },
+                        "hsCode": {
+                          "pattern": "^[0-9 .-]{0,20}$",
+                          "type": "string"
+                        },
+                        "originCountry": {
+                          "pattern": "^[A-Za-z]{0,2}$",
+                          "type": "string"
+                        },
+                        "percentageByWeight": {
+                          "maximum": 100,
+                          "minimum": 0,
+                          "nullable": true,
+                          "type": "number"
+                        },
+                        "reference": {
+                          "maxLength": 200,
+                          "type": "string"
+                        },
+                        "substancesScreened": {
+                          "nullable": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "maxItems": 500,
+                    "type": "array"
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "placedOnEuMarket": {
+                    "type": "boolean"
+                  },
+                  "productCategory": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "salesChannels": {
+                    "items": {
+                      "maxLength": 100,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "textileFibrePercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "nullable": true,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "assessmentDate",
+                  "productCategory",
+                  "intendedUse",
+                  "consumerGroup",
+                  "importerRole",
+                  "salesChannels",
+                  "consumerProduct",
+                  "placedOnEuMarket"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/compliance/applicability-evaluations",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/compliance/applicability-evaluations/{evaluationId}/reviews": {
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdComplianceApplicabilityEvaluationsByEvaluationIdReviews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "confirmed_for_internal_planning",
+                      "needs_information",
+                      "rejected"
+                    ],
+                    "type": "string"
+                  },
+                  "evidenceDocumentIds": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reviewerRole": {
+                    "enum": [
+                      "compliance_specialist"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reviewerRole",
+                  "decision",
+                  "notes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/compliance/applicability-evaluations/{evaluationId}/reviews",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
     "/export/shipments/{shipmentId}/containers": {
       "post": {
         "operationId": "postExportShipmentsByShipmentIdContainers",
@@ -7971,6 +8285,498 @@
           }
         ],
         "summary": "POST /export/shipments/{shipmentId}/documents/{type}/generate",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/environmental-claims": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdEnvironmentalClaims",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/environmental-claims",
+        "tags": [
+          "Export"
+        ]
+      },
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdEnvironmentalClaims",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "actualCoverage": {
+                    "enum": [
+                      "entire_subject",
+                      "aspect_only"
+                    ],
+                    "type": "string"
+                  },
+                  "assuranceReference": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  },
+                  "channel": {
+                    "enum": [
+                      "website",
+                      "product_label",
+                      "marketplace",
+                      "advertising",
+                      "sales_material",
+                      "report",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "claimKind": {
+                    "enum": [
+                      "generic_environmental",
+                      "specific_environmental",
+                      "comparative",
+                      "future_performance",
+                      "sustainability_label",
+                      "offset_based_product_climate",
+                      "legal_requirement_feature",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "claimReference": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "claimScopeMode": {
+                    "enum": [
+                      "entire_subject",
+                      "specific_aspect"
+                    ],
+                    "type": "string"
+                  },
+                  "communicationEnd": {
+                    "format": "date",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "communicationStart": {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "comparison": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "baseline": {
+                        "maxLength": 2000,
+                        "type": "string"
+                      },
+                      "comparator": {
+                        "maxLength": 2000,
+                        "type": "string"
+                      },
+                      "sameMethodAndScope": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "evidenceDocumentIds": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "exactClaimText": {
+                    "maxLength": 5000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "exclusions": {
+                    "items": {
+                      "maxLength": 1000,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "futureCommitment": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "implementationPlanUrl": {
+                        "maxLength": 2000,
+                        "type": "string"
+                      },
+                      "independentMonitoring": {
+                        "type": "boolean"
+                      },
+                      "milestones": {
+                        "items": {
+                          "maxLength": 1000,
+                          "type": "string"
+                        },
+                        "maxItems": 100,
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "labelScheme": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "publicCriteriaUrl": {
+                        "maxLength": 2000,
+                        "type": "string"
+                      },
+                      "schemeName": {
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "schemeType": {
+                        "enum": [
+                          "certification_scheme",
+                          "public_authority",
+                          "self_declared",
+                          "other"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "languageCode": {
+                    "maxLength": 35,
+                    "minLength": 2,
+                    "type": "string"
+                  },
+                  "limitations": {
+                    "items": {
+                      "maxLength": 1000,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "marketCodes": {
+                    "items": {
+                      "pattern": "^[A-Za-z]{2}$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "methodology": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "calculationSha256": {
+                        "pattern": "^[a-fA-F0-9]{64}$",
+                        "type": "string"
+                      },
+                      "datasetReferences": {
+                        "items": {
+                          "maxLength": 1000,
+                          "type": "string"
+                        },
+                        "maxItems": 100,
+                        "type": "array"
+                      },
+                      "factorReferences": {
+                        "items": {
+                          "maxLength": 1000,
+                          "type": "string"
+                        },
+                        "maxItems": 100,
+                        "type": "array"
+                      },
+                      "pcr": {
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "standard": {
+                        "maxLength": 500,
+                        "type": "string"
+                      },
+                      "version": {
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "publicCommunication": {
+                    "type": "boolean"
+                  },
+                  "qualifiers": {
+                    "items": {
+                      "maxLength": 1000,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "recognizedExcellentPerformance": {
+                    "type": "boolean"
+                  },
+                  "scopeStatement": {
+                    "maxLength": 5000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "specificationText": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "subjectReference": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "subjectType": {
+                    "enum": [
+                      "product",
+                      "sku",
+                      "batch",
+                      "shipment",
+                      "brand",
+                      "company"
+                    ],
+                    "type": "string"
+                  },
+                  "uncertaintyStatement": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "updateTriggers": {
+                    "items": {
+                      "maxLength": 1000,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "withdrawalTriggers": {
+                    "items": {
+                      "maxLength": 1000,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "claimReference",
+                  "exactClaimText",
+                  "publicCommunication",
+                  "channel",
+                  "marketCodes",
+                  "languageCode",
+                  "communicationStart",
+                  "subjectType",
+                  "subjectReference",
+                  "scopeStatement",
+                  "claimKind",
+                  "specificationText",
+                  "methodology",
+                  "uncertaintyStatement",
+                  "updateTriggers",
+                  "withdrawalTriggers",
+                  "evidenceDocumentIds"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/environmental-claims",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/environmental-claims/{dossierId}/reviews": {
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdEnvironmentalClaimsByDossierIdReviews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dossierId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "approved_for_publication",
+                      "needs_information",
+                      "rejected",
+                      "withdrawn"
+                    ],
+                    "type": "string"
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reviewerRole": {
+                    "enum": [
+                      "legal_claim_reviewer"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reviewerRole",
+                  "decision",
+                  "notes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/environmental-claims/{dossierId}/reviews",
         "tags": [
           "Export"
         ]
@@ -8659,6 +9465,501 @@
         ]
       }
     },
+    "/export/shipments/{shipmentId}/ics2/events": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdIcs2Events",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/ics2/events",
+        "tags": [
+          "Export"
+        ]
+      },
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdIcs2Events",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "actorIdentifier": {
+                    "maxLength": 300,
+                    "type": "string"
+                  },
+                  "actorName": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "eventType": {
+                    "enum": [
+                      "filer_received",
+                      "filer_validated",
+                      "filer_rejected",
+                      "authority_registered",
+                      "authority_rejected",
+                      "risk_referral",
+                      "do_not_load",
+                      "assessment_complete",
+                      "amendment_requested",
+                      "amendment_registered",
+                      "invalidation_requested",
+                      "invalidated"
+                    ],
+                    "type": "string"
+                  },
+                  "evidenceDocumentId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "exportDocumentId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "externalReference": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "messageCode": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "messageText": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "occurredAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "exportDocumentId",
+                  "eventType",
+                  "externalReference",
+                  "evidenceDocumentId",
+                  "actorName",
+                  "occurredAt"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/ics2/events",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/ics2/profile": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdIcs2Profile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/ics2/profile",
+        "tags": [
+          "Export"
+        ]
+      },
+      "put": {
+        "operationId": "putExportShipmentsByShipmentIdIcs2Profile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "activeBorderTransportMeans": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "containerIndicator": {
+                    "type": "boolean"
+                  },
+                  "conveyanceReference": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "customsOfficeFirstEntry": {
+                    "maxLength": 35,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "declarant": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "estimatedArrivalAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "filingArrangement": {
+                    "enum": [
+                      "single",
+                      "multiple"
+                    ],
+                    "type": "string"
+                  },
+                  "filingNotes": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "filingRole": {
+                    "enum": [
+                      "carrier",
+                      "house_level_filer",
+                      "express_carrier",
+                      "postal_operator",
+                      "representative"
+                    ],
+                    "type": "string"
+                  },
+                  "firstEntryCountry": {
+                    "pattern": "^[A-Za-z]{2}$",
+                    "type": "string"
+                  },
+                  "houseConsignments": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "itineraryCountries": {
+                    "items": {
+                      "pattern": "^[A-Za-z]{2}$",
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "localReferenceNumber": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "masterTransportDocument": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "messageDatasetCode": {
+                    "pattern": "^F(1[0-6]|2[0-9]|3[0-4]|4[0-5]|5[01])$",
+                    "type": "string"
+                  },
+                  "messageNamespace": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "paymentMethodCode": {
+                    "maxLength": 35,
+                    "type": "string"
+                  },
+                  "representative": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "seals": {
+                    "items": {
+                      "maxLength": 100,
+                      "type": "string"
+                    },
+                    "maxItems": 500,
+                    "type": "array"
+                  },
+                  "sender": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "targetSystemSchemaId": {
+                    "maxLength": 300,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "targetSystemSchemaVersion": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "technicalPackageId": {
+                    "maxLength": 300,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "technicalPackageVersion": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "transportMode": {
+                    "enum": [
+                      "sea",
+                      "inland_waterway",
+                      "air",
+                      "road",
+                      "rail"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "transportMode",
+                  "messageDatasetCode",
+                  "filingRole",
+                  "filingArrangement",
+                  "localReferenceNumber",
+                  "sender",
+                  "declarant",
+                  "customsOfficeFirstEntry",
+                  "firstEntryCountry",
+                  "estimatedArrivalAt",
+                  "itineraryCountries",
+                  "conveyanceReference",
+                  "masterTransportDocument",
+                  "activeBorderTransportMeans",
+                  "houseConsignments",
+                  "targetSystemSchemaId",
+                  "targetSystemSchemaVersion",
+                  "technicalPackageId",
+                  "technicalPackageVersion"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "PUT /export/shipments/{shipmentId}/ics2/profile",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/ics2/reconciliation": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdIcs2Reconciliation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/ics2/reconciliation",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
     "/export/shipments/{shipmentId}/lines": {
       "post": {
         "operationId": "postExportShipmentsByShipmentIdLines",
@@ -8901,6 +10202,363 @@
           }
         ],
         "summary": "PATCH /export/shipments/{shipmentId}/lines/{lineId}",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/origin/profile": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdOriginProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/origin/profile",
+        "tags": [
+          "Export"
+        ]
+      },
+      "put": {
+        "operationId": "putExportShipmentsByShipmentIdOriginProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "claimType": {
+                    "enum": [
+                      "certificate_application",
+                      "origin_declaration_draft"
+                    ],
+                    "type": "string"
+                  },
+                  "exporterAuthorizationReference": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "exporterAuthorizationType": {
+                    "enum": [
+                      "none",
+                      "approved",
+                      "registered"
+                    ],
+                    "type": "string"
+                  },
+                  "insufficientProcessingExcluded": {
+                    "type": "boolean"
+                  },
+                  "invoiceTotalEur": {
+                    "exclusiveMinimum": true,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "lineAssessments": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "exWorksPrice": {
+                          "exclusiveMinimum": true,
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "exportLineId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "materials": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "cumulationBasis": {
+                                "enum": [
+                                  "none",
+                                  "eu_bilateral",
+                                  "asean_article_3_2",
+                                  "korea_fabric_article_3_7"
+                                ],
+                                "type": "string"
+                              },
+                              "description": {
+                                "maxLength": 2000,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "evidenceDocumentId": {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              "hsCode": {
+                                "pattern": "^[0-9 .-]{4,20}$",
+                                "type": "string"
+                              },
+                              "id": {
+                                "maxLength": 200,
+                                "type": "string"
+                              },
+                              "isUpperAssemblyAffixedToSole": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "notes": {
+                                "maxLength": 5000,
+                                "type": "string"
+                              },
+                              "originCountry": {
+                                "pattern": "^[A-Za-z]{2}$",
+                                "type": "string"
+                              },
+                              "originStatus": {
+                                "enum": [
+                                  "originating",
+                                  "non_originating",
+                                  "cumulated",
+                                  "unknown"
+                                ],
+                                "type": "string"
+                              },
+                              "reference": {
+                                "maxLength": 500,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "supplierName": {
+                                "maxLength": 500,
+                                "type": "string"
+                              },
+                              "value": {
+                                "minimum": 0,
+                                "type": "number"
+                              },
+                              "weightKg": {
+                                "minimum": 0,
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "reference",
+                              "description",
+                              "hsCode",
+                              "originCountry",
+                              "originStatus",
+                              "value",
+                              "evidenceDocumentId"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 5000,
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "nonOriginatingMaterialValue": {
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "notes": {
+                          "maxLength": 5000,
+                          "type": "string"
+                        },
+                        "productionProcesses": {
+                          "items": {
+                            "maxLength": 200,
+                            "type": "string"
+                          },
+                          "maxItems": 100,
+                          "type": "array"
+                        },
+                        "ruleCode": {
+                          "enum": [
+                            "CH61_CUT_SEWN_KNITTING_AND_MAKING_UP",
+                            "CH61_KNITTED_TO_SHAPE_SPINNING_OR_EXTRUSION_AND_KNITTING",
+                            "CH62_GENERAL_WEAVING_AND_MAKING_UP",
+                            "CH64_GENERAL_EXCLUDES_6406_UPPER_ASSEMBLY",
+                            "SPECIALIST_RULE_REVIEW"
+                          ],
+                          "type": "string"
+                        },
+                        "ruleSourcePage": {
+                          "maxLength": 500,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "specialistRuleText": {
+                          "maxLength": 5000,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "exportLineId",
+                        "ruleCode",
+                        "ruleSourcePage",
+                        "productionProcesses",
+                        "exWorksPrice",
+                        "nonOriginatingMaterialValue",
+                        "materials"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "type": "array"
+                  },
+                  "metadata": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "nonAlterationConfirmed": {
+                    "type": "boolean"
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "territorialityConfirmed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "claimType",
+                  "invoiceTotalEur",
+                  "territorialityConfirmed",
+                  "nonAlterationConfirmed",
+                  "insufficientProcessingExcluded",
+                  "lineAssessments"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "PUT /export/shipments/{shipmentId}/origin/profile",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/origin/reconciliation": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdOriginReconciliation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/origin/reconciliation",
         "tags": [
           "Export"
         ]
@@ -9246,6 +10904,456 @@
           }
         ],
         "summary": "GET /export/shipments/{shipmentId}/readiness",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/textile-fibre-labels": {
+      "get": {
+        "operationId": "getExportShipmentsByShipmentIdTextileFibreLabels",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GET /export/shipments/{shipmentId}/textile-fibre-labels",
+        "tags": [
+          "Export"
+        ]
+      },
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdTextileFibreLabels",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "animalOriginPresence": {
+                    "enum": [
+                      "present",
+                      "absent",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "assessmentDate": {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "components": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "componentName": {
+                          "maxLength": 500,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "componentReference": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "fibres": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "fibreCode": {
+                                "maxLength": 100,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "percentage": {
+                                "exclusiveMinimum": true,
+                                "maximum": 100,
+                                "minimum": 0,
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "fibreCode",
+                              "percentage"
+                            ],
+                            "type": "object"
+                          },
+                          "maxItems": 50,
+                          "type": "array"
+                        },
+                        "mainLining": {
+                          "type": "boolean"
+                        },
+                        "weightPercent": {
+                          "maximum": 100,
+                          "minimum": 0,
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "componentReference",
+                        "componentName",
+                        "weightPercent",
+                        "mainLining",
+                        "fibres"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "economicOperator": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "address": {
+                        "maxLength": 2000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "name": {
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "role": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "name",
+                      "address"
+                    ],
+                    "type": "object"
+                  },
+                  "evidenceDocumentIds": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "languageLabels": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "animalOriginStatementIncluded": {
+                          "type": "boolean"
+                        },
+                        "labelText": {
+                          "maxLength": 10000,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "languageCode": {
+                          "maxLength": 35,
+                          "minLength": 2,
+                          "type": "string"
+                        },
+                        "marketCode": {
+                          "pattern": "^[A-Za-z]{2}$",
+                          "type": "string"
+                        },
+                        "operatorApproved": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "marketCode",
+                        "languageCode",
+                        "labelText",
+                        "animalOriginStatementIncluded",
+                        "operatorApproved"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "marketCodes": {
+                    "items": {
+                      "pattern": "^[A-Za-z]{2}$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "type": "string"
+                  },
+                  "placement": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "accessible": {
+                        "type": "boolean"
+                      },
+                      "durable": {
+                        "type": "boolean"
+                      },
+                      "easilyLegible": {
+                        "type": "boolean"
+                      },
+                      "method": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "onlineBeforePurchase": {
+                        "type": "boolean"
+                      },
+                      "securelyAttached": {
+                        "type": "boolean"
+                      },
+                      "visible": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "durable",
+                      "easilyLegible",
+                      "visible",
+                      "accessible",
+                      "securelyAttached",
+                      "onlineBeforePurchase"
+                    ],
+                    "type": "object"
+                  },
+                  "productCategory": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "productReference": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "specialProductCategory": {
+                    "enum": [
+                      "standard",
+                      "annex_iv",
+                      "annex_v",
+                      "annex_vi",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "specificationReference": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "textileFibrePercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "specificationReference",
+                  "assessmentDate",
+                  "productReference",
+                  "productCategory",
+                  "specialProductCategory",
+                  "textileFibrePercent",
+                  "marketCodes",
+                  "components",
+                  "animalOriginPresence",
+                  "languageLabels",
+                  "economicOperator",
+                  "placement",
+                  "evidenceDocumentIds"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/textile-fibre-labels",
+        "tags": [
+          "Export"
+        ]
+      }
+    },
+    "/export/shipments/{shipmentId}/textile-fibre-labels/{specificationId}/reviews": {
+      "post": {
+        "operationId": "postExportShipmentsByShipmentIdTextileFibreLabelsBySpecificationIdReviews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shipmentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "specificationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "enum": [
+                      "approved_for_internal_artwork",
+                      "needs_information",
+                      "rejected"
+                    ],
+                    "type": "string"
+                  },
+                  "notes": {
+                    "maxLength": 5000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reviewerRole": {
+                    "enum": [
+                      "textile_label_reviewer"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reviewerRole",
+                  "decision",
+                  "notes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "2XX": {
+            "$ref": "#/components/responses/GenericSuccess"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "POST /export/shipments/{shipmentId}/textile-fibre-labels/{specificationId}/reviews",
         "tags": [
           "Export"
         ]

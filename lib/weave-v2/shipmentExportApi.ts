@@ -544,6 +544,54 @@ export interface ComplianceApplicabilityEvaluation {
   createdBy: string; createdAt: string; latestReview: ComplianceApplicabilityReview | null;
 }
 
+export interface TextileFibreLabelInput {
+  specificationReference: string; assessmentDate: string; productReference: string; productCategory: string;
+  specialProductCategory: 'standard' | 'annex_iv' | 'annex_v' | 'annex_vi' | 'unknown';
+  textileFibrePercent: number; marketCodes: string[];
+  components: Array<{
+    componentReference: string; componentName: string; weightPercent: number; mainLining: boolean;
+    fibres: Array<{ fibreCode: string; percentage: number }>;
+  }>;
+  animalOriginPresence: 'present' | 'absent' | 'unknown';
+  languageLabels: Array<{
+    marketCode: string; languageCode: string; labelText: string;
+    animalOriginStatementIncluded: boolean; operatorApproved: boolean;
+  }>;
+  economicOperator: { role: string; name: string; address: string };
+  placement: {
+    method: string; durable: boolean; easilyLegible: boolean; visible: boolean;
+    accessible: boolean; securelyAttached: boolean; onlineBeforePurchase: boolean;
+  };
+  evidenceDocumentIds: string[]; notes: string;
+}
+
+export interface TextileFibreLabelReview {
+  id: string; specificationId: string; reviewerId: string; reviewerName: string; reviewerEmail: string | null;
+  reviewerRole: 'textile_label_reviewer';
+  decision: 'approved_for_internal_artwork' | 'needs_information' | 'rejected';
+  notes: string; inputSha256: string; resultSha256: string;
+  evidenceSnapshot: Array<{ id: string; type: string; name: string; status: string; checksumSha256: string; fileSizeBytes: number }>;
+  createdAt: string;
+}
+
+export interface TextileFibreLabelSpecification {
+  id: string; shipmentId: string; specificationReference: string; revision: number;
+  rulesetId: string; rulesetVersion: string; rulesetCoverage: 'limited' | 'complete';
+  sourceManifestSha256: string; assessmentDate: string; input: TextileFibreLabelInput; inputSha256: string;
+  result: {
+    automatedStatus: 'needs_information' | 'specialist_review_required' | 'ready_for_label_review';
+    euMarket: boolean; missingInputs: string[]; englishPreview: string;
+    findings: Array<{ code: string; severity: 'blocker' | 'specialist' | 'warning' | 'info'; message: string; sourceArticle: string | null; path: string | null }>;
+    sources: Array<{ id: string; title: string; url: string; version: string }>;
+    disclaimer: string; resultSha256: string;
+  };
+  resultSha256: string; evidenceSnapshot: TextileFibreLabelReview['evidenceSnapshot'];
+  automatedStatus: TextileFibreLabelSpecification['result']['automatedStatus'];
+  artworkStatus: 'needs_information' | 'specialist_review_required' | 'label_review_required'
+    | 'approved_for_internal_artwork' | 'evidence_review_required' | 'rejected' | 'superseded';
+  staleEvidenceIds: string[]; createdBy: string; createdAt: string; latestReview: TextileFibreLabelReview | null;
+}
+
 export type EnvironmentalClaimKind =
   | 'generic_environmental' | 'specific_environmental' | 'comparative' | 'future_performance'
   | 'sustainability_label' | 'offset_based_product_climate' | 'legal_requirement_feature' | 'other';
@@ -867,6 +915,16 @@ export const reviewComplianceApplicability = (
 ) => api.post<ComplianceApplicabilityReview>(
   `${base(shipmentId)}/compliance/applicability-evaluations/${encodeURIComponent(evaluationId)}/reviews`, payload
 );
+export const fetchTextileFibreLabelSpecifications = (shipmentId: string) =>
+  api.get<TextileFibreLabelSpecification[]>(`${base(shipmentId)}/textile-fibre-labels`);
+export const createTextileFibreLabelSpecification = (shipmentId: string, payload: TextileFibreLabelInput) =>
+  api.post<TextileFibreLabelSpecification>(`${base(shipmentId)}/textile-fibre-labels`, payload);
+export const reviewTextileFibreLabelSpecification = (
+  shipmentId: string, specificationId: string,
+  payload: { reviewerRole: 'textile_label_reviewer'; decision: TextileFibreLabelReview['decision']; notes: string }
+) => api.post<TextileFibreLabelReview>(
+  `${base(shipmentId)}/textile-fibre-labels/${encodeURIComponent(specificationId)}/reviews`, payload
+);
 export const fetchEnvironmentalClaimDossiers = (shipmentId: string) =>
   api.get<EnvironmentalClaimDossier[]>(`${base(shipmentId)}/environmental-claims`);
 export const createEnvironmentalClaimDossier = (shipmentId: string, payload: EnvironmentalClaimInput) =>
@@ -1003,6 +1061,19 @@ export const uploadComplianceApplicabilityEvidence = async (shipmentId: string, 
 };
 
 export const lockComplianceApplicabilityEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadTextileFibreLabelEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData();
+  body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'textile_composition_test'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('Textile-label evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockTextileFibreLabelEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const uploadEnvironmentalClaimEvidence = async (shipmentId: string, file: File) => {
