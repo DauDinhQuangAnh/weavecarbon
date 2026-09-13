@@ -84,6 +84,9 @@ const CorporateGhgInventoryPanel = dynamic(
   () => import("./CorporateGhgInventoryPanel"),
   { ssr: false }
 );
+const EuTextileEprPanel = dynamic(() => import("./EuTextileEprPanel"), {
+  ssr: false,
+});
 // CBAM pre-audit tool is heavy (loads invoices/evidence/calcs); only load it when its
 // tab is selected. Merged in from the former standalone /cbam-report page.
 const CbamReportSection = dynamic(
@@ -1180,6 +1183,7 @@ const ReportsPage: React.FC = () => {
         </div>
 
         {activeCategory === "ghg" && <CorporateGhgInventoryPanel />}
+        {activeCategory === "esg" && <EuTextileEprPanel />}
 
         {/* CBAM pre-audit tool (merged from the former /cbam-report page) */}
         {activeCategory === "cbam" && (

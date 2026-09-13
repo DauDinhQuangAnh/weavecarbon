@@ -1096,6 +1096,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/eu-textile-epr/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /eu-textile-epr/assessments */
+        get: operations["getEuTextileEprAssessments"];
+        put?: never;
+        /** POST /eu-textile-epr/assessments */
+        post: operations["postEuTextileEprAssessments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/eu-textile-epr/assessments/{assessmentId}/external-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /eu-textile-epr/assessments/{assessmentId}/external-events */
+        post: operations["postEuTextileEprAssessmentsByAssessmentIdExternalEvents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/eu-textile-epr/assessments/{assessmentId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /eu-textile-epr/assessments/{assessmentId}/reviews */
+        post: operations["postEuTextileEprAssessmentsByAssessmentIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/evidence": {
         parameters: {
             query?: never;
@@ -3463,6 +3515,24 @@ export interface components {
             };
             uncertaintyAssessment: string;
         };
+        EprCorporateActor: {
+            address: {
+                city: string;
+                country: string;
+                postalCode: string;
+                street: string;
+            };
+            email: string;
+            mandateEvidenceIds: string[];
+            name: string;
+            nationalIdentificationCode: string;
+            phone?: string;
+            taxIdentificationNumber: string;
+            tradeRegisterNumber: string;
+            website?: string;
+        } & {
+            [key: string]: unknown;
+        };
         ErrorDetail: {
             /** @example VALIDATION_ERROR */
             code: string;
@@ -3474,6 +3544,76 @@ export interface components {
             error: components["schemas"]["ErrorDetail"];
             /** @enum {boolean} */
             success: false;
+        };
+        EuTextileEprAssessmentInput: {
+            /** Format: date */
+            assessmentDate: string;
+            assessmentReference: string;
+            authorizedRepresentative: components["schemas"]["EprCorporateActor"] & {
+                applicable: boolean;
+                nationalRuleBasis: string;
+            };
+            cnCodes: string[];
+            declaredMarketRows: {
+                cnCode: string;
+                productDescription: string;
+                quantity: number;
+                unit: string;
+                weightKg: number;
+            }[];
+            evidenceDocumentIds: string[];
+            intendedUse: string;
+            limitations: string;
+            memberState: string;
+            memberStateRule: {
+                adapterId: string;
+                competentAuthorityName: string;
+                /** Format: date */
+                effectiveFrom: string | null;
+                /** @enum {string} */
+                feeMethodStatus: "unknown" | "pending" | "published";
+                registerUrl: string;
+                reportingSchedule: string;
+                reviewEvidenceIds: string[];
+                /** @enum {string} */
+                schemeStatus: "not_transposed" | "transposed" | "existing_scheme" | "unknown";
+                sourceUrl: string;
+                version: string;
+            };
+            notes?: string;
+            producer: {
+                address: {
+                    city: string;
+                    country: string;
+                    postalCode: string;
+                    street: string;
+                };
+                annualBalanceSheetEur: number;
+                annualTurnoverEur: number;
+                brandNames: string[];
+                contactPoint: string;
+                derivedFromUsedWasteOnly: boolean;
+                email: string;
+                employeeCount: number;
+                establishedCountry: string;
+                legalName: string;
+                nationalIdentificationCode: string;
+                phone: string;
+                /** @enum {string} */
+                role: "manufacturer_own_brand" | "reseller_own_brand" | "first_supplier_import" | "distance_seller";
+                selfEmployedTailorCustomizedOnly: boolean;
+                suppliesUsedGoodsOnly: boolean;
+                taxIdentificationNumber: string;
+                trademarks: string[];
+                tradeRegisterNumber: string;
+                website: string;
+            };
+            producerResponsibilityOrganisation: components["schemas"]["EprCorporateActor"];
+            /** Format: date */
+            reportingPeriodEnd: string;
+            /** Format: date */
+            reportingPeriodStart: string;
+            truthStatementConfirmed: boolean;
         };
         /** @description Endpoint-specific payload retained as an extensible object until its domain schema is specialized. */
         GenericData: {
@@ -5978,6 +6118,119 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getEuTextileEprAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postEuTextileEprAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EuTextileEprAssessmentInput"];
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postEuTextileEprAssessmentsByAssessmentIdExternalEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assessmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    actorName: string;
+                    amount?: number | null;
+                    currency?: string | null;
+                    /** @enum {string} */
+                    eventType: "authority_registration_confirmed" | "pro_membership_confirmed" | "report_submission_confirmed" | "fee_payment_confirmed" | "authority_rejected" | "registration_withdrawn";
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    externalReference: string;
+                    /** Format: date-time */
+                    occurredAt: string;
+                    /** Format: date */
+                    reportingPeriodEnd?: string | null;
+                    /** Format: date */
+                    reportingPeriodStart?: string | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postEuTextileEprAssessmentsByAssessmentIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assessmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_internal_planning" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "eu_epr_specialist";
+                };
+            };
+        };
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
