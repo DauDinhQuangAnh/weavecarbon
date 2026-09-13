@@ -592,6 +592,68 @@ export interface TextileFibreLabelSpecification {
   staleEvidenceIds: string[]; createdBy: string; createdAt: string; latestReview: TextileFibreLabelReview | null;
 }
 
+export interface GpsrEconomicOperator {
+  name: string; tradeName?: string; postalAddress: string; electronicAddress: string;
+  contactPoint?: string; euEstablished: boolean;
+}
+
+export interface GpsrTechnicalFileInput {
+  fileReference: string; assessmentDate: string; firstPlacedOnMarketDate: string;
+  consumerProduct: boolean; placedOnEuMarket: boolean; marketCodes: string[];
+  harmonisationCoverage: 'none' | 'partial' | 'full' | 'unknown'; applicableSectorRules: string[];
+  product: {
+    brand: string; name: string; model: string; type: string; batchNumber: string; serialNumber: string;
+    otherIdentifier: string; description: string; essentialCharacteristics: string; composition: string;
+    packagingDescription: string; productImageEvidenceId: string; packagingImageEvidenceId: string;
+  };
+  intendedUse: string; foreseeableMisuse: string; vulnerableGroups: string[];
+  operators: { manufacturer: GpsrEconomicOperator; importer: GpsrEconomicOperator; responsiblePerson: GpsrEconomicOperator };
+  risks: Array<{
+    hazardId: string; hazardCategory: string; hazardDescription: string; affectedGroups: string[];
+    foreseeableScenario: string; likelihood: number; severity: number; mitigation: string;
+    residualLikelihood: number; residualSeverity: number; verificationEvidenceIds: string[];
+  }>;
+  standards: Array<{ reference: string; title: string; version: string; applicationExtent: 'full' | 'partial'; appliedParts: string }>;
+  warnings: Array<{ marketCode: string; languageCode: string; text: string; location: 'product' | 'packaging' | 'accompanying_document' | 'online_offer'; operatorApproved: boolean }>;
+  onlineOffer: { enabled: boolean; manufacturerDisplayed: boolean; responsiblePersonDisplayed: boolean;
+    productImageDisplayed: boolean; identifiersDisplayed: boolean; warningsDisplayed: boolean; offerUrl: string };
+  seriesProductionProcedure: string; complaintChannel: string; postMarketPlan: string;
+  retentionUntil: string; evidenceDocumentIds: string[]; notes: string;
+}
+
+export interface GpsrTechnicalFileReview {
+  id: string; technicalFileId: string; reviewerId: string; reviewerName: string; reviewerEmail: string | null;
+  reviewerRole: 'product_safety_reviewer'; decision: 'approved_for_internal_release' | 'needs_information' | 'rejected';
+  notes: string; inputSha256: string; resultSha256: string;
+  evidenceSnapshot: Array<{ id: string; type: string; name: string; status: string; checksumSha256: string; fileSizeBytes: number }>;
+  createdAt: string;
+}
+
+export interface GpsrTechnicalFile {
+  id: string; shipmentId: string; fileReference: string; revision: number; rulesetId: string; rulesetVersion: string;
+  rulesetCoverage: 'limited' | 'complete'; sourceManifestSha256: string; assessmentDate: string;
+  firstPlacedOnMarketDate: string; retentionUntil: string; input: GpsrTechnicalFileInput; inputSha256: string;
+  result: { automatedStatus: 'needs_information' | 'specialist_review_required' | 'ready_for_safety_review';
+    minimumRetentionUntil: string; missingInputs: string[];
+    findings: Array<{ code: string; severity: 'blocker' | 'specialist' | 'warning' | 'info'; message: string; sourceArticle: string | null; path: string | null }>;
+    sources: Array<{ id: string; title: string; url: string; version: string; appliesFrom: string }>;
+    disclaimer: string; resultSha256: string };
+  resultSha256: string; evidenceSnapshot: GpsrTechnicalFileReview['evidenceSnapshot'];
+  automatedStatus: GpsrTechnicalFile['result']['automatedStatus'];
+  safetyFileStatus: 'needs_information' | 'specialist_review_required' | 'safety_review_required'
+    | 'approved_for_internal_release' | 'evidence_review_required' | 'rejected' | 'superseded';
+  staleEvidenceIds: string[]; createdBy: string; createdAt: string; latestReview: GpsrTechnicalFileReview | null;
+}
+
+export interface GpsrPostMarketEvent {
+  id: string; shipmentId: string; technicalFileId: string;
+  eventType: 'complaint' | 'safety_incident' | 'corrective_action' | 'recall' | 'safety_business_gateway_notification' | 'authority_request' | 'consumer_notice';
+  eventReference: string; occurredAt: string; summary: string; severity: 'information' | 'minor' | 'serious' | 'death' | 'unknown';
+  externalReference: string | null; evidenceDocumentId: string | null; evidenceSha256: string | null;
+  evidenceFileSizeBytes: number | null; recorderId: string; recorderName: string; recorderEmail: string | null;
+  metadata: Record<string, unknown>; createdAt: string; safetyBusinessGatewayNotificationRequired: boolean;
+}
+
 export type EnvironmentalClaimKind =
   | 'generic_environmental' | 'specific_environmental' | 'comparative' | 'future_performance'
   | 'sustainability_label' | 'offset_based_product_climate' | 'legal_requirement_feature' | 'other';
@@ -925,6 +987,25 @@ export const reviewTextileFibreLabelSpecification = (
 ) => api.post<TextileFibreLabelReview>(
   `${base(shipmentId)}/textile-fibre-labels/${encodeURIComponent(specificationId)}/reviews`, payload
 );
+export const fetchGpsrTechnicalFiles = (shipmentId: string) =>
+  api.get<GpsrTechnicalFile[]>(`${base(shipmentId)}/gpsr/technical-files`);
+export const createGpsrTechnicalFile = (shipmentId: string, payload: GpsrTechnicalFileInput) =>
+  api.post<GpsrTechnicalFile>(`${base(shipmentId)}/gpsr/technical-files`, payload);
+export const reviewGpsrTechnicalFile = (
+  shipmentId: string, technicalFileId: string,
+  payload: { reviewerRole: 'product_safety_reviewer'; decision: GpsrTechnicalFileReview['decision']; notes: string }
+) => api.post<GpsrTechnicalFileReview>(
+  `${base(shipmentId)}/gpsr/technical-files/${encodeURIComponent(technicalFileId)}/reviews`, payload
+);
+export const fetchGpsrPostMarketEvents = (shipmentId: string, technicalFileId?: string) =>
+  api.get<GpsrPostMarketEvent[]>(`${base(shipmentId)}/gpsr/post-market-events${technicalFileId ? `?technicalFileId=${encodeURIComponent(technicalFileId)}` : ''}`);
+export const recordGpsrPostMarketEvent = (
+  shipmentId: string, technicalFileId: string,
+  payload: Pick<GpsrPostMarketEvent, 'eventType' | 'eventReference' | 'occurredAt' | 'summary' | 'severity'>
+    & { externalReference?: string; evidenceDocumentId?: string; consumerPersonalDataIncluded?: false; metadata?: Record<string, unknown> }
+) => api.post<GpsrPostMarketEvent>(
+  `${base(shipmentId)}/gpsr/technical-files/${encodeURIComponent(technicalFileId)}/post-market-events`, payload
+);
 export const fetchEnvironmentalClaimDossiers = (shipmentId: string) =>
   api.get<EnvironmentalClaimDossier[]>(`${base(shipmentId)}/environmental-claims`);
 export const createEnvironmentalClaimDossier = (shipmentId: string, payload: EnvironmentalClaimInput) =>
@@ -1074,6 +1155,19 @@ export const uploadTextileFibreLabelEvidence = async (shipmentId: string, file: 
 };
 
 export const lockTextileFibreLabelEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadGpsrEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData();
+  body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'gpsr_technical_file'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('GPSR evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+
+export const lockGpsrEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const uploadEnvironmentalClaimEvidence = async (shipmentId: string, file: File) => {

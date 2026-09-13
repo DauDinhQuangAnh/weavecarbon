@@ -1836,6 +1836,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/shipments/{shipmentId}/gpsr/post-market-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/gpsr/post-market-events */
+        get: operations["getExportShipmentsByShipmentIdGpsrPostMarketEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/gpsr/technical-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /export/shipments/{shipmentId}/gpsr/technical-files */
+        get: operations["getExportShipmentsByShipmentIdGpsrTechnicalFiles"];
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/gpsr/technical-files */
+        post: operations["postExportShipmentsByShipmentIdGpsrTechnicalFiles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/gpsr/technical-files/{technicalFileId}/post-market-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/gpsr/technical-files/{technicalFileId}/post-market-events */
+        post: operations["postExportShipmentsByShipmentIdGpsrTechnicalFilesByTechnicalFileIdPostMarketEvents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export/shipments/{shipmentId}/gpsr/technical-files/{technicalFileId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /export/shipments/{shipmentId}/gpsr/technical-files/{technicalFileId}/reviews */
+        post: operations["postExportShipmentsByShipmentIdGpsrTechnicalFilesByTechnicalFileIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export/shipments/{shipmentId}/ics2/events": {
         parameters: {
             query?: never;
@@ -3174,6 +3243,14 @@ export interface components {
             meta?: components["schemas"]["GenericData"];
             /** @enum {boolean} */
             success: true;
+        };
+        GpsrEconomicOperator: {
+            contactPoint?: string;
+            electronicAddress: string;
+            euEstablished: boolean;
+            name: string;
+            postalAddress: string;
+            tradeName?: string;
         };
         PaginationMeta: {
             page?: number;
@@ -7086,6 +7163,228 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdGpsrPostMarketEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getExportShipmentsByShipmentIdGpsrTechnicalFiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdGpsrTechnicalFiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    applicableSectorRules?: string[];
+                    /** Format: date */
+                    assessmentDate: string;
+                    complaintChannel: string;
+                    consumerProduct: boolean;
+                    evidenceDocumentIds: string[];
+                    fileReference: string;
+                    /** Format: date */
+                    firstPlacedOnMarketDate: string;
+                    foreseeableMisuse: string;
+                    /** @enum {string} */
+                    harmonisationCoverage: "none" | "partial" | "full" | "unknown";
+                    intendedUse: string;
+                    marketCodes: string[];
+                    notes?: string;
+                    onlineOffer: {
+                        enabled: boolean;
+                        identifiersDisplayed: boolean;
+                        manufacturerDisplayed: boolean;
+                        offerUrl?: string;
+                        productImageDisplayed: boolean;
+                        responsiblePersonDisplayed: boolean;
+                        warningsDisplayed: boolean;
+                    };
+                    operators: {
+                        importer: components["schemas"]["GpsrEconomicOperator"];
+                        manufacturer: components["schemas"]["GpsrEconomicOperator"];
+                        responsiblePerson: components["schemas"]["GpsrEconomicOperator"];
+                    };
+                    placedOnEuMarket: boolean;
+                    postMarketPlan: string;
+                    product: {
+                        batchNumber?: string;
+                        brand: string;
+                        composition?: string;
+                        description: string;
+                        essentialCharacteristics: string;
+                        model: string;
+                        name: string;
+                        otherIdentifier?: string;
+                        packagingDescription?: string;
+                        /** Format: uuid */
+                        packagingImageEvidenceId: string;
+                        /** Format: uuid */
+                        productImageEvidenceId: string;
+                        serialNumber?: string;
+                        type?: string;
+                    };
+                    /** Format: date */
+                    retentionUntil: string;
+                    risks: {
+                        affectedGroups: string[];
+                        foreseeableScenario: string;
+                        hazardCategory: string;
+                        hazardDescription: string;
+                        hazardId: string;
+                        likelihood: number;
+                        mitigation: string;
+                        residualLikelihood: number;
+                        residualSeverity: number;
+                        severity: number;
+                        verificationEvidenceIds: string[];
+                    }[];
+                    seriesProductionProcedure: string;
+                    standards: {
+                        /** @enum {string} */
+                        applicationExtent: "full" | "partial";
+                        appliedParts?: string;
+                        reference: string;
+                        title?: string;
+                        version: string;
+                    }[];
+                    vulnerableGroups?: string[];
+                    warnings: {
+                        languageCode: string;
+                        /** @enum {string} */
+                        location: "product" | "packaging" | "accompanying_document" | "online_offer";
+                        marketCode: string;
+                        operatorApproved: boolean;
+                        text: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdGpsrTechnicalFilesByTechnicalFileIdPostMarketEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+                technicalFileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {boolean} */
+                    consumerPersonalDataIncluded?: false;
+                    eventReference: string;
+                    /** @enum {string} */
+                    eventType: "complaint" | "safety_incident" | "corrective_action" | "recall" | "safety_business_gateway_notification" | "authority_request" | "consumer_notice";
+                    /** Format: uuid */
+                    evidenceDocumentId?: string;
+                    externalReference?: string;
+                    metadata?: Record<string, never>;
+                    /** Format: date-time */
+                    occurredAt: string;
+                    /** @enum {string} */
+                    severity: "information" | "minor" | "serious" | "death" | "unknown";
+                    summary: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postExportShipmentsByShipmentIdGpsrTechnicalFilesByTechnicalFileIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipmentId: string;
+                technicalFileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_internal_release" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "product_safety_reviewer";
+                };
+            };
+        };
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
