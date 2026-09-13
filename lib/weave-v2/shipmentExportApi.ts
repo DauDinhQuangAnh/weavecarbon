@@ -540,6 +540,13 @@ export interface ComplianceApplicabilityEvaluation {
   result: {
     status: 'not_applicable' | 'requirements_identified' | 'specialist_review_required';
     specialistReviewRequired: boolean; missingInputs: string[]; matches: ComplianceApplicabilityMatch[];
+    classifications?: Array<{
+      exportLineId: string; sku: string; operatorDescription: string;
+      declaredCnCode: string | null; declaredTaricCode: string | null;
+      datasetId: string; datasetVersion: string; datasetDescription: string | null;
+      category: string | null; legalRouteCodes: string[]; matchStatus: string; matchPrecision: string;
+      operatorDescriptionReviewRequired: boolean; consultationUrl: string | null;
+    }>;
     requiredEvidenceTypes: string[];
     datasets?: Array<{ id: string; version: string; coverageStatus: string; sha256: string }>;
     sources: Array<{ id: string; title: string; url: string; version: string }>;

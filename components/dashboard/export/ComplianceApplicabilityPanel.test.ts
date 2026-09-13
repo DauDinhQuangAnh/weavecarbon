@@ -20,6 +20,9 @@ describe('R20 compliance applicability panel claims', () => {
     expect(source).toContain('match.requiredEvidenceTypes');
     expect(source).toContain('latest.resultSha256');
     expect(source).toContain('latest.result.datasets || []');
+    expect(source).toContain('latest.result.classifications || []');
+    expect(source).toContain('dataset không phải quyết định phân loại hải quan hoặc BTI');
+    expect(source).toContain('Mở snapshot TARIC chính thức');
   });
 
   it('captures PPWR packaging context without presenting an EPR compliance conclusion', () => {

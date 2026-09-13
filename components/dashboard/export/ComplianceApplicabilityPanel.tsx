@@ -157,6 +157,14 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
         {(latest.result.datasets || []).map((dataset) => <p key={dataset.id} className="text-xs text-slate-600">
           Dataset: {dataset.id} · {dataset.version} · {dataset.coverageStatus} · SHA {dataset.sha256.slice(0, 12)}…
         </p>)}
+        {(latest.result.classifications || []).map((classification) => <div key={classification.exportLineId} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs">
+          <div className="flex flex-wrap gap-2"><b>{classification.sku || classification.exportLineId}</b><Badge variant="outline">{classification.matchStatus}</Badge><span>{classification.matchPrecision}</span></div>
+          <p>Operator: {classification.operatorDescription || 'chưa có mô tả'}</p>
+          <p>CN/TARIC: {classification.declaredCnCode || '—'} / {classification.declaredTaricCode || '—'}</p>
+          <p>Dataset: {classification.datasetDescription || 'ngoài coverage'} · {classification.datasetVersion}</p>
+          {classification.consultationUrl && <a className="text-blue-700 underline" href={classification.consultationUrl} target="_blank" rel="noreferrer">Mở snapshot TARIC chính thức</a>}
+          {classification.operatorDescriptionReviewRequired && <p className="text-amber-800">Phải đối chiếu mô tả kỹ thuật; dataset không phải quyết định phân loại hải quan hoặc BTI.</p>}
+        </div>)}
         {latest.result.matches.map((match) => {
           const source = match.sourceId ? sourceById.get(match.sourceId) : null;
           return <div key={match.code} className="rounded border p-2">
