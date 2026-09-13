@@ -5,8 +5,8 @@ import { DASHBOARD_PASSPORT_NAMESPACES } from "@/lib/i18n/namespaces";
 
 function PassportLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#dff1ea]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-green-700 border-t-transparent" />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-transparent" />
     </div>
   );
 }

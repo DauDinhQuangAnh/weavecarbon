@@ -761,32 +761,32 @@
     "qrCode": {
       "toasts": {
         "copiedTitle": "Đã sao chép",
-        "copiedDescription": "Đã sao chép liên kết Hộ chiếu xanh",
+        "copiedDescription": "Đã sao chép liên kết Hộ chiếu sản phẩm",
         "copyErrorTitle": "Lỗi",
         "copyErrorDescription": "Không thể sao chép liên kết",
         "downloadedTitle": "Đã tải xuống",
         "downloadedDescription": "Đã lưu mã QR thành công"
       },
       "canvas": {
-        "greenPassport": "Hộ chiếu xanh",
+        "greenPassport": "Hộ chiếu sản phẩm",
         "sku": "SKU",
         "scanToView": "Quét để xem thông tin sản phẩm"
       },
       "print": {
-        "documentTitle": "Hộ chiếu xanh - {code}",
-        "greenPassport": "Hộ chiếu xanh",
+        "documentTitle": "Hộ chiếu sản phẩm - {code}",
+        "greenPassport": "Hộ chiếu sản phẩm",
         "footer": "Quét để xem thông tin sản phẩm • WeaveCarbon"
       },
       "share": {
-        "title": "Hộ chiếu xanh - {productName}",
-        "text": "Xem thông tin dấu chân carbon của {productName}"
+        "title": "Hộ chiếu sản phẩm - {productName}",
+        "text": "Xem thông tin sản phẩm do đơn vị vận hành cung cấp cho {productName}"
       },
       "dialog": {
-        "title": "Mã QR Hộ chiếu xanh",
-        "description": "Mã QR này đóng vai trò như hộ chiếu sản phẩm. Quét để xem nguồn gốc, dấu chân carbon và mức tuân thủ xuất khẩu."
+        "title": "Mã QR Hộ chiếu sản phẩm",
+        "description": "Quét để xem thông tin sản phẩm và hành trình do đơn vị vận hành cung cấp. Chỉ claim môi trường đang được duyệt cho công bố mới xuất hiện."
       },
       "badge": {
-        "verifiedProduct": "Sản phẩm đã xác minh"
+        "verifiedProduct": "Hồ sơ do đơn vị vận hành cung cấp"
       },
       "actions": {
         "download": "Tải xuống",
@@ -799,7 +799,7 @@
         "customerTitle": "Dành cho khách hàng:",
         "customerDesc": "Quét để xem sản phẩm đang ở đâu trong chuỗi vận chuyển.",
         "customsTitle": "Dành cho hải quan:",
-        "customsDesc": "Xác minh nguồn gốc, chứng nhận và tuân thủ thị trường Mỹ/EU."
+        "customsDesc": "Xem dữ liệu nhận dạng, nguồn gốc và hành trình do đơn vị vận hành cung cấp."
       }
     }
   },

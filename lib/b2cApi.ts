@@ -190,9 +190,26 @@ export interface B2CDashboardResponse {
   recent_donations: DonationSummary[];
 }
 
+export interface PublicEnvironmentalClaim {
+  dossierId: string;
+  claimReference: string;
+  revision: number;
+  exactClaimText: string;
+  specificationText: string;
+  languageCode: string;
+  marketCodes: string[];
+  communicationStart: string;
+  communicationEnd: string | null;
+  rulesetId: string;
+  rulesetVersion: string;
+  resultSha256: string;
+}
+
 export interface PublicPassportPayload {
   product: unknown;
   shipment: unknown;
+  environmentalClaimStatus: "approved_current" | "not_authorized";
+  environmentalClaims: PublicEnvironmentalClaim[];
 }
 
 const toQueryString = (params: Record<string, string | number | undefined>) => {

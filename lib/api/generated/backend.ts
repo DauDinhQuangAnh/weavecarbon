@@ -3795,6 +3795,107 @@ export interface components {
             items: components["schemas"]["Product"][];
             pagination: components["schemas"]["PaginationMeta"];
         };
+        PublicEnvironmentalClaim: {
+            claimReference: string;
+            /** Format: date */
+            communicationEnd?: string | null;
+            /** Format: date */
+            communicationStart: string;
+            /** Format: uuid */
+            dossierId: string;
+            exactClaimText: string;
+            languageCode: string;
+            marketCodes: string[];
+            resultSha256: string;
+            revision: number;
+            rulesetId: string;
+            rulesetVersion: string;
+            specificationText: string;
+        };
+        PublicPassportData: {
+            environmentalClaims: components["schemas"]["PublicEnvironmentalClaim"][];
+            /** @enum {string} */
+            environmentalClaimStatus: "approved_current" | "not_authorized";
+            product: components["schemas"]["PublicPassportProduct"];
+            shipment: components["schemas"]["PublicPassportShipment"] | null;
+        };
+        PublicPassportProduct: {
+            /** Format: date-time */
+            createdAt?: string;
+            destinationAddress?: {
+                [key: string]: unknown;
+            };
+            destinationMarket?: string;
+            /** Format: uuid */
+            id: string;
+            manufacturingLocation?: string;
+            materials: {
+                materialType?: string;
+                percentage?: number;
+                weight?: number;
+            }[];
+            originAddress?: {
+                [key: string]: unknown;
+            };
+            productCode: string;
+            productName: string;
+            productType?: string;
+            quantity?: number;
+            status?: string;
+            transportLegs: {
+                destination?: string;
+                estimatedDistance?: number;
+                id?: string;
+                mode?: string;
+                origin?: string;
+            }[];
+            /** Format: date-time */
+            updatedAt?: string;
+            weightPerUnit?: number;
+        };
+        PublicPassportShipment: {
+            actualArrival?: string | null;
+            actualArrivalAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            destination?: {
+                [key: string]: unknown;
+            };
+            estimatedArrival?: string | null;
+            estimatedArrivalAt?: string | null;
+            /** Format: uuid */
+            id: string;
+            legs: {
+                carrierName?: string;
+                destinationLocation?: string;
+                distanceKm?: number;
+                durationHours?: number | null;
+                id?: string;
+                legOrder?: number;
+                originLocation?: string;
+                transportMode?: string;
+                vehicleType?: string;
+            }[];
+            origin?: {
+                [key: string]: unknown;
+            };
+            pendingUntil?: string | null;
+            products: {
+                id?: string;
+                productId?: string;
+                productName?: string;
+                quantity?: number;
+                sku?: string;
+                weightKg?: number;
+            }[];
+            referenceNumber: string;
+            simulationEnabled?: boolean;
+            status?: string;
+            totalDistanceKm?: number;
+            totalWeightKg?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         ReachRestrictionAssessmentInput: {
             entryNumber: string;
             evidenceDocumentIds: string[];
@@ -4028,6 +4129,17 @@ export interface components {
                  */
                 "application/json": components["schemas"]["GenericSuccessResponse"] & {
                     data?: components["schemas"]["ProductListData"];
+                };
+            };
+        };
+        /** @description Public product passport with fail-closed R18 environmental-claim resolution */
+        PublicPassport: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["GenericSuccessResponse"] & {
+                    data?: components["schemas"]["PublicPassportData"];
                 };
             };
         };
@@ -9596,7 +9708,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            "2XX": components["responses"]["GenericSuccess"];
+            "2XX": components["responses"]["PublicPassport"];
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationError"];

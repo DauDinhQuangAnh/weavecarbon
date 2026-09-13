@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Copy,
   Download,
-  Leaf,
   Printer,
   QrCode,
   Share2,
@@ -165,7 +164,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
         const qrX = (canvas.width - qrSize) / 2;
         ctx.drawImage(img, qrX, 30, qrSize, qrSize);
 
-        ctx.fillStyle = "#166534";
+        ctx.fillStyle = "#334155";
         ctx.font = "bold 18px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(t("canvas.greenPassport"), canvas.width / 2, 360);
@@ -188,7 +187,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
 
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
-      downloadLink.download = `green-passport-${code}.png`;
+      downloadLink.download = `product-passport-${code}.png`;
       downloadLink.href = pngFile;
       downloadLink.click();
 
@@ -230,11 +229,11 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
             .container {
               text-align: center;
               padding: 40px;
-              border: 2px solid #22c55e;
+              border: 2px solid #94a3b8;
               border-radius: 16px;
             }
             .title {
-              color: #166534;
+              color: #334155;
               font-size: 24px;
               font-weight: bold;
               margin-bottom: 20px;
@@ -297,7 +296,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-green-600" />
+            <QrCode className="w-5 h-5 text-slate-600" />
             {t("dialog.title")}
           </DialogTitle>
           <DialogDescription>
@@ -306,7 +305,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          <Card className="bg-linear-to-br from-green-50 to-emerald-50">
+          <Card className="bg-linear-to-br from-slate-50 to-slate-100">
             <CardContent className="p-6 flex flex-col items-center">
               <div className="bg-white p-4 rounded-xl shadow-sm">
                 <QRCodeSVG
@@ -321,7 +320,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
               </div>
 
               <div className="mt-4 text-center">
-                <Badge className="bg-green-100 text-green-700 mb-2">
+                <Badge className="bg-slate-200 text-slate-700 mb-2">
                   <Shield className="w-3 h-3 mr-1" />
                   {t("badge.verifiedProduct")}
                 </Badge>
@@ -355,7 +354,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
             </Button>
             <Button variant="outline" onClick={() => void handleCopyLink()}>
               {copied ?
-              <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" /> :
+              <CheckCircle2 className="w-4 h-4 mr-2 text-slate-600" /> :
 
               <Copy className="w-4 h-4 mr-2" />
               }
@@ -369,7 +368,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
 
           <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
             <p className="flex items-start gap-2">
-              <Leaf className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+              <QrCode className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
               <span>
                 <strong>{t("help.customerTitle")}</strong> {t("help.customerDesc")}
               </span>

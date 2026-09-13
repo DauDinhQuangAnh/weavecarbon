@@ -11,24 +11,19 @@ import {
   CardTitle } from
 "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
-  Leaf,
   MapPin,
   Truck,
   Ship,
   Plane,
   Train,
   Package,
-  CheckCircle2,
   Shield,
   Clock,
   ArrowRight,
   Factory,
   Globe,
-  Recycle,
-  Award,
   Home } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +35,6 @@ import type {
 import type { TransportLeg } from "@/types/transport";
 import {
   MATERIAL_LABELS,
-  CERTIFICATION_LABELS,
   MARKET_LABELS } from
 "@/lib/productLabels";
 import {
@@ -61,7 +55,7 @@ import {
   toTransportLegs,
   type LogisticsShipmentDetail } from
 "@/lib/logisticsApi";
-import { fetchPublicPassportPayload } from "@/lib/b2cApi";
+import { fetchPublicPassportPayload, type PublicEnvironmentalClaim } from "@/lib/b2cApi";
 
 
 interface StoredProduct extends ProductAssessmentData {
@@ -320,8 +314,8 @@ function convertProductRecordToProductData(product: ProductRecord): ProductData 
     recycledContent: "0",
     certifications: product.materials.flatMap((m) => m.certifications || []),
     manufacturingLocation: product.manufacturingLocation || "Vietnam",
-    energySource: product.energySources[0]?.source || "grid",
-    processType: product.productionProcesses[0] || "",
+    energySource: product.energySources?.[0]?.source || "grid",
+    processType: product.productionProcesses?.[0] || "",
     wasteRecovery: product.wasteRecovery || "",
     originCountry: product.originAddress?.country || "Vietnam",
     destinationMarket: product.destinationMarket || "vietnam",
@@ -765,9 +759,7 @@ const PassportClient: React.FC = () => {
   const [product, setProduct] = useState<ProductData | null>(null);
   const [transport, setTransport] = useState<TransportData | null>(null);
   const [transportDataSource, setTransportDataSource] = useState<TransportDataSource>(null);
-  const [calculation, setCalculation] = useState<CalculationHistory | null>(
-    null
-  );
+  const [publicClaims, setPublicClaims] = useState<PublicEnvironmentalClaim[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -781,7 +773,7 @@ const PassportClient: React.FC = () => {
           setProduct(null);
           setTransport(null);
           setTransportDataSource(null);
-          setCalculation(null);
+          setPublicClaims(null);
           setLoading(false);
         }
         return;
@@ -793,6 +785,8 @@ const PassportClient: React.FC = () => {
       let foundTransport: TransportData | null = null;
       let foundCalc: CalculationHistory | null = null;
       let resolvedTransportDataSource: TransportDataSource = null;
+      let resolvedPublicClaims: PublicEnvironmentalClaim[] | null = null;
+      const publicLookupAttempted = Boolean(normalizedProductId);
 
       let apiProduct: ProductRecord | null = null;
       let apiShipment: LogisticsShipmentDetail | null = null;
@@ -801,19 +795,19 @@ const PassportClient: React.FC = () => {
           const publicPayload = await fetchPublicPassportPayload(normalizedProductId);
           apiProduct = (publicPayload.product as ProductRecord | null) || null;
           apiShipment = (publicPayload.shipment as LogisticsShipmentDetail | null) || null;
+          resolvedPublicClaims = publicPayload.environmentalClaims || [];
         } catch {
           apiProduct = null;
-          apiShipment = normalizedShipmentId ?
-            await resolveShipmentDetailByIdentifier(normalizedShipmentId) :
-            null;
+          apiShipment = null;
+          resolvedPublicClaims = [];
         }
       }
 
-      if (normalizedShipmentId) {
+      if (!publicLookupAttempted && normalizedShipmentId) {
         apiShipment = await resolveShipmentDetailByIdentifier(normalizedShipmentId);
       }
 
-      if (!apiProduct && isValidProductId(normalizedProductId)) {
+      if (!publicLookupAttempted && !apiProduct && isValidProductId(normalizedProductId)) {
         try {
           apiProduct = await fetchProductById(normalizedProductId);
         } catch {
@@ -832,7 +826,7 @@ const PassportClient: React.FC = () => {
             apiProduct = null;
           }
         }
-      } else if (!apiProduct) {
+      } else if (!publicLookupAttempted && !apiProduct) {
         try {
           const result = await fetchProducts({
             search: normalizedProductId,
@@ -893,7 +887,7 @@ const PassportClient: React.FC = () => {
         }
       }
 
-      const hasApiResolvedData = Boolean(apiProduct || apiShipment);
+      const hasApiResolvedData = Boolean(apiProduct || apiShipment || publicLookupAttempted);
 
       if (!foundProduct && !hasApiResolvedData) {
         const userProducts = readLocalStorageArray<StoredProduct>("weavecarbonProducts");
@@ -987,7 +981,7 @@ const PassportClient: React.FC = () => {
         setProduct(foundProduct ? normalizeProductData(foundProduct) : null);
         setTransport(foundTransport);
         setTransportDataSource(resolvedTransportDataSource);
-        setCalculation(foundCalc);
+        setPublicClaims(resolvedPublicClaims);
         setLoading(false);
       }
     };
@@ -1046,41 +1040,17 @@ const PassportClient: React.FC = () => {
     }
   };
 
-  const getExportReadiness = () => {
-    if (!product) return 0;
-    let score = 50;
-    if (product.certifications.length > 0) score += 15;
-    if (product.sourceType === "documented") score += 15;
-    if (product.recycledContent && parseInt(product.recycledContent) > 0)
-    score += 10;
-    if (calculation) score += 10;
-    return Math.min(score, 100);
-  };
-
-  const getComplianceStatus = (market: string) => {
-    if (!product) return { status: "pending", label: t("statusNotEvaluated") };
-
-    const exportReadiness = getExportReadiness();
-    if (normalizeMarket(market) === normalizeMarket(product.destinationMarket)) {
-      if (exportReadiness >= 80)
-      return { status: "compliant", label: t("statusCompliant") };
-      if (exportReadiness >= 60)
-      return { status: "partial", label: t("statusPartial") };
-    }
-    return { status: "pending", label: t("statusPending") };
-  };
-
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#dff1ea]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-700 border-t-transparent"></div>
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-700 border-t-transparent"></div>
       </div>);
 
   }
 
   if (!product) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#dff1ea] p-4">
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
         <Card className="max-w-md w-full text-center">
           <CardContent className="pt-8 pb-6">
             <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
@@ -1102,7 +1072,6 @@ const PassportClient: React.FC = () => {
 
   }
 
-  const exportReadiness = getExportReadiness();
   const uiText = {
     legsLabel: "ch\u1eb7ng",
     estimated: "\u01af\u1edbc t\u00ednh",
@@ -1110,8 +1079,6 @@ const PassportClient: React.FC = () => {
     apiData: "API",
     localData: "Local",
     summaryDistance: "Qu\u00e3ng \u0111\u01b0\u1eddng",
-    summaryCo2: "CO2e",
-    summaryIntensity: "C\u01b0\u1eddng \u0111\u1ed9",
     summaryRoute: "Tuy\u1ebfn",
     routeDomestic: "N\u1ed9i \u0111\u1ecba",
     routeInternational: "Qu\u1ed1c t\u1ebf",
@@ -1134,8 +1101,6 @@ const PassportClient: React.FC = () => {
     leg.emissionFactor <= 0
   );
   const totalDistanceKm = Math.max(0, transport?.totalDistanceKm || 0);
-  const totalCo2Kg = Math.max(0, transport?.totalCO2Kg || 0);
-  const averageIntensity = totalDistanceKm > 0 ? totalCo2Kg / totalDistanceKm : 0;
   const hasDomesticLeg = transportLegs.some((leg) => leg.type === "domestic");
   const hasInternationalLeg = transportLegs.some((leg) => leg.type === "international");
   const routeTypeLabel =
@@ -1154,40 +1119,33 @@ const PassportClient: React.FC = () => {
   uiText.routeData;
 
   return (
-    <div className="min-h-dvh bg-[#dff1ea]">
-      <header className="border-b border-[#cde3d9] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+    <div className="min-h-dvh bg-slate-50">
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
         <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-700">
-              <Leaf className="h-4 w-4" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+              <Package className="h-4 w-4" />
             </div>
-            <span className="text-xl font-semibold text-green-800">Green Passport</span>
+            <span className="text-xl font-semibold text-slate-900">Product Passport</span>
           </div>
-          <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            {t("statusCompliant")}
-          </Badge>
+          <Badge variant="outline" className="rounded-full">Public product information</Badge>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-6 pb-safe">
         
         <Card className="overflow-hidden">
-          <div className="bg-linear-to-r from-green-600 to-emerald-600 p-4 text-white">
+          <div className="bg-linear-to-r from-slate-700 to-slate-600 p-4 text-white">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-green-100 text-sm mb-1">{t("productLabel")}</p>
+                <p className="text-slate-100 text-sm mb-1">{t("productLabel")}</p>
                 <h1 className="text-xl font-bold">{product.productName}</h1>
-                <p className="text-green-100 text-sm mt-1">
+                <p className="text-slate-100 text-sm mt-1">
                   {t("skuLabel")} {product.productCode}
                 </p>
               </div>
               <div className="text-right">
-                <Badge className="bg-white/20 text-white border-white/30">
-                  {product.sourceType === "documented" ?
-                  t("documentedSource") :
-                  t("estimatedSource")}
-                </Badge>
+                <Badge className="bg-white/20 text-white border-white/30">Operator-provided data</Badge>
               </div>
             </div>
           </div>
@@ -1200,80 +1158,28 @@ const PassportClient: React.FC = () => {
 
         
         <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-          <div className="h-1 bg-linear-to-r from-emerald-500 via-green-400 to-cyan-400"></div>
+          <div className="h-1 bg-blue-500"></div>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Leaf className="w-4 h-4 text-green-600" />
-              {t("carbonFootprintTitle")}
+              <Shield className="w-4 h-4 text-blue-600" />
+              Public environmental claims
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {calculation ?
-            <>
-                <div className="text-center py-4">
-                  <div className="text-4xl font-bold text-green-600">
-                    {calculation.totalCO2.toFixed(2)}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {t("perProductUnit")}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Recycle className="w-4 h-4 text-blue-500" />
-                      {t("materialsLabel")}
-                    </span>
-                    <span className="font-medium">
-                      {calculation.materialsCO2.toFixed(2)} kg
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Factory className="w-4 h-4 text-orange-500" />
-                      {t("productionLabel")}
-                    </span>
-                    <span className="font-medium">
-                      {calculation.manufacturingCO2.toFixed(2)} kg
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-purple-500" />
-                      {t("transportLabel")}
-                    </span>
-                    <span className="font-medium">
-                      {calculation.transportCO2.toFixed(2)} kg
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-amber-500" />
-                      {t("packagingLabel")}
-                    </span>
-                    <span className="font-medium">
-                      {calculation.packagingCO2.toFixed(2)} kg
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground text-center pt-2">
-                  {t("methodologyLabel")} {calculation.carbonVersion}
-                </p>
-              </> :
-
-            <div className="text-center py-4 text-muted-foreground">
-                <p>{t("noCalculationData")}</p>
-              </div>
-            }
+            {publicClaims?.length ? publicClaims.map((claim) => <div key={claim.dossierId} className="space-y-2 rounded border border-blue-200 bg-blue-50 p-3">
+              <p className="font-medium text-slate-900">{claim.exactClaimText}</p>
+              <p className="text-sm text-slate-700">{claim.specificationText}</p>
+              <p className="text-xs text-slate-600">R18 dossier {claim.claimReference} · revision {claim.revision} · {claim.rulesetVersion} · valid {claim.communicationStart} to {claim.communicationEnd || 'open-ended'}</p>
+            </div>) : <div className="rounded bg-slate-50 p-3 text-sm text-slate-600">
+              No environmental claim is currently approved for publication on this passport. Internal carbon calculations, transport emissions and self-declared labels are not displayed.
+            </div>}
           </CardContent>
         </Card>
 
         
         {transport && transport.legs.length > 0 &&
         <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-            <div className="h-1 bg-linear-to-r from-sky-500 via-cyan-400 to-emerald-400"></div>
+          <div className="h-1 bg-linear-to-r from-sky-500 via-cyan-400 to-slate-400"></div>
             <CardHeader className="space-y-3 pb-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
@@ -1292,7 +1198,7 @@ const PassportClient: React.FC = () => {
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] uppercase tracking-wide text-slate-500">
                     {uiText.legsLabel}
@@ -1307,22 +1213,6 @@ const PassportClient: React.FC = () => {
                   </div>
                   <div className="text-base font-semibold text-slate-900">
                     {formatExactValue(totalDistanceKm)} km
-                  </div>
-                </div>
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                    {uiText.summaryCo2}
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {formatExactValue(totalCo2Kg)} kg
-                  </div>
-                </div>
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div className="text-[11px] uppercase tracking-wide text-slate-500">
-                    {uiText.summaryIntensity}
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {formatExactValue(averageIntensity)} kg/km
                   </div>
                 </div>
               </div>
@@ -1348,10 +1238,6 @@ const PassportClient: React.FC = () => {
                           </div>
                           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                             <span>{formatExactValue(leg.distanceKm)} km</span>
-                            <span>{formatExactValue(leg.co2Kg)} kg CO2e</span>
-                            {leg.emissionFactor > 0 &&
-                            <span>{formatExactValue(leg.emissionFactor)} kg/km</span>
-                            }
                           </div>
                         </div>
                       </div>
@@ -1373,65 +1259,11 @@ const PassportClient: React.FC = () => {
 
         
         <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-          <div className="h-1 bg-linear-to-r from-emerald-500 via-teal-400 to-sky-400"></div>
+          <div className="h-1 bg-slate-400"></div>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Shield className="w-4 h-4 text-emerald-600" />
-              {t("exportReadinessTitle")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">{t("evaluationScoreLabel")}</span>
-                <span className="text-lg font-bold text-green-600">
-                  {exportReadiness}%
-                </span>
-              </div>
-              <Progress value={exportReadiness} className="h-2" />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <p className="text-sm font-medium">{t("complianceByMarketLabel")}</p>
-              {["eu", "us", "jp", "kr"].map((market) => {
-                const compliance = getComplianceStatus(market);
-                return (
-                  <div
-                    key={market}
-                    className="flex items-center justify-between">
-                    
-                    <span className="text-sm">{MARKET_LABELS[market]}</span>
-                    <Badge
-                      variant="secondary"
-                      className={
-                      compliance.status === "compliant" ?
-                      "bg-green-100 text-green-700" :
-                      compliance.status === "partial" ?
-                      "bg-yellow-100 text-yellow-700" :
-                      "bg-gray-100 text-gray-600"
-                      }>
-                      
-                      {compliance.status === "compliant" &&
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      }
-                      {compliance.label}
-                    </Badge>
-                  </div>);
-
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        
-        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-          <div className="h-1 bg-linear-to-r from-amber-500 via-orange-400 to-emerald-400"></div>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-600" />
-              {t("originCertificationTitle")}
+              <Factory className="w-4 h-4 text-slate-600" />
+              Product composition and origin
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1449,33 +1281,6 @@ const PassportClient: React.FC = () => {
                   product.secondaryMaterial}{" "}
                     {product.secondaryPercentage}%
                   </Badge>
-                }
-              </div>
-              {product.recycledContent &&
-              parseInt(product.recycledContent) > 0 &&
-              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                    <Recycle className="w-3 h-3" />
-                    {product.recycledContent}% {t("recycledContentLabel")}
-                  </p>
-              }
-            </div>
-
-            <Separator />
-
-            <div>
-              <p className="text-sm font-medium mb-2">{t("certificationsSection")}</p>
-              <div className="flex flex-wrap gap-2">
-                {product.certifications.length > 0 ?
-                product.certifications.map((cert) =>
-                <Badge key={cert} className="bg-green-100 text-green-700">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      {CERTIFICATION_LABELS[cert] || cert}
-                    </Badge>
-                ) :
-
-                <span className="text-sm text-muted-foreground">
-                    {t("noCertifications")}
-                  </span>
                 }
               </div>
             </div>
@@ -1512,7 +1317,7 @@ const PassportClient: React.FC = () => {
           </div>
           <p className="text-xs text-muted-foreground">
             {t("poweredBy")}{" "}
-            <span className="font-semibold text-green-600">WeaveCarbon</span>
+            <span className="font-semibold text-slate-700">WeaveCarbon</span>
           </p>
         </div>
       </main>
