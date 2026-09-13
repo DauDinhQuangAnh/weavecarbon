@@ -654,6 +654,63 @@ export interface GpsrPostMarketEvent {
   metadata: Record<string, unknown>; createdAt: string; safetyBusinessGatewayNotificationRequired: boolean;
 }
 
+export interface ReachRestrictionAssessmentInput {
+  entryNumber: string; scopeDecision: 'applies' | 'not_applies' | 'unknown'; scopeRationale: string;
+  legalLimit: number | null; limitUnit: 'percent_w_w' | 'mg_kg' | 'mg_kg_material' | 'mg_kg_extracted' | '';
+  measuredValue: number | null; prohibitedWhen: 'at_or_above_limit' | 'above_limit' | ''; testMethod: string;
+  exemptionClaimed: boolean; exemptionRationale: string;
+  evidenceDocumentIds: string[];
+}
+export interface ReachSubstanceInput {
+  substanceName: string; casNumber: string; ecNumber: string; echaId: string;
+  candidateListStatus: 'included' | 'not_included' | 'unknown'; candidateInclusionDate: string | null;
+  concentrationPercentWw: number; annualTonnage: number | null; location: string;
+  evidenceBasis: 'supplier_declaration' | 'sds' | 'laboratory_test' | 'calculation' | 'unknown';
+  detectionLimit: number | null; detectionLimitUnit: string;
+  safeUseInstructions: Array<{ marketCode: string; languageCode: string; text: string; operatorApproved: boolean }>;
+  article7Exemption: 'none' | 'registered_for_use' | 'exposure_excluded' | '';
+  article7ExemptionRationale: string; evidenceDocumentIds: string[];
+  restrictionAssessments: ReachRestrictionAssessmentInput[];
+}
+export interface ReachSvhcDossierInput {
+  dossierReference: string; assessmentDate: string; productReference: string; productName: string;
+  articleCategory: string; consumerArticle: boolean; placedOnEuMarket: boolean; marketCodes: string[];
+  euActorRole: string; articleLevelAssessmentConfirmed: boolean; candidateListSnapshotDate: string;
+  candidateListEntryCount: number; reachConsolidatedDate: string;
+  components: Array<{ componentReference: string; componentName: string; articleReference: string;
+    homogeneousMaterialReference: string; materialName: string; materialLocation: string; substances: ReachSubstanceInput[] }>;
+  supplierDeclarationEvidenceIds: string[]; notes: string;
+}
+export interface ReachSvhcReview {
+  id: string; dossierId: string; reviewerId: string; reviewerName: string; reviewerEmail: string | null;
+  reviewerRole: 'chemical_compliance_reviewer'; decision: 'approved_for_internal_release' | 'needs_information' | 'rejected';
+  notes: string; inputSha256: string; resultSha256: string;
+  evidenceSnapshot: Array<{ id: string; type: string; name: string; status: string; checksumSha256: string; fileSizeBytes: number }>;
+  createdAt: string;
+}
+export interface ReachSvhcDossier {
+  id: string; shipmentId: string; dossierReference: string; revision: number; rulesetId: string; rulesetVersion: string;
+  rulesetCoverage: 'limited' | 'complete'; sourceManifestSha256: string; assessmentDate: string;
+  candidateListSnapshotDate: string; reachConsolidatedDate: string; input: ReachSvhcDossierInput; inputSha256: string;
+  result: { automatedStatus: 'needs_information' | 'specialist_review_required' | 'ready_for_chemical_review';
+    missingInputs: string[]; findings: Array<{ code: string; severity: 'blocker' | 'specialist' | 'warning' | 'info'; message: string; sourceArticle: string | null; path: string | null }>;
+    obligations: Array<{ code: string; componentReference: string; substanceName: string; responseDays?: number; annualTonnage?: number }>;
+    sources: Array<{ id: string; title: string; url: string; version: string }>; disclaimer: string; resultSha256: string };
+  resultSha256: string; evidenceSnapshot: ReachSvhcReview['evidenceSnapshot']; automatedStatus: ReachSvhcDossier['result']['automatedStatus'];
+  releaseStatus: 'needs_information' | 'specialist_review_required' | 'chemical_review_required' | 'approved_for_internal_release'
+    | 'evidence_review_required' | 'rejected' | 'superseded'; staleEvidenceIds: string[];
+  createdBy: string; createdAt: string; latestReview: ReachSvhcReview | null;
+}
+export interface ReachObligationEvent {
+  id: string; shipmentId: string; dossierId: string;
+  eventType: 'supply_chain_communication' | 'consumer_request_received' | 'consumer_response_sent' | 'article7_notification'
+    | 'scip_notification' | 'authority_request' | 'authority_response' | 'corrective_action';
+  eventReference: string; occurredAt: string; responseDueAt: string | null; responseOverdue: boolean;
+  summary: string; externalReference: string | null; evidenceDocumentId: string | null; evidenceSha256: string | null;
+  evidenceFileSizeBytes: number | null; recorderId: string; recorderName: string; recorderEmail: string | null;
+  metadata: Record<string, unknown>; createdAt: string;
+}
+
 export type EnvironmentalClaimKind =
   | 'generic_environmental' | 'specific_environmental' | 'comparative' | 'future_performance'
   | 'sustainability_label' | 'offset_based_product_climate' | 'legal_requirement_feature' | 'other';
@@ -1006,6 +1063,19 @@ export const recordGpsrPostMarketEvent = (
 ) => api.post<GpsrPostMarketEvent>(
   `${base(shipmentId)}/gpsr/technical-files/${encodeURIComponent(technicalFileId)}/post-market-events`, payload
 );
+export const fetchReachSvhcDossiers = (shipmentId: string) =>
+  api.get<ReachSvhcDossier[]>(`${base(shipmentId)}/reach/dossiers`);
+export const createReachSvhcDossier = (shipmentId: string, payload: ReachSvhcDossierInput) =>
+  api.post<ReachSvhcDossier>(`${base(shipmentId)}/reach/dossiers`, payload);
+export const reviewReachSvhcDossier = (shipmentId: string, dossierId: string,
+  payload: { reviewerRole: 'chemical_compliance_reviewer'; decision: ReachSvhcReview['decision']; notes: string }) =>
+  api.post<ReachSvhcReview>(`${base(shipmentId)}/reach/dossiers/${encodeURIComponent(dossierId)}/reviews`, payload);
+export const fetchReachObligationEvents = (shipmentId: string, dossierId?: string) =>
+  api.get<ReachObligationEvent[]>(`${base(shipmentId)}/reach/obligation-events${dossierId ? `?dossierId=${encodeURIComponent(dossierId)}` : ''}`);
+export const recordReachObligationEvent = (shipmentId: string, dossierId: string,
+  payload: Pick<ReachObligationEvent, 'eventType' | 'eventReference' | 'occurredAt' | 'summary'>
+    & { externalReference?: string; evidenceDocumentId?: string; consumerPersonalDataIncluded?: false; metadata?: Record<string, unknown> }) =>
+  api.post<ReachObligationEvent>(`${base(shipmentId)}/reach/dossiers/${encodeURIComponent(dossierId)}/obligation-events`, payload);
 export const fetchEnvironmentalClaimDossiers = (shipmentId: string) =>
   api.get<EnvironmentalClaimDossier[]>(`${base(shipmentId)}/environmental-claims`);
 export const createEnvironmentalClaimDossier = (shipmentId: string, payload: EnvironmentalClaimInput) =>
@@ -1168,6 +1238,17 @@ export const uploadGpsrEvidence = async (shipmentId: string, file: File) => {
 };
 
 export const lockGpsrEvidence = (evidenceId: string) =>
+  api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
+
+export const uploadReachEvidence = async (shipmentId: string, file: File) => {
+  const body = new FormData(); body.append('file', file); body.append('shipmentId', shipmentId);
+  body.append('kind', 'reach_lab_report'); body.append('documentName', file.name);
+  const response = await api.raw('/evidence/upload', { method: 'POST', body });
+  const payload = await response.json() as { data?: { id?: string } };
+  if (!payload.data?.id) throw new Error('REACH evidence upload did not return an evidence id.');
+  return payload.data as { id: string };
+};
+export const lockReachEvidence = (evidenceId: string) =>
   api.post<Record<string, unknown>>(`/evidence/${encodeURIComponent(evidenceId)}/lock`, {});
 
 export const uploadEnvironmentalClaimEvidence = async (shipmentId: string, file: File) => {
