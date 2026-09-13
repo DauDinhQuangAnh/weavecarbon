@@ -503,6 +503,9 @@ export interface OriginReconciliation {
 export interface ComplianceMaterialFact {
   reference: string; description: string; hsCode: string; originCountry: string;
   percentageByWeight: number | null; animalOrigin: boolean | null; substancesScreened: boolean | null;
+  speciesScientificName: string; specimenDescription: string; wildlifeSourceCode: string;
+  countryOfExport: string; citesDocumentReference: string; euImportPermitReference: string;
+  wildlifeDocumentsVerified: boolean | null;
 }
 
 export interface ComplianceApplicabilityInput {
@@ -559,6 +562,18 @@ export interface ComplianceApplicabilityEvaluation {
       scope: string; scopeStatus: string; reason: string; missingScopeFacts: string[];
       matchedProductCodes: string[]; sourceId: string; datasetId: string; datasetVersion: string;
       requiredEvidenceTypes: string[];
+    }>;
+    speciesScreenings?: Array<{
+      materialReference: string; materialDescription: string; materialSource: string;
+      operatorScientificName: string; specimenDescription: string;
+      countryOfOrigin: string; countryOfExport: string; wildlifeSourceCode: string;
+      citesDocumentReference: string; euImportPermitReference: string;
+      wildlifeDocumentsVerified: boolean | null; datasetId: string; datasetVersion: string;
+      matchedScientificName: string | null; commonName: string | null;
+      citesAppendix: string | null; euAnnex: string | null; euListingTaxon: string | null;
+      euListingBasis: string | null; commercialPurposeReviewRequired: boolean | null;
+      sourceId: string; matchStatus: string; missingFacts: string[]; validationIssues: string[];
+      documentGaps: string[]; requiredEvidenceTypes: string[]; currentSuspensionCheckRequired: boolean;
     }>;
     requiredEvidenceTypes: string[];
     datasets?: Array<{ id: string; version: string; coverageStatus: string; sha256: string }>;

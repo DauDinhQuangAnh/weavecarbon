@@ -26,6 +26,19 @@ describe('R20 compliance applicability panel claims', () => {
     expect(source).toContain('latest.result.restrictionScreenings || []');
     expect(source).toContain('REACH Annex XVII · {screening.entryNumber}');
     expect(source).toContain('Ngưỡng chỉ để sàng lọc; phải hoàn tất hồ sơ R11');
+    expect(source).toContain('latest.result.speciesScreenings || []');
+    expect(source).toContain('CITES Appendix / EU Annex');
+    expect(source).toContain('reference nhập tay không chứng minh giấy phép hợp lệ');
+  });
+
+  it('captures species and permit-routing facts without asserting wildlife document validity', () => {
+    expect(source).toContain('speciesScientificName');
+    expect(source).toContain('specimenDescription');
+    expect(source).toContain('wildlifeSourceCode');
+    expect(source).toContain('citesDocumentReference');
+    expect(source).toContain('euImportPermitReference');
+    expect(source).toContain('wildlifeDocumentsVerified');
+    expect(source).toContain('Bắt buộc kiểm tra suspension theo quốc gia/nguồn/mẫu');
   });
 
   it('captures bounded Annex XVII scope facts without claiming chemical conformity', () => {

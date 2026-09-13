@@ -34,7 +34,9 @@ const emptyInput = (): ComplianceApplicabilityInput => ({
     leatherPartsContactSkin: null
   }, materialFacts: [{
     reference: '', description: '', hsCode: '', originCountry: '', percentageByWeight: null,
-    animalOrigin: null, substancesScreened: null
+    animalOrigin: null, substancesScreened: null, speciesScientificName: '', specimenDescription: '',
+    wildlifeSourceCode: '', countryOfExport: '', citesDocumentReference: '',
+    euImportPermitReference: '', wildlifeDocumentsVerified: null
   }], packagingContext: {
     present: null, types: [], materials: [], reusable: null,
     supplierIdentified: null, customerIdentified: null,
@@ -160,6 +162,13 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
           <Input type="number" min="0" max="100" placeholder="% khối lượng" value={material.percentageByWeight ?? ''} onChange={(event) => updateMaterial({ percentageByWeight: event.target.value === '' ? null : Number(event.target.value) })} />
           <Select value={material.animalOrigin === null ? 'unknown' : material.animalOrigin ? 'yes' : 'no'} onValueChange={(value) => updateMaterial({ animalOrigin: value === 'unknown' ? null : value === 'yes' })}><SelectTrigger><SelectValue placeholder="Nguồn gốc động vật" /></SelectTrigger><SelectContent><SelectItem value="unknown">Nguồn động vật: chưa rõ</SelectItem><SelectItem value="yes">Có nguồn động vật</SelectItem><SelectItem value="no">Không ghi nhận</SelectItem></SelectContent></Select>
           <Select value={material.substancesScreened === null ? 'unknown' : material.substancesScreened ? 'yes' : 'no'} onValueChange={(value) => updateMaterial({ substancesScreened: value === 'unknown' ? null : value === 'yes' })}><SelectTrigger><SelectValue placeholder="Sàng lọc hóa chất" /></SelectTrigger><SelectContent><SelectItem value="unknown">Hóa chất: chưa rõ</SelectItem><SelectItem value="yes">Đã sàng lọc</SelectItem><SelectItem value="no">Chưa sàng lọc</SelectItem></SelectContent></Select>
+          <Input placeholder="Tên khoa học của loài" value={material.speciesScientificName} onChange={(event) => updateMaterial({ speciesScientificName: event.target.value })} />
+          <Input placeholder="Mô tả mẫu/phần động vật" value={material.specimenDescription} onChange={(event) => updateMaterial({ specimenDescription: event.target.value })} />
+          <Input placeholder="CITES source code: W/R/D/C/F…" value={material.wildlifeSourceCode} maxLength={1} onChange={(event) => updateMaterial({ wildlifeSourceCode: event.target.value.toUpperCase() })} />
+          <Input placeholder="Nước xuất/re-export" value={material.countryOfExport} maxLength={2} onChange={(event) => updateMaterial({ countryOfExport: event.target.value.toUpperCase() })} />
+          <Input placeholder="CITES export/re-export reference" value={material.citesDocumentReference} onChange={(event) => updateMaterial({ citesDocumentReference: event.target.value })} />
+          <Input placeholder="EU import permit reference" value={material.euImportPermitReference} onChange={(event) => updateMaterial({ euImportPermitReference: event.target.value })} />
+          <Select value={nullableBooleanValue(material.wildlifeDocumentsVerified)} onValueChange={(value) => updateMaterial({ wildlifeDocumentsVerified: nullableBoolean(value) })}><SelectTrigger><SelectValue placeholder="Xác minh chứng từ wildlife" /></SelectTrigger><SelectContent><SelectItem value="unknown">Chứng từ: chưa rõ</SelectItem><SelectItem value="yes">Đã được đối chiếu</SelectItem><SelectItem value="no">Chưa đối chiếu</SelectItem></SelectContent></Select>
         </div>
       </div>
       <Textarea placeholder="Giới hạn, giả định và ghi chú của operator" value={input.notes} onChange={(event) => setInput((current) => ({ ...current, notes: event.target.value }))} />
@@ -189,6 +198,14 @@ export default function ComplianceApplicabilityPanel({ shipmentId }: { shipmentI
           <p>Phạm vi: {screening.scope}</p>
           {screening.missingScopeFacts.length > 0 && <p className="text-amber-800">Thiếu dữ kiện: {screening.missingScopeFacts.join(', ')}</p>}
           <p className="text-amber-900">Ngưỡng chỉ để sàng lọc; phải hoàn tất hồ sơ R11 và review chuyên viên hóa chất.</p>
+        </div>)}
+        {(latest.result.speciesScreenings || []).map((screening, index) => <div key={`${screening.materialReference}-${index}`} className="rounded border border-emerald-200 bg-emerald-50 p-2 text-xs">
+          <div className="flex flex-wrap gap-2"><b>Wildlife/CITES · {screening.materialReference || `material ${index + 1}`}</b><Badge variant="outline">{screening.matchStatus}</Badge></div>
+          <p>Loài: {screening.operatorScientificName || 'chưa có'}{screening.matchedScientificName ? ` → ${screening.matchedScientificName}` : ''}</p>
+          <p>CITES Appendix / EU Annex: {screening.citesAppendix || '—'} / {screening.euAnnex || '—'}</p>
+          {screening.euListingTaxon && <p>Listing: {screening.euListingTaxon} · {screening.euListingBasis}</p>}
+          {(screening.missingFacts.length > 0 || screening.validationIssues.length > 0 || screening.documentGaps.length > 0) && <p className="text-amber-800">Khoảng trống: {[...screening.missingFacts, ...screening.validationIssues, ...screening.documentGaps].join(', ')}</p>}
+          <p className="text-emerald-900">Bắt buộc kiểm tra suspension theo quốc gia/nguồn/mẫu và xác thực giấy phép; reference nhập tay không chứng minh giấy phép hợp lệ.</p>
         </div>)}
         {latest.result.matches.map((match) => {
           const source = match.sourceId ? sourceById.get(match.sourceId) : null;

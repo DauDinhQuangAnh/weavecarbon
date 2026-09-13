@@ -7437,12 +7437,20 @@ export interface operations {
                     intendedUse: string;
                     materialFacts?: {
                         animalOrigin?: boolean | null;
+                        citesDocumentReference?: string;
+                        countryOfExport?: string;
                         description?: string;
+                        euImportPermitReference?: string;
                         hsCode?: string;
                         originCountry?: string;
                         percentageByWeight?: number | null;
                         reference?: string;
+                        speciesScientificName?: string;
+                        specimenDescription?: string;
                         substancesScreened?: boolean | null;
+                        wildlifeDocumentsVerified?: boolean | null;
+                        /** @enum {string} */
+                        wildlifeSourceCode?: "" | "W" | "R" | "D" | "C" | "F" | "I" | "O" | "U" | "X";
                     }[];
                     notes?: string;
                     packagingContext?: {
