@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { isApiError } from "@/lib/apiClient";
-import { INDUSTRIAL_CORE_DEMO_REGISTRY, industrialCoreApi, type CapabilityStatus, type IndustrialCapabilityRegistry, type IndustrialFacility } from "@/lib/industrialCoreApi";
+import { INDUSTRIAL_CORE_DEMO_REGISTRY, industrialCoreApi, type CapabilityStatus, type IndustrialActivity,
+  type IndustrialCapabilityRegistry, type IndustrialFacility, type IndustrialMeasurementPoint, type IndustrialProcess } from "@/lib/industrialCoreApi";
 
 const statusStyles: Record<CapabilityStatus, string> = {
   implemented: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -24,21 +25,29 @@ export default function CarbonOperationsClient({ demo = false }: { demo?: boolea
   const t = useTranslations("carbonOperations");
   const [registry, setRegistry] = useState<IndustrialCapabilityRegistry | null>(null);
   const [facilities, setFacilities] = useState<IndustrialFacility[]>([]);
+  const [processes, setProcesses] = useState<IndustrialProcess[]>([]);
+  const [measurementPoints, setMeasurementPoints] = useState<IndustrialMeasurementPoint[]>([]);
+  const [activities, setActivities] = useState<IndustrialActivity[]>([]);
+  const [lineage, setLineage] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [processForm, setProcessForm] = useState({ facilityRevisionId: "", processReference: "", name: "", processType: "" });
+  const [pointForm, setPointForm] = useState({ facilityRevisionId: "", processRevisionId: "", measurementPointReference: "", measurementType: "electricity", canonicalUnit: "kWh", sourceType: "meter" as const });
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     if (demo) {
-      setRegistry(INDUSTRIAL_CORE_DEMO_REGISTRY); setFacilities([]); setLoading(false); return;
+      setRegistry(INDUSTRIAL_CORE_DEMO_REGISTRY); setFacilities([]); setProcesses([]); setMeasurementPoints([]); setActivities([]); setLoading(false); return;
     }
     try {
-      const [capabilityData, facilityData] = await Promise.all([
-        industrialCoreApi.capabilities(), industrialCoreApi.facilities()
+      const [capabilityData, facilityData, processData, pointData, activityData] = await Promise.all([
+        industrialCoreApi.capabilities(), industrialCoreApi.facilities(), industrialCoreApi.processes(),
+        industrialCoreApi.measurementPoints(), industrialCoreApi.activities()
       ]);
-      setRegistry(capabilityData); setFacilities(facilityData);
+      setRegistry(capabilityData); setFacilities(facilityData); setProcesses(processData);
+      setMeasurementPoints(pointData); setActivities(activityData);
     } catch (cause) {
       setError(isApiError(cause) ? cause.message : t("loadError"));
     } finally { setLoading(false); }
@@ -59,6 +68,30 @@ export default function CarbonOperationsClient({ demo = false }: { demo?: boolea
     } catch (cause) {
       setError(isApiError(cause) ? cause.message : t("saveError"));
     } finally { setSaving(false); }
+  };
+
+  const submitProcess = async (event: FormEvent) => {
+    event.preventDefault(); if (demo || saving) return; setSaving(true); setError(null);
+    try {
+      const created = await industrialCoreApi.createProcess({ ...processForm, lifecycleStatus: "active" });
+      setProcesses((current) => [created, ...current]);
+      setProcessForm({ facilityRevisionId: "", processReference: "", name: "", processType: "" });
+    } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); }
+  };
+
+  const submitPoint = async (event: FormEvent) => {
+    event.preventDefault(); if (demo || saving) return; setSaving(true); setError(null);
+    try {
+      const payload = { ...pointForm, processRevisionId: pointForm.processRevisionId || undefined };
+      const created = await industrialCoreApi.createMeasurementPoint(payload);
+      setMeasurementPoints((current) => [created, ...current]);
+      setPointForm({ facilityRevisionId: "", processRevisionId: "", measurementPointReference: "", measurementType: "electricity", canonicalUnit: "kWh", sourceType: "meter" });
+    } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); }
+  };
+
+  const inspectLineage = async (activityId: string) => {
+    try { setLineage(await industrialCoreApi.activityLineage(activityId)); }
+    catch (cause) { setError(isApiError(cause) ? cause.message : t("loadError")); }
   };
 
   return (
@@ -93,6 +126,14 @@ export default function CarbonOperationsClient({ demo = false }: { demo?: boolea
 
           <Card><CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" />{t("facilitiesTitle")}</CardTitle><CardDescription>{t("facilitiesDescription", { count: facilities.length })}</CardDescription></CardHeader><CardContent>{facilities.length === 0 ? <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground"><Activity className="mx-auto mb-3 h-6 w-6" />{t("emptyFacilities")}</div> : <div className="space-y-3">{facilities.map((facility) => <div key={facility.id} className="flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{facility.name}</p><p className="text-sm text-muted-foreground">{facility.facilityReference} · {facility.countryCode} · rev {facility.revision}</p></div><Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 text-emerald-800">{facility.lifecycleStatus}</Badge></div>)}</div>}</CardContent></Card>
         </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <Card><CardHeader><CardTitle>{t("processFormTitle")}</CardTitle><CardDescription>{t("processFormDescription")}</CardDescription></CardHeader><CardContent><form className="space-y-3" onSubmit={submitProcess}><Label htmlFor="process-facility">{t("fields.facility")}</Label><select id="process-facility" required disabled={demo || saving} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={processForm.facilityRevisionId} onChange={(e) => setProcessForm({ ...processForm, facilityRevisionId: e.target.value })}><option value="">{t("selectFacility")}</option>{facilities.map((item) => <option key={item.id} value={item.id}>{item.name} · rev {item.revision}</option>)}</select><div className="grid gap-3 sm:grid-cols-2"><Input required placeholder={t("fields.processReference")} disabled={demo || saving} value={processForm.processReference} onChange={(e) => setProcessForm({ ...processForm, processReference: e.target.value })} /><Input required placeholder={t("fields.processType")} disabled={demo || saving} value={processForm.processType} onChange={(e) => setProcessForm({ ...processForm, processType: e.target.value })} /></div><Input required placeholder={t("fields.processName")} disabled={demo || saving} value={processForm.name} onChange={(e) => setProcessForm({ ...processForm, name: e.target.value })} /><Button disabled={demo || saving} className="w-full">{t("createProcess")}</Button></form><div className="mt-4 space-y-2">{processes.map((item) => <div key={item.id} className="rounded-lg border p-3 text-sm"><span className="font-semibold">{item.name}</span><span className="text-muted-foreground"> · {item.processReference} · {item.processType}</span></div>)}</div></CardContent></Card>
+
+          <Card><CardHeader><CardTitle>{t("pointFormTitle")}</CardTitle><CardDescription>{t("pointFormDescription")}</CardDescription></CardHeader><CardContent><form className="space-y-3" onSubmit={submitPoint}><select required disabled={demo || saving} aria-label={t("fields.facility")} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={pointForm.facilityRevisionId} onChange={(e) => setPointForm({ ...pointForm, facilityRevisionId: e.target.value, processRevisionId: "" })}><option value="">{t("selectFacility")}</option>{facilities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select disabled={demo || saving} aria-label={t("fields.processName")} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={pointForm.processRevisionId} onChange={(e) => setPointForm({ ...pointForm, processRevisionId: e.target.value })}><option value="">{t("optionalProcess")}</option>{processes.filter((item) => item.facilityRevisionId === pointForm.facilityRevisionId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><Input required placeholder={t("fields.pointReference")} disabled={demo || saving} value={pointForm.measurementPointReference} onChange={(e) => setPointForm({ ...pointForm, measurementPointReference: e.target.value })} /><div className="grid gap-3 sm:grid-cols-2"><Input required placeholder={t("fields.measurementType")} disabled={demo || saving} value={pointForm.measurementType} onChange={(e) => setPointForm({ ...pointForm, measurementType: e.target.value })} /><Input required placeholder={t("fields.unit")} disabled={demo || saving} value={pointForm.canonicalUnit} onChange={(e) => setPointForm({ ...pointForm, canonicalUnit: e.target.value })} /></div><Button disabled={demo || saving} className="w-full">{t("createPoint")}</Button></form><div className="mt-4 space-y-2">{measurementPoints.map((item) => <div key={item.id} className="rounded-lg border p-3 text-sm"><span className="font-semibold">{item.measurementPointReference}</span><span className="text-muted-foreground"> · {item.measurementType} · {item.canonicalUnit}</span></div>)}</div></CardContent></Card>
+        </section>
+
+        <Card><CardHeader><CardTitle>{t("activityLedgerTitle")}</CardTitle><CardDescription>{t("activityLedgerDescription", { count: activities.length })}</CardDescription></CardHeader><CardContent><div className="space-y-2">{activities.length === 0 ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">{t("emptyActivities")}</p> : activities.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"><div><p className="font-semibold">{item.activityReference}</p><p className="text-sm text-muted-foreground">{item.quantity} {item.canonicalUnit} · {item.dataQualityLevel}</p></div><Button type="button" variant="outline" size="sm" onClick={() => void inspectLineage(item.id)}>{t("viewLineage")}</Button></div>)}</div>{lineage !== null && <pre className="mt-4 max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 text-xs text-emerald-100">{JSON.stringify(lineage, null, 2)}</pre>}</CardContent></Card>
       </>}
     </main>
   );

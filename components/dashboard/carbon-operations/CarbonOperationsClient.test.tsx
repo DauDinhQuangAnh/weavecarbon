@@ -9,6 +9,9 @@ describe("Carbon Operations workspace contract", () => {
     expect(source).toContain("truthBoundary");
     expect(source).toContain("platformVersion");
     expect(source).toContain("industrialCoreApi.facilities");
+    expect(source).toContain("industrialCoreApi.processes");
+    expect(source).toContain("industrialCoreApi.measurementPoints");
+    expect(source).toContain("industrialCoreApi.activityLineage");
   });
 
   it("keeps demo mode read-only", () => {

@@ -516,13 +516,25 @@
     "facilitiesTitle": "Danh mục cơ sở",
     "facilitiesDescription": "Có {count} revision cơ sở trong tenant hiện tại.",
     "emptyFacilities": "Chưa có cơ sở nào. Hãy tạo bản ghi nền đầu tiên.",
+    "processFormTitle": "Quy trình công nghiệp",
+    "processFormDescription": "Liên kết quy trình với đúng revision của cơ sở.",
+    "pointFormTitle": "Điểm đo và thiết bị",
+    "pointFormDescription": "Khai báo nguồn đo chuẩn hóa cho activity ledger.",
+    "createProcess": "Tạo quy trình",
+    "createPoint": "Tạo điểm đo",
+    "selectFacility": "Chọn cơ sở",
+    "optionalProcess": "Quy trình (không bắt buộc)",
+    "activityLedgerTitle": "Activity ledger và evidence lineage",
+    "activityLedgerDescription": "Có {count} bản ghi hoạt động bất biến.",
+    "emptyActivities": "Chưa có activity record để kiểm tra lineage.",
+    "viewLineage": "Xem truy vết",
     "status": { "implemented": "Đã triển khai", "partial": "Một phần", "planned": "Đã hoạch định" },
     "statusDescription": {
       "implemented": "Đã có năng lực hoạt động và bằng chứng trong repository.",
       "partial": "Có nền tảng an toàn nhưng chưa đủ quy trình vận hành hoàn chỉnh.",
       "planned": "Mới ở tầm nhìn; chưa được công bố là sẵn sàng sản xuất."
     },
-    "fields": { "reference": "Mã cơ sở", "country": "Quốc gia", "name": "Tên cơ sở", "boundary": "Ghi chú ranh giới" }
+    "fields": { "reference": "Mã cơ sở", "country": "Quốc gia", "name": "Tên cơ sở", "boundary": "Ghi chú ranh giới", "facility": "Cơ sở", "processReference": "Mã quy trình", "processType": "Loại quy trình", "processName": "Tên quy trình", "pointReference": "Mã điểm đo", "measurementType": "Loại phép đo", "unit": "Đơn vị chuẩn" }
   },
   "products": {
     "title": "Quản lý sản phẩm",

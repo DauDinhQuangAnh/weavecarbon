@@ -2482,6 +2482,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/industrial-core/activities/{activityId}/lineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /industrial-core/activities/{activityId}/lineage */
+        get: operations["getIndustrialCoreActivitiesByActivityIdLineage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/industrial-core/activities/{activityId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /industrial-core/activities/{activityId}/reviews */
+        post: operations["postIndustrialCoreActivitiesByActivityIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/industrial-core/capabilities": {
         parameters: {
             query?: never;
@@ -2511,6 +2545,42 @@ export interface paths {
         put?: never;
         /** POST /industrial-core/facilities */
         post: operations["postIndustrialCoreFacilities"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/industrial-core/measurement-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /industrial-core/measurement-points */
+        get: operations["getIndustrialCoreMeasurementPoints"];
+        put?: never;
+        /** POST /industrial-core/measurement-points */
+        post: operations["postIndustrialCoreMeasurementPoints"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/industrial-core/processes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /industrial-core/processes */
+        get: operations["getIndustrialCoreProcesses"];
+        put?: never;
+        /** POST /industrial-core/processes */
+        post: operations["postIndustrialCoreProcesses"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9599,6 +9669,58 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getIndustrialCoreActivitiesByActivityIdLineage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activityId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postIndustrialCoreActivitiesByActivityIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                activityId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "industrial_activity_reviewer";
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     getIndustrialCoreCapabilities: {
         parameters: {
             query?: never;
@@ -9655,6 +9777,116 @@ export interface operations {
                     metadata?: Record<string, never>;
                     name: string;
                     timezone?: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getIndustrialCoreMeasurementPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postIndustrialCoreMeasurementPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    calibrationDueOn?: string | null;
+                    /** @enum {string} */
+                    calibrationStatus?: "unknown" | "current" | "expired" | "not_applicable";
+                    canonicalUnit: string;
+                    deviceIdentity?: string;
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    measurementPointReference: string;
+                    measurementType: string;
+                    metadata?: Record<string, never>;
+                    /** Format: uuid */
+                    processRevisionId?: string | null;
+                    samplingIntervalSeconds?: number | null;
+                    /** @enum {string} */
+                    sourceType: "meter" | "plc" | "sensor" | "weavenode" | "manual" | "api";
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getIndustrialCoreProcesses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postIndustrialCoreProcesses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    /** @enum {string} */
+                    lifecycleStatus?: "planned" | "active" | "inactive";
+                    metadata?: Record<string, never>;
+                    name: string;
+                    processReference: string;
+                    processType: string;
                 };
             };
         };
