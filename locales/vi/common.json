@@ -488,6 +488,7 @@
     "evidence": "Chứng từ",
     "dataGap": "Kiểm tra dữ liệu",
     "dataGovernance": "Quản trị dữ liệu",
+    "vnMrv": "MRV Việt Nam",
     "export": "Xuất khẩu",
     "reports": "Báo cáo",
     "auditTrail": "Audit Trail",
@@ -561,6 +562,7 @@
     "evidenceIds": "Evidence UUID, phân cách bằng dấu phẩy",
     "submitFactor": "Gửi đề xuất thẩm định"
   },
+  "vnMrv": {"title":"Vòng đời kiểm kê khí nhà kính và MRV Việt Nam","description":"Chuẩn bị hồ sơ nội bộ theo cơ sở, ngày hiệu lực pháp lý, measurement plan, kiểm kê doanh nghiệp và cổng DQL.","loadError":"Không thể tải hồ sơ MRV.","saveError":"Không thể lưu hồ sơ MRV.","demoReadOnly":"Chế độ demo chỉ đọc.","caseTitle":"Hồ sơ áp dụng","caseDescription":"Không tự động kết luận nghĩa vụ; xác nhận danh mục phải có chứng từ.","caseReference":"Mã hồ sơ","selectFacility":"Chọn cơ sở","listingReference":"Tham chiếu trong danh mục","listingEvidence":"Evidence UUID của danh mục","rationale":"Cơ sở đánh giá","createCase":"Tạo hồ sơ áp dụng","planTitle":"Kế hoạch đo lường","planDescription":"Khóa ranh giới, nguồn dữ liệu, phương pháp, QA/QC và độ không chắc chắn.","selectCase":"Chọn hồ sơ","planReference":"Mã kế hoạch","sourceReference":"Nguồn phát thải/điểm đo","methodology":"Phương pháp tính","uncertainty":"Kế hoạch độ không chắc chắn","dqlIds":"DQL UUID, phân cách bằng dấu phẩy","evidenceIds":"Evidence UUID, phân cách bằng dấu phẩy","createPlan":"Tạo measurement plan","filingTitle":"Snapshot chuẩn bị hồ sơ","filingDescription":"Đánh giá readiness; không gửi tự động tới cơ quan nhà nước.","selectPlan":"Chọn measurement plan","selectInventory":"Chọn kiểm kê GHG","prepareFiling":"Tạo filing snapshot","noBlockers":"Không còn blocker tự động","legalNotice":"Đây là công cụ chuẩn bị và kiểm soát nội bộ, không phải kết luận pháp lý, xác minh độc lập hay bằng chứng đã nộp hồ sơ."},
   "products": {
     "title": "Quản lý sản phẩm",
     "summary": "Hiện có {total} sản phẩm, gồm {draft} nháp, {published} đã xuất bản và {batches} lô hàng",

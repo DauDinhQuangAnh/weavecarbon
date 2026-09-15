@@ -1,0 +1,5 @@
+import { api } from "@/lib/apiClient";
+export interface VnMrvCase { id:string;caseReference:string;revision:number;facilityRevisionId:string;facilityName?:string;reportingYear:number;sector:string;applicabilityStatus:string;legalBasis:{sources:Array<{id:string;title:string;effectiveFrom?:string;effectiveTo?:string}>};rationale:string; }
+export interface VnMrvPlan { id:string;caseId:string;planReference:string;revision:number;planSha256:string; }
+export interface VnMrvFiling { id:string;caseId:string;measurementPlanId:string;corporateInventoryId:string;readinessStatus:string;blockers:string[];payloadSha256:string;disclaimer:string; }
+export const vnMrvApi={cases:()=>api.get<VnMrvCase[]>("/vn-mrv/cases"),createCase:(x:Record<string,unknown>)=>api.post<VnMrvCase>("/vn-mrv/cases",x),plans:()=>api.get<VnMrvPlan[]>("/vn-mrv/measurement-plans"),createPlan:(x:Record<string,unknown>)=>api.post<VnMrvPlan>("/vn-mrv/measurement-plans",x),filings:()=>api.get<VnMrvFiling[]>("/vn-mrv/filings"),prepareFiling:(x:Record<string,unknown>)=>api.post<VnMrvFiling>("/vn-mrv/filings",x)};
