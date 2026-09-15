@@ -24,7 +24,7 @@ const beVietnamProBody = Be_Vietnam_Pro({
 
 export const metadata: Metadata = {
   title: "WeaveCarbon",
-  description: "Carbon footprint management for textile products",
+  description: "Industrial carbon and climate data infrastructure",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },

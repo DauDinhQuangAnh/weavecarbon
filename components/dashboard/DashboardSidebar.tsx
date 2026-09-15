@@ -8,6 +8,7 @@ import {
   BarChart3,
   Calculator as CalculatorIcon,
   CreditCard,
+  Factory,
   FileCheck,
   FileText,
   History,
@@ -41,6 +42,7 @@ interface DashboardSidebarProps {
 
 const menuItems = [
   { icon: BarChart3,       labelKey: "overview",   path: "/overview"    },
+  { icon: Factory,         labelKey: "carbonOperations", path: "/carbon-operations" },
   { icon: Package,         labelKey: "product",    path: "/products"    },
   { icon: Truck,           labelKey: "logistics",  path: "/logistics"   },
   { icon: CalculatorIcon,  labelKey: "calculator", path: "/carbon-calculator"  },
