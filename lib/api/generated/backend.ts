@@ -1060,6 +1060,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data-governance/dql-assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /data-governance/dql-assessments */
+        get: operations["getDataGovernanceDqlAssessments"];
+        put?: never;
+        /** POST /data-governance/dql-assessments */
+        post: operations["postDataGovernanceDqlAssessments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data-governance/factor-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /data-governance/factor-proposals */
+        get: operations["getDataGovernanceFactorProposals"];
+        put?: never;
+        /** POST /data-governance/factor-proposals */
+        post: operations["postDataGovernanceFactorProposals"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data-governance/factor-proposals/{proposalId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /data-governance/factor-proposals/{proposalId}/reviews */
+        post: operations["postDataGovernanceFactorProposalsByProposalIdReviews"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/electricity-invoices": {
         parameters: {
             query?: never;
@@ -6258,6 +6311,153 @@ export interface operations {
             content: {
                 "application/json": {
                     [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getDataGovernanceDqlAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postDataGovernanceDqlAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    completenessPercent: number;
+                    completenessScore: number;
+                    evidenceDocumentIds?: string[];
+                    geographicScore: number;
+                    improvementActions?: string[];
+                    rationale: string;
+                    reliabilityScore: number;
+                    subjectReference: string;
+                    /** @enum {string} */
+                    subjectType: "activity" | "facility" | "process" | "measurement_point" | "emission_factor";
+                    technologicalScore: number;
+                    temporalScore: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getDataGovernanceFactorProposals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postDataGovernanceFactorProposals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    boundary: string;
+                    evidenceDocumentIds: string[];
+                    factorId: string;
+                    factorValue: number;
+                    geography: string;
+                    gwpBasis: string;
+                    isProxy?: boolean;
+                    label: string;
+                    proposalReference: string;
+                    sourceName: string;
+                    sourceUrl: string;
+                    sourceYear?: number | null;
+                    uncertaintyCv: number;
+                    unit: string;
+                    /** Format: date */
+                    validFrom?: string | null;
+                    /** Format: date */
+                    validTo?: string | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postDataGovernanceFactorProposalsByProposalIdReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "approved_for_release_candidate" | "needs_information" | "rejected";
+                    notes: string;
+                    /** @enum {string} */
+                    reviewerRole: "emission_factor_reviewer";
                 };
             };
         };

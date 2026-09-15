@@ -487,6 +487,7 @@
     "calculator": "Tính carbon",
     "evidence": "Chứng từ",
     "dataGap": "Kiểm tra dữ liệu",
+    "dataGovernance": "Quản trị dữ liệu",
     "export": "Xuất khẩu",
     "reports": "Báo cáo",
     "auditTrail": "Audit Trail",
@@ -535,6 +536,30 @@
       "planned": "Mới ở tầm nhìn; chưa được công bố là sẵn sàng sản xuất."
     },
     "fields": { "reference": "Mã cơ sở", "country": "Quốc gia", "name": "Tên cơ sở", "boundary": "Ghi chú ranh giới", "facility": "Cơ sở", "processReference": "Mã quy trình", "processType": "Loại quy trình", "processName": "Tên quy trình", "pointReference": "Mã điểm đo", "measurementType": "Loại phép đo", "unit": "Đơn vị chuẩn" }
+  },
+  "dataGovernance": {
+    "title": "Quản trị chất lượng dữ liệu và hệ số phát thải",
+    "description": "Chấm điểm DQL theo phương pháp có phiên bản và kiểm soát đề xuất emission factor bằng evidence snapshot cùng quyết định thẩm định bất biến.",
+    "loadError": "Không thể tải dữ liệu quản trị.",
+    "saveError": "Không thể lưu hồ sơ quản trị.",
+    "demoReadOnly": "Chế độ demo chỉ đọc và không tạo hồ sơ quản trị thật.",
+    "dqlTitle": "Đánh giá DQL",
+    "dqlDescription": "Năm chiều chất lượng, thang 1–5; kết quả được tính nhất quán bởi WEAVECARBON-DQL-1.0.0.",
+    "subjectReference": "Mã đối tượng",
+    "completenessPercent": "Mức độ đầy đủ (%)",
+    "rationale": "Cơ sở đánh giá",
+    "score": "Tính và lưu DQL",
+    "dimensions": { "temporal": "Thời gian", "geographic": "Địa lý", "technological": "Công nghệ", "completeness": "Đầy đủ", "reliability": "Tin cậy" },
+    "factorTitle": "Đề xuất emission factor",
+    "factorDescription": "Đề xuất không tự động trở thành factor đã phát hành; cần evidence khóa và reviewer chuyên trách.",
+    "proposalReference": "Mã đề xuất",
+    "factorLabel": "Tên hệ số",
+    "factorValue": "Giá trị",
+    "unit": "Đơn vị",
+    "sourceName": "Tên nguồn",
+    "boundary": "Ranh giới áp dụng",
+    "evidenceIds": "Evidence UUID, phân cách bằng dấu phẩy",
+    "submitFactor": "Gửi đề xuất thẩm định"
   },
   "products": {
     "title": "Quản lý sản phẩm",
