@@ -2761,6 +2761,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/mitigation-operations/allocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /mitigation-operations/allocations */
+        get: operations["getMitigationOperationsAllocations"];
+        put?: never;
+        /** POST /mitigation-operations/allocations */
+        post: operations["postMitigationOperationsAllocations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mitigation-operations/initiatives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /mitigation-operations/initiatives */
+        get: operations["getMitigationOperationsInitiatives"];
+        put?: never;
+        /** POST /mitigation-operations/initiatives */
+        post: operations["postMitigationOperationsInitiatives"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mitigation-operations/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /mitigation-operations/positions */
+        get: operations["getMitigationOperationsPositions"];
+        put?: never;
+        /** POST /mitigation-operations/positions */
+        post: operations["postMitigationOperationsPositions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mitigation-operations/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /mitigation-operations/scenarios */
+        get: operations["getMitigationOperationsScenarios"];
+        put?: never;
+        /** POST /mitigation-operations/scenarios */
+        post: operations["postMitigationOperationsScenarios"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operations/jobs/{id}": {
         parameters: {
             query?: never;
@@ -10372,6 +10444,234 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+        };
+    };
+    getMitigationOperationsAllocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postMitigationOperationsAllocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    allocationReference: string;
+                    /** Format: uuid */
+                    evidenceDocumentId?: string | null;
+                    externalReference?: string | null;
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    /** @enum {string} */
+                    instrumentType: "authority_quota" | "internal_budget" | "transfer_reference" | "credit_reference";
+                    notes: string;
+                    quantityTco2e: number;
+                    /** @enum {string} */
+                    recordStatus: "draft_reference" | "evidence_confirmed";
+                    reportingYear: number;
+                    vintageYear?: number | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMitigationOperationsInitiatives: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postMitigationOperationsInitiatives: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    assumptions: Record<string, never>;
+                    /** Format: uuid */
+                    baselineInventoryId?: string | null;
+                    baselineYear: number;
+                    evidenceDocumentIds: string[];
+                    /** @enum {string} */
+                    evidenceRole?: "baseline" | "methodology" | "approval" | "implementation" | "monitoring" | "verification";
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    initiativeReference: string;
+                    /** @enum {string} */
+                    lifecycleStatus: "proposed" | "approved_internal" | "in_progress" | "completed" | "cancelled";
+                    methodology: Record<string, never>;
+                    ownerName: string;
+                    /** Format: date */
+                    plannedEnd: string;
+                    /** Format: date */
+                    plannedStart: string;
+                    targetReductionTco2e: number;
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMitigationOperationsPositions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postMitigationOperationsPositions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    allocationIds: string[];
+                    /** Format: uuid */
+                    corporateInventoryId: string;
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    reportingYear: number;
+                    scenarioIds: string[];
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getMitigationOperationsScenarios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postMitigationOperationsScenarios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    annualProjection: Record<string, never>[];
+                    assumptions: Record<string, never>;
+                    baselineEmissionsTco2e: number;
+                    evidenceDocumentIds: string[];
+                    /** Format: uuid */
+                    initiativeId: string;
+                    /** Format: date */
+                    periodEnd: string;
+                    /** Format: date */
+                    periodStart: string;
+                    projectedEmissionsTco2e: number;
+                    scenarioReference: string;
+                    /** @enum {string} */
+                    scenarioType: "baseline" | "planned" | "conservative" | "stress";
+                    sensitivity: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
         };
     };
     getOperationsJobsById: {

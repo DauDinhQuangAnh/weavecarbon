@@ -35,6 +35,7 @@ export const DASHBOARD_CALCULATION_HISTORY_NAMESPACES = ["calculationHistory"] a
 export const DASHBOARD_CARBON_OPERATIONS_NAMESPACES = ["carbonOperations"] as const;
 export const DASHBOARD_DATA_GOVERNANCE_NAMESPACES = ["dataGovernance"] as const;
 export const DASHBOARD_VN_MRV_NAMESPACES = ["vnMrv"] as const;
+export const DASHBOARD_MITIGATION_OPERATIONS_NAMESPACES = ["mitigationOperations"] as const;
 export const DASHBOARD_EXPORT_NAMESPACES = ["export"] as const;
 export const DASHBOARD_LOGISTICS_NAMESPACES = ["logistics", "trackShipment", "products"] as const;
 export const DASHBOARD_OVERVIEW_NAMESPACES = ["overview"] as const;

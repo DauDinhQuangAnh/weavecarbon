@@ -65,7 +65,7 @@ export interface IndustrialActivity {
 export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
   schemaId: "weavecarbon.industrial-core-capabilities",
   schemaVersion: "1.0.0",
-  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.15.4",
+  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.15.5",
   coverage: "baseline",
   updatedOn: "2026-09-15",
   truthBoundary: "Chỉ năng lực được đánh dấu implemented mới đang vận hành. Năng lực partial và planned không được trình bày như đã hoàn thiện cho môi trường production.",
@@ -78,13 +78,14 @@ export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
     { id: "domestic-mrv", label: "Domestic GHG and MRV operations", status: "implemented", nextGate: "specialist pilots and authority-channel integration" },
     { id: "export", label: "Export and traceability adapters", status: "implemented", nextGate: "canonical-record adapter mapping" },
     { id: "data-quality", label: "Data quality and factor governance", status: "implemented", nextGate: "apply DQL gates to domestic MRV filing packs" },
+    { id: "mitigation-allowance", label: "Mitigation and allowance operations", status: "implemented", nextGate: "specialist pilot and registry reconciliation connector" },
     { id: "industry-rules", label: "Industry packs", status: "planned", nextGate: "steel and cement rule packs" },
     { id: "decision-intelligence", label: "Climate risk and decision intelligence", status: "planned", nextGate: "physical risk data and scenario model" }
   ],
   entities: ["organization", "facility", "supplier", "material", "product", "batch-lot", "process", "activity", "emission-source", "resource-energy", "transport", "evidence", "meter-device", "emission-factor", "methodology", "calculation-line", "allowance-credit-reference", "mitigation-initiative", "review-verification", "target-requirement"].map((id) => ({
     id,
     status: (["organization", "facility", "supplier", "material", "product", "batch-lot", "process", "activity", "transport", "evidence", "meter-device", "emission-factor", "calculation-line", "review-verification"].includes(id)
-      ? "implemented" : ["allowance-credit-reference", "mitigation-initiative", "target-requirement"].includes(id) ? "planned" : "partial") as CapabilityStatus
+      ? "implemented" : ["allowance-credit-reference", "mitigation-initiative"].includes(id) ? "implemented" : ["target-requirement"].includes(id) ? "planned" : "partial") as CapabilityStatus
   }))
 };
 
