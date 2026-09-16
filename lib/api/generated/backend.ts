@@ -2640,6 +2640,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/industry-packs/manifests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /industry-packs/manifests */
+        get: operations["getIndustryPacksManifests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/industry-packs/pilots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /industry-packs/pilots */
+        get: operations["getIndustryPacksPilots"];
+        put?: never;
+        /** POST /industry-packs/pilots */
+        post: operations["postIndustryPacksPilots"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/logistics/overview": {
         parameters: {
             query?: never;
@@ -10213,6 +10248,102 @@ export interface operations {
                     name: string;
                     processReference: string;
                     processType: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getIndustryPacksManifests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getIndustryPacksPilots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postIndustryPacksPilots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    activityLines: {
+                        activityQuantity: number;
+                        activityUnit: string;
+                        /** @enum {string} */
+                        category: "process" | "fuel" | "electricity";
+                        evidenceDocumentIds: string[];
+                        /** Format: uuid */
+                        factorProposalId: string;
+                        sourceReference: string;
+                    }[];
+                    allocation: {
+                        /** @enum {string} */
+                        method: "single_product";
+                        /** @enum {number} */
+                        share: 1;
+                    };
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    methodology: {
+                        boundary: string;
+                        source: string;
+                    };
+                    outputTonnes: number;
+                    /** @enum {string} */
+                    packId: "steel" | "cement";
+                    /** Format: date */
+                    periodEnd: string;
+                    /** Format: date */
+                    periodStart: string;
+                    /** Format: uuid */
+                    processRevisionId: string;
+                    productionEvidenceDocumentIds: string[];
+                    productReference: string;
+                    studyReference: string;
                 };
             };
         };
