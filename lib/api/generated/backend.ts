@@ -868,6 +868,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/climate-risk/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /climate-risk/assessments */
+        get: operations["getClimateRiskAssessments"];
+        put?: never;
+        /** POST /climate-risk/assessments */
+        post: operations["postClimateRiskAssessments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/climate-risk/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /climate-risk/locations */
+        get: operations["getClimateRiskLocations"];
+        put?: never;
+        /** POST /climate-risk/locations */
+        post: operations["postClimateRiskLocations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/climate-risk/portfolios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /climate-risk/portfolios */
+        get: operations["getClimateRiskPortfolios"];
+        put?: never;
+        /** POST /climate-risk/portfolios */
+        post: operations["postClimateRiskPortfolios"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/climate-risk/portfolios/{portfolioId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /climate-risk/portfolios/{portfolioId} */
+        get: operations["getClimateRiskPortfoliosByPortfolioId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/company/members": {
         parameters: {
             query?: never;
@@ -6186,6 +6257,204 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getClimateRiskAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postClimateRiskAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    businessDependencyPercent: number;
+                    datasetIdentifier: string;
+                    datasetVersion: string;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    exposureRating: number;
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    gridReference: string;
+                    hazardMetric: string;
+                    /** @enum {string} */
+                    hazardType: "heat" | "drought" | "extreme_rainfall";
+                    /** Format: date */
+                    horizonEnd: string;
+                    /** Format: date */
+                    horizonStart: string;
+                    /** Format: uuid */
+                    locationRevisionId: string;
+                    metricUnit: string;
+                    metricValue: number;
+                    modelName?: string;
+                    /** @enum {string} */
+                    priorityBand: "low" | "medium" | "high";
+                    ratingRationale: string;
+                    /** @enum {string} */
+                    scenarioKind: "historical" | "projection";
+                    scenarioName?: string;
+                    scenarioReference: string;
+                    /** @enum {string} */
+                    sourceKind: "ERA5_LAND" | "CMIP6" | "OTHER";
+                    /** Format: uri */
+                    sourceUrl: string;
+                    spatialMatchNotes: string;
+                    spatialResolution: string;
+                    temporalResolution: string;
+                    uncertaintyNotes: string;
+                    vulnerabilityRating: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getClimateRiskLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postClimateRiskLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    latitude: number;
+                    locationBasis: string;
+                    longitude: number;
+                    precisionMeters: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getClimateRiskPortfolios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postClimateRiskPortfolios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    assessmentIds: string[];
+                    methodologyNotes: string;
+                    portfolioReference: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getClimateRiskPortfoliosByPortfolioId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
