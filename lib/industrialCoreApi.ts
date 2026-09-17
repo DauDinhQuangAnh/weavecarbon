@@ -58,14 +58,41 @@ export interface IndustrialMeasurementPoint {
 
 export interface IndustrialActivity {
   id: string; activityReference: string; facilityRevisionId: string; facilityReference?: string; facilityName?: string;
+  processRevisionId?: string | null;
   activityType: string; periodStart: string; periodEnd: string; quantity: number; canonicalUnit: string;
   sourceKind: string; dataQualityLevel: "L1" | "L2" | "L3" | "L4" | "L5"; sourceSha256: string;
+}
+
+export type AllocationLevel = "facility" | "process" | "batch" | "product";
+export type AllocationMethod = "mass" | "energy" | "output" | "machine_hour" | "economic" | "custom_driver";
+
+export interface DynamicAllocationRule {
+  id: string; facilityRevisionId: string; facilityReference?: string; facilityName?: string;
+  allocationReference: string; revision: number; sourceLevel: Exclude<AllocationLevel, "product">;
+  targetLevel: Exclude<AllocationLevel, "facility">; allocationMethod: AllocationMethod; driverUnit: string;
+  methodologyReference: string; methodologyVersion: string; rationale: string;
+  approvalStatus: "draft" | "approved"; evidenceDocumentId: string | null; ruleSha256: string; createdAt: string;
+}
+
+export interface DynamicAllocationLine {
+  id: string; lineNumber: number; targetLevel: Exclude<AllocationLevel, "facility">; targetEntityId: string;
+  targetReference: string; driverValue: number; driverUnit: string; allocationShare: number;
+  allocatedQuantity: number; canonicalUnit: string; lineSha256: string;
+}
+
+export interface DynamicAllocationRun {
+  id: string; facilityRevisionId: string; ruleRevisionId: string; allocationReference: string; ruleRevision: number;
+  sourceLevel: Exclude<AllocationLevel, "product">; targetLevel: Exclude<AllocationLevel, "facility">;
+  allocationMethod: AllocationMethod; sourceKind: "activity" | "allocation_line";
+  sourceActivityId: string | null; sourceAllocationLineId: string | null; sourceQuantity: number; sourceUnit: string;
+  driverTotal: number; allocatedQuantity: number; reconciliationDifference: number;
+  reconciliationStatus: "reconciled"; payloadSha256: string; lines: DynamicAllocationLine[]; createdAt: string; disclaimer: string;
 }
 
 export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
   schemaId: "weavecarbon.industrial-core-capabilities",
   schemaVersion: "1.0.0",
-  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.16.2",
+  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.17.3",
   coverage: "baseline",
   updatedOn: "2026-09-16",
   truthBoundary: "Chỉ năng lực được đánh dấu implemented mới đang vận hành. Năng lực partial và planned không được trình bày như đã hoàn thiện cho môi trường production.",
@@ -74,7 +101,7 @@ export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
     { id: "ingestion", label: "Data ingestion", status: "partial", nextGate: "Real gateway/network soak, key custody and site calibration acceptance" },
     { id: "semantic", label: "Semantic harmonization", status: "implemented", nextGate: "extend taxonomy through industry packs" },
     { id: "evidence", label: "Evidence and provenance", status: "implemented", nextGate: "activity-level review workflow" },
-    { id: "computation", label: "Carbon computation", status: "implemented", nextGate: "process allocation engine" },
+    { id: "computation", label: "Carbon computation and allocation", status: "implemented", nextGate: "real-facility allocation reproducibility pilot and domestic-to-export adapter binding" },
     { id: "domestic-mrv", label: "Domestic GHG and MRV operations", status: "implemented", nextGate: "specialist pilots and authority-channel integration" },
     { id: "export", label: "Export and traceability adapters", status: "implemented", nextGate: "canonical-record adapter mapping" },
     { id: "data-quality", label: "Data quality and factor governance", status: "implemented", nextGate: "apply DQL gates to domestic MRV filing packs" },
@@ -101,5 +128,17 @@ export const industrialCoreApi = {
   createMeasurementPoint: (input: { facilityRevisionId: string; processRevisionId?: string; measurementPointReference: string; measurementType: string; canonicalUnit: string; sourceType: "meter" | "plc" | "sensor" | "weavenode" | "manual" | "api" }) =>
     api.post<IndustrialMeasurementPoint>("/industrial-core/measurement-points", input),
   activities: () => api.get<IndustrialActivity[]>("/industrial-core/activities?limit=100"),
-  activityLineage: (activityId: string) => api.get<unknown>(`/industrial-core/activities/${encodeURIComponent(activityId)}/lineage`)
+  activityLineage: (activityId: string) => api.get<unknown>(`/industrial-core/activities/${encodeURIComponent(activityId)}/lineage`),
+  allocationRules: () => api.get<DynamicAllocationRule[]>("/dynamic-allocation/rules"),
+  createAllocationRule: (input: {
+    allocationReference: string; facilityRevisionId: string; sourceLevel: Exclude<AllocationLevel, "product">;
+    targetLevel: Exclude<AllocationLevel, "facility">; allocationMethod: AllocationMethod; driverUnit: string;
+    methodologyReference: string; methodologyVersion: string; rationale: string;
+    approvalStatus: "draft" | "approved"; evidenceDocumentId?: string;
+  }) => api.post<DynamicAllocationRule>("/dynamic-allocation/rules", input),
+  allocationRuns: () => api.get<DynamicAllocationRun[]>("/dynamic-allocation/runs?limit=100"),
+  createAllocationRun: (input: {
+    ruleRevisionId: string; sourceActivityId?: string; sourceAllocationLineId?: string;
+    targets: Array<{ targetEntityId: string; driverValue: number }>;
+  }) => api.post<DynamicAllocationRun>("/dynamic-allocation/runs", input)
 };

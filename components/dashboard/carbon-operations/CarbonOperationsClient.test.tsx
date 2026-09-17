@@ -18,4 +18,12 @@ describe("Carbon Operations workspace contract", () => {
     expect(source).toContain("if (demo || saving) return");
     expect(source).toContain("disabled={demo || saving}");
   });
+
+  it("exposes governed dynamic allocation rules and reconciled runs", () => {
+    expect(source).toContain("industrialCoreApi.allocationRules");
+    expect(source).toContain("industrialCoreApi.createAllocationRule");
+    expect(source).toContain("industrialCoreApi.createAllocationRun");
+    expect(source).toContain("reconciliationStatus");
+    expect(source).toContain("sourceLevel: \"facility\", targetLevel: \"process\"");
+  });
 });
