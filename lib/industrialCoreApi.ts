@@ -92,13 +92,14 @@ export interface DynamicAllocationRun {
 export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
   schemaId: "weavecarbon.industrial-core-capabilities",
   schemaVersion: "1.0.0",
-  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.17.3",
+  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.17.4",
   coverage: "baseline",
   updatedOn: "2026-09-16",
   truthBoundary: "Chỉ năng lực được đánh dấu implemented mới đang vận hành. Năng lực partial và planned không được trình bày như đã hoàn thiện cho môi trường production.",
   manifestSha256: "demo-read-only-manifest",
   layers: [
     { id: "ingestion", label: "Data ingestion", status: "partial", nextGate: "Real gateway/network soak, key custody and site calibration acceptance" },
+    { id: "ai-assisted-ingestion", label: "AI and OCR human-in-the-loop", status: "partial", nextGate: "governed semantic mapping, anomaly/evidence-match suggestions and controlled authoritative activity promotion" },
     { id: "semantic", label: "Semantic harmonization", status: "implemented", nextGate: "extend taxonomy through industry packs" },
     { id: "evidence", label: "Evidence and provenance", status: "implemented", nextGate: "activity-level review workflow" },
     { id: "computation", label: "Carbon computation and allocation", status: "implemented", nextGate: "real-facility allocation reproducibility pilot and domestic-to-export adapter binding" },

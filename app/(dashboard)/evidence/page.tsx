@@ -507,6 +507,8 @@ export default function EvidencePage() {
     if (!reviewDoc) return;
     try {
       await api.post(`/evidence/${reviewDoc.id}/confirm`, {
+        reviewerRole: 'evidence_ai_reviewer',
+        notes: 'Người dùng đã kiểm tra từng trường AI/OCR trước khi khóa chứng từ.',
         fields: reviewFields.map((f) => ({
           id: f.id,
           confirmed_value: f.confirmed_value ?? f.ai_value,
