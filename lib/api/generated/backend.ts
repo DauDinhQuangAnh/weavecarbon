@@ -11204,7 +11204,7 @@ export interface operations {
                         activityQuantity: number;
                         activityUnit: string;
                         /** @enum {string} */
-                        category: "process" | "fuel" | "electricity";
+                        category: "process" | "fuel" | "electricity" | "material" | "feedstock" | "steam" | "transport" | "waste" | "water";
                         evidenceDocumentIds: string[];
                         /** Format: uuid */
                         factorProposalId: string;
@@ -11224,7 +11224,7 @@ export interface operations {
                     };
                     outputTonnes: number;
                     /** @enum {string} */
-                    packId: "steel" | "cement";
+                    packId: "steel" | "cement" | "textile_apparel" | "aluminium" | "construction_materials" | "fertiliser_chemicals" | "mining_minerals";
                     /** Format: date */
                     periodEnd: string;
                     /** Format: date */
@@ -11233,6 +11233,9 @@ export interface operations {
                     processRevisionId: string;
                     productionEvidenceDocumentIds: string[];
                     productReference: string;
+                    sectorContext?: {
+                        [key: string]: unknown;
+                    };
                     studyReference: string;
                 };
             };
