@@ -3767,6 +3767,167 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/supplier-network/carbon-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/carbon-snapshots */
+        get: operations["getSupplierNetworkCarbonSnapshots"];
+        put?: never;
+        /** POST /supplier-network/carbon-snapshots */
+        post: operations["postSupplierNetworkCarbonSnapshots"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/climate-assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/climate-assessments */
+        get: operations["getSupplierNetworkClimateAssessments"];
+        put?: never;
+        /** POST /supplier-network/climate-assessments */
+        post: operations["postSupplierNetworkClimateAssessments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/criticality-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/criticality-models */
+        get: operations["getSupplierNetworkCriticalityModels"];
+        put?: never;
+        /** POST /supplier-network/criticality-models */
+        post: operations["postSupplierNetworkCriticalityModels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/criticality-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/criticality-snapshots */
+        get: operations["getSupplierNetworkCriticalitySnapshots"];
+        put?: never;
+        /** POST /supplier-network/criticality-snapshots */
+        post: operations["postSupplierNetworkCriticalitySnapshots"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/portfolios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/portfolios */
+        get: operations["getSupplierNetworkPortfolios"];
+        put?: never;
+        /** POST /supplier-network/portfolios */
+        post: operations["postSupplierNetworkPortfolios"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/portfolios/{portfolioId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/portfolios/{portfolioId} */
+        get: operations["getSupplierNetworkPortfoliosByPortfolioId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/profiles */
+        get: operations["getSupplierNetworkProfiles"];
+        put?: never;
+        /** POST /supplier-network/profiles */
+        post: operations["postSupplierNetworkProfiles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/relationships */
+        get: operations["getSupplierNetworkRelationships"];
+        put?: never;
+        /** POST /supplier-network/relationships */
+        post: operations["postSupplierNetworkRelationships"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/supplier-network/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /supplier-network/sites */
+        get: operations["getSupplierNetworkSites"];
+        put?: never;
+        /** POST /supplier-network/sites */
+        post: operations["postSupplierNetworkSites"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/suppliers": {
         parameters: {
             query?: never;
@@ -12950,6 +13111,507 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkCarbonSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkCarbonSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    activityQuantity?: number | null;
+                    activityUnit?: string | null;
+                    boundary: string;
+                    /** @enum {string} */
+                    dataQualityLevel: "L1" | "L2" | "L3" | "L4" | "L5";
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    /** Format: uuid */
+                    facilityRevisionId?: string | null;
+                    grossKgCo2e: number;
+                    intensityKgCo2e?: number | null;
+                    methodologyReference: string;
+                    /** Format: date */
+                    reportingPeriodEnd: string;
+                    /** Format: date */
+                    reportingPeriodStart: string;
+                    /** @enum {string} */
+                    sourceKind: "supplier_specific" | "facility_inventory" | "estimated" | "proxy";
+                    /** @enum {string} */
+                    subjectKind: "facility" | "supplier";
+                    /** Format: uuid */
+                    supplierRevisionId?: string | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkClimateAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkClimateAssessments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    datasetIdentifier: string;
+                    datasetVersion: string;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    exposureRating: number;
+                    gridReference: string;
+                    hazardMetric: string;
+                    /** @enum {string} */
+                    hazardType: "heat" | "drought" | "extreme_rainfall";
+                    /** Format: date */
+                    horizonEnd: string;
+                    /** Format: date */
+                    horizonStart: string;
+                    metricUnit: string;
+                    metricValue: number;
+                    modelName?: string | null;
+                    /** @enum {string} */
+                    priorityBand: "low" | "medium" | "high";
+                    ratingRationale: string;
+                    /** @enum {string} */
+                    scenarioKind: "historical" | "projection";
+                    scenarioName?: string | null;
+                    scenarioReference: string;
+                    /** Format: uuid */
+                    siteRevisionId: string;
+                    /** @enum {string} */
+                    sourceKind: "ERA5_LAND" | "CMIP6" | "OTHER";
+                    /** Format: uri */
+                    sourceUrl: string;
+                    spatialMatchNotes: string;
+                    spatialResolution: string;
+                    /** Format: uuid */
+                    supplierRevisionId: string;
+                    temporalResolution: string;
+                    uncertaintyNotes: string;
+                    vulnerabilityRating: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkCriticalityModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkCriticalityModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    approvalStatus: "draft" | "approved";
+                    carbonWeightPercent: number;
+                    climateWeightPercent: number;
+                    dependencyWeightPercent: number;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    highThreshold: number;
+                    mediumThreshold: number;
+                    modelReference: string;
+                    normalizationPolicy: string;
+                    rationale: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkCriticalitySnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkCriticalitySnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    assessmentPeriodEnd: string;
+                    /** Format: date */
+                    assessmentPeriodStart: string;
+                    carbonScoreRationale: string;
+                    /** Format: uuid */
+                    carbonSnapshotId: string;
+                    climateAssessmentIds: string[];
+                    climateScoreRationale: string;
+                    dependencyScoreRationale: string;
+                    /** Format: uuid */
+                    facilityRevisionId?: string | null;
+                    /** Format: uuid */
+                    modelRevisionId: string;
+                    normalizedCarbonScore: number;
+                    normalizedClimateScore: number;
+                    normalizedDependencyScore: number;
+                    /** Format: uuid */
+                    relationshipRevisionId?: string | null;
+                    /** @enum {string} */
+                    subjectKind: "facility" | "supplier";
+                    /** Format: uuid */
+                    supplierRevisionId?: string | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkPortfolios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkPortfolios: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    criticalitySnapshotIds: string[];
+                    methodologyNotes: string;
+                    portfolioReference: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkPortfoliosByPortfolioId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    countryCode: string;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    legalName: string;
+                    /** @enum {string} */
+                    lifecycleStatus: "prospective" | "active" | "inactive";
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                    sector: string;
+                    supplierReference: string;
+                    supplierTier: number;
+                    tradingName?: string | null;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkRelationships: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkRelationships: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    dependentRouteCount: number;
+                    dependentSkuCount: number;
+                    /** Format: date */
+                    effectiveFrom: string;
+                    /** Format: date */
+                    effectiveTo?: string | null;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    materialOrService: string;
+                    procurementCategory: string;
+                    productionDependencyPercent: number;
+                    relationshipReference: string;
+                    singleSource: boolean;
+                    spendPercent: number;
+                    /** Format: uuid */
+                    supplierRevisionId: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getSupplierNetworkSites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postSupplierNetworkSites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    countryCode: string;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    latitude: number;
+                    locationBasis: string;
+                    longitude: number;
+                    precisionMeters: number;
+                    siteName: string;
+                    siteReference: string;
+                    /** Format: uuid */
+                    supplierRevisionId: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationError"];
             429: components["responses"]["TooManyRequests"];

@@ -92,9 +92,9 @@ export interface DynamicAllocationRun {
 export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
   schemaId: "weavecarbon.industrial-core-capabilities",
   schemaVersion: "1.0.0",
-  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.17.5",
+  platformVersion: "G2-INDUSTRIAL-CORE-2026.09.18.6",
   coverage: "baseline",
-  updatedOn: "2026-09-16",
+  updatedOn: "2026-09-18",
   truthBoundary: "Chỉ năng lực được đánh dấu implemented mới đang vận hành. Năng lực partial và planned không được trình bày như đã hoàn thiện cho môi trường production.",
   manifestSha256: "demo-read-only-manifest",
   layers: [
@@ -108,7 +108,7 @@ export const INDUSTRIAL_CORE_DEMO_REGISTRY: IndustrialCapabilityRegistry = {
     { id: "data-quality", label: "Data quality and factor governance", status: "implemented", nextGate: "apply DQL gates to domestic MRV filing packs" },
     { id: "mitigation-allowance", label: "Mitigation and allowance operations", status: "implemented", nextGate: "specialist pilot and registry reconciliation connector" },
     { id: "industry-rules", label: "Industry packs", status: "partial", nextGate: "independent sector-expert approval and real-facility pilot" },
-    { id: "decision-intelligence", label: "Climate risk and decision intelligence", status: "partial", nextGate: "Dataset ingestion, hazard calibration, carbon-climate overlay, specialist validation and supplier coverage" }
+    { id: "decision-intelligence", label: "Climate risk and decision intelligence", status: "partial", nextGate: "Licensed dataset ingestion, calibrated hazard metrics, climate-specialist validation and real facility/supplier acceptance pilots" }
   ],
   entities: ["organization", "facility", "supplier", "material", "product", "batch-lot", "process", "activity", "emission-source", "resource-energy", "transport", "evidence", "meter-device", "emission-factor", "methodology", "calculation-line", "allowance-credit-reference", "mitigation-initiative", "review-verification", "target-requirement"].map((id) => ({
     id,

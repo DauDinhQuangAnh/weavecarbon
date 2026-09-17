@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import {
 import { Loader2, Mail, Plus } from 'lucide-react';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
+import SupplierNetworkPanel from '@/components/dashboard/suppliers/SupplierNetworkPanel';
 
 type Status = 'draft' | 'sent' | 'waiting' | 'received' | 'overdue';
 
@@ -54,6 +56,8 @@ const EMPTY_FORM = {
 };
 
 export default function SuppliersPage() {
+  const pathname = usePathname();
+  const demo = pathname.startsWith('/demo');
   const [rows, setRows] = useState<SupplierReq[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -137,8 +141,8 @@ export default function SuppliersPage() {
         <div>
           <h1 className="text-2xl font-bold">Nhà cung ứng</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Yêu cầu dữ liệu Scope 3 từ nhà cung ứng để nâng kết quả từ proxy
-            lên dữ liệu có độ tin cậy cao hơn.
+            Thu thập dữ liệu Scope 3 và quản trị mạng lưới nhà cung ứng cho
+            phân tích carbon, khí hậu và phụ thuộc kinh doanh.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -284,6 +288,8 @@ export default function SuppliersPage() {
           )}
         </CardContent>
       </Card>
+
+      <SupplierNetworkPanel demo={demo} />
     </div>
   );
 }
