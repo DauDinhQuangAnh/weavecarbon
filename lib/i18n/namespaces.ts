@@ -38,6 +38,7 @@ export const DASHBOARD_VN_MRV_NAMESPACES = ["vnMrv"] as const;
 export const DASHBOARD_MITIGATION_OPERATIONS_NAMESPACES = ["mitigationOperations"] as const;
 export const DASHBOARD_INDUSTRY_PACKS_NAMESPACES = ["industryPacks"] as const;
 export const DASHBOARD_CLIMATE_RISK_NAMESPACES = ["climateRisk"] as const;
+export const DASHBOARD_WEAVENODE_NAMESPACES = ["weavenode"] as const;
 export const DASHBOARD_EXPORT_NAMESPACES = ["export"] as const;
 export const DASHBOARD_LOGISTICS_NAMESPACES = ["logistics", "trackShipment", "products"] as const;
 export const DASHBOARD_OVERVIEW_NAMESPACES = ["overview"] as const;

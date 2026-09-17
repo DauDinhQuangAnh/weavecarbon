@@ -25,6 +25,7 @@ import {
   TrendingUp,
   Truck,
   Users,
+  RadioTower,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +59,7 @@ const menuItems = [
   { icon: Scale,           labelKey: "mitigationOperations", path: "/mitigation-operations" },
   { icon: Layers3,         labelKey: "industryPacks", path: "/industry-packs" },
   { icon: CloudSun,        labelKey: "climateRisk", path: "/climate-risk" },
+  { icon: RadioTower,      labelKey: "weavenode", path: "/weavenode" },
   { icon: FileCheck,       labelKey: "export",     path: "/export"      },
   { icon: TrendingUp,      labelKey: "reports",    path: "/reports"     },
   { icon: History,         labelKey: "auditTrail", path: "/audit-trail" },

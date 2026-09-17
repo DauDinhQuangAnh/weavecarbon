@@ -3892,6 +3892,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/weavenode/devices/{deviceId}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /weavenode/devices/{deviceId}/health */
+        get: operations["getWeavenodeDevicesByDeviceIdHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/weavenode/devices/{deviceId}/packets": {
         parameters: {
             query?: never;
@@ -3943,6 +3960,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/weavenode/devices/{deviceId}/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /weavenode/devices/{deviceId}/updates */
+        get: operations["getWeavenodeDevicesByDeviceIdUpdates"];
+        put?: never;
+        /** POST /weavenode/devices/{deviceId}/updates */
+        post: operations["postWeavenodeDevicesByDeviceIdUpdates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/weavenode/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /weavenode/health */
+        post: operations["postWeavenodeHealth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/weavenode/ingest": {
         parameters: {
             query?: never;
@@ -3954,6 +4006,77 @@ export interface paths {
         put?: never;
         /** POST /weavenode/ingest */
         post: operations["postWeavenodeIngest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/weavenode/meter-hierarchies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /weavenode/meter-hierarchies */
+        get: operations["getWeavenodeMeterHierarchies"];
+        put?: never;
+        /** POST /weavenode/meter-hierarchies */
+        post: operations["postWeavenodeMeterHierarchies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/weavenode/meter-reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /weavenode/meter-reconciliations */
+        get: operations["getWeavenodeMeterReconciliations"];
+        put?: never;
+        /** POST /weavenode/meter-reconciliations */
+        post: operations["postWeavenodeMeterReconciliations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/weavenode/release-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /weavenode/release-keys */
+        get: operations["getWeavenodeReleaseKeys"];
+        put?: never;
+        /** POST /weavenode/release-keys */
+        post: operations["postWeavenodeReleaseKeys"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/weavenode/release-keys/{keyId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** POST /weavenode/release-keys/{keyId}/revoke */
+        post: operations["postWeavenodeReleaseKeysByKeyIdRevoke"];
         delete?: never;
         options?: never;
         head?: never;
@@ -13117,6 +13240,8 @@ export interface operations {
                     deviceReference: string;
                     /** Format: uuid */
                     measurementPointRevisionId: string;
+                    /** @enum {string} */
+                    protocolVersion?: "weavenode-ed25519-v1" | "weavenode-ed25519-v2";
                     publicKeyPem: string;
                 };
             };
@@ -13154,6 +13279,27 @@ export interface operations {
                 };
             };
         };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getWeavenodeDevicesByDeviceIdHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
@@ -13240,6 +13386,106 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    getWeavenodeDevicesByDeviceIdUpdates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postWeavenodeDevicesByDeviceIdUpdates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    artifactSha256: string;
+                    manifest: {
+                        [key: string]: unknown;
+                    };
+                    reason: string;
+                    /** Format: uuid */
+                    rollbackOfUpdateId?: string | null;
+                    /** @enum {string} */
+                    rolloutStage: "staged" | "canary" | "production" | "rollback";
+                    signatureBase64: string;
+                    /** Format: uuid */
+                    signingKeyId: string;
+                    targetVersion: string;
+                    /** @enum {string} */
+                    updateKind: "firmware" | "configuration";
+                    updateReference: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postWeavenodeHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    bufferDepth: number;
+                    configVersion: string;
+                    /** Format: uuid */
+                    deviceId: string;
+                    faultCodes: string[];
+                    firmwareVersion: string;
+                    /** Format: date-time */
+                    gatewayReceivedAt: string;
+                    /** Format: date-time */
+                    recordedAt: string;
+                    /** @enum {string} */
+                    sensorStatus: "ok" | "warning" | "fault";
+                    sequenceNumber: number;
+                    signatureBase64: string;
+                    storageFreeBytes: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     postWeavenodeIngest: {
         parameters: {
             query?: never;
@@ -13253,9 +13499,13 @@ export interface operations {
                     /** Format: uuid */
                     deviceId: string;
                     /** Format: date-time */
+                    gatewayReceivedAt?: string;
+                    /** Format: date-time */
                     periodEnd: string;
                     /** Format: date-time */
                     periodStart: string;
+                    /** @enum {string} */
+                    protocol?: "weavenode-ed25519-v1" | "weavenode-ed25519-v2";
                     quantity: number;
                     /** Format: date-time */
                     recordedAt: string;
@@ -13268,6 +13518,186 @@ export interface operations {
         responses: {
             "2XX": components["responses"]["GenericSuccess"];
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getWeavenodeMeterHierarchies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postWeavenodeMeterHierarchies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    childMeasurementPointRevisionId: string;
+                    /** Format: date-time */
+                    effectiveFrom: string;
+                    /** Format: date-time */
+                    effectiveTo?: string | null;
+                    /** Format: uuid */
+                    evidenceDocumentId: string;
+                    /** Format: uuid */
+                    facilityRevisionId: string;
+                    hierarchyReference: string;
+                    /** Format: uuid */
+                    parentMeasurementPointRevisionId: string;
+                    /** @enum {string} */
+                    relationKind: "sub_meter" | "line_meter" | "machine_meter";
+                    tolerancePercent: number;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getWeavenodeMeterReconciliations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postWeavenodeMeterReconciliations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    parentMeasurementPointRevisionId: string;
+                    /** Format: date-time */
+                    periodEnd: string;
+                    /** Format: date-time */
+                    periodStart: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getWeavenodeReleaseKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postWeavenodeReleaseKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    keyReference: string;
+                    publicKeyPem: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    postWeavenodeReleaseKeysByKeyIdRevoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            "2XX": components["responses"]["GenericSuccess"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationError"];
             429: components["responses"]["TooManyRequests"];
