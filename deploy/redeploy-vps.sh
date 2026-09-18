@@ -395,9 +395,10 @@ cd "${ROOT_DIR}"
 
 acquire_deploy_lock
 validate_rag_internal_api_key
-if [[ "${DEPLOY_MODE}" == "full" || "${DEPLOY_MODE}" == "backend-only" ]]; then
-  validate_mfa_encryption_key
-fi
+# Docker Compose interpolates every service before applying a service-scoped
+# deploy, so the backend MFA key is required even for frontend-only or RAG-only
+# operations. Validate it explicitly instead of failing later in `compose config`.
+validate_mfa_encryption_key
 refresh_ghcr_login
 compose config >/dev/null
 if [[ "${DEPLOY_MODE}" == "full" ]]; then
