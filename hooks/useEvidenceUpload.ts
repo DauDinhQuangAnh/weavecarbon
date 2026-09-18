@@ -101,18 +101,5 @@ export function useEvidenceUpload(companyId: string | null) {
     [companyId]
   );
 
-  const verify = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      await apiRequest(`/evidence/${id}/verify`, { method: 'POST' });
-      toast.success('Đã xác nhận — chuyển sang dữ liệu sơ cấp.');
-      return true;
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Xác nhận thất bại.';
-      toast.error(message);
-      return false;
-    }
-  }, []);
-
-  return { upload, verify, uploading, processing };
+  return { upload, uploading, processing };
 }

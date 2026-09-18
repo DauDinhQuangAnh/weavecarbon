@@ -38,6 +38,7 @@ import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
 import { EvidenceTrustBadge } from '@/components/evidence/EvidenceTrustBadge';
+import ControlledActivityPromotionPanel from '@/components/evidence/ControlledActivityPromotionPanel';
 import { fetchAllProducts, type ProductRecord } from '@/lib/productsApi';
 
 const DOC_TYPES: { value: string; label: string }[] = [
@@ -282,6 +283,7 @@ export default function EvidencePage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewDoc, setReviewDoc] = useState<EvDoc | null>(null);
   const [reviewFields, setReviewFields] = useState<ExtractedField[]>([]);
+  const [promotionRefreshToken, setPromotionRefreshToken] = useState(0);
 
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState('electricity_bill');
@@ -480,7 +482,7 @@ export default function EvidencePage() {
     }
   };
 
-  const openReview = async (doc: EvDoc) => {
+  const openReview = useCallback(async (doc: EvDoc) => {
     setReviewDoc(doc);
     try {
       const fields = await api.get<ExtractedField[]>(`/evidence/${doc.id}/fields`);
@@ -489,7 +491,13 @@ export default function EvidencePage() {
       setReviewFields([]);
     }
     setReviewOpen(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!highlightId || reviewOpen || reviewDoc?.id === highlightId) return;
+    const highlighted = rows.find((row) => row.id === highlightId);
+    if (highlighted) void openReview(highlighted);
+  }, [highlightId, openReview, reviewDoc?.id, reviewOpen, rows]);
 
   const handleDeleteDoc = async (doc: EvDoc) => {
     const label = DOC_TYPES.find((d) => d.value === doc.kind)?.label ?? doc.kind;
@@ -515,7 +523,8 @@ export default function EvidencePage() {
         })),
       });
       toast({ title: 'Chứng từ đã được xác nhận.' });
-      setReviewOpen(false);
+      setReviewDoc((current) => current ? { ...current, status: 'locked' } : current);
+      setPromotionRefreshToken((current) => current + 1);
       await load(page);
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi xác nhận', variant: 'destructive' });
@@ -939,7 +948,7 @@ export default function EvidencePage() {
 
       {/* Review Modal */}
       <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -1002,7 +1011,7 @@ export default function EvidencePage() {
                           <td className="p-2">
                             <Input
                               className="h-7 text-xs"
-                              defaultValue={
+                              value={
                                 f.confirmed_value ?? f.ai_value ?? ''
                               }
                               onChange={(e) => {
@@ -1028,6 +1037,10 @@ export default function EvidencePage() {
                   </tbody>
                 </table>
               </div>
+              <ControlledActivityPromotionPanel
+                evidenceId={reviewDoc.id}
+                refreshToken={promotionRefreshToken}
+              />
             </div>
           )}
           <DialogFooter className="gap-2">
@@ -1043,12 +1056,14 @@ export default function EvidencePage() {
             >
               Tải lại chứng từ
             </Button>
-            <Button
-              onClick={confirmReview}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              Xác nhận dữ liệu
-            </Button>
+            {reviewFields.length > 0 && !['locked', 'verified', 'third_party_verified'].includes(reviewDoc?.status || '') && (
+              <Button
+                onClick={confirmReview}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                Xác nhận dữ liệu
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

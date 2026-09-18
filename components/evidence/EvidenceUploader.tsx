@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +41,8 @@ const EvidenceUploader: React.FC<Props> = ({
   defaultKind = 'electricity_bill',
   onExtracted,
 }) => {
-  const { upload, verify, uploading, processing } = useEvidenceUpload(companyId);
+  const router = useRouter();
+  const { upload, uploading, processing } = useEvidenceUpload(companyId);
   const [kind, setKind] = useState<EvidenceKind>(defaultKind);
   const [latest, setLatest] = useState<EvidenceDocument | null>(null);
 
@@ -52,14 +54,9 @@ const EvidenceUploader: React.FC<Props> = ({
     }
   };
 
-  const handleVerify = async () => {
+  const handleReview = () => {
     if (!latest) return;
-    const ok = await verify(latest.id);
-    if (ok) {
-      const updated = { ...latest, status: 'verified' as const };
-      setLatest(updated);
-      onExtracted?.(updated);
-    }
+    router.push(`/evidence?highlight=${encodeURIComponent(latest.id)}`);
   };
 
   const isBusy = uploading || processing;
@@ -180,9 +177,9 @@ const EvidenceUploader: React.FC<Props> = ({
             )}
 
             {latest.status === 'extracted' && (
-              <Button size="sm" className="w-full" onClick={() => void handleVerify()}>
+              <Button size="sm" className="w-full" onClick={handleReview}>
                 <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                Xác nhận chứng từ (chuyển sang dữ liệu sơ cấp)
+                Mở kiểm duyệt từng trường AI/OCR
               </Button>
             )}
           </div>
