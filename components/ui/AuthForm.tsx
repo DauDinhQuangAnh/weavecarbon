@@ -68,11 +68,14 @@ const AuthForm: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
     name?: string;
+    mfa?: string;
   }>({});
   const demoSectionLabel =
     t.has("demoSectionLabel") ?
@@ -209,6 +212,7 @@ const AuthForm: React.FC = () => {
       GOOGLE_TOKEN_EXCHANGE_FAILED: t("oauthErrors.googleAuthFailed"),
       GOOGLE_USERINFO_FAILED: t("oauthErrors.googleAuthFailed"),
       GOOGLE_AUTH_FAILED: t("oauthErrors.googleAuthFailed"),
+      MFA_PASSWORD_SIGNIN_REQUIRED: t("oauthErrors.mfaPasswordRequired"),
       MISSING_CODE: t("oauthErrors.missingCode"),
       EMAIL_NOT_VERIFIED: t("oauthErrors.emailNotVerified"),
       ACCOUNT_TYPE_MISMATCH:
@@ -299,9 +303,31 @@ const AuthForm: React.FC = () => {
 
     setIsLoading(true);
 
-    const { error, needsConfirmation } = await signIn(email, password, userType, {
-      rememberMe
+    if (mfaRequired && !/^(?:\d{6}|[A-HJ-NP-Z2-9]{4}(?:-[A-HJ-NP-Z2-9]{4}){3})$/i.test(mfaCode.trim())) {
+      setErrors((current) => ({ ...current, mfa: t("validation.mfaCode") }));
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await signIn(email, password, userType, {
+      rememberMe,
+      totpCode: mfaRequired ? mfaCode : undefined
     });
+    const { error, needsConfirmation } = result;
+
+    if (result.mfaRequired && !result.mfaCodeInvalid) {
+      setMfaRequired(true);
+      setErrors((current) => ({ ...current, mfa: undefined }));
+      setIsLoading(false);
+      return;
+    }
+
+    if (result.mfaCodeInvalid) {
+      setMfaRequired(true);
+      setErrors((current) => ({ ...current, mfa: t("messages.mfaInvalid") }));
+      setIsLoading(false);
+      return;
+    }
 
     if (needsConfirmation) {
       setIsLoading(false);
@@ -333,6 +359,8 @@ const AuthForm: React.FC = () => {
         localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
       }
       const destination = await resolvePostLoginPath();
+      setMfaRequired(false);
+      setMfaCode("");
       setIsLoading(false);
       router.push(destination);
     }
@@ -478,7 +506,10 @@ const AuthForm: React.FC = () => {
           onLogin={handleEmailLogin}
           onSignUp={handleEmailSignUp}
           rememberMe={rememberMe}
-          setRememberMe={setRememberMe} />
+          setRememberMe={setRememberMe}
+          mfaRequired={mfaRequired}
+          mfaCode={mfaCode}
+          setMfaCode={setMfaCode} />
 
         <div className="rounded-2xl border border-primary/12 bg-linear-to-r from-primary/[0.07] via-primary/[0.04] to-transparent p-4 sm:p-5">
           <div className="space-y-4">

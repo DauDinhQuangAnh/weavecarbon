@@ -50,6 +50,7 @@ const AISettings: React.FC = () => {
           users: t("tabs.users"),
           ai: t("tabs.ai"),
           notifications: "Thông báo",
+          security: "Bảo mật",
         }}
       />
 

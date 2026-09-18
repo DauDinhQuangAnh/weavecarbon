@@ -1,7 +1,7 @@
 {$APP_DOMAIN} {
   encode zstd gzip
 
-  @backend path /api/* /health
+  @backend path /api/* /health /ready /version
   handle @backend {
     reverse_proxy be:4000
   }

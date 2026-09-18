@@ -131,6 +131,27 @@ validate_rag_internal_api_key() {
   fi
 }
 
+validate_mfa_encryption_key() {
+  local encryption_key decoded_length
+  encryption_key="$(get_env_value "MFA_ENCRYPTION_KEY")"
+
+  if [[ -z "${encryption_key}" || "${encryption_key}" == change_me* ]]; then
+    echo "MFA_ENCRYPTION_KEY is missing or still a placeholder in ${ENV_FILE}."
+    echo "Generate a 32-byte key with: openssl rand -hex 32"
+    return 1
+  fi
+
+  if [[ "${encryption_key}" =~ ^[[:xdigit:]]{64}$ ]]; then
+    return 0
+  fi
+
+  decoded_length="$(printf '%s' "${encryption_key}" | base64 -d 2>/dev/null | wc -c | tr -d '[:space:]')"
+  if [[ "${decoded_length}" != "32" ]]; then
+    echo "MFA_ENCRYPTION_KEY must be 64 hexadecimal characters or base64 that decodes to exactly 32 bytes."
+    return 1
+  fi
+}
+
 pull_images() {
   if [[ "$#" -eq 0 ]]; then
     return 0
@@ -374,6 +395,9 @@ cd "${ROOT_DIR}"
 
 acquire_deploy_lock
 validate_rag_internal_api_key
+if [[ "${DEPLOY_MODE}" == "full" || "${DEPLOY_MODE}" == "backend-only" ]]; then
+  validate_mfa_encryption_key
+fi
 refresh_ghcr_login
 compose config >/dev/null
 if [[ "${DEPLOY_MODE}" == "full" ]]; then

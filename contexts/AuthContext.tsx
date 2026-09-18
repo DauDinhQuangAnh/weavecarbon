@@ -15,6 +15,7 @@ import {
   API_BASE_URL,
   authTokenStore,
   ensureAccessToken,
+  isApiError,
   invalidateApiResponseCache,
   setApiSessionEpoch,
   setAuthUserSnapshot,
@@ -527,13 +528,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
   password: string,
   userType?: "b2b" | "b2c",
   options?: SignInOptions)
-  : Promise<{error: Error | null;needsConfirmation?: boolean;}> => {
+  : Promise<import("./auth/types").SignInResult> => {
     if (AUTH_DISABLED) {
       return { error: new Error("Authentication is disabled.") };
     }
 
-    void options;
-    const rememberMe = false;
+    const rememberMe = options?.rememberMe === true;
 
     try {
       const payload = await postWithFallback<SignInPayload>(
@@ -541,7 +541,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         {
           email,
           password,
-          remember_me: rememberMe
+          remember_me: rememberMe,
+          ...(options?.totpCode ? { totp_code: options.totpCode.trim() } : {})
         }
       );
 
@@ -580,6 +581,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
       setAuthStatus(syncedUser ? "authenticated" : "anonymous");
       return { error: null };
     } catch (error) {
+      if (isApiError(error) && error.status === 401 && error.code === "MFA_REQUIRED") {
+        return { error: null, mfaRequired: true };
+      }
+      if (isApiError(error) && error.status === 401 && error.code === "MFA_CODE_INVALID") {
+        return { error, mfaRequired: true, mfaCodeInvalid: true };
+      }
       if (isEmailNotVerifiedError(error)) {
         authTokenStore.clear();
         clearSubscriptionLockStateCache();

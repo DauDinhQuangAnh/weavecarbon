@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Lock, User } from "lucide-react";
+import { KeyRound, Mail, Lock, User } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface EmailAuthTabsProps {
@@ -22,12 +22,16 @@ interface EmailAuthTabsProps {
     email?: string;
     password?: string;
     name?: string;
+    mfa?: string;
   };
   isLoading: boolean;
   onLogin: (e: React.FormEvent) => void;
   onSignUp: (e: React.FormEvent) => void;
   rememberMe: boolean;
   setRememberMe: (value: boolean) => void;
+  mfaRequired: boolean;
+  mfaCode: string;
+  setMfaCode: (value: string) => void;
 }
 
 export default function EmailAuthTabs({
@@ -44,7 +48,10 @@ export default function EmailAuthTabs({
   onLogin,
   onSignUp,
   rememberMe,
-  setRememberMe
+  setRememberMe,
+  mfaRequired,
+  mfaCode,
+  setMfaCode
 }: EmailAuthTabsProps) {
   const t = useTranslations("auth");
   return (
@@ -97,6 +104,29 @@ export default function EmailAuthTabs({
             <p className="text-sm text-destructive">{errors.password}</p>
             }
           </div>
+
+          {mfaRequired ? (
+            <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+              <Label htmlFor="login-mfa-code">{t("mfaCode")}</Label>
+              <p className="text-xs text-muted-foreground">{t("mfaPrompt")}</p>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="login-mfa-code"
+                  name="mfaCode"
+                  type="text"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  className="pl-10 font-mono tracking-wider"
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value.toUpperCase())}
+                  disabled={isLoading}
+                  autoFocus
+                />
+              </div>
+              {errors.mfa ? <p className="text-sm text-destructive">{errors.mfa}</p> : null}
+            </div>
+          ) : null}
 
           <div className="flex items-center gap-2">
             <Checkbox

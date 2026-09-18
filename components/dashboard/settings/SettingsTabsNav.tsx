@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Bot, Settings as SettingsIcon, Users } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bell, Bot, Settings as SettingsIcon, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsTabId = "system" | "users" | "ai" | "notifications";
+type SettingsTabId = "system" | "users" | "ai" | "notifications" | "security";
 
 interface SettingsTabsNavProps {
   activeId: SettingsTabId;
@@ -15,6 +16,7 @@ interface SettingsTabsNavProps {
     users: string;
     ai: string;
     notifications: string;
+    security: string;
   };
 }
 
@@ -54,6 +56,12 @@ const MOBILE_TAB_TONES: Record<
     activeIcon: "bg-violet-100 text-violet-700",
     inactiveIcon: "bg-white/85 text-violet-600",
   },
+  security: {
+    activeTab: "border-rose-200 bg-rose-50 text-rose-900 ring-1 ring-rose-200 shadow-sm",
+    inactiveTab: "border-transparent bg-rose-50/70 text-rose-800 hover:bg-rose-50",
+    activeIcon: "bg-rose-100 text-rose-700",
+    inactiveIcon: "bg-white/85 text-rose-600",
+  },
 };
 
 const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
@@ -62,12 +70,14 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
   canAccessAISettings,
   labels,
 }) => {
+  const pathname = usePathname();
+  const basePath = pathname?.startsWith("/demo") ? "/demo/settings" : "/settings";
   const items = [
     {
       id: "system" as const,
       label: labels.system,
       icon: SettingsIcon,
-      href: "/settings?tab=system",
+      href: `${basePath}?tab=system`,
     },
     ...(canAccessUsersTab
       ? [
@@ -75,7 +85,7 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
             id: "users" as const,
             label: labels.users,
             icon: Users,
-            href: "/settings?tab=users",
+            href: `${basePath}?tab=users`,
           },
         ]
       : []),
@@ -83,7 +93,13 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
       id: "notifications" as const,
       label: labels.notifications,
       icon: Bell,
-      href: "/settings?tab=notifications",
+      href: `${basePath}?tab=notifications`,
+    },
+    {
+      id: "security" as const,
+      label: labels.security,
+      icon: ShieldCheck,
+      href: `${basePath}?tab=security`,
     },
     ...(canAccessAISettings
       ? [
@@ -91,7 +107,7 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
             id: "ai" as const,
             label: labels.ai,
             icon: Bot,
-            href: "/settings/ai",
+            href: `${basePath}/ai`,
           },
         ]
       : []),
@@ -108,7 +124,9 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
               ? "grid-cols-2"
               : items.length === 3
                 ? "grid-cols-3"
-                : "grid-cols-4"
+                : items.length === 4
+                  ? "grid-cols-4"
+                  : "grid-cols-5"
         )}
       >
         {items.map((item) => {

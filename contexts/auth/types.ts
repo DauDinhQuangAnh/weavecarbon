@@ -22,6 +22,14 @@ export type GoogleAuthIntent = "signin" | "signup";
 
 export interface SignInOptions {
   rememberMe?: boolean;
+  totpCode?: string;
+}
+
+export interface SignInResult {
+  error: Error | null;
+  needsConfirmation?: boolean;
+  mfaRequired?: boolean;
+  mfaCodeInvalid?: boolean;
 }
 
 export type AuthSessionStatus =
@@ -54,7 +62,7 @@ export interface AuthContextType {
   password: string,
   userType?: "b2b" | "b2c",
   options?: SignInOptions)
-  => Promise<{error: Error | null;needsConfirmation?: boolean;}>;
+  => Promise<SignInResult>;
   signInWithGoogle: (
   userType?: "b2b" | "b2c",
   intent?: GoogleAuthIntent,

@@ -242,6 +242,8 @@
     "signup": "Đăng ký",
     "email": "Email",
     "password": "Mật khẩu",
+    "mfaCode": "Mã xác thực đa yếu tố",
+    "mfaPrompt": "Nhập mã 6 số từ ứng dụng xác thực hoặc mã khôi phục một lần.",
     "fullName": "Họ và tên",
     "fullNamePlaceholder": "Nhập họ và tên của bạn",
     "loginButton": "Đăng nhập",
@@ -260,6 +262,7 @@
       "emailNotVerified": "Email của bạn chưa được xác minh. Vui lòng kiểm tra hộp thư để tiếp tục.",
       "invalidState": "Phiên Google OAuth đã hết hạn. Vui lòng bấm nút Google lại.",
       "googleAuthFailed": "Đăng nhập Google tạm thời không khả dụng. Vui lòng thử lại.",
+      "mfaPasswordRequired": "Tài khoản này đã bật MFA. Vui lòng đăng nhập bằng email, mật khẩu và mã MFA.",
       "missingCode": "Callback Google không hợp lệ. Vui lòng đăng nhập lại."
     },
     "messages": {
@@ -272,7 +275,8 @@
       "checkEmailDescription": "Chúng tôi đã gửi liên kết xác minh. Vui lòng kiểm tra email để tiếp tục.",
       "signupSuccessTitle": "Thành công",
       "signupSuccessDescription": "Tạo tài khoản thành công!",
-      "authDisabled": "Chức năng xác thực hiện đang tắt."
+      "authDisabled": "Chức năng xác thực hiện đang tắt.",
+      "mfaInvalid": "Mã xác thực không đúng hoặc đã được sử dụng."
     },
     "checkEmailPage": {
       "title": "Kiểm tra email",
@@ -301,7 +305,8 @@
       "passwordSpecial": "Mật khẩu phải có ít nhất 1 ký tự đặc biệt",
       "fullNameRequired": "Họ tên là bắt buộc",
       "companyNameRequired": "Tên công ty là bắt buộc",
-      "businessTypeRequired": "Loại hình kinh doanh là bắt buộc"
+      "businessTypeRequired": "Loại hình kinh doanh là bắt buộc",
+      "mfaCode": "Nhập mã 6 số hoặc mã khôi phục theo định dạng XXXX-XXXX-XXXX-XXXX"
     }
   },
   "onboarding": {

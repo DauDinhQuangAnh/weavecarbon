@@ -63,6 +63,8 @@ jobs:
           bash -n deploy/backup-state-vps.sh
           bash -n deploy/restore-state-drill-vps.sh
           bash -n deploy/capture-operational-snapshot-vps.sh
+          grep -Eq '@backend path /api/\* /health /ready /version' deploy/Caddyfile
+          grep -Eq '@backend path /api/\* /health /ready /version' deploy/Caddyfile.staging
 
       - name: Verify load-test target safety policy
         run: npm run performance:policy:test
@@ -97,6 +99,7 @@ jobs:
           assert "ports" not in services["be"]
           assert "ports" not in services["rag"]
           assert services["be"]["read_only"] is True
+          assert services["be"]["environment"]["MFA_ENCRYPTION_KEY"]
           assert services["rag"]["read_only"] is True
           assert services["fe"]["read_only"] is True
           assert services["db"]["networks"] == {"data": None}

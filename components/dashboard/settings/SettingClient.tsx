@@ -7,6 +7,7 @@ import SystemSettings from "./SystemSettings";
 import PersonalSettings from "./PersonalSettings";
 import UsersSettings from "./UsersSettings";
 import NotificationSettings from "./NotificationSettings";
+import EnterpriseSecuritySettings from "./EnterpriseSecuritySettings";
 import SettingsTabsNav from "./SettingsTabsNav";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -28,6 +29,7 @@ const SettingsPage: React.FC = () => {
     const requestedTab = searchParams.get("tab");
     if (requestedTab === "users" && canAccessUsersTab) return "users";
     if (requestedTab === "notifications") return "notifications";
+    if (requestedTab === "security") return "security";
     return "system";
   }, [canAccessUsersTab, searchParams]);
 
@@ -62,6 +64,7 @@ const SettingsPage: React.FC = () => {
           users: t("tabs.users"),
           ai: "AI",
           notifications: "Thông báo",
+          security: "Bảo mật",
         }}
       />
 
@@ -69,6 +72,7 @@ const SettingsPage: React.FC = () => {
         {activeTab === "system" ? (isRoot ? <SystemSettings /> : <PersonalSettings />) : null}
         {activeTab === "users" && canAccessUsersTab ? <UsersSettings /> : null}
         {activeTab === "notifications" ? <NotificationSettings /> : null}
+        {activeTab === "security" ? <EnterpriseSecuritySettings /> : null}
       </div>
     </div>
   );
