@@ -1,6 +1,6 @@
 # WeaveCarbon — Frontend
 
-Carbon accounting and export-compliance platform for Vietnamese manufacturers,
+Industrial carbon and climate-data platform with an export-compliance workstream,
 built with **Next.js (App Router) + TypeScript**. This repo is the web client; it
 talks to the Node/Express/PostgreSQL API (`BE_weavecarbon`) and a Python RAG
 service for compliance assistance.
@@ -15,7 +15,11 @@ legs into an audit-defensible PCF plus the paperwork buyers and customs ask for.
 
 ## Core methodology
 
-The carbon engine (`lib/carbon/`) computes an **attributional, climate-only
+The frontend provides calculation previews. Persisted carbon calculations and
+official report payloads are authoritative in the backend; a preview is not a
+certified result.
+
+The frontend preview engine (`lib/carbon/`) supports an **attributional, climate-only
 partial CFP** — a cradle-to-gate core plus a gate-to-market transport extension —
 and is deliberately standards-aligned rather than a black box:
 
@@ -31,8 +35,8 @@ and is deliberately standards-aligned rather than a black box:
 - **Honest uncertainty** — an RSS model returns a p5–p95 range and a confidence
   level, so a number is never reported without its error bar.
 
-This "show your work" design is what makes a result usable for CBAM-style
-pre-audit reporting instead of a rough estimate.
+This "show your work" design supports product-carbon pre-audit preparation,
+not an automatic CBAM filing or a verified environmental claim.
 
 ## What's defensible
 
@@ -45,7 +49,7 @@ vs `proxy` classification in `engine.ts`.
 ## Product surfaces
 
 Assessment wizard → dashboard & analytics → logistics / shipment tracking →
-export & compliance docs → CBAM-style report → evidence & audit trail → Digital
+export & compliance docs → product-carbon report → evidence & audit trail → Digital
 Product Passport. A separate **B2C** flow covers circular/donation.
 
 ## Architecture
@@ -78,8 +82,9 @@ npm run build
 ## Deployment & guardrails
 
 - Payments redirect to **VNPAY**; the FE expects a public backend via
-  `NEXT_PUBLIC_API_BASE_URL`. Full FE+BE+DB VPS stack: `DEPLOY_VPS.md`;
-  standalone FE: `DOCKER.md`.
+  `NEXT_PUBLIC_API_BASE_URL`. See `deploy/CI_CD.md` for VPS deployment,
+  `deploy/STAGING.md` for the isolated staging stack, and
+  `docs/operations/RUNBOOKS.md` for rollback and recovery.
 - Keep API payload shapes and route behavior stable; re-run `lint`, `typecheck`
   and `build` after changes. `.next/` and `tsconfig.tsbuildinfo` are generated
   artifacts.

@@ -2,6 +2,11 @@
 
 The consolidated modernization program closed on 2026-09-05. Detailed work-package notes and point-in-time baselines were removed from the active source tree after completion; Git history remains the audit trail.
 
+This is the M1–M5 closeout, not the status of the later export-report and G2
+industrial workstreams. Their capability and acceptance boundaries are tracked
+in the backend repository's `docs/EXPORT_REPORT_MASTER_TRACKER.md` and
+`docs/INDUSTRIAL_PLATFORM_MASTER_TRACKER.md`.
+
 ## Final status
 
 | Phase | Scope | Status |
@@ -36,4 +41,5 @@ The workflow's `deferred` mode records exact-head CI completion but always produ
 - `docs/operations/RUNBOOKS.md` — incident, rollback and recovery procedures.
 - `docs/operations/DISASTER_RECOVERY_POLICY.md` — durable state and recovery policy.
 - `docs/architecture/DECISION_RECORDS.md` — accepted architecture decisions.
+- `deploy/STAGING.md` — isolated staging setup; configuration is not a release PASS.
 - `RELEASE_READINESS.md` — current release decision.
