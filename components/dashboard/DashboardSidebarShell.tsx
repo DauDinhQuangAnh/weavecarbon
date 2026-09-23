@@ -144,7 +144,8 @@ export default function DashboardSidebarShell({
 
       try {
         const account = await api.get<AccountPayload>("/account", {
-          disableResponseCache: true
+          cacheTags: ["account"],
+          cacheTtlMs: 15_000
         });
         const nextCompany = account?.company || null;
         if (!cancelled) {

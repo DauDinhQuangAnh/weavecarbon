@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +20,6 @@ import {
   type StandardSkuLimit,
   type SubscriptionPlanId } from
 "@/lib/subscriptionPlans";
-import PricingModal from "@/components/dashboard/PricingModal";
 import { useToast } from "@/hooks/useToast";
 import {
   Dialog,
@@ -38,6 +38,11 @@ const PENDING_UPGRADE_SESSION_ID_KEY = "weavecarbon_pending_upgrade_session_id";
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 15000;
 const PAYMENT_STATUS_MAX_ATTEMPTS = 12;
 const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 60000;
+
+const PricingModal = dynamic(
+  () => import("@/components/dashboard/PricingModal"),
+  { ssr: false }
+);
 
 type NormalizedPlanId = SubscriptionPlanId;
 
@@ -641,15 +646,17 @@ export default function PricingModalGate() {
 
   return (
     <>
-      <PricingModal
-        open={open}
-        onClose={handleClose}
-        currentPlan={subscription.currentPlan}
-        trialEndsAt={subscription.trialEndsAt}
-        trialExpired={subscription.trialExpired}
-        trialDaysRemaining={subscription.trialDaysRemaining}
-        forceSelection={subscription.featuresLocked}
-        onSelectPlan={handleSelectPlan} />
+      {open ? (
+        <PricingModal
+          open
+          onClose={handleClose}
+          currentPlan={subscription.currentPlan}
+          trialEndsAt={subscription.trialEndsAt}
+          trialExpired={subscription.trialExpired}
+          trialDaysRemaining={subscription.trialDaysRemaining}
+          forceSelection={subscription.featuresLocked}
+          onSelectPlan={handleSelectPlan} />
+      ) : null}
 
       <Dialog open={upgradeSuccessOpen} onOpenChange={setUpgradeSuccessOpen}>
         <DialogContent className="max-w-sm border-emerald-200 p-5 sm:p-6 max-sm:left-1/2 max-sm:top-1/2 max-sm:h-auto max-sm:w-[calc(100vw-2rem)] max-sm:max-w-sm max-sm:translate-x-[-50%] max-sm:translate-y-[-50%] max-sm:rounded-xl">

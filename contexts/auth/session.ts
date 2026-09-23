@@ -92,7 +92,10 @@ export const getAccountSafely = async (): Promise<AccountPayload | null> => {
   }
 
   try {
-    return await api.get<AccountPayload>("/account");
+    return await api.get<AccountPayload>("/account", {
+      cacheTags: ["account"],
+      cacheTtlMs: 15_000
+    });
   } catch (error) {
     if (isNotFoundError(error) || isUnauthorizedError(error)) {
       return null;

@@ -119,6 +119,40 @@ describe("apiClient auth session storage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("shares concurrent GET requests and reuses the short-lived response cache", async () => {
+    let resolveFetch: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn(
+      () => new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = api.get<{ id: string }>("/account", {
+      cacheTags: ["account"],
+      cacheTtlMs: 15_000
+    });
+    const second = api.get<{ id: string }>("/account", {
+      cacheTags: ["account"],
+      cacheTtlMs: 15_000
+    });
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    resolveFetch?.(
+      new Response(JSON.stringify({ success: true, data: { id: "account-1" } }), {
+        headers: { "content-type": "application/json" },
+        status: 200
+      })
+    );
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { id: "account-1" },
+      { id: "account-1" }
+    ]);
+    await expect(api.get<{ id: string }>("/account")).resolves.toEqual({ id: "account-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("refreshes an expired access token with the sessionStorage refresh token", async () => {
     const expiredAccessToken = createJwt(Math.floor(Date.now() / 1000) - 60);
     authTokenStore.setTokens(

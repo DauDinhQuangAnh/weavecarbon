@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 interface WeaveyChatProps {
   variant?: "landing" | "dashboard";
   displayMode?: "widget" | "page";
+  initiallyOpen?: boolean;
 }
 
 const formatConversationTime = (value: string) => {
@@ -68,11 +69,14 @@ const getActionErrorMessage = (error: unknown, fallback: string) =>
 const WeaveyChat: React.FC<WeaveyChatProps> = ({
   variant = "landing",
   displayMode = "widget",
+  initiallyOpen,
 }) => {
   const t = useTranslations("dashboard.weaveyChat");
   const { user } = useAuth();
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(variant === "landing");
+  const [isOpen, setIsOpen] = useState(
+    initiallyOpen ?? variant === "landing"
+  );
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isLauncherArmed, setIsLauncherArmed] = useState(false);
@@ -152,6 +156,7 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
 
       if (!isMobile) {
         setIsLauncherArmed(false);
+        setIsMobileHistoryOpen(false);
       }
     };
 
@@ -178,24 +183,6 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
       inputRef.current?.focus();
     }
   }, [isChatVisible]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsLauncherArmed(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isMobileViewport) {
-      setIsMobileHistoryOpen(false);
-    }
-  }, [isMobileViewport]);
-
-  useEffect(() => {
-    if (isMobilePageMode && activeConversationId) {
-      setIsMobileHistoryOpen(false);
-    }
-  }, [activeConversationId, isMobilePageMode]);
 
   useEffect(() => {
     if (!isMobileViewport || isOpen || isPageMode || !isLauncherArmed) {
@@ -253,6 +240,14 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
 
     openChat();
   }, [isLauncherArmed, isMobileViewport, openChat]);
+
+  const handleSelectMobileConversation = useCallback(
+    async (conversationId: string) => {
+      await selectConversation(conversationId);
+      setIsMobileHistoryOpen(false);
+    },
+    [selectConversation]
+  );
 
   const launcherClassName = cn(
     "rounded-full transition-all duration-300",
@@ -461,7 +456,9 @@ const WeaveyChat: React.FC<WeaveyChatProps> = ({
               isInitializing={isInitializing}
               deletingConversationId={deletingConversationId}
               onOpenChange={setIsMobileHistoryOpen}
-              onSelectConversation={selectConversation}
+              onSelectConversation={(conversationId) => {
+                void handleSelectMobileConversation(conversationId);
+              }}
               onRequestDeleteConversation={setPendingDeleteConversation}
               title={t("historyShort")}
               emptyLabel={t("noConversations")}

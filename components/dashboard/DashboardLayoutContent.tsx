@@ -227,7 +227,10 @@ export default function DashboardLayoutContent({
             company?: {
               current_plan?: string | null;
             } | null;
-          }>("/account");
+          }>("/account", {
+            cacheTags: ["account"],
+            cacheTtlMs: 15_000
+          });
           accountPlan = account?.company?.current_plan || null;
         } catch {
           // noop: subscription endpoint remains primary source
