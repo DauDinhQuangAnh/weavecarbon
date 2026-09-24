@@ -3,7 +3,6 @@ import DashboardSidebarShell from "@/components/dashboard/DashboardSidebarShell"
 import DashboardLayoutContent from "@/components/dashboard/DashboardLayoutContent";
 import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
 import DemoProvider from "@/components/demo/DemoProvider";
-import DemoRoutePrefetch from "@/components/demo/DemoRoutePrefetch";
 import DemoAutoTour from "@/components/demo/DemoAutoTour";
 import { DashboardProvider } from "@/contexts/DashboardContext";
 import { DASHBOARD_BASE_NAMESPACES } from "@/lib/i18n/namespaces";
@@ -14,7 +13,6 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
     <ScopedIntlProvider namespaces={DASHBOARD_BASE_NAMESPACES}>
       <DashboardProvider>
         <DemoProvider>
-            <DemoRoutePrefetch />
             <div className="flex min-h-dvh w-full flex-col overflow-x-clip bg-background lg:flex-row">
               <DashboardSidebarShell company={null} />
               <main className="flex min-h-dvh flex-1 flex-col overflow-x-clip overflow-y-auto lg:pl-56">

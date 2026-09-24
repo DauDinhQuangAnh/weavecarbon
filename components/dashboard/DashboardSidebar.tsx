@@ -151,7 +151,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         }`}
       >
         <div className="border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-4">
-          <Link href={homeHref} className="flex min-w-0 items-center gap-2">
+          <Link prefetch={false} href={homeHref} className="flex min-w-0 items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-forest">
               <Leaf className="h-5 w-5 text-primary-foreground" />
             </div>
@@ -170,7 +170,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <Link
                 key={item.path}
                 href={appRoutes.toAppPath(item.path)}
-                onClick={handleSidebarNavigate}
+                prefetch={false}
+                onClick={(event) => {
+                  if (active) {
+                    event.preventDefault();
+                    return;
+                  }
+                  handleSidebarNavigate();
+                }}
                 className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                   active
                     ? "bg-primary/10 text-primary"

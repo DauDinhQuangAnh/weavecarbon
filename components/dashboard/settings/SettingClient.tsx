@@ -1,16 +1,33 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import SystemSettings from "./SystemSettings";
-import PersonalSettings from "./PersonalSettings";
-import UsersSettings from "./UsersSettings";
-import NotificationSettings from "./NotificationSettings";
-import EnterpriseSecuritySettings from "./EnterpriseSecuritySettings";
 import SettingsTabsNav from "./SettingsTabsNav";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { usePermissions } from "@/hooks/usePermissions";
+
+const SettingsPanelLoading = () => (
+  <div className="h-64 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
+);
+
+const SystemSettings = dynamic(() => import("./SystemSettings"), {
+  loading: SettingsPanelLoading
+});
+const PersonalSettings = dynamic(() => import("./PersonalSettings"), {
+  loading: SettingsPanelLoading
+});
+const UsersSettings = dynamic(() => import("./UsersSettings"), {
+  loading: SettingsPanelLoading
+});
+const NotificationSettings = dynamic(() => import("./NotificationSettings"), {
+  loading: SettingsPanelLoading
+});
+const EnterpriseSecuritySettings = dynamic(
+  () => import("./EnterpriseSecuritySettings"),
+  { loading: SettingsPanelLoading }
+);
 
 const SettingsPage: React.FC = () => {
   const t = useTranslations("settings");

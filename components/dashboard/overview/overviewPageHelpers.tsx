@@ -49,6 +49,16 @@ export interface DashboardOverviewResponse {
     percentage?: number;
     color?: string;
   }>;
+  productEmissions?: Array<{
+    id?: string;
+    name?: string;
+    sku?: string;
+    materials?: number;
+    production?: number;
+    transport?: number;
+    packaging?: number;
+    total?: number;
+  }>;
   marketReadiness?: Array<{
     marketCode?: string;
     marketName?: string;

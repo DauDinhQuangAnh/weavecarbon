@@ -763,10 +763,14 @@ const ReportsPage: React.FC = () => {
     }
 
     try {
-      const [counts, analyticsCount, companyCount] = await Promise.all([
-        fetchReportExportSourceCounts(),
-        fetchReportExportSourceCount("analytics"),
-        fetchReportExportSourceCount("company")
+      const counts = await fetchReportExportSourceCounts();
+      const [analyticsCount, companyCount] = await Promise.all([
+        typeof counts.analytics === "number"
+          ? counts.analytics
+          : fetchReportExportSourceCount("analytics"),
+        typeof counts.company === "number"
+          ? counts.company
+          : fetchReportExportSourceCount("company")
       ]);
       setExportSourceCounts(counts);
       setExtraExportSourceCounts({

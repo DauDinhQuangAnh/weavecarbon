@@ -2042,7 +2042,8 @@ query: ProductListQuery = {})
   const request = (async () => {
     try {
       const payload = await api.get<unknown>(`/products${queryString}`, {
-        disableResponseCache: true
+        cacheTags: ["products"],
+        cacheTtlMs: 15_000
       });
       const normalizedPayload = normalizeProductListPayload(payload);
 
@@ -2090,7 +2091,8 @@ export const fetchProductById = async (productId: string): Promise<ProductRecord
   }
 
   const payload = await api.get<unknown>(`/products/${productId}`, {
-    disableResponseCache: true
+    cacheTags: ["products"],
+    cacheTtlMs: 15_000
   });
   const product = normalizeProductFromUnknown(payload);
 

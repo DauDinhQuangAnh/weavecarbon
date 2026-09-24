@@ -5,6 +5,16 @@ import { fetchWithPolicy } from "@/lib/http/requestPolicy";
 const DEFAULT_API_BASE_URL = "/api";
 const HEALTH_PATH = "/health";
 const HEALTH_TIMEOUT_MS = 2500;
+const HEALTHY_CACHE_TTL_MS = 30_000;
+const UNHEALTHY_CACHE_TTL_MS = 5_000;
+const MAX_HEALTH_CACHE_ENTRIES = 8;
+
+type HealthCacheEntry = {
+  expiresAt: number;
+  promise: Promise<BackendHealthResult>;
+};
+
+const healthCache = new Map<string, HealthCacheEntry>();
 
 const trimTrailingSlashes = (value: string) => value.trim().replace(/\/+$/, "");
 
@@ -85,8 +95,9 @@ export interface BackendHealthResult {
   message: string | null;
 }
 
-export const getBackendHealth = async (): Promise<BackendHealthResult> => {
-  const healthUrl = await resolveHealthUrl();
+const requestBackendHealth = async (
+  healthUrl: string
+): Promise<BackendHealthResult> => {
   try {
     const response = await fetchWithPolicy(healthUrl, {
       method: "GET",
@@ -120,4 +131,43 @@ export const getBackendHealth = async (): Promise<BackendHealthResult> => {
       message
     };
   }
+};
+
+export const clearBackendHealthCache = () => {
+  healthCache.clear();
+};
+
+export const getBackendHealth = async (): Promise<BackendHealthResult> => {
+  const healthUrl = await resolveHealthUrl();
+  const now = Date.now();
+  const cached = healthCache.get(healthUrl);
+  if (cached && cached.expiresAt > now) {
+    return cached.promise;
+  }
+  if (cached) {
+    healthCache.delete(healthUrl);
+  }
+
+  const request = requestBackendHealth(healthUrl).then((result) => {
+    const current = healthCache.get(healthUrl);
+    if (current?.promise === request) {
+      current.expiresAt = Date.now() + (
+        result.healthy ? HEALTHY_CACHE_TTL_MS : UNHEALTHY_CACHE_TTL_MS
+      );
+    }
+    return result;
+  });
+
+  healthCache.set(healthUrl, {
+    expiresAt: now + HEALTHY_CACHE_TTL_MS,
+    promise: request
+  });
+
+  while (healthCache.size > MAX_HEALTH_CACHE_ENTRIES) {
+    const oldestKey = healthCache.keys().next().value;
+    if (typeof oldestKey !== "string") break;
+    healthCache.delete(oldestKey);
+  }
+
+  return request;
 };

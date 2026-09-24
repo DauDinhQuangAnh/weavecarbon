@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { runWithConcurrency } from "@/lib/concurrency";
 import {
   fetchRoadRoute,
@@ -43,6 +43,7 @@ type UseResolvedRoadRouteGeometryOptions<TItem, TMetrics extends NumericMetricRe
   getOriginSource?: (item: TItem) => RoadRoutePointSource | undefined;
   getResolvedMetrics?: (item: TItem, route: RoadRouteResult) => TMetrics;
   isRoadRoute: (item: TItem) => boolean;
+  maxRoutesToResolve?: number;
 };
 
 type UseResolvedRoadRouteGeometryResult<TMetrics extends NumericMetricRecord> = {
@@ -94,7 +95,8 @@ export const useResolvedRoadRouteGeometry = <
     getOrigin,
     getOriginSource,
     getResolvedMetrics,
-    isRoadRoute
+    isRoadRoute,
+    maxRoutesToResolve = 12
   } = options;
   const [state, setState] = useState<UseResolvedRoadRouteGeometryResult<TMetrics>>(
     createEmptyState
@@ -111,7 +113,18 @@ export const useResolvedRoadRouteGeometry = <
     getResolvedMetrics,
     isRoadRoute
   });
-  optionsRef.current = {
+  useEffect(() => {
+    optionsRef.current = {
+      getDestination,
+      getDestinationSource,
+      getExistingGeometry,
+      getId,
+      getOrigin,
+      getOriginSource,
+      getResolvedMetrics,
+      isRoadRoute
+    };
+  }, [
     getDestination,
     getDestinationSource,
     getExistingGeometry,
@@ -120,53 +133,57 @@ export const useResolvedRoadRouteGeometry = <
     getOriginSource,
     getResolvedMetrics,
     isRoadRoute
-  };
-
-  const candidates = useMemo(
-    () => {
-      const currentOptions = optionsRef.current;
-
-      return items
-        .filter((item) => currentOptions.isRoadRoute(item))
-        .map((item) => {
-          const origin = currentOptions.getOrigin(item);
-          const destination = currentOptions.getDestination(item);
-          const originSource = currentOptions.getOriginSource?.(item);
-          const destinationSource = currentOptions.getDestinationSource?.(item);
-
-          return {
-            destination,
-            destinationSource,
-            existingGeometry:
-              currentOptions.getExistingGeometry?.(item)?.filter((coordinate) =>
-                Array.isArray(coordinate) && coordinate.length === 2
-              ) ||
-              null,
-            id: currentOptions.getId(item),
-            item,
-            origin,
-            originSource,
-            routeKey: buildRouteKey(origin, destination, originSource, destinationSource)
-          } satisfies RoadRouteCandidate<TItem>;
-        });
-    },
-    [items]
-  );
+  ]);
 
   useEffect(() => {
+    let isCancelled = false;
+    const commitState = (
+      nextState: UseResolvedRoadRouteGeometryResult<TMetrics>
+    ) => {
+      queueMicrotask(() => {
+        if (!isCancelled) setState(nextState);
+      });
+    };
+    const currentOptions = optionsRef.current;
+    const candidates = items
+      .filter((item) => currentOptions.isRoadRoute(item))
+      .map((item) => {
+        const origin = currentOptions.getOrigin(item);
+        const destination = currentOptions.getDestination(item);
+        const originSource = currentOptions.getOriginSource?.(item);
+        const destinationSource = currentOptions.getDestinationSource?.(item);
+
+        return {
+          destination,
+          destinationSource,
+          existingGeometry:
+            currentOptions.getExistingGeometry?.(item)?.filter((coordinate) =>
+              Array.isArray(coordinate) && coordinate.length === 2
+            ) ||
+            null,
+          id: currentOptions.getId(item),
+          item,
+          origin,
+          originSource,
+          routeKey: buildRouteKey(origin, destination, originSource, destinationSource)
+        } satisfies RoadRouteCandidate<TItem>;
+      });
+
     if (candidates.length === 0) {
       latestRouteKeysRef.current = {};
-      setState(createEmptyState());
-      return;
+      commitState(createEmptyState());
+      return () => {
+        isCancelled = true;
+      };
     }
 
-    let isCancelled = false;
     const nextGeometryById: Record<string, RouteCoordinate[]> = {};
     const nextFailureById: Record<string, RoadRouteFailureReason> = {};
     const nextMetricsById = {} as Record<string, TMetrics>;
     const nextStatusById: Record<string, ResolvedRoadRouteStatus> = {};
     const pendingCandidates: RoadRouteCandidate<TItem>[] = [];
     const nextRouteKeys: Record<string, string> = {};
+    const routeResolutionBudget = Math.max(0, Math.trunc(maxRoutesToResolve));
 
     for (const candidate of candidates) {
       nextRouteKeys[candidate.id] = candidate.routeKey;
@@ -198,12 +215,14 @@ export const useResolvedRoadRouteGeometry = <
         continue;
       }
 
-      nextStatusById[candidate.id] = "pending";
-      pendingCandidates.push(candidate);
+      if (pendingCandidates.length < routeResolutionBudget) {
+        nextStatusById[candidate.id] = "pending";
+        pendingCandidates.push(candidate);
+      }
     }
 
     latestRouteKeysRef.current = nextRouteKeys;
-    setState({
+    commitState({
       failureById: nextFailureById,
       geometryById: nextGeometryById,
       metricsById: nextMetricsById,
@@ -211,7 +230,9 @@ export const useResolvedRoadRouteGeometry = <
     });
 
     if (pendingCandidates.length === 0) {
-      return;
+      return () => {
+        isCancelled = true;
+      };
     }
 
     const resolvePendingRoutes = async () => {
@@ -237,7 +258,7 @@ export const useResolvedRoadRouteGeometry = <
           metrics: optionsRef.current.getResolvedMetrics?.(candidate.item, resolution.route)
         };
       });
-      const resolvedEntries = await runWithConcurrency(tasks, 5);
+      const resolvedEntries = await runWithConcurrency(tasks, 3);
 
       if (isCancelled) return;
 
@@ -296,7 +317,7 @@ export const useResolvedRoadRouteGeometry = <
     return () => {
       isCancelled = true;
     };
-  }, [candidates]);
+  }, [items, maxRoutesToResolve]);
 
   return state;
 };

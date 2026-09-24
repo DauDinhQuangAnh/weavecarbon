@@ -97,7 +97,14 @@ const PORT_HUB_SNAP_PROFILE_METERS =
 const RAIL_HUB_SNAP_PROFILE_METERS =
   [300, 800, 2000, "unlimited"] as const satisfies readonly SnapRadius[];
 
-const roadRouteCache = new Map<string, Promise<RoadRouteResolution>>();
+const MAX_ROUTE_ATTEMPTS = 3;
+const MAX_ROUTE_CACHE_ENTRIES = 200;
+const RESOLVED_ROUTE_CACHE_TTL_MS = 10 * 60_000;
+const FAILED_ROUTE_CACHE_TTL_MS = 30_000;
+const roadRouteCache = new Map<
+  string,
+  { expiresAt: number; promise: Promise<RoadRouteResolution> }
+>();
 const EARTH_RADIUS_KM = 6371.0088;
 const FALLBACK_POINT_DISTANCE_THRESHOLD_KM = 0.2;
 const FALLBACK_OFFSET_BEARINGS_DEGREES =
@@ -374,6 +381,32 @@ const buildFallbackRouteCandidates = (
   return result;
 };
 
+const buildBoundedRouteAttemptPlan = (
+  candidates: RouteAttemptCandidate[],
+  radiusAttempts: Array<[SnapRadius, SnapRadius]>
+) => {
+  const primary = candidates[0];
+  const firstRadius = radiusAttempts[0];
+  if (!primary || !firstRadius) return [];
+
+  const plan: Array<{
+    candidate: RouteAttemptCandidate;
+    radiuses: [SnapRadius, SnapRadius];
+  }> = [{ candidate: primary, radiuses: firstRadius }];
+  const broadRadius = radiusAttempts[radiusAttempts.length - 1];
+  if (broadRadius && broadRadius !== firstRadius) {
+    plan.push({ candidate: primary, radiuses: broadRadius });
+  }
+
+  const fallbackRadius = radiusAttempts[Math.min(1, radiusAttempts.length - 1)];
+  for (const candidate of candidates.slice(1)) {
+    if (plan.length >= MAX_ROUTE_ATTEMPTS) break;
+    plan.push({ candidate, radiuses: fallbackRadius });
+  }
+
+  return plan.slice(0, MAX_ROUTE_ATTEMPTS);
+};
+
 const addRequestedPointConnectors = (
   requestedOrigin: RoutePoint,
   requestedDestination: RoutePoint,
@@ -536,40 +569,45 @@ export const fetchRoadRoute = async (
   const radiusAttempts = buildRadiusAttempts(options.originSource, options.destinationSource);
   const cacheKey = buildRoadRouteCacheKey(origin, destination, radiusAttempts);
   const cached = roadRouteCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    // Refresh insertion order so frequently used routes survive the bounded cache.
+    roadRouteCache.delete(cacheKey);
+    roadRouteCache.set(cacheKey, cached);
+    return cached.promise;
+  }
   if (cached) {
-    return cached;
+    roadRouteCache.delete(cacheKey);
   }
 
   const request = (async () => {
     const attemptedRadiuses: Array<[SnapRadius, SnapRadius]> = [];
     const routeCandidates = buildFallbackRouteCandidates(origin, destination, options);
+    const attemptPlan = buildBoundedRouteAttemptPlan(routeCandidates, radiusAttempts);
     let lastFailureReason: RoadRouteFailureReason = "no_route";
 
-    for (const candidate of routeCandidates) {
-      for (const radiuses of radiusAttempts) {
-        attemptedRadiuses.push(radiuses);
-        const attemptResult = await executeRouteAttempt(
-          candidate.origin,
-          candidate.destination,
-          radiuses
-        );
+    for (const { candidate, radiuses } of attemptPlan) {
+      attemptedRadiuses.push(radiuses);
+      const attemptResult = await executeRouteAttempt(
+        candidate.origin,
+        candidate.destination,
+        radiuses
+      );
 
-        if (attemptResult.ok) {
-          return {
-            attemptedRadiuses,
-            ok: true,
-            route: addRequestedPointConnectors(origin, destination, attemptResult.route)
-          } satisfies RoadRouteResolution;
-        }
+      if (attemptResult.ok) {
+        return {
+          attemptedRadiuses,
+          ok: true,
+          route: addRequestedPointConnectors(origin, destination, attemptResult.route)
+        } satisfies RoadRouteResolution;
+      }
 
-        lastFailureReason = attemptResult.failureReason;
-        if (!shouldRetry(attemptResult.failureReason)) {
-          return {
-            attemptedRadiuses,
-            failureReason: lastFailureReason,
-            ok: false
-          } satisfies RoadRouteResolution;
-        }
+      lastFailureReason = attemptResult.failureReason;
+      if (!shouldRetry(attemptResult.failureReason)) {
+        return {
+          attemptedRadiuses,
+          failureReason: lastFailureReason,
+          ok: false
+        } satisfies RoadRouteResolution;
       }
     }
 
@@ -580,6 +618,23 @@ export const fetchRoadRoute = async (
     } satisfies RoadRouteResolution;
   })();
 
-  roadRouteCache.set(cacheKey, request);
+  const entry = {
+    expiresAt: Date.now() + RESOLVED_ROUTE_CACHE_TTL_MS,
+    promise: request
+  };
+  roadRouteCache.set(cacheKey, entry);
+  void request.then((result) => {
+    const current = roadRouteCache.get(cacheKey);
+    if (current?.promise === request) {
+      current.expiresAt = Date.now() + (
+        result.ok ? RESOLVED_ROUTE_CACHE_TTL_MS : FAILED_ROUTE_CACHE_TTL_MS
+      );
+    }
+  });
+  while (roadRouteCache.size > MAX_ROUTE_CACHE_ENTRIES) {
+    const oldestKey = roadRouteCache.keys().next().value;
+    if (typeof oldestKey !== "string") break;
+    roadRouteCache.delete(oldestKey);
+  }
   return request;
 };

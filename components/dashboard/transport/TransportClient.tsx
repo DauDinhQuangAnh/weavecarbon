@@ -43,7 +43,10 @@ import {
   fetchRoadRoute,
   isRoadTransportMode,
   type RoadRouteFailureReason
-} from "@/lib/roadRouting";export interface AddressData {
+} from "@/lib/roadRouting";
+import { runWithConcurrency } from "@/lib/concurrency";
+
+export interface AddressData {
   streetAddress: string;
   aptSuite: string;
   city: string;
@@ -797,8 +800,8 @@ const TransportClient: React.FC<TransportClientProps> = ({
     setIsResolvingRoadRoutes(true);
 
     const syncRoadLegDistances = async () => {
-      const resolvedUpdates = await Promise.all(
-        pendingLegs.map(async (candidate) => {
+      const resolvedUpdates = await runWithConcurrency(
+        pendingLegs.map((candidate) => async () => {
           const routeResolution = await fetchRoadRoute(
             {
               lat: candidate.originLat,
@@ -823,7 +826,8 @@ const TransportClient: React.FC<TransportClientProps> = ({
             routeKey: candidate.routeKey,
             distanceKm: formatRouteDistanceKm(routeResolution.route.distanceKm)
           };
-        })
+        }),
+        3
       );
 
       if (isCancelled) return;

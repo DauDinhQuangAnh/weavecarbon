@@ -1274,7 +1274,8 @@ query: LogisticsShipmentListQuery = {})
   for (const path of requestPaths) {
     try {
       const payload = await api.get<unknown>(path, {
-        disableResponseCache: true
+        cacheTags: ["logistics"],
+        cacheTtlMs: 15_000
       });
       return normalizeShipmentsListPayload(payload);
     } catch (error) {
@@ -1349,7 +1350,8 @@ shipmentId: string)
   for (const path of requestPaths) {
     try {
       const payload = await api.get<unknown>(path, {
-        disableResponseCache: true
+        cacheTags: ["logistics"],
+        cacheTtlMs: 15_000
       });
       const normalized = normalizeShipmentDetail(payload);
       if (!normalized) {
@@ -1455,7 +1457,8 @@ products: ShipmentProductInput[])
 
 export const fetchLogisticsOverview = async (): Promise<LogisticsOverview> => {
   const payload = await api.get<unknown>("/logistics/overview", {
-    disableResponseCache: true
+    cacheTags: ["logistics"],
+    cacheTtlMs: 15_000
   });
   if (!isObject(payload)) {
     return {

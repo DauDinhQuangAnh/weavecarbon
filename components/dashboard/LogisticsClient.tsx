@@ -454,7 +454,8 @@ const LogisticsClient: React.FC = () => {
       getDestination: (route) => ({ lat: route.to.lat, lng: route.to.lng }),
       getId: (route) => route.id,
       getOrigin: (route) => ({ lat: route.from.lat, lng: route.from.lng }),
-      isRoadRoute: (route) => route.mode === "truck"
+      isRoadRoute: (route) => route.mode === "truck",
+      maxRoutesToResolve: 8
     }
   );
 

@@ -85,6 +85,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
 }) => {
   const pathname = usePathname();
   const isDemoRuntime = isDemoPath(pathname);
+  const isAuthCallbackRuntime = isAuthCallbackPath(pathname);
   const [user, setUser] = useState<User | null>(null);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,7 +166,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         return;
       }
 
-      if (isAuthCallbackPath(pathname)) {
+      if (isAuthCallbackRuntime) {
         if (!cancelled) {
           setDemoUser(null);
           setAuthStatus("checking");
@@ -261,7 +262,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
     return () => {
       cancelled = true;
     };
-  }, [applyRuntimeUser, applySessionPayload, isDemoRuntime, pathname]);
+  }, [applyRuntimeUser, applySessionPayload, isAuthCallbackRuntime, isDemoRuntime]);
 
   useEffect(() => {
     if (typeof window === "undefined") {

@@ -279,7 +279,7 @@ export const ProductProvider: React.FC<{children: ReactNode;}> = ({
 
 };
 
-export const useProducts = () => {
+export const useProducts = (options?: { hydrate?: boolean }) => {
   const context = useContext(ProductContext);
   if (!context) {
     throw new Error("useProducts must be used within a ProductProvider");
@@ -287,7 +287,11 @@ export const useProducts = () => {
   // Registering here is what triggers the provider's lazy hydration, so the
   // catalog is only fetched on pages that actually read it.
   const { registerConsumer } = context;
-  useEffect(() => registerConsumer(), [registerConsumer]);
+  const shouldHydrate = options?.hydrate !== false;
+  useEffect(() => {
+    if (!shouldHydrate) return;
+    return registerConsumer();
+  }, [registerConsumer, shouldHydrate]);
   return context;
 };
 

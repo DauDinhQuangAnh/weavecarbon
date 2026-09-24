@@ -42,7 +42,6 @@ import {
 "lucide-react";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
-import ProductOverviewModal from "../assessment/ProductOverviewModal";
 import type { EmissionBreakdownPoint } from "../OverviewCharts";
 import { useRouter } from "next/navigation";
 import { useAppRoutes } from "@/lib/demo/routes";
@@ -69,6 +68,10 @@ import {
 } from "./overviewPageHelpers";
 
 const OverviewCharts = dynamic(() => import("../OverviewCharts"), { ssr: false });
+const ProductOverviewModal = dynamic(
+  () => import("../assessment/ProductOverviewModal"),
+  { ssr: false }
+);
 
 const OverviewPage: React.FC = () => {
   const t = useTranslations("overview");
@@ -82,7 +85,7 @@ const OverviewPage: React.FC = () => {
     status: productHydrationStatus,
     pendingProductData,
     clearPendingProduct
-  } = useProducts();
+  } = useProducts({ hydrate: false });
   const navigate = useRouter();
   const appRoutes = useAppRoutes();
   const [apiStats, setApiStats] = useState<OverviewStats | null>(null);
@@ -122,6 +125,17 @@ const OverviewPage: React.FC = () => {
   const [emissionBreakdown, setEmissionBreakdown] = useState<
     EmissionBreakdownPoint[]>(
     []);
+  const [overviewProductEmissions, setOverviewProductEmissions] = useState<
+    Array<{
+      name: string;
+      sku: string;
+      materials: number;
+      production: number;
+      transport: number;
+      packaging: number;
+      total: number;
+    }>
+  >([]);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { setPageTitle } = useDashboardTitle();
   const isTrialPlan = String(currentPlan || "").trim().toLowerCase().includes("trial");
@@ -272,7 +286,9 @@ const OverviewPage: React.FC = () => {
 
   const stats = apiStats || localStats;
   const isStatsHydrating =
-    isAuthHydrating || (!apiStats && productHydrationStatus === "hydrating");
+    isAuthHydrating ||
+    insightsLoading ||
+    (!apiStats && productHydrationStatus === "hydrating");
   const marketReadinessPreview = useMemo(
     () => marketReadiness.slice(0, MARKET_READINESS_PREVIEW_LIMIT),
     [marketReadiness]
@@ -282,7 +298,7 @@ const OverviewPage: React.FC = () => {
     marketReadiness.length - marketReadinessPreview.length
   );
 
-  const productEmissions = useMemo(
+  const localProductEmissions = useMemo(
     () =>
       products
         .filter((p) => p.co2 > 0)
@@ -298,6 +314,9 @@ const OverviewPage: React.FC = () => {
         })),
     [products]
   );
+  const productEmissions = overviewProductEmissions.length > 0
+    ? overviewProductEmissions
+    : localProductEmissions;
 
   useEffect(() => {
     let cancelled = false;
@@ -316,6 +335,7 @@ const OverviewPage: React.FC = () => {
           setMarketReadiness([]);
           setRecommendations([]);
           setEmissionBreakdown([]);
+          setOverviewProductEmissions([]);
           setInsightsLoading(false);
         }
         return;
@@ -354,6 +374,17 @@ const OverviewPage: React.FC = () => {
             };
           })
         );
+        setOverviewProductEmissions(
+          (overview.productEmissions || []).map((item) => ({
+            name: item.name || item.sku || "Untitled product",
+            sku: item.sku || item.id || "-",
+            materials: item.materials || 0,
+            production: item.production || 0,
+            transport: item.transport || 0,
+            packaging: item.packaging || 0,
+            total: item.total || 0
+          }))
+        );
       } catch {
         if (cancelled) return;
 
@@ -361,6 +392,7 @@ const OverviewPage: React.FC = () => {
         setMarketReadiness([]);
         setRecommendations([]);
         setEmissionBreakdown([]);
+        setOverviewProductEmissions([]);
       }
 
       setInsightsLoading(false);

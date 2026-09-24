@@ -24,6 +24,8 @@ export interface ReportExportSourceCounts {
   audit: number;
   users: number;
   history: number;
+  analytics?: number;
+  company?: number;
 }
 
 export interface ExportDataResponse {
@@ -688,6 +690,8 @@ export const fetchReportExportSourceCounts = async (): Promise<ReportExportSourc
       audit: Math.max(0, asNumber(data.audit, 0)),
       users: Math.max(0, asNumber(data.users, 0)),
       history: Math.max(0, asNumber(data.history, 0)),
+      analytics: Math.max(0, asNumber(data.analytics, 0)),
+      company: Math.max(0, asNumber(data.company, 0)),
     };
   } catch (error) {
     console.error("Failed to fetch export source counts:", error);

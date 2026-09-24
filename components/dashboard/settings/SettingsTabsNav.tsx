@@ -138,6 +138,7 @@ const SettingsTabsNav: React.FC<SettingsTabsNavProps> = ({
             <Link
               key={item.id}
               href={item.href}
+              prefetch={false}
               className={cn(
                 baseTabClassName,
                 isActive

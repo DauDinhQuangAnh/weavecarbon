@@ -22,6 +22,11 @@ const beVietnamProBody = Be_Vietnam_Pro({
   display: "swap"
 });
 
+// Availability is a runtime concern. Keep the shell dynamic so a deployment
+// never bakes a transient healthy/unhealthy result into every generated page;
+// getBackendHealth() still coalesces checks within its short server-side TTL.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "WeaveCarbon",
   description: "Industrial carbon and climate data infrastructure",
