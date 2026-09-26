@@ -25,8 +25,7 @@ import {
   ShieldCheck,
   Ship,
   Smartphone,
-  Sparkles,
-  Webhook
+  Sparkles
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -47,7 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import { DEMO_PACK_V2 } from "@/lib/weave-v2/demoPackV2";
 import { DEFAULT_EXPORT_CONFIG_V2, buildDppPayloadV2, getAllCarbonBreakdownsV2, type DppPayloadV2, type ExportConfigV2 } from "@/lib/weave-v2/exportLogisticsDocs";
-import { buildBuyerWebhookPayloadV2, createDppLockV2, downloadExportDocumentV2, fetchExportConfigurationV2, saveExportConfigurationV2 } from "@/lib/weave-v2/exportV2Api";
+import { createDppLockV2, downloadExportDocumentV2, fetchExportConfigurationV2, saveExportConfigurationV2 } from "@/lib/weave-v2/exportV2Api";
 import { exportFullStandardReport } from "@/lib/reportsApi";
 import { exportBrandedTradeDocumentXlsx } from "@/lib/reports/tradeDocumentsXlsx";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
@@ -484,27 +483,6 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     if (!svg) return;
     const content = new XMLSerializer().serializeToString(svg);
     downloadText(`DPP_QR_${dpp.sku}.svg`, content, "image/svg+xml;charset=utf-8");
-  };
-
-  const handleBrandPayload = async () => {
-    try {
-      const payload = await buildBuyerWebhookPayloadV2();
-      downloadText(`Buyer_Webhook_${cfg.poContractId}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
-    } catch {
-      const payload = {
-        buyerBrand: cfg.buyerBrand,
-        poContractId: cfg.poContractId,
-        billOfLadingNo: cfg.billOfLadingNo,
-        shipment: breakdowns.map((item) => ({
-          sku: item.sku.sku,
-          hsCode: item.sku.cnCode,
-          units: item.sku.units,
-          embeddedKgPerUnit: Number(item.embeddedKgPerUnit.toFixed(4)),
-          embeddedTonnesBatch: Number(item.embeddedTonnesBatch.toFixed(4))
-        }))
-      };
-      downloadText(`Buyer_Webhook_${cfg.poContractId}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
-    }
   };
 
   const downloadAuditPackJson = () => {
@@ -1420,25 +1398,6 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Cổng API / Webhook Brand */}
-          <Card className="border border-slate-200 bg-white shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
-                <Webhook className="h-5 w-5 text-emerald-800" />
-                Cổng Tích hợp API Brand (ERP Ingestion)
-              </CardTitle>
-              <p className="text-xs text-slate-600 sm:text-sm">
-                Kết xuất payload JSON có cấu trúc để đồng bộ PO và phát thải lũy kế sang hệ thống ERP của nhà mua hàng ({cfg.buyerBrand || "Brand"}).
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="border-slate-300" onClick={handleBrandPayload}>
-                <Send className="mr-2 h-4 w-4 text-emerald-800" />
-                Tải Buyer Webhook Payload JSON
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
