@@ -354,14 +354,46 @@ const triggerBlobDownload = (blob: Blob, filename: string) => {
   window.setTimeout(() => URL.revokeObjectURL(href), 60000);
 };
 
-const autoFitWorksheetColumns = (worksheet: Worksheet, maxWidth = 42) => {
+const BORDER_DARK = "12603A";      // Deep brand green for headers & card frames
+const BORDER_GRID = "94A3B8";      // Crisp slate-400 border for table cells - clearly visible!
+
+const formatExampleCell = (examples: unknown[]): string => {
+  if (!examples || examples.length === 0) return "—";
+  const cleaned = examples
+    .map((e) => stringifyValue(e).trim())
+    .filter(Boolean);
+  if (cleaned.length === 0) return "—";
+
+  const formatted = cleaned.slice(0, 3).map((item) => {
+    // If an item is an overly long UUID, ISO date or hash string (e.g. 00000000-0000-4000-8000-000000000100)
+    if (item.length > 24) {
+      return item.slice(0, 20) + "...";
+    }
+    return item;
+  });
+
+  return formatted.join(" | ");
+};
+
+const autoFitWorksheetColumns = (worksheet: Worksheet) => {
+  if (worksheet.name.includes("Tổng quan") || worksheet.name.includes("Overview")) {
+    return; // Overview sheet has explicit custom column widths
+  }
+
   worksheet.columns?.forEach((column) => {
-    let width = 14;
+    let maxLen = 12;
     column.eachCell?.({ includeEmpty: true }, (cell) => {
+      // Don't let title block (rows 1-4) distort column width
+      if (Number(cell.row) <= 4) return;
       const text = stringifyValue(cell.value);
-      width = Math.max(width, Math.min(text.length + 2, maxWidth));
+      const lines = text.split("\n");
+      const lineLen = Math.max(...lines.map((l) => l.length));
+      maxLen = Math.max(maxLen, lineLen);
     });
-    column.width = width;
+
+    // Clean proportional width with safe margins (+4) to prevent any text clipping
+    const padded = Math.ceil(maxLen * 1.15) + 4;
+    column.width = Math.max(16, Math.min(padded, 65));
   });
 };
 
@@ -376,47 +408,69 @@ const applyTitleBlock = (
   worksheet.mergeCells(1, 1, 2, mergeEnd);
   const titleCell = worksheet.getCell(1, 1);
   titleCell.value = title;
-  titleCell.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
-  titleCell.alignment = { vertical: "middle", horizontal: "left" };
+  titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+  titleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accent } };
   worksheet.getRow(1).height = 24;
   worksheet.getRow(2).height = 24;
 
+  for (let c = 1; c <= mergeEnd; c++) {
+    const c1 = worksheet.getCell(1, c);
+    const c2 = worksheet.getCell(2, c);
+    c1.border = { top: { style: "medium", color: { argb: BORDER_DARK } } };
+    c2.border = { bottom: { style: "thin", color: { argb: BORDER_DARK } } };
+  }
+
   worksheet.mergeCells(3, 1, 3, mergeEnd);
   const subtitleCell = worksheet.getCell(3, 1);
   subtitleCell.value = subtitle;
-  subtitleCell.font = { size: 10.5, italic: true, color: { argb: THEME.muted } };
+  subtitleCell.font = { name: "Calibri", size: 10.5, italic: true, color: { argb: THEME.muted } };
+  subtitleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  subtitleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.brandSoft } };
   worksheet.getRow(3).height = 22;
+
+  for (let c = 1; c <= mergeEnd; c++) {
+    const c3 = worksheet.getCell(3, c);
+    c3.border = { bottom: { style: "medium", color: { argb: THEME.brand } } };
+  }
 };
 
 const styleHeaderRow = (row: Row, accent: string) => {
-  row.height = 26;
+  row.height = 28;
   row.eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    cell.font = { name: "Calibri", bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accent } };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
     cell.border = {
-      top: { style: "thin", color: { argb: THEME.border } },
-      left: { style: "thin", color: { argb: THEME.border } },
-      bottom: { style: "medium", color: { argb: THEME.brandDark } },
-      right: { style: "thin", color: { argb: THEME.border } },
+      top: { style: "medium", color: { argb: BORDER_DARK } },
+      bottom: { style: "medium", color: { argb: BORDER_DARK } },
+      left: { style: "thin", color: { argb: "FFFFFFFF" } },
+      right: { style: "thin", color: { argb: "FFFFFFFF" } },
     };
   });
 };
 
 const styleBodyRow = (row: Row, isEven: boolean) => {
-  row.height = 22;
+  row.height = 25;
   row.eachCell((cell) => {
-    cell.alignment = { vertical: "middle", wrapText: true };
-    cell.font = { size: 10.5 };
+    const isNum = typeof cell.value === "number";
+    cell.alignment = {
+      vertical: "middle",
+      horizontal: isNum ? "right" : "left",
+      indent: isNum ? 0 : 1,
+      wrapText: false,
+    };
+    cell.font = { name: "Calibri", size: 10.5, color: { argb: THEME.ink } };
     cell.border = {
-      top: { style: "thin", color: { argb: THEME.border } },
-      left: { style: "thin", color: { argb: THEME.border } },
-      bottom: { style: "thin", color: { argb: THEME.border } },
-      right: { style: "thin", color: { argb: THEME.border } },
+      top: { style: "thin", color: { argb: BORDER_GRID } },
+      bottom: { style: "thin", color: { argb: BORDER_GRID } },
+      left: { style: "thin", color: { argb: BORDER_GRID } },
+      right: { style: "thin", color: { argb: BORDER_GRID } },
     };
     if (isEven) {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.zebra } };
+    } else {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
     }
   });
 };
@@ -431,7 +485,18 @@ const addOverviewSheet = (
   const isVi = options.locale?.startsWith("vi");
   const sheet = workbook.addWorksheet(sanitizeWorksheetName(isVi ? "Tổng quan" : "Overview"));
   sheet.properties.tabColor = { argb: meta.accent };
-  sheet.columns = Array.from({ length: 8 }, () => ({ width: 18 }));
+  
+  // Custom column widths for Overview: Col 1 has plenty of space (28), others 18-20
+  sheet.columns = [
+    { width: 28 }, // Col 1: Detail labels need 28 width
+    { width: 18 }, // Col 2
+    { width: 18 }, // Col 3
+    { width: 18 }, // Col 4
+    { width: 18 }, // Col 5
+    { width: 18 }, // Col 6
+    { width: 18 }, // Col 7
+    { width: 18 }, // Col 8
+  ];
   
   const title = isVi
     ? `WeaveCarbon · ${datasetType === "company" ? "Báo cáo Doanh nghiệp & Kiểm toán Toàn diện" : meta.title}`
@@ -442,35 +507,90 @@ const addOverviewSheet = (
 
   applyTitleBlock(sheet, title, subtitle, meta.accent, 8);
 
+  // Row 5-7: 4 KPI Cards
   const cards = isVi
     ? [
-        ["Tổng bản ghi", analysis.rowCount.toLocaleString(options.locale || "vi-VN")],
-        ["Số trường", analysis.columnCount.toLocaleString(options.locale || "vi-VN")],
-        ["Độ hoàn thiện", `${analysis.completionRate.toFixed(1)}%`],
-        ["Thời điểm tạo", formatDateTime(options.locale, new Date())],
+        { label: "Tổng bản ghi", value: analysis.rowCount, numFmt: "#,##0" },
+        { label: "Số trường dữ liệu", value: analysis.columnCount, numFmt: "#,##0" },
+        { label: "Độ hoàn thiện", value: analysis.completionRate / 100, numFmt: "0.0%" },
+        { label: "Thời điểm tạo", value: formatDateTime(options.locale, new Date()), numFmt: undefined },
       ]
     : [
-        ["Records", analysis.rowCount.toLocaleString(options.locale || "en-US")],
-        ["Columns", analysis.columnCount.toLocaleString(options.locale || "en-US")],
-        ["Completion", `${analysis.completionRate.toFixed(1)}%`],
-        ["Generated", formatDateTime(options.locale, new Date())],
+        { label: "Total Records", value: analysis.rowCount, numFmt: "#,##0" },
+        { label: "Total Columns", value: analysis.columnCount, numFmt: "#,##0" },
+        { label: "Completion Rate", value: analysis.completionRate / 100, numFmt: "0.0%" },
+        { label: "Generated At", value: formatDateTime(options.locale, new Date()), numFmt: undefined },
       ];
 
-  cards.forEach(([label, value], index) => {
+  sheet.getRow(5).height = 24;
+  sheet.getRow(6).height = 22;
+  sheet.getRow(7).height = 22;
+
+  cards.forEach((card, index) => {
     const start = index * 2 + 1;
-    sheet.mergeCells(5, start, 5, start + 1);
-    sheet.mergeCells(6, start, 7, start + 1);
+    const end = start + 1;
+    sheet.mergeCells(5, start, 5, end);
+    sheet.mergeCells(6, start, 7, end);
+
     const labelCell = sheet.getCell(5, start);
-    labelCell.value = label;
-    labelCell.font = { bold: true, color: { argb: meta.accentText }, size: 10.5 };
+    labelCell.value = card.label;
+    labelCell.font = { name: "Calibri", bold: true, color: { argb: THEME.brandDark }, size: 10.5 };
     labelCell.alignment = { vertical: "middle", horizontal: "center" };
-    labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: meta.accentSoft } };
+    labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.brandSoft } };
+
     const valueCell = sheet.getCell(6, start);
-    valueCell.value = value;
-    valueCell.font = { bold: true, size: 16, color: { argb: THEME.brandDark } };
+    valueCell.value = card.value;
+    if (card.numFmt) {
+      valueCell.numFmt = card.numFmt;
+    }
+    valueCell.font = { name: "Calibri", bold: true, size: 18, color: { argb: THEME.brandDark } };
     valueCell.alignment = { vertical: "middle", horizontal: "center" };
-    valueCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF" } };
+    valueCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+
+    // Set full perimeter border around the KPI card
+    for (let c = start; c <= end; c++) {
+      const topCell = sheet.getCell(5, c);
+      topCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.brandSoft } };
+      topCell.border = {
+        top: { style: "medium", color: { argb: THEME.brand } },
+        bottom: { style: "thin", color: { argb: THEME.brand } },
+        left: c === start ? { style: "medium", color: { argb: THEME.brand } } : undefined,
+        right: c === end ? { style: "medium", color: { argb: THEME.brand } } : undefined,
+      };
+
+      for (let r = 6; r <= 7; r++) {
+        const valC = sheet.getCell(r, c);
+        valC.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+        valC.border = {
+          left: c === start ? { style: "medium", color: { argb: THEME.brand } } : undefined,
+          right: c === end ? { style: "medium", color: { argb: THEME.brand } } : undefined,
+          bottom: r === 7 ? { style: "medium", color: { argb: THEME.brand } } : undefined,
+        };
+      }
+    }
   });
+
+  // Section bar at Row 9
+  sheet.mergeCells(9, 1, 9, 8);
+  const sectionCell = sheet.getCell(9, 1);
+  sectionCell.value = isVi
+    ? "THÔNG TIN DOANH NGHIỆP & KIỂM SOÁT HỆ THỐNG"
+    : "ENTERPRISE PROFILE & AUDIT CONTROLS";
+  sectionCell.font = { name: "Calibri", bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+  sectionCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.brand } };
+  sectionCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  sheet.getRow(9).height = 26;
+
+  for (let c = 1; c <= 8; c++) {
+    const sC = sheet.getCell(9, c);
+    sC.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.brand } };
+    sC.border = {
+      top: { style: "medium", color: { argb: BORDER_DARK } },
+      bottom: { style: "medium", color: { argb: BORDER_DARK } },
+      left: c === 1 ? { style: "medium", color: { argb: BORDER_DARK } } : undefined,
+      right: c === 8 ? { style: "medium", color: { argb: BORDER_DARK } } : undefined,
+    };
+  }
 
   const detailRows = isVi
     ? [
@@ -489,18 +609,50 @@ const addOverviewSheet = (
       ];
 
   let cursor = 10;
-  detailRows.forEach(([label, value]) => {
-    sheet.getCell(cursor, 1).value = label;
-    sheet.getCell(cursor, 1).font = { bold: true, color: { argb: THEME.brandDark } };
-    sheet.mergeCells(cursor, 2, cursor, 8);
-    sheet.getCell(cursor, 2).value = value;
-    sheet.getCell(cursor, 2).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: cursor % 2 === 0 ? THEME.zebra : "FFFFFF" },
+  detailRows.forEach(([label, value], rIdx) => {
+    const row = sheet.getRow(cursor);
+    row.height = 25;
+
+    const labelCell = sheet.getCell(cursor, 1);
+    labelCell.value = label;
+    labelCell.font = { name: "Calibri", bold: true, color: { argb: THEME.brandDark }, size: 10.5 };
+    labelCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+    labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: THEME.brandSoft } };
+    labelCell.border = {
+      top: { style: "thin", color: { argb: BORDER_GRID } },
+      bottom: { style: "thin", color: { argb: BORDER_GRID } },
+      left: { style: "medium", color: { argb: THEME.brand } },
+      right: { style: "thin", color: { argb: BORDER_GRID } },
     };
+
+    sheet.mergeCells(cursor, 2, cursor, 8);
+    const valueCell = sheet.getCell(cursor, 2);
+    valueCell.value = value;
+    valueCell.font = { name: "Calibri", size: 10.5, color: { argb: THEME.ink } };
+    valueCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+
+    const rowBg = rIdx % 2 === 0 ? "FFFFFFFF" : THEME.zebra;
+    for (let c = 2; c <= 8; c++) {
+      const vC = sheet.getCell(cursor, c);
+      vC.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
+      vC.border = {
+        top: { style: "thin", color: { argb: BORDER_GRID } },
+        bottom: { style: "thin", color: { argb: BORDER_GRID } },
+        left: c === 2 ? { style: "thin", color: { argb: BORDER_GRID } } : undefined,
+        right: c === 8 ? { style: "medium", color: { argb: THEME.brand } } : undefined,
+      };
+    }
+
     cursor += 1;
   });
+
+  // Table bottom border
+  for (let c = 1; c <= 8; c++) {
+    const bC = sheet.getCell(cursor - 1, c);
+    const b = bC.border ? { ...bC.border } : {};
+    b.bottom = { style: "medium", color: { argb: THEME.brand } };
+    bC.border = b;
+  }
 };
 
 const addSummarySheet = (
@@ -545,6 +697,14 @@ const addSummarySheet = (
         insight.sum,
       ]);
       styleBodyRow(row, index % 2 === 0);
+      const c2 = row.getCell(2);
+      c2.numFmt = "#,##0";
+      c2.alignment = { vertical: "middle", horizontal: "right" };
+      for (let c = 3; c <= 6; c++) {
+        const cell = row.getCell(c);
+        cell.numFmt = "#,##0.00";
+        cell.alignment = { vertical: "middle", horizontal: "right" };
+      }
     });
   }
 
@@ -561,11 +721,17 @@ const addSummarySheet = (
       profile.label,
       profile.type,
       profile.filledCount,
-      `${profile.completeness.toFixed(1)}%`,
-      profile.examples.join(" | "),
+      profile.completeness / 100,
+      formatExampleCell(profile.examples),
       "",
     ]);
     styleBodyRow(row, index % 2 === 0);
+    const c3 = row.getCell(3);
+    c3.numFmt = "#,##0";
+    c3.alignment = { vertical: "middle", horizontal: "right" };
+    const c4 = row.getCell(4);
+    c4.numFmt = "0.0%";
+    c4.alignment = { vertical: "middle", horizontal: "right" };
   });
 
   autoFitWorksheetColumns(sheet);
@@ -601,10 +767,19 @@ const addDictionarySheet = (
       profile.type,
       profile.filledCount,
       Math.max(analysis.rowCount - profile.filledCount, 0),
-      `${profile.completeness.toFixed(1)}%`,
-      profile.examples.join(" | "),
+      profile.completeness / 100,
+      formatExampleCell(profile.examples),
     ]);
     styleBodyRow(row, index % 2 === 0);
+    const c3 = row.getCell(3);
+    c3.numFmt = "#,##0";
+    c3.alignment = { vertical: "middle", horizontal: "right" };
+    const c4 = row.getCell(4);
+    c4.numFmt = "#,##0";
+    c4.alignment = { vertical: "middle", horizontal: "right" };
+    const c5 = row.getCell(5);
+    c5.numFmt = "0.0%";
+    c5.alignment = { vertical: "middle", horizontal: "right" };
   });
 
   autoFitWorksheetColumns(sheet);
@@ -753,11 +928,23 @@ const buildFullCompanyWorkbook = async (
       title,
       dataset.analysis.rowCount,
       dataset.analysis.columnCount,
-      `${dataset.analysis.completionRate.toFixed(1)}%`,
+      dataset.analysis.completionRate / 100,
       isVi ? "Đã sẵn sàng" : "Ready",
       desc,
     ]);
     styleBodyRow(row, index % 2 === 0);
+    const c2 = row.getCell(2);
+    c2.numFmt = "#,##0";
+    c2.alignment = { vertical: "middle", horizontal: "right" };
+    const c3 = row.getCell(3);
+    c3.numFmt = "#,##0";
+    c3.alignment = { vertical: "middle", horizontal: "right" };
+    const c4 = row.getCell(4);
+    c4.numFmt = "0.0%";
+    c4.alignment = { vertical: "middle", horizontal: "right" };
+    const c5 = row.getCell(5);
+    c5.alignment = { vertical: "middle", horizontal: "center" };
+    c5.font = { name: "Calibri", bold: true, color: { argb: THEME.brandDark } };
   });
   autoFitWorksheetColumns(summary);
 
@@ -788,10 +975,19 @@ const buildFullCompanyWorkbook = async (
         profile.type,
         profile.filledCount,
         Math.max(dataset.analysis.rowCount - profile.filledCount, 0),
-        `${profile.completeness.toFixed(1)}%`,
-        profile.examples.join(" | "),
+        profile.completeness / 100,
+        formatExampleCell(profile.examples),
       ]);
       styleBodyRow(row, index % 2 === 0);
+      const c4 = row.getCell(4);
+      c4.numFmt = "#,##0";
+      c4.alignment = { vertical: "middle", horizontal: "right" };
+      const c5 = row.getCell(5);
+      c5.numFmt = "#,##0";
+      c5.alignment = { vertical: "middle", horizontal: "right" };
+      const c6 = row.getCell(6);
+      c6.numFmt = "0.0%";
+      c6.alignment = { vertical: "middle", horizontal: "right" };
       index += 1;
     });
   });
