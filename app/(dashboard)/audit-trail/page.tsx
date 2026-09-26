@@ -137,11 +137,35 @@ export default function AuditTrailPage() {
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6">
       <div>
-        <h1 className="text-2xl font-bold">Audit Trail</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Lưu vết chứng từ và lịch sử chỉnh sửa theo công ty. Mỗi hành động
-          ghi rõ ai đã làm gì và khi nào.
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 border border-slate-200">
+            <FileText className="h-3.5 w-3.5 text-slate-500" />
+            Immutable Audit Trail
+          </span>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lịch sử &amp; Nhật ký kiểm toán</h1>
+        <p className="mt-1 text-sm text-slate-600 max-w-2xl leading-relaxed">
+          Lưu vết chứng từ và lịch sử chỉnh sửa theo tổ chức. Mỗi hành động đều ghi nhận rõ định danh người thực hiện, thời điểm và nội dung thay đổi.
         </p>
+      </div>
+
+      {/* 3 Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tổng bản ghi audit</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{rows.length}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Nhật ký đã ghi nhận</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Chứng từ &amp; Evidence</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{rows.filter((r) => r.evidenceDocumentId || r.changedField === 'evidence.uploaded').length}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Hồ sơ minh chứng</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Lịch sử điều chỉnh</p>
+          <p className="mt-1 text-2xl font-bold text-sky-700">{rows.filter((r) => !r.evidenceDocumentId && r.changedField !== 'evidence.uploaded').length}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Thay đổi dữ liệu &amp; cấu hình</p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 md:flex-row">
@@ -183,46 +207,46 @@ export default function AuditTrailPage() {
         </Card>
       ) : (
         <>
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+          <Card className="mb-6 shadow-sm border-slate-200">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-5 w-5 text-emerald-600" />
                 Chứng từ &amp; evidence ({evidence.length})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="border-b text-left text-muted-foreground">
+                  <thead className="bg-slate-50/60 text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
                     <tr>
-                      <th className="py-2">Thời gian</th>
-                      <th>Người thực hiện</th>
-                      <th>Hành động</th>
-                      <th>Nhóm dữ liệu</th>
-                      <th>Ghi chú</th>
+                      <th className="py-3 px-4">Thời gian</th>
+                      <th className="px-4">Người thực hiện</th>
+                      <th className="px-4">Hành động</th>
+                      <th className="px-4">Nhóm dữ liệu</th>
+                      <th className="px-4">Ghi chú</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {evidence.map((r) => (
-                      <tr key={r.id} className="border-b last:border-0">
-                        <td className="py-3 text-xs">
+                      <tr key={r.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4 text-xs font-mono text-slate-500">
                           {new Date(r.createdAt).toLocaleString('vi-VN')}
                         </td>
-                        <td className="text-xs font-medium">
-                          <span className="inline-flex items-center gap-1">
-                            <User className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <td className="px-4 text-xs font-medium text-slate-800">
+                          <span className="inline-flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                             {actor(r.changedBy)}
                           </span>
                         </td>
-                        <td>
-                          <Badge variant="outline" className="text-xs">
+                        <td className="px-4">
+                          <Badge variant="outline" className="text-xs bg-slate-50 text-slate-700">
                             {ACTION_LABEL[r.changedField || ''] ||
                               r.changedField ||
                               '—'}
                           </Badge>
                         </td>
-                        <td className="text-xs">{r.dataGroup}</td>
-                        <td className="text-xs text-muted-foreground">
+                        <td className="px-4 text-xs font-medium text-slate-700">{r.dataGroup}</td>
+                        <td className="px-4 text-xs text-slate-500">
                           {r.notes || r.newValue || '—'}
                         </td>
                       </tr>
@@ -233,54 +257,54 @@ export default function AuditTrailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GitCommit className="h-5 w-5" />
+          <Card className="shadow-sm border-slate-200">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-base flex items-center gap-2">
+                <GitCommit className="h-5 w-5 text-sky-600" />
                 Lịch sử chỉnh sửa ({versions.length})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="border-b text-left text-muted-foreground">
+                  <thead className="bg-slate-50/60 text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
                     <tr>
-                      <th className="py-2">Thời gian</th>
-                      <th>Người thực hiện</th>
-                      <th>Hành động</th>
-                      <th>Nhóm</th>
-                      <th>Trước</th>
-                      <th>Sau</th>
-                      <th>Lý do / Ghi chú</th>
+                      <th className="py-3 px-4">Thời gian</th>
+                      <th className="px-4">Người thực hiện</th>
+                      <th className="px-4">Hành động</th>
+                      <th className="px-4">Nhóm</th>
+                      <th className="px-4">Trước</th>
+                      <th className="px-4">Sau</th>
+                      <th className="px-4">Lý do / Ghi chú</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {versions.map((v) => (
-                      <tr key={v.id} className="border-b last:border-0">
-                        <td className="py-3 text-xs">
+                      <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4 text-xs font-mono text-slate-500">
                           {new Date(v.createdAt).toLocaleString('vi-VN')}
                         </td>
-                        <td className="text-xs font-medium">
-                          <span className="inline-flex items-center gap-1">
-                            <User className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <td className="px-4 text-xs font-medium text-slate-800">
+                          <span className="inline-flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                             {actor(v.changedBy)}
                           </span>
                         </td>
-                        <td>
-                          <Badge variant="outline" className="text-xs">
+                        <td className="px-4">
+                          <Badge variant="outline" className="text-xs bg-slate-50 text-slate-700">
                             {ACTION_LABEL[v.changedField || ''] ||
                               v.changedField ||
                               '—'}
                           </Badge>
                         </td>
-                        <td className="text-xs">{v.dataGroup}</td>
-                        <td className="text-xs text-muted-foreground">
+                        <td className="px-4 text-xs font-medium text-slate-700">{v.dataGroup}</td>
+                        <td className="px-4 text-xs text-slate-500 font-mono">
                           {v.oldValue || '—'}
                         </td>
-                        <td className="text-xs font-medium">
+                        <td className="px-4 text-xs font-medium text-slate-800 font-mono">
                           {v.newValue || '—'}
                         </td>
-                        <td className="text-xs">
+                        <td className="px-4 text-xs text-slate-600">
                           {v.reason || v.notes || '—'}
                         </td>
                       </tr>

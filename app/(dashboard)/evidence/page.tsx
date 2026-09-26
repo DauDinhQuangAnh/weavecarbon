@@ -532,28 +532,63 @@ export default function EvidencePage() {
   };
 
 
+  const statTotal = total || rows.length;
+  const statVerified = rows.filter((r) => r.verificationLevel >= 4 || r.status === 'locked' || r.status === 'third_party_verified').length;
+  const statOcr = rows.filter((r) => EXTRACTION_OK_STATUSES.has(r.status)).length;
+  const statNeedsReview = rows.filter((r) => r.status === 'needs_review' || r.status === 'extract_failed').length;
+
   return (
-    <div className="flex-1 p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex-1 p-4 md:p-6 space-y-6">
+      {/* Header section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6 text-emerald-600" /> Tải chứng từ
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+              <FileText className="h-3.5 w-3.5" />
+              Evidence Vault &amp; Audit Trail
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-1 flex items-center gap-2">
+            Quản lý &amp; Tải chứng từ
           </h1>
-          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-            Tải hóa đơn, BOM, vận đơn hoặc chứng từ nhà cung ứng để hệ thống
-            đọc dữ liệu, kiểm tra tính nhất quán và lưu vào Audit Trail.
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
+            Tải hóa đơn, BOM, vận đơn hoặc chứng từ nhà cung ứng để hệ thống đọc dữ liệu, kiểm tra tính nhất quán và tự động lưu vết minh bạch vào Audit Trail.
           </p>
         </div>
         <Button
           onClick={() => setUploadOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700"
+          className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0"
         >
           <Upload className="h-4 w-4 mr-2" /> Tải chứng từ mới
         </Button>
       </div>
 
-      <Alert className="border-sky-200 bg-sky-50">
-        <AlertDescription className="text-xs text-sky-900">
+      {/* 4 Metric Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tổng chứng từ</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{statTotal}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Tài liệu đã lưu</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Xác minh cao</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{statVerified}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Level 4 - 5 hoặc đã khóa</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">AI trích xuất</p>
+          <p className="mt-1 text-2xl font-bold text-sky-700">{statOcr}</p>
+          <p className="text-xs text-slate-500 mt-0.5">RAG &amp; OCR thành công</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Cần đối chiếu</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{statNeedsReview}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Chờ người dùng duyệt</p>
+        </div>
+      </div>
+
+      <Alert className="border-sky-200 bg-sky-50/70">
+        <AlertDescription className="text-xs text-sky-900 leading-relaxed">
           AI hỗ trợ đọc, kiểm tra tính nhất quán và đánh giá mức độ tin cậy
           của chứng từ. Chứng từ chỉ được xem là{' '}
           <strong>đã đối chiếu nguồn</strong> khi có file XML, mã tra cứu, chữ

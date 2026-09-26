@@ -31,30 +31,30 @@ const HistorySummaryStats: React.FC<HistorySummaryStatsProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <Card className="border border-slate-200 bg-white shadow-sm">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <Card className="border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:border-slate-300">
         <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-slate-700" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{history.length}</p>
-              <p className="text-sm text-slate-600">{t("totalRecords")}</p>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold tracking-tight text-slate-900">{history.length}</p>
+              <p className="text-xs font-medium text-slate-600 truncate">{t("totalRecords")}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border border-emerald-200 bg-emerald-50/60 shadow-sm">
+      <Card className="border border-emerald-200/80 bg-gradient-to-br from-emerald-50/70 to-emerald-50/20 shadow-sm transition-all hover:shadow-md hover:border-emerald-300">
         <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-emerald-200 bg-emerald-100/70 rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 border border-emerald-200 bg-emerald-100/70 rounded-xl flex items-center justify-center shrink-0">
               <Leaf className="w-5 h-5 text-emerald-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-emerald-700">{formatSummaryValue(totalMaterials)}</p>
-              <p className="text-sm text-slate-600">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold tracking-tight text-emerald-700">{formatSummaryValue(totalMaterials)}</p>
+              <p className="text-xs font-medium text-slate-600 truncate">
                 {t("materialsLabel")}
               </p>
             </div>
@@ -62,15 +62,15 @@ const HistorySummaryStats: React.FC<HistorySummaryStatsProps> = ({
         </CardContent>
       </Card>
 
-      <Card className="border border-sky-200 bg-sky-50/60 shadow-sm">
+      <Card className="border border-sky-200/80 bg-gradient-to-br from-sky-50/70 to-sky-50/20 shadow-sm transition-all hover:shadow-md hover:border-sky-300">
         <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-sky-200 bg-sky-100/70 rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 border border-sky-200 bg-sky-100/70 rounded-xl flex items-center justify-center shrink-0">
               <Factory className="w-5 h-5 text-sky-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-sky-700">{formatSummaryValue(totalManufacturing)}</p>
-              <p className="text-sm text-slate-600">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold tracking-tight text-sky-700">{formatSummaryValue(totalManufacturing)}</p>
+              <p className="text-xs font-medium text-slate-600 truncate">
                 {t("manufacturingLabel")}
               </p>
             </div>
@@ -78,15 +78,15 @@ const HistorySummaryStats: React.FC<HistorySummaryStatsProps> = ({
         </CardContent>
       </Card>
 
-      <Card className="border border-orange-200 bg-orange-50/60 shadow-sm">
+      <Card className="border border-amber-200/80 bg-gradient-to-br from-amber-50/70 to-amber-50/20 shadow-sm transition-all hover:shadow-md hover:border-amber-300">
         <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-orange-200 bg-orange-100/70 rounded-lg flex items-center justify-center">
-              <Truck className="w-5 h-5 text-orange-600" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 border border-amber-200 bg-amber-100/70 rounded-xl flex items-center justify-center shrink-0">
+              <Truck className="w-5 h-5 text-amber-600" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-orange-700">{formatSummaryValue(totalTransport)}</p>
-              <p className="text-sm text-slate-600">
+            <div className="min-w-0">
+              <p className="text-2xl font-bold tracking-tight text-amber-700">{formatSummaryValue(totalTransport)}</p>
+              <p className="text-xs font-medium text-slate-600 truncate">
                 {t("transportLabel")}
               </p>
             </div>

@@ -315,11 +315,11 @@ const CalculationHistoryClient: React.FC<CalculationHistoryClientProps> = ({
                 </CardDescription>
               </div>
               <Button
-                variant="destructive"
-                className="mt-1 shrink-0 self-start bg-red-600 text-white hover:bg-red-700 sm:mt-2 sm:self-end"
+                variant="outline"
+                className="mt-1 shrink-0 self-start border-slate-200 bg-white font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-800 shadow-sm sm:mt-2 sm:self-end transition-all"
                 onClick={handleExportCSV}>
 
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-2 text-emerald-600" />
                 {t("exportCSV")}
               </Button>
             </div>

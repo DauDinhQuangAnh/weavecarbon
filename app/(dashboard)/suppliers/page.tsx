@@ -135,61 +135,74 @@ export default function SuppliersPage() {
     }
   };
 
+  const totalRequests = rows.length;
+  const waitingRequests = rows.filter((r) => r.status === 'waiting' || r.status === 'sent').length;
+  const receivedRequests = rows.filter((r) => r.status === 'received').length;
+  const overdueRequests = rows.filter((r) => r.status === 'overdue').length;
+
   return (
-    <div className="flex-1 p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex-1 p-4 md:p-6 space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Nhà cung ứng</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản trị Nhà cung ứng</h1>
+            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200/80">
+              Scope 3 Network
+            </span>
+          </div>
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
             Thu thập dữ liệu Scope 3 và quản trị mạng lưới nhà cung ứng cho
-            phân tích carbon, khí hậu và phụ thuộc kinh doanh.
+            phân tích carbon, rủi ro khí hậu và mức độ phụ thuộc chuỗi cung ứng.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-1" />
-              Tạo yêu cầu
+            <Button className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-medium">
+              <Plus className="w-4 h-4 mr-1.5" />
+              Tạo yêu cầu dữ liệu
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>Supplier Request</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-slate-900">Yêu cầu dữ liệu Nhà cung ứng</DialogTitle>
             </DialogHeader>
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="supplier-name">Tên nhà cung ứng</Label>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-name" className="text-xs font-semibold text-slate-700">Tên nhà cung ứng</Label>
                 <Input
                   id="supplier-name"
+                  placeholder="Ví dụ: Công ty Dệt May ABC"
                   value={form.supplierName}
                   onChange={(e) =>
                     setForm({ ...form, supplierName: e.target.value })
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplier-email">Email</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-email" className="text-xs font-semibold text-slate-700">Email liên hệ</Label>
                 <Input
                   id="supplier-email"
                   type="email"
+                  placeholder="supplier@example.com"
                   value={form.supplierEmail}
                   onChange={(e) =>
                     setForm({ ...form, supplierEmail: e.target.value })
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplier-material">Vật liệu</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-material" className="text-xs font-semibold text-slate-700">Nguyên vật liệu cung cấp</Label>
                 <Input
                   id="supplier-material"
+                  placeholder="Ví dụ: Vải sợi Organic Cotton, Nhuộm hoạt tính"
                   value={form.material}
                   onChange={(e) =>
                     setForm({ ...form, material: e.target.value })
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplier-required-data">
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-required-data" className="text-xs font-semibold text-slate-700">
                   Dữ liệu yêu cầu (phân cách bằng dấu phẩy)
                 </Label>
                 <Input
@@ -200,8 +213,8 @@ export default function SuppliersPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplier-deadline">Hạn phản hồi</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="supplier-deadline" className="text-xs font-semibold text-slate-700">Hạn phản hồi</Label>
                 <Input
                   id="supplier-deadline"
                   type="date"
@@ -212,71 +225,100 @@ export default function SuppliersPage() {
                 />
               </div>
             </div>
-            <DialogFooter className="pt-2">
-              <Button onClick={submit} disabled={saving}>
+            <DialogFooter className="pt-3">
+              <Button onClick={submit} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Lưu nháp
+                Lưu và tạo yêu cầu
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách yêu cầu</CardTitle>
+      {/* Quick summary stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border border-slate-200/80 bg-white shadow-xs">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-slate-600">Tổng yêu cầu</div>
+            <div className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{totalRequests}</div>
+          </CardContent>
+        </Card>
+        <Card className="border border-amber-200/80 bg-amber-50/30 shadow-xs">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-slate-600">Đang chờ phản hồi</div>
+            <div className="text-2xl font-bold tracking-tight text-amber-700 mt-1">{waitingRequests}</div>
+          </CardContent>
+        </Card>
+        <Card className="border border-emerald-200/80 bg-emerald-50/30 shadow-xs">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-slate-600">Đã nhận phản hồi</div>
+            <div className="text-2xl font-bold tracking-tight text-emerald-700 mt-1">{receivedRequests}</div>
+          </CardContent>
+        </Card>
+        <Card className="border border-rose-200/80 bg-rose-50/30 shadow-xs">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-slate-600">Quá hạn</div>
+            <div className="text-2xl font-bold tracking-tight text-rose-700 mt-1">{overdueRequests}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border border-slate-200/80 shadow-xs">
+        <CardHeader className="border-b border-slate-200/80 bg-slate-50/60 py-3.5 px-4">
+          <CardTitle className="text-base font-semibold text-slate-900">Danh sách yêu cầu dữ liệu</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Đang tải…
+            <div className="flex items-center justify-center py-12 text-slate-500">
+              <Loader2 className="w-5 h-5 mr-2 animate-spin text-emerald-600" />
+              Đang tải dữ liệu nhà cung ứng…
             </div>
           ) : rows.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              Chưa có yêu cầu nào. Bấm &quot;Tạo yêu cầu&quot; để bắt đầu.
+            <div className="text-center py-12 text-slate-500 text-sm">
+              Chưa có yêu cầu nào. Bấm &quot;Tạo yêu cầu dữ liệu&quot; để bắt đầu thu thập Scope 3.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-muted-foreground border-b">
+                <thead className="text-left text-xs font-semibold text-slate-600 border-b border-slate-200/80 bg-slate-50/40">
                   <tr>
-                    <th className="py-2">Nhà cung ứng</th>
-                    <th>Vật liệu</th>
-                    <th>Dữ liệu yêu cầu</th>
-                    <th>Hạn</th>
-                    <th>Trạng thái</th>
-                    <th></th>
+                    <th className="py-3 px-4">Nhà cung ứng</th>
+                    <th className="py-3 px-3">Vật liệu</th>
+                    <th className="py-3 px-3">Dữ liệu yêu cầu</th>
+                    <th className="py-3 px-3">Hạn phản hồi</th>
+                    <th className="py-3 px-3">Trạng thái</th>
+                    <th className="py-3 px-4 text-right">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {rows.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0">
-                      <td className="py-3">
-                        <div className="font-medium">{r.supplierName}</div>
-                        <div className="text-xs text-muted-foreground">
+                    <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-slate-900">{r.supplierName}</div>
+                        <div className="text-xs text-slate-500 font-mono">
                           {r.supplierEmail}
                         </div>
                       </td>
-                      <td className="text-xs">{r.materialSupplied || '—'}</td>
-                      <td className="text-xs">
+                      <td className="py-3 px-3 text-xs text-slate-700">{r.materialSupplied || '—'}</td>
+                      <td className="py-3 px-3 text-xs text-slate-600 max-w-xs truncate">
                         {(r.requiredData || []).join(', ')}
                       </td>
-                      <td className="text-xs">{r.deadline || '—'}</td>
-                      <td>
+                      <td className="py-3 px-3 text-xs text-slate-600 font-mono whitespace-nowrap">{r.deadline || '—'}</td>
+                      <td className="py-3 px-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${STATUS_COLOR[r.status]}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_COLOR[r.status]}`}
                         >
                           {STATUS_LABEL[r.status]}
                         </span>
                       </td>
-                      <td>
+                      <td className="py-3 px-4 text-right">
                         <Button
                           size="sm"
                           variant="outline"
+                          className="h-8 border-slate-200 text-xs font-medium text-slate-700 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50"
                           onClick={() => sendMail(r)}
                         >
-                          <Mail className="w-3 h-3 mr-1" />
+                          <Mail className="w-3.5 h-3.5 mr-1 text-emerald-600" />
                           Gửi email
                         </Button>
                       </td>
