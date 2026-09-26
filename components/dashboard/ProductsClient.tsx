@@ -192,14 +192,14 @@ const ProductsClient: React.FC = () => {
   {
     draft: {
       label: t("statusLabel.draft"),
-      badgeClassName: "border border-amber-300 bg-amber-100 text-amber-900",
-      cardClassName: "border-l-4 border-l-amber-400 bg-amber-50/40",
+      badgeClassName: "border border-amber-200 bg-amber-50 text-amber-800",
+      cardClassName: "",
       dotClassName: "bg-amber-500"
     },
     published: {
       label: t("statusLabel.published"),
-      badgeClassName: "border border-emerald-300 bg-emerald-100 text-emerald-900",
-      cardClassName: "border-l-4 border-l-emerald-500 bg-emerald-50/40",
+      badgeClassName: "border border-emerald-200 bg-emerald-50 text-emerald-800",
+      cardClassName: "",
       dotClassName: "bg-emerald-500"
     }
   };
@@ -870,24 +870,28 @@ const ProductsClient: React.FC = () => {
 
   const totalPages = Math.max(1, pagination.total_pages || 1);
   const statCardClass = (target: "all" | "draft" | "published") => {
-    const base = "border bg-white shadow";
-    if (target === "draft") return `${base} border-slate-300 bg-slate-50`;
-    if (target === "published") return `${base} border-emerald-400 bg-emerald-100/75`;
-    return `${base} border-slate-300`;
+    const base = "cursor-pointer rounded-xl border transition-all duration-200 hover:shadow-md";
+    const isActive = statusFilter === target;
+    if (isActive) {
+      if (target === "published") return `${base} border-emerald-500 bg-emerald-50/50 shadow-xs ring-2 ring-emerald-500/20`;
+      if (target === "draft") return `${base} border-amber-500 bg-amber-50/50 shadow-xs ring-2 ring-amber-500/20`;
+      return `${base} border-slate-700 bg-slate-50/80 shadow-xs ring-2 ring-slate-400/20`;
+    }
+    return `${base} border-slate-200/90 bg-white hover:border-slate-300 shadow-xs`;
   };
 
   const filterChipClass = (target: "all" | "draft" | "published") => {
-    const base = "h-8 px-2.5 border text-xs font-medium transition-colors sm:h-9 sm:px-3 sm:text-sm";
+    const base = "h-8 px-3 rounded-lg text-xs font-medium transition-all sm:h-9 sm:px-3.5 sm:text-sm";
     if (statusFilter !== target) {
-      return `${base} border-slate-300 bg-white text-slate-800 hover:bg-slate-100`;
+      return `${base} border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900`;
     }
     if (target === "draft") {
-      return `${base} border-amber-400 bg-amber-100 text-amber-900 hover:bg-amber-200`;
+      return `${base} border border-amber-300 bg-amber-50 text-amber-900 shadow-xs font-semibold ring-1 ring-amber-400/30`;
     }
     if (target === "published") {
-      return `${base} border-emerald-400 bg-emerald-100 text-emerald-900 hover:bg-emerald-200`;
+      return `${base} border border-emerald-300 bg-emerald-50 text-emerald-900 shadow-xs font-semibold ring-1 ring-emerald-400/30`;
     }
-    return `${base} border-slate-500 bg-slate-200 text-slate-900 hover:bg-slate-300`;
+    return `${base} border border-slate-700 bg-slate-900 text-white shadow-xs font-semibold`;
   };
 
   const rangeStart =
@@ -975,84 +979,94 @@ const ProductsClient: React.FC = () => {
 
   return (
     <>
-      <div className="space-y-2 md:space-y-6">
-        <div className="grid grid-cols-3 gap-1.5 md:gap-4">
-          <Card className={statCardClass("all")}>
-
-            <CardContent className="p-2 md:p-4">
-              <div className="flex items-center gap-1.5 md:gap-3">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-300 bg-slate-100 md:h-10 md:w-10 md:rounded-lg">
-                  <Package className="h-3 w-3 text-primary md:h-5 md:w-5" />
+      <div className="space-y-3 md:space-y-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+          <Card
+            className={statCardClass("all")}
+            onClick={() => setStatusFilter("all")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setStatusFilter("all")}>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-700 shrink-0">
+                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700" />
                 </div>
-                <div>
-                  <p className="text-base font-bold leading-none text-slate-900 md:text-2xl">{stats.total}</p>
-                  <p className="text-[10px] text-slate-600 md:text-xs">{t("stats.all")}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className={statCardClass("draft")}>
-
-            <CardContent className="p-2 md:p-4">
-              <div className="flex items-center gap-1.5 md:gap-3">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-300 bg-slate-200/80 md:h-10 md:w-10 md:rounded-lg">
-                  <FileText className="h-3 w-3 text-slate-700 md:h-5 md:w-5" />
-                </div>
-                <div>
-                  <p className="text-base font-bold leading-none text-slate-900 md:text-2xl">{stats.draft}</p>
-                  <p className="text-[10px] text-slate-600 md:text-xs">{t("stats.draft")}</p>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold leading-tight text-slate-900 sm:text-2xl">{stats.total}</p>
+                  <p className="text-xs text-slate-500 font-medium truncate">{t("stats.all")}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className={statCardClass("published")}>
-
-            <CardContent className="p-2 md:p-4">
-              <div className="flex items-center gap-1.5 md:gap-3">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md border border-emerald-300 bg-emerald-100/90 md:h-10 md:w-10 md:rounded-lg">
-                  <TrendingUp className="h-3 w-3 text-emerald-700 md:h-5 md:w-5" />
+          <Card
+            className={statCardClass("draft")}
+            onClick={() => setStatusFilter("draft")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setStatusFilter("draft")}>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 shrink-0">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-amber-700" />
                 </div>
-                <div>
-                  <p className="text-base font-bold leading-none text-slate-900 md:text-2xl">{stats.published}</p>
-                  <p className="text-[10px] text-slate-600 md:text-xs">{t("stats.published")}</p>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold leading-tight text-slate-900 sm:text-2xl">{stats.draft}</p>
+                  <p className="text-xs text-slate-500 font-medium truncate">{t("stats.draft")}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={statCardClass("published")}
+            onClick={() => setStatusFilter("published")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setStatusFilter("published")}>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 shrink-0">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-700" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold leading-tight text-slate-900 sm:text-2xl">{stats.published}</p>
+                  <p className="text-xs text-slate-500 font-medium truncate">{t("stats.published")}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="rounded-lg border border-slate-300 bg-slate-50 p-1.5 shadow md:p-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs md:p-3.5">
           <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 border-slate-300 bg-white pl-9 pr-9 text-sm text-slate-900 placeholder:text-slate-500 shadow-sm md:h-10 md:pl-10 md:pr-10" />
-
-            {searchQuery.trim().length > 0 &&
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-              aria-label={t("clearSearchAria")}>
-
+              className="h-9.5 rounded-lg border-slate-200 bg-slate-50/60 pl-9.5 pr-9.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-none transition-colors hover:bg-slate-50 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 md:h-10 md:pl-10 md:pr-10"
+            />
+            {searchQuery.trim().length > 0 && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                aria-label={t("clearSearchAria")}>
                 <X className="h-4 w-4" />
               </Button>
-            }
+            )}
           </div>
-          <div className="mt-1.5 flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-2.5 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <Button
                 type="button"
                 variant="outline"
                 className={filterChipClass("all")}
                 onClick={() => setStatusFilter("all")}>
-
                 {t("allStatusFilter")}
               </Button>
               <Button
@@ -1060,7 +1074,6 @@ const ProductsClient: React.FC = () => {
                 variant="outline"
                 className={filterChipClass("draft")}
                 onClick={() => setStatusFilter("draft")}>
-
                 {t("draftStatus")}
               </Button>
               <Button
@@ -1068,7 +1081,6 @@ const ProductsClient: React.FC = () => {
                 variant="outline"
                 className={filterChipClass("published")}
                 onClick={() => setStatusFilter("published")}>
-
                 {t("publishedStatus")}
               </Button>
             </div>
@@ -1083,9 +1095,8 @@ const ProductsClient: React.FC = () => {
                   }
                   setShowBatchModal(true);
                 }}
-                className="h-8 gap-1.5 border-slate-300 bg-white px-2.5 text-xs text-slate-800 hover:bg-slate-100 sm:h-9 sm:gap-2 sm:px-3 sm:text-sm">
-
-                <Layers className="w-4 h-4" /> {t("manageBatches")}
+                className="h-8.5 gap-1.5 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 sm:h-9 sm:gap-2 sm:px-3 sm:text-sm">
+                <Layers className="w-4 h-4 text-slate-500" /> {t("manageBatches")}
               </Button>
               <Button
                 variant="outline"
@@ -1100,14 +1111,12 @@ const ProductsClient: React.FC = () => {
                   }
                   setShowBulkUpload(true);
                 }}
-                className="h-8 gap-1.5 border-slate-300 bg-white px-2.5 text-xs text-slate-800 hover:bg-slate-100 sm:h-9 sm:gap-2 sm:px-3 sm:text-sm">
-
-                <Upload className="w-4 h-4" /> {t("uploadFile")}
+                className="h-8.5 gap-1.5 rounded-lg border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 sm:h-9 sm:gap-2 sm:px-3 sm:text-sm">
+                <Upload className="w-4 h-4 text-slate-500" /> {t("uploadFile")}
               </Button>
               <Button
                 onClick={openCreateAssessment}
-                className="h-8 gap-1.5 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700 sm:h-9 sm:gap-2 sm:px-3 sm:text-sm">
-
+                className="h-8.5 gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 sm:h-9 sm:gap-2 sm:px-3.5 sm:text-sm">
                 <PlusCircle className="w-4 h-4" /> {t("addProduct")}
               </Button>
             </div>
@@ -1115,110 +1124,134 @@ const ProductsClient: React.FC = () => {
         </div>
 
         <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {loading ?
-          Array.from({ length: 6 }).map((_, index) =>
-          <Card key={index} className="sm:col-span-1 border border-slate-300 bg-white shadow">
-                <CardContent className="p-4">
-                  <div className="mb-2 h-6 w-1/2 rounded bg-slate-200 animate-pulse" />
-                  <div className="mb-3 h-4 w-1/3 rounded bg-slate-200 animate-pulse" />
-                  <div className="h-5 w-full rounded bg-slate-200 animate-pulse" />
-                </CardContent>
+          {loading ? (
+            Array.from({ length: 6 }).map((_, index) => (
+              <Card key={index} className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="h-4 w-20 rounded bg-slate-100 animate-pulse" />
+                  <div className="h-5 w-16 rounded-full bg-slate-100 animate-pulse" />
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-slate-100 animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-3/4 rounded bg-slate-100 animate-pulse" />
+                    <div className="h-3 w-1/2 rounded bg-slate-100 animate-pulse" />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                  <div className="space-y-1">
+                    <div className="h-4 w-14 rounded bg-slate-100 animate-pulse" />
+                    <div className="h-3 w-20 rounded bg-slate-100 animate-pulse" />
+                  </div>
+                  <div className="flex gap-1">
+                    <div className="h-8 w-8 rounded-lg bg-slate-100 animate-pulse" />
+                    <div className="h-8 w-8 rounded-lg bg-slate-100 animate-pulse" />
+                  </div>
+                </div>
               </Card>
-          ) :
-          products.length === 0 ?
-          <Card className="sm:col-span-2 lg:col-span-3 border border-slate-300 bg-slate-50/60 shadow">
-              <CardContent className="p-8 text-center">
-                <Package className="mx-auto mb-4 h-12 w-12 text-slate-600" />
-                <h3 className="mb-2 font-medium text-slate-900">{t("notFound")}</h3>
-                <p className="mb-4 text-sm text-slate-600">
+            ))
+          ) : products.length === 0 ? (
+            <Card className="sm:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 shadow-none">
+              <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 mb-3">
+                  <Package className="h-6 w-6" />
+                </div>
+                <h3 className="font-semibold text-slate-800">{t("notFound")}</h3>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">
                   {error || t("tryChangeFilter")}
                 </p>
                 <Button
                   onClick={openCreateAssessment}
-                  variant="outline"
-                  className="border-slate-300 bg-white text-slate-800 hover:bg-slate-100">
-
-                  <PlusCircle className="w-4 h-4 mr-2" /> {t("createNew")}
+                  className="mt-4 gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 sm:text-sm">
+                  <PlusCircle className="w-4 h-4" /> {t("createNew")}
                 </Button>
               </CardContent>
-            </Card> :
+            </Card>
+          ) : (
+            products.map((product) => {
+              const editBlockedByCancelledShipment = isShipmentCancelled(
+                product.shipmentId
+              );
+              const editButtonLabel =
+                editBlockedByCancelledShipment
+                  ? t("actions.editProductDisabledCancelledShipment")
+                  : t("actions.editProduct");
+              const isEditButtonDisabled =
+                editBlockedByCancelledShipment ||
+                editingProductId === product.id ||
+                deletingProductId === product.id;
 
-          products.map((product) => {
-            const editBlockedByCancelledShipment = isShipmentCancelled(
-              product.shipmentId
-            );
-            const editButtonLabel =
-            editBlockedByCancelledShipment ?
-            t("actions.editProductDisabledCancelledShipment") :
-            t("actions.editProduct");
-            const isEditButtonDisabled =
-            editBlockedByCancelledShipment ||
-            editingProductId === product.id ||
-            deletingProductId === product.id;
+              return (
+                <Card
+                  key={product.id}
+                  className="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-0 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md cursor-pointer overflow-hidden"
+                  onClick={(event) => {
+                    if (
+                      event.target instanceof HTMLElement &&
+                      event.target.closest("[data-product-card-actions='true']")
+                    ) {
+                      return;
+                    }
+                    void handleViewProductSafe(product);
+                  }}>
+                  <CardContent className="flex flex-1 flex-col p-4">
+                    {/* Top Bar: SKU code + Status badge */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-600 break-all">
+                        {product.productCode}
+                      </span>
+                      <Badge className={`gap-1 text-[11px] font-medium shadow-none ${STATUS_CONFIG[product.status].badgeClassName}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[product.status].dotClassName}`} />
+                        {STATUS_CONFIG[product.status].label}
+                      </Badge>
+                    </div>
 
-            return <Card
-              key={product.id}
-              className={`relative h-full min-h-[140px] cursor-pointer border border-slate-300 shadow transition-all hover:border-slate-400 hover:shadow-lg ${STATUS_CONFIG[product.status].cardClassName}`}
-              onClick={(event) => {
-                if (
-                  (event.target instanceof HTMLElement) &&
-                  event.target.closest("[data-product-card-actions='true']")
-                ) {
-                  return;
-                }
-                void handleViewProductSafe(product);
-              }}>
-
-                <CardContent className="h-full p-4">
-                  <div className="absolute right-3 top-3">
-                    <Badge className={`gap-1 text-[11px] font-semibold ${STATUS_CONFIG[product.status].badgeClassName}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[product.status].dotClassName}`} />
-                      {STATUS_CONFIG[product.status].label}
-                    </Badge>
-                  </div>
-                  <div className="flex h-full flex-col gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="h-12 w-12 rounded-lg border border-slate-300 bg-slate-100 flex items-center justify-center shrink-0">
-                        <Package className="w-6 h-6 text-slate-700" />
+                    {/* Main Info: Icon + Name + Materials */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-slate-600 transition-colors group-hover:border-emerald-100 group-hover:bg-emerald-50/60 group-hover:text-emerald-700">
+                        <Package className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="max-h-10 overflow-hidden font-medium leading-5 text-slate-900 break-words">
+                        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-emerald-700 transition-colors">
                           {product.productName}
                         </h3>
-                        <p className="text-sm text-slate-600 break-all">{product.productCode}</p>
-                        <div className="mt-1 hidden flex-wrap gap-1 sm:flex">
-                          {product.materials.slice(0, 2).map((material) =>
-                      <Badge
-                        key={material.id}
-                        variant="outline"
-                        className="text-xs border-slate-300 bg-slate-100 text-slate-700">
-
-                              {material.materialType} {material.percentage}%
-                            </Badge>
-                      )}
-                        </div>
+                        {product.materials.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {product.materials.slice(0, 2).map((material) => (
+                              <Badge
+                                key={material.id}
+                                variant="outline"
+                                className="border-slate-200 bg-slate-50/70 text-[11px] font-normal text-slate-600">
+                                {material.materialType} {material.percentage}%
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-2">
-                      <div className="min-w-0 flex items-center gap-2 sm:gap-3">
-                        <div className="min-w-0">
-                          <p className="text-base font-bold leading-5 text-emerald-700 sm:text-lg">
-                            {typeof product.carbonResults?.perProduct.total === "number" ?
-                        `${product.carbonResults.perProduct.total.toFixed(2)} kg` :
-                        "-"}
-                          </p>
-                          <p className="text-xs text-slate-600">{t("co2PerUnit")}</p>
-                        </div>
+                    {/* Bottom Divider: Carbon footprint & Actions */}
+                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                      <div>
+                        <p className="text-base font-bold leading-none text-emerald-700">
+                          {typeof product.carbonResults?.perProduct.total === "number"
+                            ? `${product.carbonResults.perProduct.total.toFixed(2)} kg`
+                            : "-"}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-500 font-medium">{t("co2PerUnit")}</p>
                       </div>
 
                       <div
                         data-product-card-actions="true"
-                        className="flex shrink-0 items-center gap-1.5">
+                        className="flex shrink-0 items-center gap-1">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          className={`h-8 w-8 bg-white ${editBlockedByCancelledShipment ? "cursor-not-allowed border-slate-200 text-slate-300 opacity-50 hover:bg-white" : "border-slate-300 text-slate-700 hover:bg-slate-100"}`}
+                          className={`h-8 w-8 rounded-lg ${
+                            editBlockedByCancelledShipment
+                              ? "cursor-not-allowed text-slate-300 opacity-50 hover:bg-transparent"
+                              : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                          }`}
                           disabled={isEditButtonDisabled}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1226,15 +1259,16 @@ const ProductsClient: React.FC = () => {
                           }}
                           title={editButtonLabel}
                           aria-label={editButtonLabel}>
-                          {editingProductId === product.id ?
-                          <Loader2 className="h-4 w-4 animate-spin" /> :
-                          <Pencil className="h-4 w-4" />
-                          }
+                          {editingProductId === product.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Pencil className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
-                          className="h-8 w-8 border-red-300 bg-white text-red-700 hover:bg-red-50"
+                          className="h-8 w-8 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
                           disabled={deletingProductId === product.id || editingProductId === product.id}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1242,58 +1276,55 @@ const ProductsClient: React.FC = () => {
                           }}
                           title={t("actions.deleteProduct")}
                           aria-label={t("actions.deleteProduct")}>
-                          {deletingProductId === product.id ?
-                          <Loader2 className="h-4 w-4 animate-spin" /> :
-                          <Trash2 className="h-4 w-4" />
-                          }
+                          {deletingProductId === product.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>;
-          })
-          }
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
 
-        
-        {products.length > 0 &&
-        <div className="flex items-center justify-between text-xs text-slate-600">
+        {products.length > 0 && (
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
             <span>
               {rangeStart}-{rangeEnd} / {pagination.total}
             </span>
-            {totalPages > 1 &&
-          <div className="flex items-center justify-center gap-2">
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2">
                 <Button
-              variant="outline"
-              size="sm"
-              className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}>
-
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}>
                   {t("pagination.prev")}
                 </Button>
-                <span className="text-xs text-slate-600">
+                <span className="text-xs text-slate-600 font-medium">
                   {t("pagination.page", {
-                current: currentPage,
-                total: totalPages
-              })}
+                    current: currentPage,
+                    total: totalPages
+                  })}
                 </span>
                 <Button
-              variant="outline"
-              size="sm"
-              className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}>
-
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}>
                   {t("pagination.next")}
                 </Button>
               </div>
-          }
+            )}
           </div>
-        }
+        )}
       </div>
-
       {canMutate &&
       <BulkUploadModal
         open={showBulkUpload}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Copy,
   Download,
+  Eye,
   FileSpreadsheet,
   FileText,
   FolderCheck,
@@ -95,6 +96,13 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
   const [selectedMarketCode, setSelectedMarketCode] = useState<MarketCode | null>(null);
   const [marketDetailOpen, setMarketDetailOpen] = useState(false);
   const [selectedDocPreview, setSelectedDocPreview] = useState<"commercial-invoice" | "packing-list" | "bill-of-lading">("commercial-invoice");
+  const [documentPreviewOpen, setDocumentPreviewOpen] = useState(false);
+  const documentPreviewTrigger = useRef<HTMLButtonElement | null>(null);
+  const openDocumentPreview = (type: typeof selectedDocPreview, trigger: HTMLButtonElement) => {
+    documentPreviewTrigger.current = trigger;
+    setSelectedDocPreview(type);
+    setDocumentPreviewOpen(true);
+  };
   const useRealProducts = !isDemoRuntime && products.length > 0;
 
   const breakdowns = useMemo(
@@ -1032,18 +1040,24 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                   }
                 ].map((item) => {
                   const Icon = item.icon;
-                  const isSelected = selectedDocPreview === item.type;
+                  const isSelected = documentPreviewOpen && selectedDocPreview === item.type;
                   const isDownloadingThis = downloadingXlsx === item.type;
                   return (
                     <div
                       key={item.type}
-                      onClick={() => setSelectedDocPreview(item.type)}
                       className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all cursor-pointer ${
                         isSelected
                           ? "border-emerald-600 bg-gradient-to-br from-emerald-50/90 via-emerald-50/50 to-teal-50/30 shadow-md ring-2 ring-emerald-600/30"
                           : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/20 hover:shadow-sm"
                       }`}
                     >
+                      <button
+                        type="button"
+                        aria-label={`Xem trước ${item.title}`}
+                        aria-haspopup="dialog"
+                        onClick={(event) => openDocumentPreview(item.type, event.currentTarget)}
+                        className="absolute inset-0 z-10 cursor-pointer rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                      />
                       <div>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5 font-semibold text-slate-900">
@@ -1085,7 +1099,18 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                       </div>
 
                       {/* Action buttons */}
-                      <div className="mt-4 pt-3 border-t border-emerald-100 flex flex-wrap items-center gap-2">
+                      <div className="relative z-20 mt-4 pt-3 border-t border-emerald-100 flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label={`Xem trước ${item.title}`}
+                          aria-haspopup="dialog"
+                          className="w-full border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50 text-xs"
+                          onClick={(event) => openDocumentPreview(item.type, event.currentTarget)}
+                        >
+                          <Eye className="mr-1.5 h-3.5 w-3.5" />
+                          Xem trước
+                        </Button>
                         <Button
                           size="sm"
                           disabled={isDownloadingThis}
@@ -1116,8 +1141,24 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                 })}
               </div>
 
-              {/* Dynamic Document Preview Section with WeaveCarbon Header */}
-              <div className="rounded-2xl border border-emerald-200 bg-white shadow-sm overflow-hidden">
+              <Dialog open={documentPreviewOpen} onOpenChange={setDocumentPreviewOpen}>
+                <DialogContent
+                  className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden border-emerald-200 bg-white p-0 sm:w-[calc(100vw-3rem)] sm:max-w-[1600px] max-sm:max-h-dvh max-sm:p-0"
+                  onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    documentPreviewTrigger.current?.focus();
+                  }}
+                >
+                  <DialogHeader className="shrink-0 border-b border-emerald-100 px-5 py-4 pr-14 text-left">
+                    <DialogTitle className="text-base text-emerald-950">
+                      Xem trước · {DOCUMENT_TYPE_LABELS[selectedDocPreview]}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-600">
+                      Kiểm tra nội dung chứng từ và tải Excel hoặc CSV ngay trong cửa sổ này.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="min-h-0 overflow-y-auto overscroll-contain">
+              <div className="border border-emerald-200 bg-white shadow-sm overflow-hidden">
                 {/* Official WeaveCarbon Dossier Header Bar */}
                 <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-800">
                   <div className="space-y-1">
@@ -1398,6 +1439,9 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                   </div>
                 </div>
               </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
