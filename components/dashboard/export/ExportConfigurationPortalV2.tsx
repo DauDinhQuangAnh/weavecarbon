@@ -14,6 +14,7 @@ import {
   FolderCheck,
   Globe,
   History,
+  Leaf,
   Lock,
   Package,
   QrCode,
@@ -23,6 +24,7 @@ import {
   ShieldCheck,
   Ship,
   Smartphone,
+  Sparkles,
   Webhook
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -46,6 +48,7 @@ import { DEMO_PACK_V2 } from "@/lib/weave-v2/demoPackV2";
 import { DEFAULT_EXPORT_CONFIG_V2, buildDppPayloadV2, getAllCarbonBreakdownsV2, type DppPayloadV2, type ExportConfigV2 } from "@/lib/weave-v2/exportLogisticsDocs";
 import { buildBuyerWebhookPayloadV2, createDppLockV2, downloadExportDocumentV2, fetchExportConfigurationV2, saveExportConfigurationV2 } from "@/lib/weave-v2/exportV2Api";
 import { exportFullStandardReport } from "@/lib/reportsApi";
+import { exportBrandedTradeDocumentXlsx } from "@/lib/reports/tradeDocumentsXlsx";
 import { fetchAllProducts, type ProductRecord } from "@/lib/productsApi";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
 import { isDemoPath } from "@/lib/demo/routes";
@@ -673,6 +676,20 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     }
   };
 
+  const [downloadingXlsx, setDownloadingXlsx] = useState<string | null>(null);
+
+  const handleDownloadXlsx = async (type: "commercial-invoice" | "packing-list" | "bill-of-lading") => {
+    setDownloadingXlsx(type);
+    try {
+      await exportBrandedTradeDocumentXlsx(type, cfg, breakdowns, totals);
+      toast.success(`Đã tải xuống file Excel chuẩn WeaveCarbon: ${DOCUMENT_TYPE_LABELS[type]}`);
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "Xuất file Excel thất bại. Vui lòng thử lại.");
+    } finally {
+      setDownloadingXlsx(null);
+    }
+  };
+
   const averageReadiness = useMemo(() => {
     if (!displayMarketCards.length) return 0;
     const sum = displayMarketCards.reduce((acc, item) => acc + item.score, 0);
@@ -919,42 +936,53 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
           </Card>
 
           {/* Bộ chứng từ Vận tải & Thương mại */}
-          <Card className="border border-slate-200 bg-white shadow-sm">
-            <CardHeader className="pb-3">
+          <Card className="border border-emerald-200/80 bg-gradient-to-b from-emerald-50/30 via-white to-white shadow-sm rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3 border-b border-emerald-100/80 bg-white">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
-                    <FileText className="h-5 w-5 text-emerald-800" />
-                    Chứng từ Vận tải & Thương mại (đã nhúng Embedded Carbon)
-                  </CardTitle>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-800 text-white shadow-sm">
+                      <Leaf className="h-4 w-4 text-emerald-300" />
+                    </div>
+                    <CardTitle className="text-base font-bold text-slate-900 sm:text-lg">
+                      Chứng từ Vận tải & Thương mại nhúng Carbon (WeaveCarbon Verified)
+                    </CardTitle>
+                  </div>
                   <p className="text-xs text-slate-600 sm:text-sm">
-                    Bộ 3 chứng từ xuất khẩu được tích hợp dữ liệu phát thải carbon theo đúng chuẩn nghiệp vụ: Hải quan, Kho vận và Hãng tàu.
+                    Bộ chứng từ xuất khẩu xanh được chuẩn hóa theo đúng thực tế giao dịch: Thương mại (Hải quan), Đóng gói (Kho bãi) và Vận đơn biển (Hãng tàu).
                   </p>
                 </div>
-                <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-800 bg-emerald-50">
-                  Chuẩn hóa CBAM & GLEC Framework
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold text-xs py-1 px-2.5">
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+                    ISO 14067 & CBAM Compliant
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 p-4 sm:p-6">
               {/* 3 Interactive Cards */}
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-3">
                 {[
                   {
                     title: "Commercial Invoice",
-                    subtitle: "Hóa đơn thương mại",
+                    subtitle: "Hóa đơn thương mại nhúng Carbon",
                     icon: FileText,
                     type: "commercial-invoice" as const,
                     badge: "Thương mại & CBAM",
-                    copy: "Dành cho Hải quan & Ngân hàng: Thêm đơn giá, trị giá thương mại, tỷ suất carbon (kg CO₂e/chiếc) và tổng phát thải dòng hàng."
+                    kpiLabel: "Tổng giá trị & Thuế CBAM",
+                    kpiValue: `$${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} · Scope 1+2+3`,
+                    copy: "Phục vụ thanh toán ngân hàng & Hải quan EU: Bổ sung đơn giá, thành tiền, chỉ số phát thải carbon (kg CO₂e/chiếc) và tổng phát thải để khai báo thuế CBAM."
                   },
                   {
                     title: "Packing List",
-                    subtitle: "Phiếu đóng gói chi tiết",
+                    subtitle: "Phiếu đóng gói & Phân bổ Carbon",
                     icon: Package,
                     type: "packing-list" as const,
-                    badge: "Kho vận & Thể tích CBM",
-                    copy: "Dành cho Cảng & Kho vận: Chi tiết quy cách đóng thùng (Carton), Net/Gross Weight, CBM và carbon bao bì phân bổ theo container."
+                    badge: "Kho vận & Container",
+                    kpiLabel: "Quy cách & Thể tích",
+                    kpiValue: `${breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} Thùng · ${(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.045).toFixed(1)} CBM`,
+                    copy: "Phục vụ bốc xếp cảng & kiểm đếm kho: Chi tiết dãy thùng (Carton Range), Net/Gross Weight, CBM và carbon bao bì phân bổ cụ thể theo container."
                   },
                   {
                     title: "Bill of Lading (Carbon Annex)",
@@ -962,91 +990,158 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     icon: Ship,
                     type: "bill-of-lading" as const,
                     badge: "Hải trình & Hãng tàu",
-                    copy: "Dành cho Hãng tàu & Logistics: Phát thải vận tải biển quốc tế (Scope 3.4 Well-to-Wake theo GLEC) gộp cùng carbon nhúng của lô hàng."
+                    kpiLabel: "Phát thải tàu biển Scope 3.4",
+                    kpiValue: `10,450 NM · ${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(3)} tCO₂e`,
+                    copy: "Phục vụ hãng tàu & logistics: Đo lường phát thải vận tải biển quốc tế Well-to-Wake (chuẩn GLEC / IMO DCS) từ cảng Cát Lái (VN) đến Rotterdam (EU)."
                   }
                 ].map((item) => {
                   const Icon = item.icon;
                   const isSelected = selectedDocPreview === item.type;
+                  const isDownloadingThis = downloadingXlsx === item.type;
                   return (
                     <div
                       key={item.type}
                       onClick={() => setSelectedDocPreview(item.type)}
-                      className={`cursor-pointer rounded-xl border p-4 transition-all ${
+                      className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all cursor-pointer ${
                         isSelected
-                          ? "border-emerald-600 bg-emerald-50/80 shadow-sm ring-2 ring-emerald-600/30"
-                          : "border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/30"
+                          ? "border-emerald-600 bg-gradient-to-br from-emerald-50/90 via-emerald-50/50 to-teal-50/30 shadow-md ring-2 ring-emerald-600/30"
+                          : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/20 hover:shadow-sm"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="flex items-center gap-2 font-semibold text-slate-900">
-                          <Icon className={`h-4 w-4 shrink-0 ${isSelected ? "text-emerald-800" : "text-slate-600"}`} />
-                          <div>
-                            <p className="text-sm font-bold text-slate-950">{item.title}</p>
-                            <p className="text-[11px] font-normal text-slate-500">{item.subtitle}</p>
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5 font-semibold text-slate-900">
+                            <div className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                              isSelected
+                                ? "bg-emerald-800 text-white shadow-sm"
+                                : "bg-emerald-50 text-emerald-800 group-hover:bg-emerald-100"
+                            }`}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-950 sm:text-base">{item.title}</p>
+                              <p className="text-[11px] font-medium text-slate-500">{item.subtitle}</p>
+                            </div>
                           </div>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] shrink-0 font-semibold px-2 py-0.5 rounded-full ${
+                              isSelected
+                                ? "bg-emerald-800 text-white shadow-xs"
+                                : "bg-emerald-100/80 text-emerald-800"
+                            }`}
+                          >
+                            {isSelected ? "✓ Đang xem trước" : item.badge}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] shrink-0 font-medium ${
-                            isSelected
-                              ? "bg-emerald-800 text-white"
-                              : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {isSelected ? "Đang xem trước" : item.badge}
-                        </Badge>
+
+                        {/* Mini KPI Pill */}
+                        <div className="mt-3 rounded-lg bg-emerald-950/[0.04] p-2 border border-emerald-900/10">
+                          <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
+                            {item.kpiLabel}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900 tabular-nums">
+                            {item.kpiValue}
+                          </span>
+                        </div>
+
+                        <p className="mt-2.5 text-xs text-slate-600 leading-relaxed">{item.copy}</p>
                       </div>
-                      <p className="mt-2 text-xs text-slate-600 leading-relaxed">{item.copy}</p>
-                      <Button
-                        size="sm"
-                        variant={isSelected ? "default" : "outline"}
-                        className={`mt-3 w-full sm:w-auto ${
-                          isSelected
-                            ? "bg-emerald-800 text-white hover:bg-emerald-900"
-                            : "border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50"
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleDownloadDocument(item.type);
-                        }}
-                      >
-                        <Download className="mr-2 h-3.5 w-3.5" />
-                        Tải {item.title} (CSV)
-                      </Button>
+
+                      {/* Action buttons */}
+                      <div className="mt-4 pt-3 border-t border-emerald-100 flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          disabled={isDownloadingThis}
+                          className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white font-medium text-xs shadow-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDownloadXlsx(item.type);
+                          }}
+                        >
+                          <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5 text-emerald-200" />
+                          {isDownloadingThis ? "Đang xuất..." : "Tải Excel (.XLSX)"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDownloadDocument(item.type);
+                          }}
+                        >
+                          <Download className="mr-1 h-3 w-3" />
+                          CSV
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Dynamic Document Preview Section */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-3 sm:p-4 space-y-3">
-                {selectedDocPreview === "commercial-invoice" && (
-                  <>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">
-                          Xem trước: Commercial Invoice (Số hóa đơn: INV-{cfg.poContractId || "2026-EU-01"})
-                        </p>
-                        <p className="text-[11px] text-slate-600">
-                          Nhà mua hàng: <b className="text-slate-800">{cfg.buyerBrand || "H&M Hennes & Mauritz GBC AB"}</b> · Hợp đồng/PO: <b className="text-slate-800">{cfg.poContractId || "PO-2026-0891"}</b> · Ngày lập: 26/09/2026
-                        </p>
-                      </div>
-                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px]">
-                        Tích hợp khai báo thuế CBAM
+              {/* Dynamic Document Preview Section with WeaveCarbon Header */}
+              <div className="rounded-2xl border border-emerald-200 bg-white shadow-sm overflow-hidden">
+                {/* Official WeaveCarbon Dossier Header Bar */}
+                <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-800">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Leaf className="h-4 w-4 text-emerald-400" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">
+                        WeaveCarbon Digital Trade Dossier
+                      </span>
+                      <Badge className="bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 text-[10px] font-mono py-0">
+                        SHA-256 VERIFIED
                       </Badge>
                     </div>
+                    <h4 className="text-base sm:text-lg font-bold text-white">
+                      {selectedDocPreview === "commercial-invoice" && `Commercial Invoice (Hóa đơn số: INV-${cfg.poContractId || "2026-EU-01"})`}
+                      {selectedDocPreview === "packing-list" && `Packing List (Phiếu đóng gói: PL-${cfg.poContractId || "2026-EU-01"})`}
+                      {selectedDocPreview === "bill-of-lading" && `Bill of Lading Maritime Annex (Vận đơn B/L: ${cfg.billOfLadingNo || "ONEVNHAN260411"})`}
+                    </h4>
+                    <p className="text-xs text-emerald-100/80">
+                      {selectedDocPreview === "commercial-invoice" && `Nhà mua hàng: ${cfg.buyerBrand || "H&M Hennes & Mauritz GBC AB"} · Hợp đồng/PO: ${cfg.poContractId || "PO-2026-0891"} · Ngày phát hành: 26/09/2026`}
+                      {selectedDocPreview === "packing-list" && `Số hiệu Container: ${cfg.containerNo || "MSKU9012445"} · Đóng gói: Thùng carton 5 lớp FSC · Trọng tải: ${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg`}
+                      {selectedDocPreview === "bill-of-lading" && `Hải trình: Cảng Cát Lái (VNSGN) ➔ Cảng Rotterdam (NLRTM) · Tàu: ONE APUS / 012E · Khoảng cách: 10,450 Hải lý`}
+                    </p>
+                  </div>
 
-                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                      <table className="w-full min-w-[760px] text-xs sm:text-sm">
-                        <thead className="bg-slate-50 text-left text-slate-700">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      disabled={downloadingXlsx === selectedDocPreview}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm"
+                      onClick={() => void handleDownloadXlsx(selectedDocPreview)}
+                    >
+                      <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+                      Tải bản Excel (.XLSX)
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-emerald-700 bg-emerald-900/60 text-emerald-100 hover:bg-emerald-800 text-xs"
+                      onClick={() => void handleDownloadDocument(selectedDocPreview)}
+                    >
+                      <Download className="mr-1 h-3 w-3" />
+                      Tải CSV
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Table Content */}
+                <div className="p-4 sm:p-5 space-y-4">
+                  {selectedDocPreview === "commercial-invoice" && (
+                    <div className="overflow-x-auto rounded-xl border border-emerald-100 shadow-2xs">
+                      <table className="w-full min-w-[780px] text-xs sm:text-sm">
+                        <thead className="bg-emerald-900/5 text-emerald-950 font-bold border-b-2 border-emerald-300">
                           <tr>
-                            <th className="px-3 py-2.5 font-semibold">Mã SKU & Sản phẩm</th>
-                            <th className="px-3 py-2.5 font-semibold">Mã HS / CN</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Số lượng (Pcs)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Đơn giá (USD)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Thành tiền (USD)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Carbon nhúng (kg CO₂e/sp)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Tổng carbon (tCO₂e)</th>
+                            <th className="px-3.5 py-3 text-left">Mã SKU & Tên sản phẩm</th>
+                            <th className="px-3.5 py-3 text-center">Mã HS / CN</th>
+                            <th className="px-3.5 py-3 text-right">Số lượng (Pcs)</th>
+                            <th className="px-3.5 py-3 text-right">Đơn giá (USD)</th>
+                            <th className="px-3.5 py-3 text-right">Thành tiền (USD)</th>
+                            <th className="px-3.5 py-3 text-right">Carbon nhúng (kg CO₂e/sp)</th>
+                            <th className="px-3.5 py-3 text-right">Tổng carbon dòng (tCO₂e)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1054,65 +1149,57 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                             const unitPrice = 8.5 + (idx % 3) * 3.75;
                             const amount = item.sku.units * unitPrice;
                             return (
-                              <tr key={item.sku.sku} className="border-t border-slate-100 hover:bg-slate-50/50">
-                                <td className="px-3 py-2.5 font-medium text-slate-900">
+                              <tr key={item.sku.sku} className="border-t border-emerald-50 even:bg-emerald-50/20 hover:bg-emerald-50/60 transition-colors">
+                                <td className="px-3.5 py-2.5 font-medium text-slate-900">
                                   {item.sku.sku} <span className="text-[11px] text-slate-500 font-normal">({item.sku.name})</span>
                                 </td>
-                                <td className="px-3 py-2.5 text-slate-600 font-mono">{item.sku.cnCode}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">${unitPrice.toFixed(2)}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums font-medium text-slate-900">${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-emerald-800">{item.embeddedKgPerUnit.toFixed(3)}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900">{item.embeddedTonnesBatch.toFixed(4)}</td>
+                                <td className="px-3.5 py-2.5 text-center text-slate-600 font-mono">{item.sku.cnCode}</td>
+                                <td className="px-3.5 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
+                                <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700">${unitPrice.toFixed(2)}</td>
+                                <td className="px-3.5 py-2.5 text-right tabular-nums font-semibold text-slate-900">
+                                  ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-emerald-800 bg-emerald-50/40">
+                                  {item.embeddedKgPerUnit.toFixed(3)}
+                                </td>
+                                <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-slate-900">
+                                  {item.embeddedTonnesBatch.toFixed(4)}
+                                </td>
                               </tr>
                             );
                           })}
-                          <tr className="bg-emerald-50/80 font-bold border-t-2 border-emerald-200 text-emerald-950">
-                            <td className="px-3 py-3" colSpan={2}>Tổng giá trị thương mại & phát thải hóa đơn</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
-                            <td className="px-3 py-3 text-right">-</td>
-                            <td className="px-3 py-3 text-right tabular-nums">
+                          <tr className="bg-gradient-to-r from-emerald-100 via-emerald-50 to-teal-100 font-bold border-t-2 border-emerald-500 text-emerald-950">
+                            <td className="px-3.5 py-3.5" colSpan={2}>Tổng giá trị thương mại & phát thải hóa đơn</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
+                            <td className="px-3.5 py-3.5 text-right">-</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-extrabold">
                               ${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
-                            <td className="px-3 py-3 text-right">-</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
+                            <td className="px-3.5 py-3.5 text-right">-</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-extrabold text-sm">
+                              {totals.toFixed(4)} tCO₂e
+                            </td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
-                  </>
-                )}
+                  )}
 
-                {selectedDocPreview === "packing-list" && (
-                  <>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">
-                          Xem trước: Packing List (Phiếu đóng gói: PL-{cfg.poContractId || "2026-EU-01"})
-                        </p>
-                        <p className="text-[11px] text-slate-600">
-                          Số hiệu Container: <b className="text-slate-800">{cfg.containerNo || "MSKU9012445"}</b> · Loại thùng: <b className="text-slate-800">Thùng carton 5 lớp tái chế</b> · B/L No: <b className="text-slate-800">{cfg.billOfLadingNo || "ONEVNHAN260411"}</b>
-                        </p>
-                      </div>
-                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px]">
-                        Phân bổ Carbon theo Kiện & Container
-                      </Badge>
-                    </div>
-
-                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                      <table className="w-full min-w-[760px] text-xs sm:text-sm">
-                        <thead className="bg-slate-50 text-left text-slate-700">
+                  {selectedDocPreview === "packing-list" && (
+                    <div className="overflow-x-auto rounded-xl border border-emerald-100 shadow-2xs">
+                      <table className="w-full min-w-[780px] text-xs sm:text-sm">
+                        <thead className="bg-emerald-900/5 text-emerald-950 font-bold border-b-2 border-emerald-300">
                           <tr>
-                            <th className="px-3 py-2.5 font-semibold">Dãy kiện (Carton Range)</th>
-                            <th className="px-3 py-2.5 font-semibold">Mã SKU</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Pcs/Thùng</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Tổng thùng (Ctns)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Tổng số lượng (Pcs)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Net Weight (kg)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Gross Weight (kg)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Thể tích (CBM)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Carbon bao bì (kg)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Carbon hàng (tCO₂e)</th>
+                            <th className="px-3.5 py-3 text-center">Dãy kiện (Carton Range)</th>
+                            <th className="px-3.5 py-3 text-left">Mã SKU</th>
+                            <th className="px-3.5 py-3 text-right">Pcs/Thùng</th>
+                            <th className="px-3.5 py-3 text-right">Số thùng (Ctns)</th>
+                            <th className="px-3.5 py-3 text-right">Số lượng (Pcs)</th>
+                            <th className="px-3.5 py-3 text-right">Net Wt (kg)</th>
+                            <th className="px-3.5 py-3 text-right">Gross Wt (kg)</th>
+                            <th className="px-3.5 py-3 text-right">Thể tích (CBM)</th>
+                            <th className="px-3.5 py-3 text-right">Carbon vỏ (kg)</th>
+                            <th className="px-3.5 py-3 text-right">Carbon hàng (tCO₂e)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1129,126 +1216,151 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                               const cbm = totalCtns * 0.045;
                               const pkgCarbon = totalCtns * 0.42;
                               return (
-                                <tr key={item.sku.sku} className="border-t border-slate-100 hover:bg-slate-50/50">
-                                  <td className="px-3 py-2.5 font-mono text-emerald-900 font-semibold">
+                                <tr key={item.sku.sku} className="border-t border-emerald-50 even:bg-emerald-50/20 hover:bg-emerald-50/60 transition-colors">
+                                  <td className="px-3.5 py-2.5 text-center font-mono text-emerald-900 font-semibold bg-emerald-50/40">
                                     CTN {String(fromCtn).padStart(3, "0")} - {String(toCtn).padStart(3, "0")}
                                   </td>
-                                  <td className="px-3 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">{pcsPerCtn}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums font-medium">{totalCtns}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">{netWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">{grossWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums">{cbm.toFixed(2)} m³</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">{pkgCarbon.toFixed(1)}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-slate-900">{item.embeddedTonnesBatch.toFixed(4)}</td>
+                                  <td className="px-3.5 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{pcsPerCtn}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-semibold">{totalCtns}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{netWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{grossWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{cbm.toFixed(2)} m³</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600">{pkgCarbon.toFixed(1)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-slate-900">{item.embeddedTonnesBatch.toFixed(4)}</td>
                                 </tr>
                               );
                             });
                           })()}
-                          <tr className="bg-emerald-50/80 font-bold border-t-2 border-emerald-200 text-emerald-950">
-                            <td className="px-3 py-3" colSpan={3}>Tổng kiện & trọng lượng đóng gói</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.22).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.045).toFixed(2)} m³</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.42).toFixed(1)} kg</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
+                          <tr className="bg-gradient-to-r from-emerald-100 via-emerald-50 to-teal-100 font-bold border-t-2 border-emerald-500 text-emerald-950">
+                            <td className="px-3.5 py-3.5" colSpan={3}>Tổng kiện & trọng lượng đóng gói</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.22).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.045).toFixed(2)} m³</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.42).toFixed(1)} kg</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-extrabold">{totals.toFixed(4)} tCO₂e</td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
-                  </>
-                )}
+                  )}
 
-                {selectedDocPreview === "bill-of-lading" && (
-                  <>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                  {selectedDocPreview === "bill-of-lading" && (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-3 text-xs">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
+                          <span className="text-emerald-800 font-semibold block uppercase text-[10px] tracking-wider">Phát thải vận tải biển (Scope 3.4)</span>
+                          <p className="text-lg font-bold text-slate-900 mt-0.5">
+                            {(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
+                          </p>
+                          <p className="text-[11px] text-slate-600 mt-0.5">Hải trình 10,450 NM (Cát Lái ➔ Rotterdam) theo GLEC v3.0</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
+                          <span className="text-emerald-800 font-semibold block uppercase text-[10px] tracking-wider">Carbon nhúng hàng hóa (Cradle-to-Gate)</span>
+                          <p className="text-lg font-bold text-emerald-900 mt-0.5">
+                            {totals.toFixed(4)} tCO₂e
+                          </p>
+                          <p className="text-[11px] text-slate-600 mt-0.5">Tích lũy từ bông, kéo sợi, dệt may theo ISO 14067</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-400 bg-gradient-to-br from-emerald-100/90 to-teal-100/80 p-3 shadow-2xs">
+                          <span className="text-emerald-950 font-bold block uppercase text-[10px] tracking-wider">Tổng phát thải giao nhận toàn diện</span>
+                          <p className="text-lg font-extrabold text-emerald-950 mt-0.5">
+                            {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
+                          </p>
+                          <p className="text-[11px] text-emerald-900 font-medium mt-0.5">Đầy đủ vòng đời vận chuyển quốc tế bàn giao tại cảng EU</p>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-xl border border-emerald-100 shadow-2xs">
+                        <table className="w-full min-w-[780px] text-xs sm:text-sm">
+                          <thead className="bg-emerald-900/5 text-emerald-950 font-bold border-b-2 border-emerald-300">
+                            <tr>
+                              <th className="px-3.5 py-3 text-left">Container / Chì niêm phong</th>
+                              <th className="px-3.5 py-3 text-left">Mã SKU</th>
+                              <th className="px-3.5 py-3 text-right">Số kiện (CTN)</th>
+                              <th className="px-3.5 py-3 text-right">Trọng tải (Tấn)</th>
+                              <th className="px-3.5 py-3 text-right">Vận tải biển (tCO₂e)</th>
+                              <th className="px-3.5 py-3 text-right">Carbon nhúng (tCO₂e)</th>
+                              <th className="px-3.5 py-3 text-right">Tổng dấu chân B/L (tCO₂e)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {breakdowns.map((item) => {
+                              const grossWeightMt = item.sku.units * 0.00025;
+                              const maritimeEmission = grossWeightMt * 0.098;
+                              const totalFootprint = maritimeEmission + item.embeddedTonnesBatch;
+                              return (
+                                <tr key={item.sku.sku} className="border-t border-emerald-50 even:bg-emerald-50/20 hover:bg-emerald-50/60 transition-colors">
+                                  <td className="px-3.5 py-2.5 font-mono text-slate-800 font-medium">
+                                    {cfg.containerNo || "MSKU9012445"} <span className="text-[11px] text-slate-500 font-normal">/ VN-892104</span>
+                                  </td>
+                                  <td className="px-3.5 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{Math.ceil(item.sku.units / 50)} thùng</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{grossWeightMt.toFixed(3)} MT</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700">{maritimeEmission.toFixed(4)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-emerald-800 font-bold bg-emerald-50/40">{item.embeddedTonnesBatch.toFixed(4)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-slate-950">{totalFootprint.toFixed(4)}</td>
+                                </tr>
+                              );
+                            })}
+                            <tr className="bg-gradient-to-r from-emerald-100 via-emerald-50 to-teal-100 font-bold border-t-2 border-emerald-500 text-emerald-950">
+                              <td className="px-3.5 py-3.5" colSpan={2}>Tổng phát thải cả vận đơn B/L ({cfg.billOfLadingNo || "ONEVNHAN260411"})</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025).toFixed(3)} MT</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-extrabold">
+                                {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+
+                  {/* WeaveCarbon Cryptographic Audit Seal Bar */}
+                  <div className="rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50/40 to-emerald-50/80 p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-white shadow-xs">
+                        <ShieldCheck className="h-5 w-5 text-emerald-200" />
+                      </div>
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">
-                          Xem trước: Bill of Lading (Vận đơn B/L: {cfg.billOfLadingNo || "ONEVNHAN260411"} · Carbon Annex)
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-emerald-950 text-sm">Chứng thực Dấu chân Carbon WeaveCarbon Trust Engine</p>
+                          <Badge variant="outline" className="border-emerald-300 bg-white text-emerald-800 text-[10px]">ISO 14067:2018</Badge>
+                        </div>
+                        <p className="text-slate-600 text-[11px] mt-0.5">
+                          Đơn vị kiểm toán độc lập: <b>SGS Vietnam</b> · Mã Hash niêm phong: <span className="font-mono text-emerald-900 font-semibold">{dpp?.payloadSha256 ? `${dpp.payloadSha256.slice(0, 16)}...` : "7f8a92b0c1e4...8a2f"}</span>
                         </p>
-                        <p className="text-[11px] text-slate-600">
-                          Hải trình: <b className="text-slate-800">Cảng Cát Lái (VNSGN) ➔ Cảng Rotterdam (NLRTM)</b> · Tàu: <b className="text-slate-800">ONE APUS / 012E</b> · Khoảng cách: <b className="text-slate-800">10,450 hải lý (~19,350 km)</b>
-                        </p>
-                      </div>
-                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px]">
-                        Theo chuẩn GLEC v3.0 & ISO 14083
-                      </Badge>
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-3 text-xs">
-                      <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                        <span className="text-slate-500">Phát thải vận tải biển (Scope 3.4):</span>
-                        <p className="text-sm font-bold text-slate-900 mt-0.5">
-                          {(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Phát thải hải trình Well-to-Wake của tàu</p>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                        <span className="text-slate-500">Carbon nhúng sản phẩm (Cradle-to-Gate):</span>
-                        <p className="text-sm font-bold text-emerald-800 mt-0.5">
-                          {totals.toFixed(4)} tCO₂e
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Phát thải tích lũy từ nguyên liệu & nhà máy</p>
-                      </div>
-                      <div className="rounded-lg border border-emerald-300 bg-emerald-50/70 p-2.5">
-                        <span className="text-emerald-900 font-medium">Tổng phát thải giao nhận toàn diện:</span>
-                        <p className="text-sm font-bold text-emerald-950 mt-0.5">
-                          {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
-                        </p>
-                        <p className="text-[10px] text-emerald-800 mt-0.5">Đã bao gồm vận chuyển biển đến cảng EU</p>
                       </div>
                     </div>
 
-                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                      <table className="w-full min-w-[760px] text-xs sm:text-sm">
-                        <thead className="bg-slate-50 text-left text-slate-700">
-                          <tr>
-                            <th className="px-3 py-2.5 font-semibold">Container & Seal</th>
-                            <th className="px-3 py-2.5 font-semibold">Mã SKU</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Số kiện (CTN)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Trọng tải (Tấn)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Vận tải biển (tCO₂e)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Carbon nhúng (tCO₂e)</th>
-                            <th className="px-3 py-2.5 text-right font-semibold">Tổng dấu chân B/L (tCO₂e)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {breakdowns.map((item) => {
-                            const grossWeightMt = item.sku.units * 0.00025;
-                            const maritimeEmission = grossWeightMt * 0.098;
-                            const totalFootprint = maritimeEmission + item.embeddedTonnesBatch;
-                            return (
-                              <tr key={item.sku.sku} className="border-t border-slate-100 hover:bg-slate-50/50">
-                                <td className="px-3 py-2.5 font-mono text-slate-800 font-medium">
-                                  {cfg.containerNo || "MSKU9012445"} <span className="text-[11px] text-slate-500 font-normal">/ VN-892104</span>
-                                </td>
-                                <td className="px-3 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">{Math.ceil(item.sku.units / 50)} thùng</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums">{grossWeightMt.toFixed(3)} MT</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{maritimeEmission.toFixed(4)}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums text-emerald-800 font-semibold">{item.embeddedTonnesBatch.toFixed(4)}</td>
-                                <td className="px-3 py-2.5 text-right tabular-nums font-bold text-slate-950">{totalFootprint.toFixed(4)}</td>
-                              </tr>
-                            );
-                          })}
-                          <tr className="bg-emerald-50/80 font-bold border-t-2 border-emerald-200 text-emerald-950">
-                            <td className="px-3 py-3" colSpan={2}>Tổng phát thải cả vận đơn B/L ({cfg.billOfLadingNo || "ONEVNHAN260411"})</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025).toFixed(3)} MT</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e</td>
-                            <td className="px-3 py-3 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
-                            <td className="px-3 py-3 text-right tabular-nums">
-                              {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                      <Button
+                        size="sm"
+                        disabled={downloadingXlsx === selectedDocPreview}
+                        className="flex-1 sm:flex-initial bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-xs shadow-xs"
+                        onClick={() => void handleDownloadXlsx(selectedDocPreview)}
+                      >
+                        <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5 text-emerald-200" />
+                        Xuất file Excel (.XLSX)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-50 text-xs"
+                        onClick={() => void handleDownloadDocument(selectedDocPreview)}
+                      >
+                        <Download className="mr-1 h-3 w-3" />
+                        CSV
+                      </Button>
                     </div>
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
