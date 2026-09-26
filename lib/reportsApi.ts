@@ -157,6 +157,47 @@ const DATASET_META: Record<ReportDatasetType, DatasetMeta> = {
   },
 };
 
+const VIETNAMESE_DATASET_TITLES: Record<
+  ReportDatasetType,
+  { title: string; description: string; sheetName: string }
+> = {
+  products: {
+    sheetName: "Sản phẩm",
+    title: "Báo cáo Danh mục Sản phẩm & Phát thải",
+    description: "Danh mục sản phẩm, định mức phát thải carbon, sản lượng và thông số kỹ thuật.",
+  },
+  activity: {
+    sheetName: "Hoạt động",
+    title: "Báo cáo Dòng Hoạt động Vận hành",
+    description: "Nhật ký sự kiện vận hành, tác vụ người dùng và luồng hoạt động.",
+  },
+  audit: {
+    sheetName: "Kiểm toán",
+    title: "Báo cáo Nhật ký Kiểm toán & Dấu vết Tuân thủ",
+    description: "Nhật ký kiểm toán hệ thống, kiểm soát truy cập và dấu vết tuân thủ.",
+  },
+  users: {
+    sheetName: "Thành viên",
+    title: "Báo cáo Danh sách & Vai trò Người dùng",
+    description: "Danh sách thành viên, phân quyền truy cập và phân bổ phòng ban.",
+  },
+  history: {
+    sheetName: "Lịch sử Tính",
+    title: "Báo cáo Lịch sử Tính toán Phát thải",
+    description: "Lịch sử các phiên tính toán carbon, phiên bản công thức và kết quả đối soát.",
+  },
+  analytics: {
+    sheetName: "Phân tích",
+    title: "Báo cáo Phân tích & Xu hướng Phát thải",
+    description: "Chỉ số tổng hợp, xu hướng giảm phát thải và phân tích chuyên sâu.",
+  },
+  company: {
+    sheetName: "Toàn diện",
+    title: "Báo cáo Doanh nghiệp & Kiểm toán Toàn diện",
+    description: "Tổng hợp toàn diện các phân hệ dữ liệu chuẩn WeaveCarbon theo tiêu chuẩn ISO 14067 & GHG Protocol.",
+  },
+};
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
@@ -335,34 +376,39 @@ const applyTitleBlock = (
   worksheet.mergeCells(1, 1, 2, mergeEnd);
   const titleCell = worksheet.getCell(1, 1);
   titleCell.value = title;
-  titleCell.font = { size: 18, bold: true, color: { argb: "FFFFFFFF" } };
+  titleCell.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
   titleCell.alignment = { vertical: "middle", horizontal: "left" };
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accent } };
+  worksheet.getRow(1).height = 24;
+  worksheet.getRow(2).height = 24;
 
   worksheet.mergeCells(3, 1, 3, mergeEnd);
   const subtitleCell = worksheet.getCell(3, 1);
   subtitleCell.value = subtitle;
-  subtitleCell.font = { size: 10, italic: true, color: { argb: THEME.muted } };
+  subtitleCell.font = { size: 10.5, italic: true, color: { argb: THEME.muted } };
+  worksheet.getRow(3).height = 22;
 };
 
 const styleHeaderRow = (row: Row, accent: string) => {
-  row.height = 22;
+  row.height = 26;
   row.eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: accent } };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
     cell.border = {
       top: { style: "thin", color: { argb: THEME.border } },
       left: { style: "thin", color: { argb: THEME.border } },
-      bottom: { style: "thin", color: { argb: THEME.border } },
+      bottom: { style: "medium", color: { argb: THEME.brandDark } },
       right: { style: "thin", color: { argb: THEME.border } },
     };
   });
 };
 
 const styleBodyRow = (row: Row, isEven: boolean) => {
+  row.height = 22;
   row.eachCell((cell) => {
-    cell.alignment = { vertical: "top", wrapText: true };
+    cell.alignment = { vertical: "middle", wrapText: true };
+    cell.font = { size: 10.5 };
     cell.border = {
       top: { style: "thin", color: { argb: THEME.border } },
       left: { style: "thin", color: { argb: THEME.border } },
@@ -382,17 +428,33 @@ const addOverviewSheet = (
   options: ReportWorkbookOptions
 ) => {
   const meta = DATASET_META[datasetType];
-  const sheet = workbook.addWorksheet(sanitizeWorksheetName("Overview"));
+  const isVi = options.locale?.startsWith("vi");
+  const sheet = workbook.addWorksheet(sanitizeWorksheetName(isVi ? "Tổng quan" : "Overview"));
   sheet.properties.tabColor = { argb: meta.accent };
   sheet.columns = Array.from({ length: 8 }, () => ({ width: 18 }));
-  applyTitleBlock(sheet, meta.title, meta.description, meta.accent, 8);
+  
+  const title = isVi
+    ? `WeaveCarbon · ${datasetType === "company" ? "Báo cáo Doanh nghiệp & Kiểm toán Toàn diện" : meta.title}`
+    : `WeaveCarbon · ${meta.title}`;
+  const subtitle = isVi
+    ? (datasetType === "company" ? "Tổng hợp toàn diện danh mục sản phẩm, phát thải carbon, lịch sử tính toán và nhật ký kiểm toán hệ thống" : meta.description)
+    : meta.description;
 
-  const cards = [
-    ["Records", analysis.rowCount.toLocaleString(options.locale || "en-US")],
-    ["Columns", analysis.columnCount.toLocaleString(options.locale || "en-US")],
-    ["Completion", `${analysis.completionRate.toFixed(1)}%`],
-    ["Generated", formatDateTime(options.locale, new Date())],
-  ];
+  applyTitleBlock(sheet, title, subtitle, meta.accent, 8);
+
+  const cards = isVi
+    ? [
+        ["Tổng bản ghi", analysis.rowCount.toLocaleString(options.locale || "vi-VN")],
+        ["Số trường", analysis.columnCount.toLocaleString(options.locale || "vi-VN")],
+        ["Độ hoàn thiện", `${analysis.completionRate.toFixed(1)}%`],
+        ["Thời điểm tạo", formatDateTime(options.locale, new Date())],
+      ]
+    : [
+        ["Records", analysis.rowCount.toLocaleString(options.locale || "en-US")],
+        ["Columns", analysis.columnCount.toLocaleString(options.locale || "en-US")],
+        ["Completion", `${analysis.completionRate.toFixed(1)}%`],
+        ["Generated", formatDateTime(options.locale, new Date())],
+      ];
 
   cards.forEach(([label, value], index) => {
     const start = index * 2 + 1;
@@ -400,34 +462,42 @@ const addOverviewSheet = (
     sheet.mergeCells(6, start, 7, start + 1);
     const labelCell = sheet.getCell(5, start);
     labelCell.value = label;
-    labelCell.font = { bold: true, color: { argb: meta.accentText } };
+    labelCell.font = { bold: true, color: { argb: meta.accentText }, size: 10.5 };
     labelCell.alignment = { vertical: "middle", horizontal: "center" };
     labelCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: meta.accentSoft } };
     const valueCell = sheet.getCell(6, start);
     valueCell.value = value;
-    valueCell.font = { bold: true, size: 16, color: { argb: "0F172A" } };
+    valueCell.font = { bold: true, size: 16, color: { argb: THEME.brandDark } };
     valueCell.alignment = { vertical: "middle", horizontal: "center" };
     valueCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF" } };
   });
 
-  const detailRows = [
-    ["Requested by", options.requestedBy || "-"],
-    ["Plan", options.planLabel || "standard"],
-    ["Dataset", meta.sheetName],
-    ["Status", "Ready"],
-    ["Generated by", "WeaveCarbon Reporting Engine"],
-  ];
+  const detailRows = isVi
+    ? [
+        ["Đơn vị yêu cầu xuất", options.requestedBy || "Doanh nghiệp thành viên WeaveCarbon"],
+        ["Gói giải pháp áp dụng", options.planLabel ? `Gói ${options.planLabel}` : "Doanh nghiệp Tiêu chuẩn (Standard / Enterprise)"],
+        ["Phân hệ báo cáo", datasetType === "company" ? "Báo cáo Doanh nghiệp & Kiểm toán Toàn diện (WeaveCarbon Verified)" : meta.title],
+        ["Trạng thái kiểm toán", "Sẵn sàng & Đã niêm phong mật mã (Verified / Ready)"],
+        ["Động cơ khởi tạo", "WeaveCarbon Trust Engine · Tiêu chuẩn ISO 14067 & GHG Protocol"],
+      ]
+    : [
+        ["Requested by", options.requestedBy || "WeaveCarbon Member Company"],
+        ["Plan", options.planLabel || "standard"],
+        ["Dataset", meta.sheetName],
+        ["Status", "Ready & Cryptographically Sealed"],
+        ["Generated by", "WeaveCarbon Reporting Engine · ISO 14067 & GHG Protocol"],
+      ];
 
   let cursor = 10;
   detailRows.forEach(([label, value]) => {
     sheet.getCell(cursor, 1).value = label;
-    sheet.getCell(cursor, 1).font = { bold: true, color: { argb: "334155" } };
+    sheet.getCell(cursor, 1).font = { bold: true, color: { argb: THEME.brandDark } };
     sheet.mergeCells(cursor, 2, cursor, 8);
     sheet.getCell(cursor, 2).value = value;
     sheet.getCell(cursor, 2).fill = {
       type: "pattern",
       pattern: "solid",
-      fgColor: { argb: cursor % 2 === 0 ? "F8FAFC" : "FFFFFF" },
+      fgColor: { argb: cursor % 2 === 0 ? THEME.zebra : "FFFFFF" },
     };
     cursor += 1;
   });
@@ -436,18 +506,33 @@ const addOverviewSheet = (
 const addSummarySheet = (
   workbook: Workbook,
   datasetType: ReportDatasetType,
-  analysis: DatasetAnalysis
+  analysis: DatasetAnalysis,
+  options: ReportWorkbookOptions = {}
 ) => {
   const meta = DATASET_META[datasetType];
-  const sheet = workbook.addWorksheet(sanitizeWorksheetName(`${meta.sheetName} Summary`));
+  const isVi = options.locale?.startsWith("vi") ?? false;
+  const viMeta = VIETNAMESE_DATASET_TITLES[datasetType];
+  const sheetName = isVi ? `${viMeta.sheetName} - Tóm tắt` : `${meta.sheetName} Summary`;
+  const sheet = workbook.addWorksheet(sanitizeWorksheetName(sheetName));
   sheet.properties.tabColor = { argb: meta.accent };
-  applyTitleBlock(sheet, `${meta.title} - Summary`, "Quality checks and metric highlights", meta.accent, 6);
+  
+  const title = isVi ? `${viMeta.title} · Chỉ số tổng hợp` : `${meta.title} - Summary`;
+  const subtitle = isVi ? "Kiểm tra chất lượng dữ liệu và các chỉ số thống kê định lượng" : "Quality checks and metric highlights";
+  applyTitleBlock(sheet, title, subtitle, meta.accent, 6);
 
-  const numericHeader = sheet.addRow(["Metric", "Count", "Min", "Max", "Average", "Sum"]);
+  const numericHeader = sheet.addRow(
+    isVi
+      ? ["Chỉ số định lượng", "Số lượng", "Giá trị nhỏ nhất", "Giá trị lớn nhất", "Giá trị trung bình", "Tổng cộng"]
+      : ["Metric", "Count", "Min", "Max", "Average", "Sum"]
+  );
   styleHeaderRow(numericHeader, meta.accent);
 
   if (analysis.numericInsights.length === 0) {
-    const row = sheet.addRow(["No numeric fields", 0, 0, 0, 0, 0]);
+    const row = sheet.addRow(
+      isVi
+        ? ["Không có trường số", 0, 0, 0, 0, 0]
+        : ["No numeric fields", 0, 0, 0, 0, 0]
+    );
     styleBodyRow(row, false);
   } else {
     analysis.numericInsights.slice(0, 12).forEach((insight, index) => {
@@ -464,7 +549,11 @@ const addSummarySheet = (
   }
 
   sheet.addRow([]);
-  const profileHeader = sheet.addRow(["Field", "Type", "Filled", "Completion", "Examples", ""]);
+  const profileHeader = sheet.addRow(
+    isVi
+      ? ["Trường dữ liệu", "Kiểu dữ liệu", "Đã điền", "Độ hoàn thiện", "Dữ liệu mẫu", ""]
+      : ["Field", "Type", "Filled", "Completion", "Examples", ""]
+  );
   styleHeaderRow(profileHeader, meta.accent);
 
   analysis.columnProfiles.forEach((profile, index) => {
@@ -485,14 +574,25 @@ const addSummarySheet = (
 const addDictionarySheet = (
   workbook: Workbook,
   datasetType: ReportDatasetType,
-  analysis: DatasetAnalysis
+  analysis: DatasetAnalysis,
+  options: ReportWorkbookOptions = {}
 ) => {
   const meta = DATASET_META[datasetType];
-  const sheet = workbook.addWorksheet(sanitizeWorksheetName(`${meta.sheetName} Dictionary`));
+  const isVi = options.locale?.startsWith("vi") ?? false;
+  const viMeta = VIETNAMESE_DATASET_TITLES[datasetType];
+  const sheetName = isVi ? `${viMeta.sheetName} - Từ điển` : `${meta.sheetName} Dictionary`;
+  const sheet = workbook.addWorksheet(sanitizeWorksheetName(sheetName));
   sheet.properties.tabColor = { argb: meta.accent };
-  applyTitleBlock(sheet, `${meta.title} - Dictionary`, "Field structure and completeness", meta.accent, 6);
+  
+  const title = isVi ? `${viMeta.title} · Từ điển dữ liệu` : `${meta.title} - Dictionary`;
+  const subtitle = isVi ? "Cấu trúc trường dữ liệu, độ hoàn thiện và mô tả kiểu" : "Field structure and completeness";
+  applyTitleBlock(sheet, title, subtitle, meta.accent, 6);
 
-  const header = sheet.addRow(["Field", "Type", "Filled", "Empty", "Completion", "Examples"]);
+  const header = sheet.addRow(
+    isVi
+      ? ["Tên trường", "Kiểu dữ liệu", "Đã điền", "Còn trống", "Độ hoàn thiện", "Dữ liệu mẫu"]
+      : ["Field", "Type", "Filled", "Empty", "Completion", "Examples"]
+  );
   styleHeaderRow(header, meta.accent);
 
   analysis.columnProfiles.forEach((profile, index) => {
@@ -516,12 +616,19 @@ const addDataSheet = (
   columns: string[],
   rows: Record<string, unknown>[],
   analysis: DatasetAnalysis,
-  subtitle: string
+  subtitle: string,
+  options: ReportWorkbookOptions = {}
 ) => {
   const meta = DATASET_META[datasetType];
-  const sheet = workbook.addWorksheet(sanitizeWorksheetName(`${meta.sheetName} Data`));
+  const isVi = options.locale?.startsWith("vi") ?? false;
+  const viMeta = VIETNAMESE_DATASET_TITLES[datasetType];
+  const sheetName = isVi ? `${viMeta.sheetName} - Dữ liệu` : `${meta.sheetName} Data`;
+  const sheet = workbook.addWorksheet(sanitizeWorksheetName(sheetName));
   sheet.properties.tabColor = { argb: meta.accent };
-  applyTitleBlock(sheet, `${meta.title} - Data`, subtitle, meta.accent, Math.max(columns.length, 6));
+  
+  const title = isVi ? `${viMeta.title} · Chi tiết Dữ liệu` : `${meta.title} - Data`;
+  const sub = isVi ? `Tổng số bản ghi: ${analysis.rowCount.toLocaleString("vi-VN")}` : subtitle;
+  applyTitleBlock(sheet, title, sub, meta.accent, Math.max(columns.length, 6));
 
   const headerRowIndex = 5;
   const header = sheet.getRow(headerRowIndex);
@@ -539,7 +646,11 @@ const addDataSheet = (
         if (profile?.type === "date") return toDate(value) ?? stringifyValue(value);
         if (profile?.type === "boolean") {
           const booleanValue = toBoolean(value);
-          return booleanValue === null ? stringifyValue(value) : booleanValue ? "Yes" : "No";
+          return booleanValue === null
+            ? stringifyValue(value)
+            : booleanValue
+            ? isVi ? "Có" : "Yes"
+            : isVi ? "Không" : "No";
         }
         return stringifyValue(value);
       })
@@ -583,9 +694,9 @@ export const buildSingleDatasetWorkbook = async (
 
   const analysis = analyzeDataset(columns, rows);
   addOverviewSheet(workbook, datasetType, analysis, options);
-  addSummarySheet(workbook, datasetType, analysis);
-  addDictionarySheet(workbook, datasetType, analysis);
-  addDataSheet(workbook, datasetType, columns, rows, analysis, `Records: ${analysis.rowCount}`);
+  addSummarySheet(workbook, datasetType, analysis, options);
+  addDictionarySheet(workbook, datasetType, analysis, options);
+  addDataSheet(workbook, datasetType, columns, rows, analysis, `Records: ${analysis.rowCount}`, options);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return { buffer, analysis };
@@ -602,6 +713,8 @@ const buildFullCompanyWorkbook = async (
   workbook.modified = new Date();
   workbook.calcProperties.fullCalcOnLoad = true;
 
+  const isVi = options.locale?.startsWith("vi") ?? false;
+
   const enriched = datasets.map((dataset) => ({
     ...dataset,
     analysis: analyzeDataset(dataset.columns, dataset.rows),
@@ -614,35 +727,63 @@ const buildFullCompanyWorkbook = async (
 
   addOverviewSheet(workbook, "company", overviewAnalysis, options);
 
-  const summary = workbook.addWorksheet("Portfolio Summary");
+  // Sheet 2: Portfolio Summary / Tóm tắt Danh mục
+  const summarySheetName = isVi ? "Tóm tắt Danh mục" : "Portfolio Summary";
+  const summary = workbook.addWorksheet(summarySheetName);
   summary.properties.tabColor = { argb: DATASET_META.company.accent };
-  applyTitleBlock(summary, DATASET_META.company.title, DATASET_META.company.description, DATASET_META.company.accent, 6);
-  const summaryHeader = summary.addRow(["Report type", "Records", "Columns", "Completion", "Status", "Description"]);
+  applyTitleBlock(
+    summary,
+    isVi ? "TỔNG HỢP DANH MỤC PHÂN HỆ DỮ LIỆU" : DATASET_META.company.title,
+    isVi ? "Tỷ lệ hoàn thiện dữ liệu, số lượng bản ghi và trạng thái sẵn sàng theo từng phân hệ" : DATASET_META.company.description,
+    DATASET_META.company.accent,
+    6
+  );
+  const summaryHeader = summary.addRow(
+    isVi
+      ? ["Phân hệ báo cáo", "Số bản ghi", "Số cột dữ liệu", "Tỷ lệ hoàn thiện", "Trạng thái kiểm toán", "Mô tả phân hệ"]
+      : ["Report type", "Records", "Columns", "Completion", "Status", "Description"]
+  );
   styleHeaderRow(summaryHeader, DATASET_META.company.accent);
   enriched.forEach((dataset, index) => {
     const meta = DATASET_META[dataset.type];
+    const viMeta = VIETNAMESE_DATASET_TITLES[dataset.type];
+    const title = isVi ? viMeta.title : meta.title;
+    const desc = isVi ? viMeta.description : meta.description;
     const row = summary.addRow([
-      meta.title,
+      title,
       dataset.analysis.rowCount,
       dataset.analysis.columnCount,
       `${dataset.analysis.completionRate.toFixed(1)}%`,
-      "Ready",
-      meta.description,
+      isVi ? "Đã sẵn sàng" : "Ready",
+      desc,
     ]);
     styleBodyRow(row, index % 2 === 0);
   });
   autoFitWorksheetColumns(summary);
 
-  const dictionary = workbook.addWorksheet("Global Dictionary");
+  // Sheet 3: Global Dictionary / Từ điển Dữ liệu Toàn diện
+  const dictSheetName = isVi ? "Từ điển Dữ liệu" : "Global Dictionary";
+  const dictionary = workbook.addWorksheet(dictSheetName);
   dictionary.properties.tabColor = { argb: DATASET_META.company.accent };
-  applyTitleBlock(dictionary, "Global dictionary", "All fields across exported standard datasets", DATASET_META.company.accent, 7);
-  const dictHeader = dictionary.addRow(["Report type", "Field", "Type", "Filled", "Empty", "Completion", "Examples"]);
+  applyTitleBlock(
+    dictionary,
+    isVi ? "TỪ ĐIỂN DỮ LIỆU TOÀN DIỆN" : "Global dictionary",
+    isVi ? "Định nghĩa toàn bộ các trường dữ liệu trên tất cả các phân hệ xuất khẩu chuẩn WeaveCarbon" : "All fields across exported standard datasets",
+    DATASET_META.company.accent,
+    7
+  );
+  const dictHeader = dictionary.addRow(
+    isVi
+      ? ["Phân hệ", "Tên trường dữ liệu", "Kiểu dữ liệu", "Đã điền", "Còn trống", "Độ hoàn thiện", "Dữ liệu mẫu"]
+      : ["Report type", "Field", "Type", "Filled", "Empty", "Completion", "Examples"]
+  );
   styleHeaderRow(dictHeader, DATASET_META.company.accent);
   let index = 0;
   enriched.forEach((dataset) => {
+    const viMeta = VIETNAMESE_DATASET_TITLES[dataset.type];
     dataset.analysis.columnProfiles.forEach((profile) => {
       const row = dictionary.addRow([
-        DATASET_META[dataset.type].title,
+        isVi ? viMeta.sheetName : DATASET_META[dataset.type].title,
         profile.label,
         profile.type,
         profile.filledCount,
@@ -656,6 +797,7 @@ const buildFullCompanyWorkbook = async (
   });
   autoFitWorksheetColumns(dictionary);
 
+  // Data sheets for each dataset
   enriched.forEach((dataset) => {
     addDataSheet(
       workbook,
@@ -663,7 +805,8 @@ const buildFullCompanyWorkbook = async (
       dataset.columns,
       dataset.rows,
       dataset.analysis,
-      `Records: ${dataset.analysis.rowCount}`
+      `Records: ${dataset.analysis.rowCount}`,
+      options
     );
   });
 

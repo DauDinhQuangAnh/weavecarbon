@@ -15,6 +15,7 @@ import {
   Globe,
   History,
   Leaf,
+  Loader2,
   Lock,
   Package,
   QrCode,
@@ -83,6 +84,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
   const isDemoRuntime = isDemoPath(pathname);
   const [activeTab, setActiveTab] = useState<string>("shipment");
   const [enterpriseExportOpen, setEnterpriseExportOpen] = useState(false);
+  const [isExportingFullReport, setIsExportingFullReport] = useState(false);
   const [cfg, setCfg] = useState<ExportConfigV2>(DEFAULT_EXPORT_CONFIG_V2);
   const [activeSku, setActiveSku] = useState(DEMO_PACK_V2[0]?.sku || "");
   const [products, setProducts] = useState<ProductRecord[]>([]);
@@ -690,6 +692,28 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     }
   };
 
+  const handleExportFullReport = async () => {
+    setIsExportingFullReport(true);
+    try {
+      const result = await exportFullStandardReport("xlsx", {
+        locale: "vi",
+        requestedBy: "Doanh nghiệp Dệt may WeaveCarbon",
+        planLabel: "Enterprise / Standard",
+      });
+      toast.success(
+        `Đã tải xuống Báo cáo Doanh nghiệp Đầy đủ (${result.total} bản ghi, ${result.datasets} phân hệ dữ liệu) định dạng chuẩn WeaveCarbon!`
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message.trim()
+          ? `Xuất báo cáo thất bại: ${error.message}`
+          : "Xuất báo cáo thất bại. Vui lòng thử lại."
+      );
+    } finally {
+      setIsExportingFullReport(false);
+    }
+  };
+
   const averageReadiness = useMemo(() => {
     if (!displayMarketCards.length) return 0;
     const sum = displayMarketCards.reduce((acc, item) => acc + item.score, 0);
@@ -740,52 +764,86 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
 
       {/* Enterprise Export Dialog */}
       <Dialog open={enterpriseExportOpen} onOpenChange={setEnterpriseExportOpen}>
-        <DialogContent className="max-w-md border-emerald-100 bg-white p-6 rounded-2xl shadow-xl">
-          <DialogHeader className="space-y-1">
-            <DialogTitle className="flex items-center gap-2 text-base text-slate-900">
-              <Download className="h-5 w-5 text-emerald-800" />
-              Xuất dữ liệu doanh nghiệp & Audit
-            </DialogTitle>
+        <DialogContent className="max-w-lg border-emerald-200 bg-white p-6 rounded-2xl shadow-2xl">
+          <DialogHeader className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-base font-bold text-slate-900">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                  <Leaf className="h-4 w-4" />
+                </div>
+                <span>Báo cáo Doanh nghiệp & Kiểm toán</span>
+              </div>
+              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 font-medium text-xs">
+                WeaveCarbon XLSX
+              </Badge>
+            </div>
             <DialogDescription className="text-xs text-slate-600">
-              Báo cáo phục vụ kế toán nội bộ, đối soát phát thải doanh nghiệp và kiểm toán ESG hàng năm.
+              Xuất khẩu trọn gói các phân hệ dữ liệu chuẩn theo tiêu chuẩn ISO 14067 & GHG Protocol, phục vụ kiểm toán nội bộ, đối tác chuỗi cung ứng và kê khai CBAM.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-950">Báo cáo doanh nghiệp đầy đủ</p>
-                  <p className="text-xs text-slate-600">Sản phẩm + Hoạt động + Audit + Users trong 1 file Excel</p>
+            <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/90 to-teal-50/50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-800" />
+                    <p className="text-sm font-bold text-emerald-950">File Excel đa phân hệ chuẩn</p>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Bao gồm Sheet Tổng quan, Tóm tắt Danh mục, Từ điển Dữ liệu và các bảng dữ liệu chi tiết
+                  </p>
                 </div>
                 <Button
                   size="sm"
-                  className="h-9 shrink-0 rounded-lg bg-emerald-800 px-4 text-white hover:bg-emerald-900"
-                  onClick={() => void exportFullStandardReport("xlsx", { locale: "vi" })}
+                  disabled={isExportingFullReport}
+                  className="h-9 shrink-0 rounded-lg bg-emerald-800 px-4 text-white shadow-sm hover:bg-emerald-900 transition-colors"
+                  onClick={() => void handleExportFullReport()}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Tải XLSX
+                  {isExportingFullReport ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang kết xuất...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Tải File XLSX
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
-                <Package className="h-4 w-4 text-emerald-700" />
-                <span>Sản phẩm ({breakdowns.length})</span>
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Các phân hệ dữ liệu được tích hợp
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 text-slate-800">
+                  <Package className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span className="font-medium truncate">Sản phẩm ({breakdowns.length} SKU)</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 text-slate-800">
+                  <BarChart3 className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span className="font-medium truncate">Phân tích & Xu hướng</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 text-slate-800">
+                  <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span className="font-medium truncate">Audit log & Tuân thủ</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 text-slate-800">
+                  <History className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span className="font-medium truncate">Lịch sử tính phát thải</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
-                <BarChart3 className="h-4 w-4 text-emerald-700" />
-                <span>Analytics tổng hợp</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
-                <Shield className="h-4 w-4 text-emerald-700" />
-                <span>Audit log (6 bản ghi)</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
-                <History className="h-4 w-4 text-emerald-700" />
-                <span>Lịch sử tính (3 phiên)</span>
-              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-2.5 text-[11px] text-slate-600 flex items-start gap-2">
+              <Sparkles className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
+              <span>
+                Báo cáo tự động áp dụng bảng màu xanh ngọc WeaveCarbon, cố định dòng tiêu đề, định dạng số thập phân chuẩn hóa và kiểm toán mật mã.
+              </span>
             </div>
           </div>
         </DialogContent>
