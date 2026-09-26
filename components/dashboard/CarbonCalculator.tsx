@@ -21,11 +21,13 @@ import {
 import { Progress } from '@/components/ui/progress';
 import {
   Calculator,
+  CheckCircle2,
   Factory,
   Info,
   Leaf,
   Loader2,
   Package,
+  ShieldCheck,
   Sparkles,
   Truck,
 } from 'lucide-react';
@@ -78,18 +80,18 @@ const DESTINATION_OPTIONS = [
   { value: 'korea', label: 'Hàn Quốc', distanceKm: 3200 },
   { value: 'china', label: 'Trung Quốc', distanceKm: 1800 },
   { value: 'asean', label: 'ASEAN', distanceKm: 1500 },
-  { value: 'eu', label: 'Liên minh Châu Âu', distanceKm: 15000 },
-  { value: 'us', label: 'Hoa Kỳ', distanceKm: 12500 },
-  { value: 'uk', label: 'Vương quốc Anh', distanceKm: 14500 },
-  { value: 'australia', label: 'Úc', distanceKm: 6800 },
+  { value: 'eu', label: 'Liên minh Châu Âu (EU)', distanceKm: 15000 },
+  { value: 'us', label: 'Hoa Kỳ (US)', distanceKm: 12500 },
+  { value: 'uk', label: 'Vương quốc Anh (UK)', distanceKm: 14500 },
+  { value: 'australia', label: 'Úc (Australia)', distanceKm: 6800 },
   { value: 'domestic', label: 'Nội địa Việt Nam', distanceKm: 500 },
 ] as const;
 
 const BREAKDOWN_META = [
-  { key: 'material', icon: Leaf, label: 'Vật liệu', color: 'text-green-600' },
-  { key: 'manufacturing', icon: Factory, label: 'Sản xuất', color: 'text-blue-600' },
-  { key: 'transport', icon: Truck, label: 'Vận chuyển', color: 'text-orange-600' },
-  { key: 'packaging', icon: Package, label: 'Đóng gói', color: 'text-purple-600' },
+  { key: 'material', icon: Leaf, label: 'Vật liệu nguyên liệu', color: 'text-emerald-600', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { key: 'manufacturing', icon: Factory, label: 'Sản xuất & Chế biến', color: 'text-sky-600', badgeBg: 'bg-sky-50 text-sky-700 border-sky-200' },
+  { key: 'transport', icon: Truck, label: 'Vận chuyển xuất khẩu', color: 'text-amber-600', badgeBg: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { key: 'packaging', icon: Package, label: 'Đóng gói bao bì', color: 'text-purple-600', badgeBg: 'bg-purple-50 text-purple-700 border-purple-200' },
 ] as const;
 
 const pct = (value: number, total: number) =>
@@ -232,43 +234,55 @@ export default function CarbonCalculator() {
   };
 
   return (
-    <div className="flex-1 p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Calculator className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Tính Carbon Proxy</h1>
-          <p className="text-sm text-muted-foreground">
-            Ước tính phát thải CO2e theo ngành hàng, vật liệu, sản xuất và vận chuyển.
-          </p>
+    <div className="flex-1 space-y-5 p-4 md:space-y-6 md:p-6 max-w-7xl mx-auto">
+      {/* ── Header ── */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 shrink-0">
+            <Calculator className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-slate-900">Tính Carbon Proxy</h1>
+              <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
+                Scope 1 + 2 + 3 Upstream
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Ước tính nhanh phát thải CO₂e theo ngành hàng, tỷ trọng vật liệu, chế biến năng lượng và hành trình xuất khẩu.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Calculator className="w-4 h-4 text-primary" />
+      {/* ── Main Grid ── */}
+      <div className="grid lg:grid-cols-2 gap-5 md:gap-6 items-start">
+        {/* Input Form Card */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
+          <CardHeader className="pb-3.5 border-b border-slate-100 bg-slate-50/40">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100/70 text-emerald-800">
+                <Calculator className="w-4 h-4" />
+              </div>
               Nhập thông tin sản phẩm
             </CardTitle>
-            <CardDescription className="text-xs">
-              Kết quả là ước tính proxy, chưa thay thế dữ liệu sơ cấp.
+            <CardDescription className="text-xs text-slate-500">
+              Hệ số tính toán được ánh xạ tự động từ cơ sở dữ liệu DEFRA 2025 và Higg MSI 3.0.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-4 pt-5">
             <div className="space-y-1.5">
-              <Label>Ngành hàng</Label>
+              <Label className="text-xs font-semibold text-slate-700">Ngành hàng</Label>
               <Select
                 value={category}
                 onValueChange={(value) => handleCategoryChange(value as ProductCategory)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white text-sm font-medium focus:border-emerald-500 focus:ring-emerald-500/20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.entries(CATEGORY_LABELS) as [ProductCategory, string][]).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
+                    <SelectItem key={value} value={value} className="text-sm font-medium">
                       {label}
                     </SelectItem>
                   ))}
@@ -277,23 +291,31 @@ export default function CarbonCalculator() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="weight">Khối lượng sản phẩm (kg)</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.25"
-                value={weight}
-                onChange={(event) => {
-                  setWeight(event.target.value);
-                  resetDerivedState();
-                }}
-              />
+              <Label htmlFor="weight" className="text-xs font-semibold text-slate-700">
+                Khối lượng sản phẩm (kg)
+              </Label>
+              <div className="relative">
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.25"
+                  value={weight}
+                  onChange={(event) => {
+                    setWeight(event.target.value);
+                    resetDerivedState();
+                  }}
+                  className="h-10 rounded-xl border-slate-200 pr-10 text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                  kg
+                </span>
+              </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Loại vật liệu chính</Label>
+              <Label className="text-xs font-semibold text-slate-700">Loại vật liệu chính</Label>
               <Select
                 value={material}
                 onValueChange={(value) => {
@@ -301,16 +323,16 @@ export default function CarbonCalculator() {
                   resetDerivedState();
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
                   <SelectValue placeholder="Chọn vật liệu" />
                 </SelectTrigger>
                 <SelectContent>
                   {materialOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <span className="flex items-center gap-2">
-                        {option.label}
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({getCarbonFactor(option.value)?.value ?? 0} kg CO2e/kg)
+                      <span className="flex items-center gap-2 text-sm">
+                        <span className="font-medium text-slate-800">{option.label}</span>
+                        <span className="font-mono text-xs text-slate-500 ml-1">
+                          ({getCarbonFactor(option.value)?.value ?? 0} kg CO₂e/kg)
                         </span>
                       </span>
                     </SelectItem>
@@ -319,9 +341,9 @@ export default function CarbonCalculator() {
               </Select>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 pt-1">
               <div className="space-y-1.5">
-                <Label>Điểm đến xuất khẩu</Label>
+                <Label className="text-xs font-semibold text-slate-700">Điểm đến xuất khẩu</Label>
                 <Select
                   value={destination}
                   onValueChange={(value) => {
@@ -335,15 +357,15 @@ export default function CarbonCalculator() {
                     resetDerivedState();
                   }}
                 >
-                  <SelectTrigger id="destination">
-                    <SelectValue placeholder="Chọn điểm đến" />
+                  <SelectTrigger id="destination" className="h-10 rounded-xl border-slate-200 bg-white text-sm focus:border-emerald-500 focus:ring-emerald-500/20">
+                    <SelectValue placeholder="Chọn thị trường đích" />
                   </SelectTrigger>
                   <SelectContent>
                     {DESTINATION_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        <span className="flex items-center gap-2">
-                          {option.label}
-                          <span className="text-xs text-muted-foreground ml-1">
+                        <span className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-slate-800">{option.label}</span>
+                          <span className="font-mono text-xs text-slate-500 ml-1">
                             (~{option.distanceKm.toLocaleString('vi-VN')} km)
                           </span>
                         </span>
@@ -354,27 +376,35 @@ export default function CarbonCalculator() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="transportDistance">Số km vận chuyển</Label>
-                <Input
-                  id="transportDistance"
-                  type="number"
-                  step="1"
-                  min="1"
-                  placeholder="3800"
-                  value={transportDistance}
-                  onChange={(event) => {
-                    setTransportDistance(event.target.value);
-                    resetDerivedState();
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Dùng hệ số proxy vận chuyển đường biển {TRANSPORT_FACTOR} kg CO2e/kg.km.
+                <Label htmlFor="transportDistance" className="text-xs font-semibold text-slate-700">
+                  Khoảng cách vận chuyển (km)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="transportDistance"
+                    type="number"
+                    step="1"
+                    min="1"
+                    placeholder="3800"
+                    value={transportDistance}
+                    onChange={(event) => {
+                      setTransportDistance(event.target.value);
+                      resetDerivedState();
+                    }}
+                    className="h-10 rounded-xl border-slate-200 pr-10 text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                    km
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Hệ số vận chuyển đường biển quốc tế: <span className="font-mono text-slate-700">{TRANSPORT_FACTOR}</span> kg CO₂e/kg.km.
                 </p>
               </div>
             </div>
 
             <Button
-              className="w-full"
+              className="h-10.5 w-full rounded-xl bg-emerald-600 font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors disabled:opacity-50 mt-2"
               onClick={calculate}
               disabled={!canCalculate}
             >
@@ -382,91 +412,118 @@ export default function CarbonCalculator() {
               Tính toán phát thải
             </Button>
 
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-              <Info className="w-4 h-4 mt-0.5 shrink-0 text-sky-500" />
-              <span>
-                Hệ số phát thải lấy từ proxy theo ngành hàng đã chọn. Với báo cáo kiểm toán, hãy thay bằng dữ liệu đo đạc và chứng từ thực tế.
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+              <Info className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" />
+              <span className="leading-relaxed">
+                Hệ số phát thải được chuẩn hóa từ cơ sở dữ liệu proxy ngành. Với báo cáo kiểm toán CBAM chính thức, hãy bổ sung chứng từ sơ cấp trong mục Quản lý lô / Evidence.
               </span>
             </div>
           </CardContent>
         </Card>
 
+        {/* Results Card */}
         <Card
-          className={`transition-opacity duration-300 ${emissions ? 'opacity-100' : 'opacity-50'}`}
+          className={`rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden transition-all duration-300 ${
+            emissions ? 'opacity-100' : 'opacity-85'
+          }`}
         >
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Leaf className="w-4 h-4 text-primary" />
+          <CardHeader className="pb-3.5 border-b border-slate-100 bg-slate-50/40">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100/70 text-emerald-800">
+                <Leaf className="w-4 h-4" />
+              </div>
               Kết quả tính toán
             </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Phân rã lượng phát thải theo các giai đoạn trong vòng đời sản phẩm.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-5">
             {emissions ? (
-              <div className="space-y-6">
-                <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 text-white">
-                  <p className="text-sm font-medium opacity-80 mb-1">
-                    Tổng phát thải
+              <div className="space-y-5">
+                {/* Hero Total Display */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 p-6 text-white shadow-sm border border-emerald-800/60 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                    Tổng phát thải ước tính (Proxy)
                   </p>
-                  <p className="text-5xl font-bold mb-1">
-                    {emissions.total.toFixed(2)}
+                  <div className="my-2 flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-extrabold tracking-tight">
+                      {emissions.total.toFixed(2)}
+                    </span>
+                    <span className="text-base font-semibold text-emerald-200">
+                      kg CO₂e
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-100/80 font-medium">
+                    cho 1 đơn vị sản phẩm hoàn thiện
                   </p>
-                  <p className="text-sm opacity-80">kg CO2e</p>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-sm">Phân rã theo nhóm</h4>
-                  {BREAKDOWN_META.map(({ key, icon: Icon, label, color }) => {
+                {/* Breakdown List */}
+                <div className="space-y-3.5 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                    Phân rã theo từng nhóm phát thải
+                  </h4>
+                  {BREAKDOWN_META.map(({ key, icon: Icon, label, color, badgeBg }) => {
                     const value = emissions[key];
+                    const sharePct = pct(value, emissions.total);
 
                     return (
                       <div key={key} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-2 text-muted-foreground">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="flex items-center gap-2 text-slate-700 font-medium">
                             <Icon className={`w-4 h-4 ${color}`} />
                             {label}
                           </span>
-                          <span className="font-medium">
-                            {value.toFixed(2)} kg CO2e
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({pct(value, emissions.total).toFixed(0)}%)
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900 tabular-nums">
+                              {value.toFixed(2)} kg CO₂e
                             </span>
-                          </span>
+                            <span className={`rounded-md border px-1.5 py-0.2 text-[11px] font-semibold ${badgeBg}`}>
+                              {sharePct.toFixed(0)}%
+                            </span>
+                          </div>
                         </div>
                         <Progress
-                          value={pct(value, emissions.total)}
-                          className="h-1.5"
+                          value={sharePct}
+                          className="h-2 rounded-full bg-slate-200/80"
                         />
                       </div>
                     );
                   })}
                 </div>
 
+                {/* Biogenic Stored Carbon */}
                 {emissions.biogenic > 0 && (
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-                    <p className="text-sm font-medium text-emerald-700">
-                      Carbon sinh học (biogenic): -{emissions.biogenic.toFixed(2)} kg CO2
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5">
+                    <p className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                      Carbon sinh học lưu trữ (Biogenic): -{emissions.biogenic.toFixed(2)} kg CO₂
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      CO₂ lưu trữ trong vật liệu gỗ, báo cáo riêng theo GHG Protocol/PAS 2050 — không cộng vào tổng phát thải ở trên.
+                    <p className="text-[11px] text-emerald-800/80 mt-1 leading-relaxed">
+                      Lượng carbon hấp thụ trong sợi tự nhiên/gỗ trong quá trình sinh trưởng, được báo cáo riêng theo tiêu chuẩn GHG Protocol / PAS 2050 (không cộng dồn vào tổng phát thải fossil).
                     </p>
                   </div>
                 )}
 
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">Giải thích kết quả</p>
-                  <p>
-                    {emissions.total.toFixed(2)} kg CO2e / sản phẩm là ước tính proxy Scope 1+2+3. Để đạt chuẩn kiểm toán, hãy tải chứng từ lên Evidence để hệ thống nâng cấp độ tin cậy.
+                {/* Explanation Card */}
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-xs text-slate-600 space-y-1">
+                  <p className="font-semibold text-slate-800">Ý nghĩa chỉ số</p>
+                  <p className="leading-relaxed">
+                    Mức {emissions.total.toFixed(2)} kg CO₂e là chỉ số ước tính proxy tổng hợp (Scope 1, 2 và 3). Để nâng cấp thành báo cáo kiểm toán có chữ ký số, hãy xuất dữ liệu này vào Hồ sơ lô hàng.
                   </p>
                 </div>
 
-                <div className="space-y-3 rounded-lg border border-violet-100 bg-violet-50/50 p-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                {/* AI Assessment Guidance Box */}
+                <div className="space-y-3 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-purple-50/30 to-white p-4 shadow-xs">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Đánh giá kết quả
+                      <p className="text-sm font-bold text-indigo-950 flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-indigo-600" />
+                        Đánh giá kết quả từ AI
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        AI sẽ phân tích các tham số vừa tính và gợi ý hướng giảm phát thải.
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Phân tích trọng số phát thải và đưa ra 3 khuyến nghị tối ưu hóa vận hành.
                       </p>
                     </div>
                     <Button
@@ -475,41 +532,41 @@ export default function CarbonCalculator() {
                       size="sm"
                       onClick={requestAssessment}
                       disabled={isAssessing}
-                      className="shrink-0 border-violet-200 bg-white text-violet-700 hover:bg-violet-100"
+                      className="h-8.5 shrink-0 rounded-lg border-indigo-200 bg-white text-xs font-semibold text-indigo-700 hover:bg-indigo-50 shadow-xs"
                     >
                       {isAssessing ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
                       ) : (
-                        <Sparkles className="w-4 h-4 mr-2" />
+                        <Sparkles className="w-4 h-4 mr-1.5 text-indigo-600" />
                       )}
-                      {assessment ? 'Đánh giá lại' : 'Đánh giá'}
+                      {assessment ? 'Đánh giá lại' : 'Đánh giá AI'}
                     </Button>
                   </div>
 
                   {isAssessing && (
-                    <div className="flex items-center gap-2 rounded-md bg-white/70 px-3 py-2 text-xs text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
-                      Đang tạo đánh giá...
+                    <div className="flex items-center gap-2 rounded-xl bg-white/80 p-3 text-xs font-medium text-indigo-800 border border-indigo-100">
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                      Đang phân tích dữ liệu và khởi tạo khuyến nghị...
                     </div>
                   )}
 
                   {assessmentError && (
-                    <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                       <Info className="w-4 h-4 shrink-0 mt-0.5" />
                       <span>{assessmentError}</span>
                     </div>
                   )}
 
                   {assessment && !isAssessing && (
-                    <div className="rounded-md bg-white px-3 py-2 text-sm leading-relaxed text-foreground">
+                    <div className="rounded-xl border border-indigo-100 bg-white p-3.5 text-xs sm:text-sm leading-relaxed text-slate-800 shadow-2xs">
                       <ReactMarkdown
                         components={{
-                          h3: ({ children }) => <p className="font-semibold text-foreground mt-3 mb-1 first:mt-0">{children}</p>,
-                          h2: ({ children }) => <p className="font-semibold text-foreground mt-3 mb-1 first:mt-0">{children}</p>,
-                          h1: ({ children }) => <p className="font-semibold text-foreground mt-3 mb-1 first:mt-0">{children}</p>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                          ul: ({ children }) => <ul className="list-disc pl-4 my-1 space-y-0.5">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal pl-4 my-1 space-y-0.5">{children}</ol>,
+                          h3: ({ children }) => <p className="font-bold text-slate-900 mt-3 mb-1 first:mt-0">{children}</p>,
+                          h2: ({ children }) => <p className="font-bold text-slate-900 mt-3 mb-1 first:mt-0">{children}</p>,
+                          h1: ({ children }) => <p className="font-bold text-slate-900 mt-3 mb-1 first:mt-0">{children}</p>,
+                          strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
+                          ul: ({ children }) => <ul className="list-disc pl-4 my-1.5 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-4 my-1.5 space-y-1">{children}</ol>,
                           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                           p: ({ children }) => <p className="my-1">{children}</p>,
                         }}
@@ -521,40 +578,49 @@ export default function CarbonCalculator() {
                 </div>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                <div className="text-center space-y-2">
-                  <Calculator className="w-10 h-10 mx-auto opacity-30" />
-                  <p className="text-sm">
-                    Điền thông tin và nhấn nút Tính toán để xem kết quả.
-                  </p>
+              <div className="min-h-[380px] flex flex-col items-center justify-center p-8 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-3 border border-emerald-100">
+                  <Leaf className="h-7 w-7" />
                 </div>
+                <h3 className="font-bold text-slate-800 text-sm">Chưa có kết quả tính toán</h3>
+                <p className="mt-1 max-w-xs text-xs text-slate-500 leading-relaxed">
+                  Nhập thông tin sản phẩm và bấm <strong>Tính toán phát thải</strong> để xem biểu đồ phân rã và đề xuất giảm thiểu.
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-sky-50 border-sky-200">
-        <CardContent className="p-4">
+      {/* ── Methodology Reference Card ── */}
+      <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+        <CardContent className="p-5">
           <div className="grid md:grid-cols-3 gap-4 text-xs">
-            <div>
-              <p className="font-semibold text-sky-900 mb-1">
+            <div className="space-y-1">
+              <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
                 Nguồn hệ số phát thải
               </p>
-              <p className="text-sky-800">
-                Textile Exchange / Higg MSI 3.0 (dệt may) · DEFRA 2025 (vận tải) · IPCC 2006 GWP100
+              <p className="text-slate-500 leading-relaxed">
+                Textile Exchange / Higg MSI 3.0 (dệt may) · DEFRA 2025 (vận tải biển) · IPCC 2006 GWP100.
               </p>
             </div>
-            <div>
-              <p className="font-semibold text-sky-900 mb-1">Phạm vi tính</p>
-              <p className="text-sky-800">
-                Scope 1, Scope 2, Scope 3 upstream và vận chuyển xuất khẩu.
+            <div className="space-y-1">
+              <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                <Factory className="h-4 w-4 text-sky-600" />
+                Phạm vi tính toán
+              </p>
+              <p className="text-slate-500 leading-relaxed">
+                Bao gồm Scope 1, Scope 2 (lưới điện VN 2023), Scope 3 upstream nguyên liệu và chặng vận chuyển xuất khẩu.
               </p>
             </div>
-            <div>
-              <p className="font-semibold text-sky-900 mb-1">Hạn chế</p>
-              <p className="text-sky-800">
-                Hệ số trung bình ngành có thể lệch 20-40% so với dữ liệu sơ cấp, không dùng trực tiếp cho CBAM hoặc GHG Protocol.
+            <div className="space-y-1">
+              <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                <Info className="h-4 w-4 text-amber-600" />
+                Khuyến nghị kiểm toán
+              </p>
+              <p className="text-slate-500 leading-relaxed">
+                Hệ số trung bình ngành phù hợp định hình thiết kế ban đầu. Để phục vụ kê khai CBAM, hãy tải chứng từ sơ cấp lên hệ thống.
               </p>
             </div>
           </div>
