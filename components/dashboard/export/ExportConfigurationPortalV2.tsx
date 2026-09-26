@@ -2,7 +2,29 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, CheckCircle2, ChevronRight, Copy, Download, FileText, Globe, Lock, Package, QrCode, Send, Shield, Ship, Smartphone, Webhook } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  ChevronRight,
+  Copy,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  FolderCheck,
+  Globe,
+  History,
+  Lock,
+  Package,
+  QrCode,
+  Save,
+  Send,
+  Shield,
+  ShieldCheck,
+  Ship,
+  Smartphone,
+  Webhook
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,6 +34,14 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { DEMO_PACK_V2 } from "@/lib/weave-v2/demoPackV2";
 import { DEFAULT_EXPORT_CONFIG_V2, buildDppPayloadV2, getAllCarbonBreakdownsV2, type DppPayloadV2, type ExportConfigV2 } from "@/lib/weave-v2/exportLogisticsDocs";
 import { buildBuyerWebhookPayloadV2, createDppLockV2, downloadExportDocumentV2, fetchExportConfigurationV2, saveExportConfigurationV2 } from "@/lib/weave-v2/exportV2Api";
@@ -37,9 +67,19 @@ const downloadText = (filename: string, content: string, mime: string) => {
   URL.revokeObjectURL(url);
 };
 
-const DemoExportConfigurationPortalV2: React.FC = () => {
+export interface DemoExportConfigurationPortalV2Props {
+  documentManagerSlot?: React.ReactNode;
+  onOpenMarketDetail?: (market: MarketCode) => void;
+}
+
+const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2Props> = ({
+  documentManagerSlot,
+  onOpenMarketDetail
+}) => {
   const pathname = usePathname();
   const isDemoRuntime = isDemoPath(pathname);
+  const [activeTab, setActiveTab] = useState<string>("shipment");
+  const [enterpriseExportOpen, setEnterpriseExportOpen] = useState(false);
   const [cfg, setCfg] = useState<ExportConfigV2>(DEFAULT_EXPORT_CONFIG_V2);
   const [activeSku, setActiveSku] = useState(DEMO_PACK_V2[0]?.sku || "");
   const [products, setProducts] = useState<ProductRecord[]>([]);
@@ -51,6 +91,7 @@ const DemoExportConfigurationPortalV2: React.FC = () => {
   const [selectedMarketCode, setSelectedMarketCode] = useState<MarketCode | null>(null);
   const [marketDetailOpen, setMarketDetailOpen] = useState(false);
   const useRealProducts = !isDemoRuntime && products.length > 0;
+
   const breakdowns = useMemo(
     () => useRealProducts ? products.map((product) => getProductEmbeddedBreakdownV2(product)) : getAllCarbonBreakdownsV2(),
     [products, useRealProducts]
@@ -65,6 +106,12 @@ const DemoExportConfigurationPortalV2: React.FC = () => {
       : DEMO_PACK_V2.find((item) => item.sku === activeSku) || DEMO_PACK_V2[0],
     [activeSku, productEvidence, selectedProduct, useRealProducts]
   );
+
+  useEffect(() => {
+    if (isDemoRuntime && !dpp && selectedSku) {
+      void buildDppPayloadV2(selectedSku).then(setDpp);
+    }
+  }, [dpp, isDemoRuntime, selectedSku]);
   const totals = useMemo(
     () => breakdowns.reduce((sum, item) => sum + item.embeddedTonnesBatch, 0),
     [breakdowns]
@@ -515,401 +562,706 @@ const DemoExportConfigurationPortalV2: React.FC = () => {
     }
   };
 
+  const averageReadiness = useMemo(() => {
+    if (!displayMarketCards.length) return 0;
+    const sum = displayMarketCards.reduce((acc, item) => acc + item.score, 0);
+    return Math.round(sum / displayMarketCards.length);
+  }, [displayMarketCards]);
+
+  const handleOpenMarket = (code: MarketCode) => {
+    if (onOpenMarketDetail) {
+      onOpenMarketDetail(code);
+    } else {
+      openMarketDetail(code);
+    }
+  };
+
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-bold">Xuất khẩu & Tuân thủ</h2>
-        <p className="text-sm text-slate-600">Quản lý hồ sơ xuất khẩu, DPP QR và dữ liệu carbon nhúng cho chứng từ thương mại.</p>
-      </div>
-
-      <CompanyDataExportCardV2
-        productCount={breakdowns.length}
-        onExportFull={() => void exportFullStandardReport("xlsx", { locale: "vi" })}
-      />
-
-      <Card className="border border-emerald-200 bg-white shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Lock className="h-5 w-5 text-emerald-800" />
-            Cổng Cấu hình Xuất khẩu (Export Configuration Portal)
-          </CardTitle>
-          <p className="text-sm text-slate-600">
-            Đồng bộ số liệu carbon nhúng với Commercial Invoice / Packing List / B/L, sinh DPP QR và payload webhook cho ERP của nhà mua hàng.
+      {/* Top Header & Quick Action */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between md:p-5">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+              Xuất khẩu & Tuân thủ Quốc tế
+            </h2>
+            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs">
+              ISO 14067 & ESPR
+            </Badge>
+          </div>
+          <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+            Quản lý hồ sơ xuất khẩu lô hàng, cấp Hộ chiếu số DPP và kiểm tra tuân thủ tiêu chuẩn quốc tế.
           </p>
-          {!isDemoRuntime && !useRealProducts && (
-            <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                Công ty bạn chưa có sản phẩm nào được đánh giá carbon — dữ liệu SKU hiển thị bên dưới chỉ là dữ liệu mẫu minh họa.
-                Hãy thêm và xuất bản sản phẩm trước khi khóa số liệu hoặc tải chứng từ thật.
-              </span>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Mã Số Tờ Khai Hải Quan</Label>
-              <Input value={cfg.customsDeclarationNo} onChange={(event) => update("customsDeclarationNo", event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Mã Hợp Đồng Thương Mại (PO/Contract ID)</Label>
-              <Input value={cfg.poContractId} onChange={(event) => update("poContractId", event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Mã Vận Đơn Đường Biển (Bill of Lading)</Label>
-              <Input value={cfg.billOfLadingNo} onChange={(event) => update("billOfLadingNo", event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Số Hiệu Container</Label>
-              <Input value={cfg.containerNo} onChange={(event) => update("containerNo", event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Chuẩn Định Danh Barcode Sản Phẩm</Label>
-              <Select value={cfg.barcodeStandard} onValueChange={(value) => update("barcodeStandard", value as ExportConfigV2["barcodeStandard"])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="GS1-Digital">GS1 Digital Link (khuyến nghị EU ESPR)</SelectItem>
-                  <SelectItem value="GS1-128">GS1-128</SelectItem>
-                  <SelectItem value="EAN-13">EAN-13</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Nhà mua hàng (Brand)</Label>
-              <Input value={cfg.buyerBrand} onChange={(event) => update("buyerBrand", event.target.value)} />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Webhook ERP của Brand</Label>
-              <Input value={cfg.buyerWebhookUrl} onChange={(event) => update("buyerWebhookUrl", event.target.value)} />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button className="bg-emerald-800 hover:bg-emerald-900" disabled={locking || saving} onClick={handleLockDpp}>
-              <Lock className="mr-2 h-4 w-4" />
-              Khóa số liệu bất biến & Xuất mã QR Hộ chiếu số (DPP)
-            </Button>
-            <Button variant="outline" disabled={saving} onClick={handleSaveConfig}>Lưu cấu hình</Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <div className="space-y-3">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
-          <Shield className="h-5 w-5 text-emerald-800" />
-          Pre-Audit Pack — Sẵn sàng kiểm toán SGS / BV / CBAM
-        </h3>
-        <Card className="overflow-hidden rounded-xl border-2 border-slate-200 bg-white font-mono text-sm shadow-sm">
-          <div className="border-b border-dashed border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-center text-xs font-bold tracking-[0.22em] text-emerald-900">
-              WEAVE CARBON CORE ENGINE — AUDIT COMPLIANCE PANEL
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="rounded-md font-mono">SKU: {selectedSku.sku}</Badge>
-                <Badge className="rounded-md bg-emerald-600 font-mono text-white hover:bg-emerald-600">
-                  <Lock className="mr-1 h-3 w-3" />
-                  ĐÃ KHÓA SỬA ĐỔI (SHA-256)
-                </Badge>
-              </div>
-              {selectedCarbon.gap > 0 ? (
-                <Badge className="rounded-md bg-red-500 font-mono text-white hover:bg-red-500">
-                  <AlertTriangle className="mr-1 h-3 w-3" />
-                  +20% PROXY (EU 2023/1773)
-                </Badge>
-              ) : (
-                <Badge className="rounded-md bg-emerald-700 font-mono text-white hover:bg-emerald-700">
-                  AUDIT-READY
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-xs">
-              <thead className="bg-slate-50 text-left text-emerald-950">
-                <tr>
-                  <th className="px-3 py-2">#</th>
-                  <th className="px-3 py-2">Phân đoạn</th>
-                  <th className="px-3 py-2 text-right">Sản lượng (AD)</th>
-                  <th className="px-3 py-2 text-right">Hệ số (EF)</th>
-                  <th className="px-3 py-2">Nguồn gốc EF</th>
-                  <th className="px-3 py-2 text-right">kg CO₂e</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditRows.map((row, index) => (
-                  <tr key={`${row.segment}-${row.detail}-${index}`} className={`border-t border-slate-100 ${row.isDefault ? "bg-red-50" : ""}`}>
-                    <td className="px-3 py-3 text-emerald-900">{index + 1}</td>
-                    <td className="px-3 py-3">
-                      <div className="font-semibold">{row.segment}</div>
-                      <div className="text-[11px] text-emerald-900">{row.detail}</div>
-                      {row.isDefault && <Badge className="mt-1 rounded bg-red-500 px-1 py-0 text-[10px] text-white">DEFAULT</Badge>}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">{row.activity.toFixed(3)}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">{row.factor.toFixed(4)}</td>
-                    <td className="px-3 py-3 text-[11px] text-emerald-900">{row.source}</td>
-                    <td className="px-3 py-3 text-right font-semibold tabular-nums">{row.kgCo2e.toFixed(3)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-slate-300 bg-emerald-50">
-                  <td colSpan={5} className="px-3 py-3 font-bold">TỔNG DẤU CHÂN CARBON SẢN PHẨM (ISO 14067)</td>
-                  <td className="px-3 py-3 text-right text-base font-bold tabular-nums">
-                    {selectedCarbon.total.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/chiếc</span>
-                  </td>
-                </tr>
-                <tr className="bg-red-50 text-red-600">
-                  <td colSpan={5} className="px-3 py-3">
-                    Mô phỏng rủi ro kiểu CBAM (pre-audit, giả định 85 €/tCO₂e × dư phát thải {(selectedCarbon.gap / 1000).toFixed(4)} t — không phải khoản phí CBAM thực tế)
-                  </td>
-                  <td className="px-3 py-3 text-right font-bold">€ {selectedSku.cbamPenaltyEurPerUnit.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div className="space-y-3 border-t border-dashed border-slate-200 p-4">
-            <div className="text-xs font-bold tracking-wide text-emerald-900">
-              &gt;&gt;&gt; HỒ SƠ CHỨNG TỪ GỐC (TẢI VỀ CHO KIỂM TOÁN VIÊN SGS / TÜV RHEINLAND) &lt;&lt;&lt;
-            </div>
-            <div className="space-y-1 text-xs">
-              {selectedEvidence.map((item) => (
-                <div key={`${item.lookupCode}-${item.sha256}`} className="flex items-center justify-between gap-2 rounded border border-slate-200 px-2 py-1">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <FileText className="h-3 w-3 shrink-0 text-slate-500" />
-                    <span className="truncate">{item.fileName}</span>
-                    <Badge variant="outline" className="rounded px-1 py-0 text-[10px]">Mã tra cứu: {item.lookupCode}</Badge>
-                  </span>
-                  <span className="shrink-0 text-[10px] text-slate-500">SHA-256 {item.sha256.slice(0, 12).toUpperCase()}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button size="sm" className="bg-emerald-800 text-white hover:bg-emerald-900" onClick={downloadAuditPackJson}>
-                <Download className="mr-2 h-4 w-4" />
-                Audit Pack (JSON)
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`KiemKeKNK_${selectedSku.sku}.csv`)}>
-                <Download className="mr-2 h-4 w-4" />
-                Mẫu kiểm kê KNK (TT 38/2023/TT-BCT)
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`CBAM_${selectedSku.sku}.csv`)}>
-                <Download className="mr-2 h-4 w-4" />
-                CBAM-style template (DG TAXUD, pre-audit)
-              </Button>
-            </div>
-            <div className="pt-2 text-[10px] text-emerald-900">
-              ISO 14067:2018 · Ecoinvent v3.10 · DEFRA 2024 · Bộ TN&MT VN
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
-          <Globe className="h-5 w-5 text-emerald-800" />
-          Mức độ sẵn sàng theo thị trường
-        </h3>
-        <div className="grid gap-3">
-          {displayMarketCards.map((market) => (
-            <Card
-              key={market.code}
-              className="cursor-pointer rounded-xl border border-emerald-100 bg-white shadow-sm transition-shadow hover:shadow-md"
-              onClick={() => openMarketDetail(market.code)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
-                    <span className="text-lg font-bold text-emerald-800">{market.code}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-slate-950">{market.name}</p>
-                      <Badge className={market.score >= 80 ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-amber-100 text-amber-700 hover:bg-amber-100"}>
-                        {market.score}%
-                      </Badge>
-                    </div>
-                    <p className="mb-2 truncate text-xs text-slate-600">{market.regulation}</p>
-                    <Progress value={market.score} className="h-2" />
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center justify-between border-t border-emerald-100 pt-3">
-                  <div className={`flex items-center gap-1 text-xs ${market.score >= 80 ? "text-emerald-600" : "text-amber-600"}`}>
-                    {market.score >= 80 ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                    <span>{market.score >= 80 ? "Sẵn sàng xuất khẩu" : "2 mục cần bổ sung"}</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openMarketDetail(market.code);
-                    }}
-                  >
-                    Chi tiết
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-emerald-200 bg-emerald-50/50 text-emerald-900 hover:bg-emerald-100 shadow-sm"
+            onClick={() => setEnterpriseExportOpen(true)}
+          >
+            <Download className="h-4 w-4 text-emerald-800" />
+            <span className="font-medium text-xs sm:text-sm">Báo cáo Doanh nghiệp (XLSX)</span>
+            <Badge variant="secondary" className="bg-emerald-200/60 text-emerald-900 text-[10px] px-1.5 py-0">
+              {breakdowns.length} SKU
+            </Badge>
+          </Button>
         </div>
       </div>
 
-      <Card className="border border-slate-200 bg-white shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-5 w-5 text-emerald-800" />
-            Chứng từ Vận tải & Thương mại (đã nhúng Embedded Carbon)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            {[
-              { title: "Commercial Invoice", icon: FileText, type: "commercial-invoice" as const, copy: "Thêm cột Embedded Carbon Intensity và tổng theo dòng." },
-              { title: "Packing List", icon: Package, type: "packing-list" as const, copy: "Carbon nhúng theo từng carton và container." },
-              { title: "Bill of Lading (Carbon Annex)", icon: Ship, type: "bill-of-lading" as const, copy: "Tổng phát thải nhúng của lô theo B/L." }
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.type} className="rounded-xl border border-emerald-100 p-4">
-                  <div className="flex items-center gap-2 font-semibold"><Icon className="h-4 w-4 text-emerald-800" />{item.title}</div>
-                  <p className="mt-1 text-xs text-slate-600">{item.copy}</p>
-                  <Button size="sm" variant="outline" className="mt-3" onClick={() => void handleDownloadDocument(item.type)}>
-                    <Download className="mr-2 h-4 w-4" />Tải XLSX
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-slate-50 text-left">
-                <tr>
-                  <th className="px-3 py-2">SKU</th>
-                  <th className="px-3 py-2">HS</th>
-                  <th className="px-3 py-2 text-right">Units</th>
-                  <th className="px-3 py-2 text-right">kg CO2e / pc</th>
-                  <th className="px-3 py-2 text-right">Tổng (tCO2e)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {breakdowns.map((item) => (
-                  <tr key={item.sku.sku} className="border-t">
-                    <td className="px-3 py-2 font-medium">{item.sku.sku}</td>
-                    <td className="px-3 py-2">{item.sku.cnCode}</td>
-                    <td className="px-3 py-2 text-right">{item.sku.units.toLocaleString("vi-VN")}</td>
-                    <td className="px-3 py-2 text-right">{item.embeddedKgPerUnit.toFixed(3)}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{item.embeddedTonnesBatch.toFixed(4)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-emerald-50 font-bold">
-                  <td className="px-3 py-2" colSpan={4}>Tổng cả lô (B/L {cfg.billOfLadingNo})</td>
-                  <td className="px-3 py-2 text-right">{totals.toFixed(4)} tCO2e</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Enterprise Export Dialog */}
+      <Dialog open={enterpriseExportOpen} onOpenChange={setEnterpriseExportOpen}>
+        <DialogContent className="max-w-md border-emerald-100 bg-white p-6 rounded-2xl shadow-xl">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="flex items-center gap-2 text-base text-slate-900">
+              <Download className="h-5 w-5 text-emerald-800" />
+              Xuất dữ liệu doanh nghiệp & Audit
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Báo cáo phục vụ kế toán nội bộ, đối soát phát thải doanh nghiệp và kiểm toán ESG hàng năm.
+            </DialogDescription>
+          </DialogHeader>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_420px]">
-        <Card className="border border-slate-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><QrCode className="h-5 w-5 text-emerald-800" />Hộ chiếu Số (DPP QR)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Label>SKU áp dụng:</Label>
-              <Select value={activeSku} onValueChange={setActiveSku}>
-                <SelectTrigger className="w-[320px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {skuOptions.map((item) => (
-                    <SelectItem key={item.key} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={handleLockDpp}><Lock className="mr-2 h-4 w-4" />Sinh QR</Button>
-            </div>
-            {dpp ? (
-              <div className="space-y-2 text-sm">
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-emerald-700">SHA-256 Locked</Badge>
-                  <Badge variant="outline">GTIN {dpp.gtin}</Badge>
+          <div className="space-y-4 pt-2">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-950">Báo cáo doanh nghiệp đầy đủ</p>
+                  <p className="text-xs text-slate-600">Sản phẩm + Hoạt động + Audit + Users trong 1 file Excel</p>
                 </div>
-                <p className="break-all"><span className="font-medium">Decentralized link:</span> {dpp.decentralizedUrl}</p>
-                <p className="break-all font-mono text-xs text-slate-600">{dpp.payloadSha256}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={downloadQrSvg}><Download className="mr-2 h-4 w-4" />Tải QR SVG</Button>
-                  <Button size="sm" variant="outline" onClick={() => copy(dpp.decentralizedUrl)}><Copy className="mr-2 h-4 w-4" />Copy link</Button>
-                  <Button size="sm" variant="outline" onClick={() => copy(dpp.payloadSha256)}>Copy SHA-256</Button>
-                </div>
+                <Button
+                  size="sm"
+                  className="h-9 shrink-0 rounded-lg bg-emerald-800 px-4 text-white hover:bg-emerald-900"
+                  onClick={() => void exportFullStandardReport("xlsx", { locale: "vi" })}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Tải XLSX
+                </Button>
               </div>
-            ) : (
-              <p className="text-sm text-slate-600">Nhấn khóa số liệu để sinh Hộ chiếu Số cho SKU này.</p>
-            )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
+                <Package className="h-4 w-4 text-emerald-700" />
+                <span>Sản phẩm ({breakdowns.length})</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
+                <BarChart3 className="h-4 w-4 text-emerald-700" />
+                <span>Analytics tổng hợp</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
+                <Shield className="h-4 w-4 text-emerald-700" />
+                <span>Audit log (6 bản ghi)</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 text-slate-800">
+                <History className="h-4 w-4 text-emerald-700" />
+                <span>Lịch sử tính (3 phiên)</span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick KPI Overview Cards */}
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+        <Card className="border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Lô hàng xuất khẩu</span>
+              <Ship className="h-4 w-4 text-emerald-700" />
+            </div>
+            <p className="mt-1 truncate text-sm sm:text-base font-bold text-slate-900">{cfg.poContractId || "PO-2026-TXT-099"}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-500">B/L: {cfg.billOfLadingNo || "ONEVNHAN260411"}</p>
           </CardContent>
         </Card>
 
         <Card className="border border-slate-200 bg-white shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm"><Smartphone className="h-4 w-4 text-emerald-800" />Giao diện Hải quan EU khi quét QR</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mx-auto w-[260px] rounded-[28px] border-[8px] border-slate-800 bg-white p-4 shadow-xl">
-              {dpp ? (
-                <>
-                  <div className="rounded-t-2xl bg-emerald-800 p-3 text-white">
-                    <p className="text-xs">DIGITAL PRODUCT PASSPORT</p>
-                    <p className="font-bold">{dpp.productName}</p>
-                    <p className="text-xs">SKU {dpp.sku} - HS {dpp.cnCode}</p>
-                  </div>
-                  <div className="grid place-items-center py-4">
-                    <QRCodeSVG id={`dpp-qr-${dpp.sku}`} value={dpp.decentralizedUrl} size={148} includeMargin />
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <p className="flex justify-between"><span>Embedded carbon</span><b>{dpp.embeddedKgPerUnit.toFixed(3)} kg CO2e</b></p>
-                    <p className="break-all text-slate-500">Hash EVN: {dpp.evidenceHashes[0]?.sha256.slice(0, 28)}...</p>
-                    <p className="text-emerald-700">Verified by SGS Vietnam</p>
-                  </div>
-                </>
-              ) : (
-                <div className="py-16 text-center text-sm text-slate-500">Chưa có QR đã khóa</div>
-              )}
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Phát thải lô hàng</span>
+              <Package className="h-4 w-4 text-emerald-700" />
             </div>
+            <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">{totals.toFixed(2)} <span className="text-xs font-normal text-slate-500">tCO₂e</span></p>
+            <p className="mt-0.5 truncate text-[11px] text-emerald-700 font-medium">~{selectedCarbon.total.toFixed(3)} kg CO₂e/chiếc</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Hộ chiếu số DPP</span>
+              <QrCode className="h-4 w-4 text-emerald-700" />
+            </div>
+            <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">{dpp ? "Đã khóa SHA-256" : "Sẵn sàng khóa"}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-500">Chuẩn GS1 Digital Link</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-slate-200 bg-white shadow-sm">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Mức sẵn sàng thị trường</span>
+              <Globe className="h-4 w-4 text-emerald-700" />
+            </div>
+            <p className="mt-1 text-sm sm:text-base font-bold text-emerald-700">EU 85% · JP 72%</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-500">Trung bình: {averageReadiness}% hoàn thiện</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border border-slate-200 bg-white shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><Webhook className="h-5 w-5 text-emerald-800" />Cổng API Brand</CardTitle>
-          <p className="text-sm text-slate-600">Kết xuất payload để đồng bộ PO và phát thải lũy kế sang ERP của nhà mua hàng.</p>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" onClick={handleBrandPayload}><Send className="mr-2 h-4 w-4" />Tải Buyer Webhook Payload JSON</Button>
-        </CardContent>
-      </Card>
+      {/* Main Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
+        <TabsList className="grid w-full grid-cols-3 max-w-xl bg-slate-100 p-1 rounded-xl">
+          <TabsTrigger value="shipment" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+            <Package className="h-4 w-4 shrink-0" />
+            <span className="truncate">Lô hàng & Chứng từ</span>
+          </TabsTrigger>
+          <TabsTrigger value="passport" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+            <QrCode className="h-4 w-4 shrink-0" />
+            <span className="truncate">Hộ chiếu số (DPP)</span>
+          </TabsTrigger>
+          <TabsTrigger value="compliance" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            <span className="truncate">Kiểm toán & Tuân thủ</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <ComplianceDetailModal
-        open={marketDetailOpen}
-        onOpenChange={setMarketDetailOpen}
-        marketCode={selectedMarketCode}
-        complianceData={displayComplianceData}
-      />
+        {/* TAB 1: Lô hàng & Chứng từ */}
+        <TabsContent value="shipment" className="space-y-5">
+          {/* Cổng Cấu hình Xuất khẩu */}
+          <Card className="border border-slate-200 bg-white shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                <FileSpreadsheet className="h-5 w-5 text-emerald-800" />
+                Cổng Cấu hình Xuất khẩu (Export Configuration Portal)
+              </CardTitle>
+              <p className="text-xs text-slate-600 sm:text-sm">
+                Đồng bộ số liệu carbon nhúng với Commercial Invoice / Packing List / B/L, sinh DPP QR và payload webhook cho ERP của nhà mua hàng.
+              </p>
+              {!isDemoRuntime && !useRealProducts && (
+                <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Công ty bạn chưa có sản phẩm nào được đánh giá carbon — dữ liệu SKU hiển thị bên dưới chỉ là dữ liệu mẫu minh họa.
+                    Hãy thêm và xuất bản sản phẩm trước khi khóa số liệu hoặc tải chứng từ thật.
+                  </span>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3.5 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Mã Số Tờ Khai Hải Quan</Label>
+                  <Input value={cfg.customsDeclarationNo} onChange={(event) => update("customsDeclarationNo", event.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Mã Hợp Đồng Thương Mại (PO/Contract ID)</Label>
+                  <Input value={cfg.poContractId} onChange={(event) => update("poContractId", event.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Mã Vận Đơn Đường Biển (Bill of Lading)</Label>
+                  <Input value={cfg.billOfLadingNo} onChange={(event) => update("billOfLadingNo", event.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Số Hiệu Container</Label>
+                  <Input value={cfg.containerNo} onChange={(event) => update("containerNo", event.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Chuẩn Định Danh Barcode Sản Phẩm</Label>
+                  <Select value={cfg.barcodeStandard} onValueChange={(value) => update("barcodeStandard", value as ExportConfigV2["barcodeStandard"])}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GS1-Digital">GS1 Digital Link (khuyến nghị EU ESPR)</SelectItem>
+                      <SelectItem value="GS1-128">GS1-128</SelectItem>
+                      <SelectItem value="EAN-13">EAN-13</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Nhà mua hàng (Brand)</Label>
+                  <Input value={cfg.buyerBrand} onChange={(event) => update("buyerBrand", event.target.value)} />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-semibold text-slate-700">Webhook ERP của Brand</Label>
+                  <Input value={cfg.buyerWebhookUrl} onChange={(event) => update("buyerWebhookUrl", event.target.value)} />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2.5 pt-1">
+                <Button
+                  className="bg-emerald-800 hover:bg-emerald-900 text-white font-medium"
+                  disabled={locking || saving}
+                  onClick={async () => {
+                    await handleLockDpp();
+                    setActiveTab("passport");
+                  }}
+                >
+                  <Lock className="mr-2 h-4 w-4" />
+                  Khóa số liệu & Xem Hộ chiếu số (DPP)
+                </Button>
+                <Button variant="outline" disabled={saving} onClick={handleSaveConfig}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Lưu cấu hình
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bộ chứng từ Vận tải & Thương mại */}
+          <Card className="border border-slate-200 bg-white shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                <FileText className="h-5 w-5 text-emerald-800" />
+                Chứng từ Vận tải & Thương mại (đã nhúng Embedded Carbon)
+              </CardTitle>
+              <p className="text-xs text-slate-600 sm:text-sm">
+                Bộ chứng từ thương mại được tích hợp dữ liệu phát thải carbon theo từng mã HS và container.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  { title: "Commercial Invoice", icon: FileText, type: "commercial-invoice" as const, copy: "Thêm cột Embedded Carbon Intensity và tổng theo dòng." },
+                  { title: "Packing List", icon: Package, type: "packing-list" as const, copy: "Carbon nhúng theo từng carton và container." },
+                  { title: "Bill of Lading (Carbon Annex)", icon: Ship, type: "bill-of-lading" as const, copy: "Tổng phát thải nhúng của lô theo B/L." }
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.type} className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4 transition-colors hover:bg-emerald-50/60">
+                      <div className="flex items-center gap-2 font-semibold text-slate-900">
+                        <Icon className="h-4 w-4 text-emerald-800" />
+                        {item.title}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600">{item.copy}</p>
+                      <Button size="sm" variant="outline" className="mt-3 border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50" onClick={() => void handleDownloadDocument(item.type)}>
+                        <Download className="mr-2 h-3.5 w-3.5" />Tải XLSX / CSV
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full min-w-[760px] text-xs sm:text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-700">
+                    <tr>
+                      <th className="px-3 py-2.5 font-semibold">Mã SKU</th>
+                      <th className="px-3 py-2.5 font-semibold">Mã HS / CN</th>
+                      <th className="px-3 py-2.5 text-right font-semibold">Số lượng (Units)</th>
+                      <th className="px-3 py-2.5 text-right font-semibold">kg CO₂e / chiếc</th>
+                      <th className="px-3 py-2.5 text-right font-semibold">Tổng phát thải (tCO₂e)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {breakdowns.map((item) => (
+                      <tr key={item.sku.sku} className="border-t border-slate-100 hover:bg-slate-50/50">
+                        <td className="px-3 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
+                        <td className="px-3 py-2.5 text-slate-600">{item.sku.cnCode}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">{item.embeddedKgPerUnit.toFixed(3)}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-900 tabular-nums">{item.embeddedTonnesBatch.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-emerald-50/80 font-bold border-t-2 border-emerald-200 text-emerald-950">
+                      <td className="px-3 py-3" colSpan={4}>Tổng cả lô hàng (B/L {cfg.billOfLadingNo || "ONEVNHAN260411"})</td>
+                      <td className="px-3 py-3 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cổng API / Webhook Brand */}
+          <Card className="border border-slate-200 bg-white shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                <Webhook className="h-5 w-5 text-emerald-800" />
+                Cổng Tích hợp API Brand (ERP Ingestion)
+              </CardTitle>
+              <p className="text-xs text-slate-600 sm:text-sm">
+                Kết xuất payload JSON có cấu trúc để đồng bộ PO và phát thải lũy kế sang hệ thống ERP của nhà mua hàng ({cfg.buyerBrand || "Brand"}).
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="border-slate-300" onClick={handleBrandPayload}>
+                <Send className="mr-2 h-4 w-4 text-emerald-800" />
+                Tải Buyer Webhook Payload JSON
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 2: Hộ chiếu số (DPP QR) */}
+        <TabsContent value="passport" className="space-y-5">
+          <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+            {/* Cột Trái: Cấu hình và thông tin DPP */}
+            <Card className="border border-slate-200 bg-white shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                  <QrCode className="h-5 w-5 text-emerald-800" />
+                  Hộ chiếu Số Sản phẩm (Digital Product Passport - ESPR)
+                </CardTitle>
+                <p className="text-xs text-slate-600 sm:text-sm">
+                  Cấp định danh phi tập trung và mã QR theo chuẩn EU Ecodesign (ESPR) kết hợp chuẩn GS1 Digital Link.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Label className="text-xs font-semibold text-slate-700">SKU áp dụng:</Label>
+                  <Select value={activeSku} onValueChange={setActiveSku}>
+                    <SelectTrigger className="w-full sm:w-[320px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {skuOptions.map((item) => (
+                        <SelectItem key={item.key} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    className="bg-emerald-800 hover:bg-emerald-900 text-white"
+                    disabled={locking}
+                    onClick={handleLockDpp}
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    Sinh QR & Khóa số liệu
+                  </Button>
+                </div>
+
+                {dpp ? (
+                  <div className="space-y-4 pt-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className="bg-emerald-700 text-white hover:bg-emerald-700">
+                        <Lock className="mr-1 h-3 w-3" />
+                        SHA-256 Locked
+                      </Badge>
+                      <Badge variant="outline" className="font-mono text-slate-700">
+                        GTIN {dpp.gtin}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-800 border-emerald-200">
+                        Chuẩn ISO 14067:2018
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 text-xs">
+                      <div>
+                        <span className="font-semibold text-slate-800">Decentralized GS1 Link:</span>
+                        <div className="mt-1 flex items-center justify-between gap-2 rounded bg-white p-2 border border-slate-200 font-mono text-[11px] text-emerald-900">
+                          <span className="truncate">{dpp.decentralizedUrl}</span>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs shrink-0" onClick={() => copy(dpp.decentralizedUrl)}>
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="pt-1">
+                        <span className="font-semibold text-slate-800">SHA-256 Payload Hash:</span>
+                        <div className="mt-1 flex items-center justify-between gap-2 rounded bg-white p-2 border border-slate-200 font-mono text-[11px] text-slate-600">
+                          <span className="truncate">{dpp.payloadSha256}</span>
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs shrink-0" onClick={() => copy(dpp.payloadSha256)}>
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="pt-1 flex items-center gap-2 text-emerald-800 font-medium">
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-700" />
+                        <span>Đơn vị kiểm toán độc lập: SGS Vietnam · Tiêu chuẩn ISO 14067</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button size="sm" className="bg-emerald-800 hover:bg-emerald-900 text-white" onClick={downloadQrSvg}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Tải file QR SVG in ấn
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => copy(dpp.decentralizedUrl)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Sao chép Link tra cứu
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => copy(dpp.payloadSha256)}>
+                        Sao chép SHA-256
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
+                    <p className="text-sm text-slate-600">
+                      Nhấn nút <b className="text-emerald-800">&quot;Sinh QR & Khóa số liệu&quot;</b> ở trên để tạo Hộ chiếu Số phi tập trung cho sản phẩm này.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Cột Phải: Mockup Smartphone Hải quan EU */}
+            <Card className="border border-slate-200 bg-white shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <Smartphone className="h-4 w-4 text-emerald-800" />
+                  Mô phỏng quét mã QR (Hải quan EU & Brand)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex justify-center pb-6">
+                <div className="w-[270px] rounded-[32px] border-[8px] border-slate-900 bg-white p-3.5 shadow-2xl">
+                  {/* Speaker notch */}
+                  <div className="mx-auto mb-3 h-3.5 w-20 rounded-full bg-slate-900" />
+
+                  {dpp ? (
+                    <div className="space-y-2.5">
+                      <div className="rounded-xl bg-emerald-900 p-3 text-white text-center shadow-inner">
+                        <p className="text-[10px] uppercase tracking-wider text-emerald-200 font-semibold">Digital Product Passport</p>
+                        <p className="mt-0.5 text-xs font-bold leading-snug">{dpp.productName}</p>
+                        <p className="text-[10px] text-emerald-300">SKU {dpp.sku} · HS {dpp.cnCode}</p>
+                      </div>
+
+                      <div className="flex justify-center py-2 bg-slate-50 rounded-xl border border-slate-100">
+                        <QRCodeSVG id={`dpp-qr-${dpp.sku}`} value={dpp.decentralizedUrl} size={150} includeMargin />
+                      </div>
+
+                      <div className="space-y-1.5 rounded-lg bg-slate-50 p-2.5 text-[11px] border border-slate-100">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Embedded Carbon:</span>
+                          <span className="font-bold text-emerald-900">{dpp.embeddedKgPerUnit.toFixed(3)} kg CO₂e</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-slate-500">
+                          <span>Bằng chứng EVN:</span>
+                          <span className="font-mono">{dpp.evidenceHashes[0]?.sha256.slice(0, 12)}...</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-semibold pt-0.5 border-t border-slate-200">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Verified by SGS Vietnam</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-20 text-center text-xs text-slate-400">
+                      Chưa có mã QR đã khóa
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* TAB 3: Kiểm toán & Tuân thủ Quốc tế */}
+        <TabsContent value="compliance" className="space-y-6">
+          {/* Mức độ sẵn sàng theo thị trường (CHỈ 1 LẦN DUY NHẤT) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+                <Globe className="h-5 w-5 text-emerald-800" />
+                Mức độ sẵn sàng theo thị trường xuất khẩu
+              </h3>
+              <Badge variant="outline" className="text-xs text-slate-600">
+                4 thị trường mục tiêu
+              </Badge>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {displayMarketCards.map((market) => (
+                <Card
+                  key={market.code}
+                  className="cursor-pointer rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
+                  onClick={() => handleOpenMarket(market.code)}
+                >
+                  <CardContent className="p-3.5 sm:p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800 font-bold text-sm">
+                        {market.code}
+                      </div>
+                      <Badge className={market.score >= 80 ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : "bg-amber-100 text-amber-800 hover:bg-amber-100"}>
+                        {market.score}%
+                      </Badge>
+                    </div>
+
+                    <div className="mt-2.5">
+                      <p className="truncate text-sm font-semibold text-slate-900">{market.name}</p>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{market.regulation}</p>
+                      <Progress value={market.score} className="mt-2 h-1.5" />
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
+                      <div className={`flex items-center gap-1 text-[11px] font-medium ${market.score >= 80 ? "text-emerald-700" : "text-amber-700"}`}>
+                        {market.score >= 80 ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                        <span>{market.score >= 80 ? "Sẵn sàng xuất khẩu" : "2 mục cần bổ sung"}</span>
+                      </div>
+                      <span className="flex items-center text-slate-400 hover:text-slate-600 text-[11px]">
+                        Chi tiết <ChevronRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Pre-Audit Pack */}
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+              <Shield className="h-5 w-5 text-emerald-800" />
+              Pre-Audit Pack — Sẵn sàng kiểm toán SGS / BV / CBAM
+            </h3>
+            <Card className="overflow-hidden rounded-xl border-2 border-slate-200 bg-white font-mono text-sm shadow-sm">
+              <div className="border-b border-dashed border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-center text-xs font-bold tracking-[0.22em] text-emerald-900">
+                  WEAVE CARBON CORE ENGINE — AUDIT COMPLIANCE PANEL
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="rounded-md font-mono">SKU: {selectedSku.sku}</Badge>
+                    <Badge className="rounded-md bg-emerald-600 font-mono text-white hover:bg-emerald-600">
+                      <Lock className="mr-1 h-3 w-3" />
+                      ĐÃ KHÓA SỬA ĐỔI (SHA-256)
+                    </Badge>
+                  </div>
+                  {selectedCarbon.gap > 0 ? (
+                    <Badge className="rounded-md bg-red-500 font-mono text-white hover:bg-red-500">
+                      <AlertTriangle className="mr-1 h-3 w-3" />
+                      +20% PROXY (EU 2023/1773)
+                    </Badge>
+                  ) : (
+                    <Badge className="rounded-md bg-emerald-700 font-mono text-white hover:bg-emerald-700">
+                      AUDIT-READY
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-xs">
+                  <thead className="bg-slate-50 text-left text-emerald-950">
+                    <tr>
+                      <th className="px-3 py-2 font-bold">#</th>
+                      <th className="px-3 py-2 font-bold">Phân đoạn</th>
+                      <th className="px-3 py-2 text-right font-bold">Sản lượng (AD)</th>
+                      <th className="px-3 py-2 text-right font-bold">Hệ số (EF)</th>
+                      <th className="px-3 py-2 font-bold">Nguồn gốc EF</th>
+                      <th className="px-3 py-2 text-right font-bold">kg CO₂e</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditRows.map((row, index) => (
+                      <tr key={`${row.segment}-${row.detail}-${index}`} className={`border-t border-slate-100 ${row.isDefault ? "bg-red-50" : ""}`}>
+                        <td className="px-3 py-3 text-emerald-900">{index + 1}</td>
+                        <td className="px-3 py-3">
+                          <div className="font-semibold">{row.segment}</div>
+                          <div className="text-[11px] text-emerald-900">{row.detail}</div>
+                          {row.isDefault && <Badge className="mt-1 rounded bg-red-500 px-1 py-0 text-[10px] text-white">DEFAULT</Badge>}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.activity.toFixed(3)}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{row.factor.toFixed(4)}</td>
+                        <td className="px-3 py-3 text-[11px] text-emerald-900">{row.source}</td>
+                        <td className="px-3 py-3 text-right font-semibold tabular-nums">{row.kgCo2e.toFixed(3)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-300 bg-emerald-50">
+                      <td colSpan={5} className="px-3 py-3 font-bold">TỔNG DẤU CHÂN CARBON SẢN PHẨM (ISO 14067)</td>
+                      <td className="px-3 py-3 text-right text-base font-bold tabular-nums">
+                        {selectedCarbon.total.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/chiếc</span>
+                      </td>
+                    </tr>
+                    <tr className="bg-red-50 text-red-600">
+                      <td colSpan={5} className="px-3 py-3">
+                        Mô phỏng rủi ro kiểu CBAM (pre-audit, giả định 85 €/tCO₂e × dư phát thải {(selectedCarbon.gap / 1000).toFixed(4)} t — không phải khoản phí CBAM thực tế)
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold">€ {selectedSku.cbamPenaltyEurPerUnit.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div className="space-y-3 border-t border-dashed border-slate-200 p-4">
+                <div className="text-xs font-bold tracking-wide text-emerald-900">
+                  &gt;&gt;&gt; HỒ SƠ CHỨNG TỪ GỐC (TẢI VỀ CHO KIỂM TOÁN VIÊN SGS / TÜV RHEINLAND) &lt;&lt;&lt;
+                </div>
+                <div className="space-y-1 text-xs">
+                  {selectedEvidence.map((item) => (
+                    <div key={`${item.lookupCode}-${item.sha256}`} className="flex items-center justify-between gap-2 rounded border border-slate-200 px-2 py-1 bg-white">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <FileText className="h-3 w-3 shrink-0 text-slate-500" />
+                        <span className="truncate">{item.fileName}</span>
+                        <Badge variant="outline" className="rounded px-1 py-0 text-[10px]">Mã tra cứu: {item.lookupCode}</Badge>
+                      </span>
+                      <span className="shrink-0 text-[10px] text-slate-500 font-mono">SHA-256 {item.sha256.slice(0, 12).toUpperCase()}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button size="sm" className="bg-emerald-800 text-white hover:bg-emerald-900" onClick={downloadAuditPackJson}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Audit Pack (JSON)
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`KiemKeKNK_${selectedSku.sku}.csv`)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Mẫu kiểm kê KNK (TT 38/2023/TT-BCT)
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => downloadAuditCsv(`CBAM_${selectedSku.sku}.csv`)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    CBAM-style template (DG TAXUD, pre-audit)
+                  </Button>
+                </div>
+                <div className="pt-2 text-[10px] text-emerald-900">
+                  ISO 14067:2018 · Ecoinvent v3.10 · DEFRA 2024 · Bộ TN&MT VN
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Kho Tài liệu Tuân thủ & Chứng nhận Vật liệu (Document Manager) */}
+          {documentManagerSlot && (
+            <div className="space-y-3">
+              <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+                <FolderCheck className="h-5 w-5 text-emerald-800" />
+                Kho Tài liệu Tuân thủ & Chứng chỉ Vật liệu
+              </h3>
+              {documentManagerSlot}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Local Compliance Detail Modal Fallback */}
+      {!onOpenMarketDetail && (
+        <ComplianceDetailModal
+          open={marketDetailOpen}
+          onOpenChange={setMarketDetailOpen}
+          marketCode={selectedMarketCode}
+          complianceData={displayComplianceData}
+        />
+      )}
     </div>
   );
 };
 
-const ExportConfigurationPortalV2: React.FC = () => {
+export interface ExportConfigurationPortalV2Props {
+  documentManagerSlot?: React.ReactNode;
+  onOpenMarketDetail?: (market: MarketCode) => void;
+}
+
+const ExportConfigurationPortalV2: React.FC<ExportConfigurationPortalV2Props> = ({
+  documentManagerSlot,
+  onOpenMarketDetail
+}) => {
   const pathname = usePathname();
-  return isDemoPath(pathname) ? <DemoExportConfigurationPortalV2 /> : <ShipmentExportPortal />;
+  if (isDemoPath(pathname)) {
+    return (
+      <DemoExportConfigurationPortalV2
+        documentManagerSlot={documentManagerSlot}
+        onOpenMarketDetail={onOpenMarketDetail}
+      />
+    );
+  }
+  return (
+    <div className="space-y-6">
+      <ShipmentExportPortal />
+      {documentManagerSlot}
+    </div>
+  );
 };
 
 export default ExportConfigurationPortalV2;
