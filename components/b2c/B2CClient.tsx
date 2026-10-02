@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -51,19 +51,13 @@ const B2CClient: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-x-clip bg-background">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute right-0 top-44 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
-        <div className="absolute bottom-10 left-1/4 h-72 w-72 rounded-full bg-emerald-200/20 blur-3xl" />
-      </div>
-
+    <div className="relative min-h-dvh bg-background text-foreground">
       <B2CHeader
         profile={profile}
         onSignOut={handleSignOut}
       />
 
-      <main className="container mx-auto max-w-6xl space-y-7 px-4 py-6 pb-safe sm:py-8">
+      <main className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         <B2CWelcome profile={profile} />
 
         <B2CQuickActions

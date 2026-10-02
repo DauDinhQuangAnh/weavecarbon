@@ -105,84 +105,106 @@ const B2CStatsGrid: React.FC<B2CStatsGridProps> = ({ profile }) => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-2.5 ring-1 ring-emerald-200">
-              <TierIcon className="h-5 w-5 text-emerald-600" />
+      {/* Tier Progress Banner - B2B Executive Format */}
+      <Card className="border-border bg-card shadow-xs">
+        <CardContent className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <TierIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Phân hạng tuần hoàn cá nhân
+                </p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <h3 className="text-lg font-bold text-foreground">{currentTier.name}</h3>
+                  <span className="text-xs font-medium text-primary">
+                    ({stats.co2Saved.toLocaleString("vi-VN")} kg CO₂e đã giảm)
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Cấp độ tuần hoàn
-              </p>
-              <p className="text-lg font-bold text-foreground">{currentTier.name}</p>
+
+            <div className="w-full sm:w-64 space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Tiến trình hạng tiếp theo</span>
+                <span className="font-semibold text-foreground">{tierProgress}%</span>
+              </div>
+              <Progress value={tierProgress} className="h-2" />
             </div>
           </div>
-          <Progress value={tierProgress} className="mt-3 h-2" />
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-3 text-xs text-muted-foreground">
             {nextTier
-              ? `Còn ${Math.max(0, Math.ceil(nextTier.min - stats.co2Saved)).toLocaleString("vi-VN")} kg CO₂ để lên "${nextTier.name}".`
-              : "Bạn đã đạt cấp cao nhất — Đại sứ Tuần hoàn."}
+              ? `Cần tiết giảm thêm ${Math.max(0, Math.ceil(nextTier.min - stats.co2Saved)).toLocaleString("vi-VN")} kg CO₂e để đạt danh hiệu "${nextTier.name}".`
+              : "Bạn đã đạt thứ hạng cao nhất trong mạng lưới cá nhân tuần hoàn WeaveCarbon."}
           </p>
         </CardContent>
       </Card>
 
+      {/* 4 Stat Cards - Formatted like B2B Overview KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {statItems.map((item) => {
-        const Icon = item.icon;
+        {statItems.map((item) => {
+          const Icon = item.icon;
 
-        return (
-          <Card
-            key={item.key}
-            className="overflow-hidden border-border/80 bg-card/90 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          return (
+            <Card
+              key={item.key}
+              className="border-border bg-card shadow-xs transition-colors hover:border-primary/40"
+            >
+              <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {item.label}
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                    {item.value}
-                  </p>
-                </div>
-                <div className={`rounded-2xl p-2.5 ring-1 ${item.bg} ${item.ring}`}>
-                  <Icon className={`h-5 w-5 ${item.tone}`} />
+                  </span>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
+                    <Icon className="h-4 w-4" />
+                  </div>
                 </div>
               </div>
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted/60">
-                <div className="h-full rounded-full bg-linear-to-r from-primary to-accent" />
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+              <CardContent className="p-4 pt-3">
+                <div className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  {typeof item.value === "number" ? item.value.toLocaleString("vi-VN") : item.value}
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span>Cập nhật theo thời gian thực</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
+      {/* Equivalences - Executive Impact Section */}
       {equivalences.length > 0 ? (
-        <Card className="border-border/80 bg-card/90 shadow-sm">
+        <Card className="border-border bg-card shadow-xs">
+          <div className="border-b border-border bg-muted/20 px-4 py-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Quy đổi tác động môi trường thực tế ({stats.co2Saved} kg CO₂e)
+            </span>
+          </div>
           <CardContent className="p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {stats.co2Saved} kg CO₂ bạn tiết kiệm · tương đương
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {equivalences.map((eq, index) => {
                 const EqIcon = eq.icon;
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-100"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3"
                   >
-                    <EqIcon className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <EqIcon className="h-4.5 w-4.5" />
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-lg font-bold text-foreground">{eq.value}</p>
-                      <p className="text-xs text-muted-foreground">{eq.label}</p>
+                      <p className="text-base font-bold text-foreground">{eq.value}</p>
+                      <p className="text-xs text-muted-foreground truncate">{eq.label}</p>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
               Số quy đổi mang tính minh hoạ (hệ số TB: ô tô ~0,17 kg CO₂e/km · cây xanh ~21 kg/năm · sạc điện thoại ~8 g).
             </p>
           </CardContent>

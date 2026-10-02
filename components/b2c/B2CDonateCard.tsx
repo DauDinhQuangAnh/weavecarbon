@@ -14,27 +14,33 @@ const B2CDonateCard: React.FC<B2CDonateCardProps> = ({ onStartDonate }) => {
   const t = useTranslations("b2c");
 
   return (
-    <Card className="overflow-hidden border-primary/15 bg-linear-to-r from-primary/12 via-card to-accent/12 shadow-sm">
-      <CardContent className="relative p-6">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/15 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-14 right-20 h-28 w-28 rounded-full bg-accent/20 blur-2xl" />
-
-        <div className="relative flex flex-col gap-4 md:flex-row md:items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card/90 ring-1 ring-border/70">
-            <Gift className="h-8 w-8 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h3 className="mb-1 text-xl font-semibold tracking-tight">{t("donate.title")}</h3>
-            <p className="text-sm text-muted-foreground md:max-w-2xl">
-              {t("donate.description")}
-            </p>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3 py-1 text-xs text-muted-foreground">
-              <PackageCheck className="h-3.5 w-3.5" />
-              {t("donate.photoRequiredNote")}
+    <Card className="border-border bg-card shadow-xs">
+      <CardContent className="p-6 sm:p-7">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Gift className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold tracking-tight text-foreground">{t("donate.title") || "Quyên góp thời trang tuần hoàn"}</h3>
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                {t("donate.description") || "Đóng góp quần áo cũ, nhận phân tích AI về chất liệu và tích lũy điểm thưởng xanh để đổi quà."}
+              </p>
+              <div className="pt-2">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground font-medium">
+                  <PackageCheck className="h-3.5 w-3.5 text-primary" />
+                  {t("donate.photoRequiredNote") || "Hỗ trợ chụp ảnh trực tiếp và quét mã nhận diện AI"}
+                </span>
+              </div>
             </div>
           </div>
-          <Button variant="hero" size="lg" onClick={onStartDonate}>
-            {t("donate.startButton")}
+
+          <Button
+            size="lg"
+            onClick={onStartDonate}
+            className="shrink-0 bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-xs"
+          >
+            {t("donate.startButton") || "Bắt đầu quyên góp"}
           </Button>
         </div>
       </CardContent>
