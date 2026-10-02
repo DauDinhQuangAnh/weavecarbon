@@ -77,6 +77,8 @@ services:
       RAG_INTERNAL_API_KEY: ${RAG_INTERNAL_API_KEY:?RAG_INTERNAL_API_KEY must be set}
       RAG_REQUIRE_INTERNAL_API_KEY: "true"
       JOB_RETENTION_DAYS: ${JOB_RETENTION_DAYS:-30}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyA5G3BE3y6KeMKB6l-Gv7si9cNM3VDlZJo}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite-preview}
     volumes:
       - be_uploads:/app/uploads
     networks:

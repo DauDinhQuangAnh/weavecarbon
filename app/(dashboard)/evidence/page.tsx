@@ -371,18 +371,43 @@ export default function EvidencePage() {
         if (data.supplier_name) {
           setSupplier(data.supplier_name);
         }
-        if (data.period_start) {
-          setPeriodStart(data.period_start);
+        const normalizeToIsoDate = (val?: string | null): string => {
+          if (!val) return '';
+          const s = String(val).trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+          const dmy = s.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/);
+          if (dmy) {
+            return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+          }
+          const ymd = s.match(/^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})$/);
+          if (ymd) {
+            return `${ymd[1]}-${ymd[2].padStart(2, '0')}-${ymd[3].padStart(2, '0')}`;
+          }
+          return '';
+        };
+
+        const isoStart = normalizeToIsoDate(data.period_start);
+        if (isoStart) {
+          setPeriodStart(isoStart);
         }
-        if (data.period_end) {
-          setPeriodEnd(data.period_end);
+        const isoEnd = normalizeToIsoDate(data.period_end);
+        if (isoEnd) {
+          setPeriodEnd(isoEnd);
         }
-        const effectiveBillingPeriod = data.billing_period || (data.period_start ? data.period_start.slice(0, 7) : '');
-        if (effectiveBillingPeriod) {
+
+        let effectiveBilling = (data.billing_period || '').trim();
+        if (effectiveBilling && /^\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4}$/.test(effectiveBilling)) {
+          const parts = effectiveBilling.split(/[\/\.-]/);
+          effectiveBilling = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+        }
+        if (!effectiveBilling && isoStart) {
+          effectiveBilling = isoStart.slice(0, 7);
+        }
+        if (effectiveBilling) {
           if (data.detected_kind === 'electricity_bill') {
-            setElecBillingPeriod(effectiveBillingPeriod);
+            setElecBillingPeriod(effectiveBilling);
           } else if (data.detected_kind === 'fuel_receipt') {
-            setFuelBillingPeriod(effectiveBillingPeriod);
+            setFuelBillingPeriod(effectiveBilling);
           }
         }
         if (data.detected_kind === 'electricity_bill') {
