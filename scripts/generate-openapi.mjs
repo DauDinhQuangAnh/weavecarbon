@@ -6,9 +6,13 @@ import openapiTS, { astToString, COMMENT_HEADER } from "openapi-typescript";
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const snapshotPath = path.join(frontendRoot, "contracts", "backend.openapi.json");
 const generatedPath = path.join(frontendRoot, "lib", "api", "generated", "backend.ts");
+const defaultBackendPath = [
+  path.join(frontendRoot, "..", "BE", "openapi", "openapi.json"),
+  path.join(frontendRoot, "..", "BE_weavecarbon", "openapi", "openapi.json")
+].find((p) => fs.existsSync(p)) || path.join(frontendRoot, "..", "BE", "openapi", "openapi.json");
+
 const backendArtifactPath = path.resolve(
-  process.env.BACKEND_OPENAPI_PATH ||
-    path.join(frontendRoot, "..", "BE_weavecarbon", "openapi", "openapi.json")
+  process.env.BACKEND_OPENAPI_PATH || defaultBackendPath
 );
 const checkOnly = process.argv.includes("--check");
 const syncBackend = process.argv.includes("--sync");

@@ -36,8 +36,10 @@ import {
   Zap,
   Flame,
   FileCheck2,
+  Sparkles,
 } from 'lucide-react';
-import { api, authTokenStore } from '@/lib/apiClient';
+import { api } from '@/lib/apiClient';
+import { type AiAnalysisResult } from '@/hooks/useEvidenceUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
@@ -317,6 +319,90 @@ export default function EvidencePage() {
   const [fuelQtyLiters, setFuelQtyLiters] = useState('');
   const [fuelEF, setFuelEF] = useState('');
 
+  // AI OCR / Vision analysis state
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<{
+    detected_kind: string;
+    document_title: string;
+    confidence: number;
+    supplier_name?: string | null;
+    kwh_total?: number | null;
+    fuel_liters?: number | null;
+    summary?: string;
+  } | null>(null);
+
+  const analyzeSelectedFile = async (selectedFile: File) => {
+    if (!selectedFile) return;
+    setAnalyzingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      if (docType) formData.append('hintKind', docType);
+
+      const res = await api.post<{ data?: AiAnalysisResult } | AiAnalysisResult>('/evidence/analyze-file', formData);
+      const data = ((res as { data?: AiAnalysisResult })?.data || res) as AiAnalysisResult;
+
+      if (data && data.success) {
+        setAiAnalysisResult({
+          detected_kind: data.detected_kind,
+          document_title: data.document_title,
+          confidence: data.confidence || 0.9,
+          supplier_name: data.supplier_name,
+          kwh_total: data.kwh_total,
+          fuel_liters: data.fuel_liters,
+          summary: data.summary,
+        });
+
+        // Auto-populate form fields
+        if (data.detected_kind && DOC_TYPES.some((d) => d.value === data.detected_kind)) {
+          setDocType(data.detected_kind);
+        }
+        if (data.supplier_name) {
+          setSupplier(data.supplier_name);
+        }
+        if (data.period_start) {
+          setPeriodStart(data.period_start);
+        }
+        if (data.period_end) {
+          setPeriodEnd(data.period_end);
+        }
+        if (data.billing_period) {
+          if (data.detected_kind === 'electricity_bill') {
+            setElecBillingPeriod(data.billing_period);
+          } else if (data.detected_kind === 'fuel_receipt') {
+            setFuelBillingPeriod(data.billing_period);
+          }
+        }
+        if (data.detected_kind === 'electricity_bill') {
+          if (data.kwh_total != null) setElecKwh(String(data.kwh_total));
+          if (data.facility_name) setElecFacilityName(data.facility_name);
+          if (data.emission_factor != null) setElecEF(String(data.emission_factor));
+          if (data.emission_factor_source) setElecEFSource(data.emission_factor_source);
+        } else if (data.detected_kind === 'fuel_receipt') {
+          if (data.fuel_type) setFuelType(data.fuel_type);
+          if (data.fuel_liters != null) setFuelQtyLiters(String(data.fuel_liters));
+          if (data.emission_factor != null) setFuelEF(String(data.emission_factor));
+        }
+        if (data.summary) {
+          setNotes((prev) => (prev ? prev : data.summary));
+        }
+
+        toast({
+          title: `✨ AI đã nhận diện: ${data.document_title}`,
+          description: `Đã tự động điền loại chứng từ và số liệu trích xuất (${Math.round((data.confidence || 0.9) * 100)}% tin cậy).`,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Không thể nhận diện tự động qua AI',
+        description: err instanceof Error ? err.message : 'Bạn có thể tiếp tục nhập thông tin thủ công.',
+        variant: 'destructive',
+      });
+    } finally {
+      setAnalyzingImage(false);
+    }
+  };
+
   const load = useCallback(async (p = 1) => {
     setLoading(true);
     try {
@@ -400,6 +486,8 @@ export default function EvidencePage() {
 
   const resetUploadForm = () => {
     setFile(null);
+    setAiAnalysisResult(null);
+    setAnalyzingImage(false);
     setSupplier('');
     setNotes('');
     setFactorVersionIds('');
@@ -780,6 +868,81 @@ export default function EvidencePage() {
             </DialogDescription>
           </DialogHeader>
 
+          {/* AI Vision Analysis Banner / Status */}
+          {analyzingImage ? (
+            <div className="rounded-xl border border-sky-300 bg-gradient-to-r from-sky-50 via-indigo-50 to-sky-50 p-3.5 shadow-sm flex items-center gap-3">
+              <Loader2 className="h-5 w-5 text-sky-600 animate-spin shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-sky-600" />
+                  AI Vision đang phân tích ảnh chứng từ & trích xuất số liệu...
+                </p>
+                <p className="text-[11px] text-sky-700 mt-0.5">
+                  Hệ thống đang tự động nhận diện loại chứng từ, đơn vị phát hành và các giá trị định lượng để điền vào biểu mẫu.
+                </p>
+              </div>
+            </div>
+          ) : aiAnalysisResult ? (
+            <div className="rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 p-3.5 shadow-sm flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="rounded-lg bg-emerald-600 p-1.5 text-white shrink-0 mt-0.5">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-emerald-950">
+                      AI đã nhận diện: {aiAnalysisResult.document_title}
+                    </span>
+                    <Badge className="bg-emerald-700 text-white hover:bg-emerald-800 text-[10px] h-5">
+                      Độ tin cậy: {Math.round(aiAnalysisResult.confidence * 100)}%
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 mt-0.5 leading-snug">
+                    {aiAnalysisResult.summary}
+                  </p>
+                  <div className="flex items-center gap-2.5 mt-1.5 text-[11px] text-emerald-900 font-semibold flex-wrap">
+                    {aiAnalysisResult.supplier_name && (
+                      <span className="bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-200">
+                        NCC: {aiAnalysisResult.supplier_name}
+                      </span>
+                    )}
+                    {aiAnalysisResult.kwh_total != null && (
+                      <span className="bg-sky-100/80 px-2 py-0.5 rounded border border-sky-200 text-sky-900">
+                        ⚡ {aiAnalysisResult.kwh_total.toLocaleString('vi-VN')} kWh
+                      </span>
+                    )}
+                    {aiAnalysisResult.fuel_liters != null && (
+                      <span className="bg-orange-100/80 px-2 py-0.5 rounded border border-orange-200 text-orange-900">
+                        🔥 {aiAnalysisResult.fuel_liters.toLocaleString('vi-VN')} lít
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {file && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] border-emerald-300 text-emerald-800 hover:bg-emerald-100 shrink-0"
+                  disabled={analyzingImage}
+                  onClick={() => void analyzeSelectedFile(file)}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" /> Quét lại
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/40 p-2.5 flex items-center justify-between text-xs text-emerald-900">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span className="text-[11px]">
+                  <strong>Nhận diện tự động qua AI Vision:</strong> Bạn chỉ cần tải ảnh chứng từ (hóa đơn tiền điện EVN, hóa đơn xăng dầu, vận đơn, BOM...), AI sẽ tự động nhận diện và điền đầy đủ biểu mẫu.
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
             {/* Cột 1: Thông tin phân loại & liên kết */}
             <div className="space-y-3">
@@ -1061,21 +1224,43 @@ export default function EvidencePage() {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-slate-600 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => setFile(null)}
-                      >
-                        Đổi file
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-sky-700 hover:text-sky-800 hover:bg-sky-50"
+                          disabled={analyzingImage}
+                          onClick={() => void analyzeSelectedFile(file)}
+                        >
+                          <Sparkles className="h-3.5 w-3.5 mr-1 text-sky-600" />
+                          Quét lại AI
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-slate-600 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => {
+                            setFile(null);
+                            setAiAnalysisResult(null);
+                          }}
+                        >
+                          Đổi file
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <Input
                       type="file"
                       accept={ACCEPT}
-                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                      onChange={(e) => {
+                        const selected = e.target.files?.[0] ?? null;
+                        setFile(selected);
+                        if (selected) {
+                          void analyzeSelectedFile(selected);
+                        }
+                      }}
                       className="h-9 text-xs file:mr-2 file:h-7 file:border-0 file:bg-slate-100 file:text-xs file:font-medium file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
                     />
                   )}

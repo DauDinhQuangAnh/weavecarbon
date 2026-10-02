@@ -42,12 +42,18 @@ const EvidenceUploader: React.FC<Props> = ({
   onExtracted,
 }) => {
   const router = useRouter();
-  const { upload, uploading, processing } = useEvidenceUpload(companyId);
+  const { upload, uploading, processing, analyzeFile, analyzing } = useEvidenceUpload(companyId);
   const [kind, setKind] = useState<EvidenceKind>(defaultKind);
   const [latest, setLatest] = useState<EvidenceDocument | null>(null);
 
   const handleFile = async (file: File) => {
-    const doc = await upload(file, kind, productId);
+    let uploadKind = kind;
+    const analysis = await analyzeFile(file, kind);
+    if (analysis?.detected_kind && analysis.detected_kind in KIND_LABELS) {
+      uploadKind = analysis.detected_kind as EvidenceKind;
+      setKind(uploadKind);
+    }
+    const doc = await upload(file, uploadKind, productId);
     if (doc) {
       setLatest(doc);
       if (doc.status === 'extracted') onExtracted?.(doc);
@@ -59,7 +65,7 @@ const EvidenceUploader: React.FC<Props> = ({
     router.push(`/evidence?highlight=${encodeURIComponent(latest.id)}`);
   };
 
-  const isBusy = uploading || processing;
+  const isBusy = uploading || processing || analyzing;
 
   return (
     <Card>
