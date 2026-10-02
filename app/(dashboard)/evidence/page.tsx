@@ -31,13 +31,20 @@ import {
   FileText,
   Loader2,
   Trash2,
-  Upload,
   Download,
   Zap,
   Flame,
   FileCheck2,
   Sparkles,
+  UploadCloud,
+  PenLine,
 } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { api } from '@/lib/apiClient';
 import { type AiAnalysisResult } from '@/hooks/useEvidenceUpload';
 import { useAuth } from '@/contexts/AuthContext';
@@ -320,7 +327,11 @@ export default function EvidencePage() {
   const [fuelEF, setFuelEF] = useState('');
 
   // AI OCR / Vision analysis state
+  const [uploadMode, setUploadMode] = useState<'ai_import' | 'manual'>('ai_import');
+  const [dragOver, setDragOver] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState(false);
+  const aiFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const manualFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<{
     detected_kind: string;
     document_title: string;
@@ -489,6 +500,7 @@ export default function EvidencePage() {
     setFile(null);
     setAiAnalysisResult(null);
     setAnalyzingImage(false);
+    setDragOver(false);
     setSupplier('');
     setNotes('');
     setFactorVersionIds('');
@@ -507,14 +519,33 @@ export default function EvidencePage() {
   };
 
   const handleUpload = async () => {
-    if (!file)
-      return toast({ title: 'Vui lòng chọn file', variant: 'destructive' });
-    if (file.size > MAX_SIZE)
+    let effectiveFile = file;
+    if (!effectiveFile) {
+      if (uploadMode === 'manual') {
+        const stubContent = [
+          'CHỨNG TỪ NHẬP LIỆU THỦ CÔNG (MANUAL EVIDENCE RECORD)',
+          `Loại chứng từ: ${docType}`,
+          `Nhà cung cấp / Bên phát hành: ${supplier || 'Chưa cung cấp'}`,
+          `Kỳ báo cáo: ${periodStart || 'N/A'} đến ${periodEnd || 'N/A'}`,
+          `Ghi chú: ${notes || 'Nhập thủ công trực tiếp trên hệ thống'}`,
+          `Thời gian ghi nhận: ${new Date().toISOString()}`,
+        ].join('\n');
+        effectiveFile = new File([stubContent], `manual_entry_${docType}_${Date.now()}.txt`, {
+          type: 'text/plain',
+        });
+      } else {
+        return toast({
+          title: 'Vui lòng chọn hoặc kéo thả tệp chứng từ để AI phân tích',
+          variant: 'destructive',
+        });
+      }
+    }
+    if (effectiveFile.size > MAX_SIZE)
       return toast({ title: 'File vượt quá 20MB', variant: 'destructive' });
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', effectiveFile);
       formData.append('kind', docType);
       if (periodStart) formData.append('reportingPeriodStart', periodStart);
       if (periodEnd) formData.append('reportingPeriodEnd', periodEnd);
@@ -562,7 +593,9 @@ export default function EvidencePage() {
         } catch { /* non-fatal */ }
       }
 
-      toast({ title: 'Đã tải lên. AI đang đọc chứng từ…' });
+      toast({
+        title: uploadMode === 'ai_import' ? 'Đã lưu chứng từ và kích hoạt đối soát AI' : 'Đã lưu chứng từ thành công',
+      });
       setUploadOpen(false);
       resetUploadForm();
       setPage(1);
@@ -674,12 +707,29 @@ export default function EvidencePage() {
             Tải hóa đơn, BOM, vận đơn hoặc chứng từ nhà cung ứng để hệ thống đọc dữ liệu, kiểm tra tính nhất quán và tự động lưu vết minh bạch vào Audit Trail.
           </p>
         </div>
-        <Button
-          onClick={() => setUploadOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 shadow-sm shrink-0"
-        >
-          <Upload className="h-4 w-4 mr-2" /> Tải chứng từ mới
-        </Button>
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <Button
+            type="button"
+            onClick={() => {
+              setUploadMode('manual');
+              setUploadOpen(true);
+            }}
+            variant="outline"
+            className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm font-medium"
+          >
+            <PenLine className="h-4 w-4 mr-1.5 text-slate-600" /> Nhập thủ công
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              setUploadMode('ai_import');
+              setUploadOpen(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-semibold"
+          >
+            <Sparkles className="h-4 w-4 mr-1.5 text-emerald-100" /> Quét bằng AI (Tự nhận diện)
+          </Button>
+        </div>
       </div>
 
       {/* 4 Metric Summary Cards */}
@@ -860,428 +910,744 @@ export default function EvidencePage() {
           <DialogHeader className="space-y-1 pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-                <Upload className="h-4 w-4" />
+                {uploadMode === 'ai_import' ? <Sparkles className="h-4 w-4" /> : <PenLine className="h-4 w-4" />}
               </span>
-              <DialogTitle className="text-lg font-bold text-slate-900">Tải chứng từ mới</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-slate-900">
+                {uploadMode === 'ai_import' ? 'Tự động quét & Nhận diện chứng từ qua AI' : 'Nhập thông số chứng từ thủ công'}
+              </DialogTitle>
             </div>
             <DialogDescription className="text-xs text-slate-500">
-              Ưu tiên tải file XML hoặc PDF gốc từ hệ thống phát hành hóa đơn để trích xuất AI chính xác nhất vào Audit Trail.
+              {uploadMode === 'ai_import'
+                ? 'Kéo thả hoặc tải ảnh/PDF chứng từ để AI tự động nhận dạng loại tài liệu và trích xuất số liệu.'
+                : 'Tự chọn loại chứng từ, nhập thông số hoạt động và đính kèm tài liệu minh chứng.'}
             </DialogDescription>
           </DialogHeader>
 
-          {/* AI Vision Analysis Banner / Status */}
-          {analyzingImage ? (
-            <div className="rounded-xl border border-sky-300 bg-gradient-to-r from-sky-50 via-indigo-50 to-sky-50 p-3.5 shadow-sm flex items-center gap-3">
-              <Loader2 className="h-5 w-5 text-sky-600 animate-spin shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-sky-600" />
-                  AI Vision đang phân tích ảnh chứng từ & trích xuất số liệu...
-                </p>
-                <p className="text-[11px] text-sky-700 mt-0.5">
-                  Hệ thống đang tự động nhận diện loại chứng từ, đơn vị phát hành và các giá trị định lượng để điền vào biểu mẫu.
-                </p>
-              </div>
-            </div>
-          ) : aiAnalysisResult ? (
-            <div className="rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 p-3.5 shadow-sm flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5">
-                <div className="rounded-lg bg-emerald-600 p-1.5 text-white shrink-0 mt-0.5">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-emerald-950">
-                      AI đã nhận diện: {aiAnalysisResult.document_title}
-                    </span>
-                    <Badge className="bg-emerald-700 text-white hover:bg-emerald-800 text-[10px] h-5">
-                      Độ tin cậy: {Math.round(aiAnalysisResult.confidence * 100)}%
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-emerald-800 mt-0.5 leading-snug">
-                    {aiAnalysisResult.summary}
-                  </p>
-                  <div className="flex items-center gap-2.5 mt-1.5 text-[11px] text-emerald-900 font-semibold flex-wrap">
-                    {aiAnalysisResult.supplier_name && (
-                      <span className="bg-emerald-100/80 px-2 py-0.5 rounded border border-emerald-200">
-                        NCC: {aiAnalysisResult.supplier_name}
-                      </span>
-                    )}
-                    {aiAnalysisResult.kwh_total != null && (
-                      <span className="bg-sky-100/80 px-2 py-0.5 rounded border border-sky-200 text-sky-900">
-                        ⚡ {aiAnalysisResult.kwh_total.toLocaleString('vi-VN')} kWh
-                      </span>
-                    )}
-                    {aiAnalysisResult.fuel_liters != null && (
-                      <span className="bg-orange-100/80 px-2 py-0.5 rounded border border-orange-200 text-orange-900">
-                        🔥 {aiAnalysisResult.fuel_liters.toLocaleString('vi-VN')} lít
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {file && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[11px] border-emerald-300 text-emerald-800 hover:bg-emerald-100 shrink-0"
-                  disabled={analyzingImage}
-                  onClick={() => void analyzeSelectedFile(file)}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" /> Quét lại
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/40 p-2.5 flex items-center justify-between text-xs text-emerald-900">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span className="text-[11px]">
-                  <strong>Nhận diện tự động qua AI Vision:</strong> Bạn chỉ cần tải ảnh chứng từ (hóa đơn tiền điện EVN, hóa đơn xăng dầu, vận đơn, BOM...), AI sẽ tự động nhận diện và điền đầy đủ biểu mẫu.
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Mode Switcher Tabs */}
+          <Tabs
+            value={uploadMode}
+            onValueChange={(val) => setUploadMode(val as 'ai_import' | 'manual')}
+            className="w-full pt-1"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-4 h-10 bg-slate-100/90 p-1">
+              <TabsTrigger
+                value="ai_import"
+                className="flex items-center justify-center gap-2 text-xs font-semibold data-[state=active]:bg-emerald-600 data-[state=active]:text-white shadow-none transition-all"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>✨ Import giấy tờ &amp; Quét AI (Tự nhận diện)</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="manual"
+                className="flex items-center justify-center gap-2 text-xs font-semibold data-[state=active]:bg-slate-800 data-[state=active]:text-white shadow-none transition-all"
+              >
+                <PenLine className="h-3.5 w-3.5" />
+                <span>✍️ Nhập thủ công</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-            {/* Cột 1: Thông tin phân loại & liên kết */}
-            <div className="space-y-3">
-              {/* Loại chứng từ */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-slate-700">Loại chứng từ *</Label>
+            {/* TAB 1: AI AUTO-SCAN & EXTRACT */}
+            <TabsContent value="ai_import" className="space-y-4 m-0">
+              {!file ? (
+                /* Hero Dropzone */
+                <div
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragOver(false);
+                    const dropped = e.dataTransfer.files?.[0];
+                    if (dropped) {
+                      setFile(dropped);
+                      void analyzeSelectedFile(dropped);
+                    }
+                  }}
+                  onClick={() => aiFileInputRef.current?.click()}
+                  className={`group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200 ${
+                    dragOver
+                      ? 'border-emerald-500 bg-emerald-50/80 scale-[0.99]'
+                      : 'border-emerald-300/80 bg-gradient-to-b from-emerald-50/40 via-teal-50/20 to-transparent hover:border-emerald-500 hover:bg-emerald-50/60'
+                  }`}
+                >
+                  <input
+                    ref={aiFileInputRef}
+                    type="file"
+                    accept={ACCEPT}
+                    className="hidden"
+                    onChange={(e) => {
+                      const selected = e.target.files?.[0];
+                      if (selected) {
+                        setFile(selected);
+                        void analyzeSelectedFile(selected);
+                      }
+                    }}
+                  />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-600/20 mb-3 group-hover:scale-105 transition-transform">
+                    <UploadCloud className="h-7 w-7" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">
+                    Kéo &amp; thả ảnh chụp hoặc tệp chứng từ vào đây
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-lg leading-relaxed">
+                    AI sẽ tự nhận diện: <strong>Hóa đơn tiền điện EVN, Hóa đơn xăng dầu Petrolimex, Bảng định mức BOM, Vận đơn đường biển (B/L)...</strong> và tự động bóc tách số liệu.
+                  </p>
+                  <div className="flex items-center gap-2 mt-3.5 flex-wrap justify-center">
+                    <Badge variant="outline" className="bg-white text-[10px] text-slate-600 border-slate-200">Ảnh chụp JPG / PNG</Badge>
+                    <Badge variant="outline" className="bg-white text-[10px] text-slate-600 border-slate-200">Hóa đơn điện tử PDF / XML</Badge>
+                    <Badge variant="outline" className="bg-white text-[10px] text-slate-600 border-slate-200">Bảng kê Excel XLSX</Badge>
+                    <Badge variant="outline" className="bg-white text-[10px] text-slate-600 border-slate-200">Tối đa 20MB</Badge>
+                  </div>
                   <Button
                     type="button"
-                    variant="ghost"
                     size="sm"
-                    className="h-5 px-1.5 text-[11px] text-sky-600 hover:text-sky-700 hover:bg-sky-50"
-                    onClick={() => {
-                      const label = DOC_TYPES.find((d) => d.value === docType)?.label ?? docType;
-                      void downloadTemplate(docType, label);
-                    }}
+                    className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs pointer-events-none"
                   >
-                    <Download className="h-3 w-3 mr-1" /> Tải file mẫu
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Hoặc bấm để chọn tệp từ máy tính
                   </Button>
                 </div>
-                <Select value={docType} onValueChange={setDocType}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DOC_TYPES.map((d) => (
-                      <SelectItem key={d.value} value={d.value}>
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Kỳ hiệu lực */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Kỳ bắt đầu</Label>
-                  <Input
-                    type="date"
-                    value={periodStart}
-                    onChange={(e) => setPeriodStart(e.target.value)}
-                    className="h-9 text-xs"
-                  />
+              ) : analyzingImage ? (
+                /* Scanning Card */
+                <div className="rounded-2xl border border-sky-300 bg-gradient-to-br from-sky-50 via-indigo-50/50 to-teal-50/30 p-8 text-center shadow-sm">
+                  <div className="flex justify-center mb-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-md shadow-sky-600/25">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-sky-950 flex items-center justify-center gap-2">
+                    <Sparkles className="h-4 w-4 text-sky-600 animate-pulse" />
+                    AI Vision đang đọc hình ảnh &amp; tự động nhận diện chứng từ...
+                  </p>
+                  <p className="text-xs text-sky-800 mt-1.5 max-w-lg mx-auto leading-relaxed">
+                    Hệ thống đang đối chiếu mẫu biểu, phân loại tài liệu, nhận dạng nhà cung cấp, sản lượng điện (kWh), lượng nhiên liệu (lít) và hệ số phát thải ISO 14064.
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-3.5 py-1.5 border border-sky-200 text-xs text-slate-700 shadow-xs">
+                    <FileText className="h-3.5 w-3.5 text-sky-600 shrink-0" />
+                    <span className="font-medium truncate max-w-[260px] sm:max-w-md">{file.name}</span>
+                    <span className="text-[10px] text-slate-400">({(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Kỳ kết thúc</Label>
-                  <Input
-                    type="date"
-                    value={periodEnd}
-                    onChange={(e) => setPeriodEnd(e.target.value)}
-                    className="h-9 text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* Bên phát hành */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-slate-700">Nhà cung cấp / Bên phát hành</Label>
-                <Input
-                  value={supplier}
-                  onChange={(e) => setSupplier(e.target.value)}
-                  placeholder="EVN HCMC, Petrolimex…"
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              {/* Gắn sản phẩm */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-slate-700">Gắn chứng từ với sản phẩm</Label>
-                  <span className="text-[11px] text-slate-400">Độ phủ Audit Pack</span>
-                </div>
-                <Select value={evidenceProductId} onValueChange={setEvidenceProductId}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__company__">Hồ sơ chung của công ty</SelectItem>
-                    {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.productCode} - {product.productName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-slate-500">
-                  Audit Pack chỉ nhận chứng từ đã gắn đúng sản phẩm; hồ sơ chung không tự động tính vào độ phủ.
-                </p>
-              </div>
-
-              {/* Số dòng tính được chứng minh */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-slate-700">Số dòng tính được chứng minh</Label>
-                  <span className="text-[11px] text-slate-400">Activity Data &amp; EF</span>
-                </div>
-                <Input
-                  value={calculationTermNumbers}
-                  onChange={(event) => setCalculationTermNumbers(event.target.value)}
-                  placeholder="Ví dụ: 1, 2, 5"
-                  className="h-9 text-xs"
-                />
-                <p className="text-[11px] text-slate-500">
-                  Nhập số thứ tự dòng tính trong Audit Pack để tự động liên kết bằng chứng.
-                </p>
-              </div>
-            </div>
-
-            {/* Cột 2: Dữ liệu chuyên biệt & File upload */}
-            <div className="space-y-3 flex flex-col justify-between">
-              <div className="space-y-3">
-                {/* Electricity bill → electricity_invoices (CBAM Scope 2) */}
-                {docType === 'electricity_bill' && (
-                  <div className="space-y-2.5 rounded-lg border border-sky-200 bg-sky-50/70 p-3">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-800">
-                      <Zap className="h-3.5 w-3.5 text-sky-600" />
-                      <span>Dữ liệu hóa đơn điện — đồng bộ Báo cáo CBAM (Scope 2)</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-sky-900 font-medium">Cơ sở / Nhà máy</Label>
-                        <Input
-                          value={elecFacilityName}
-                          onChange={(e) => setElecFacilityName(e.target.value)}
-                          placeholder="Main Facility"
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-sky-900 font-medium">Kỳ thanh toán</Label>
-                        <Input
-                          value={elecBillingPeriod}
-                          onChange={(e) => setElecBillingPeriod(e.target.value)}
-                          placeholder="2024-Q2 hoặc 2024-05"
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-sky-900 font-medium">Lượng điện (kWh) *</Label>
-                        <Input
-                          type="number"
-                          value={elecKwh}
-                          onChange={(e) => setElecKwh(e.target.value)}
-                          placeholder="12500"
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-sky-900 font-medium">Hệ số phát thải (kg CO₂e/kWh)</Label>
-                        <Input
-                          type="number"
-                          step="0.0001"
-                          value={elecEF}
-                          onChange={(e) => setElecEF(e.target.value)}
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-sky-900 font-medium">Nguồn hệ số phát thải</Label>
-                      <Input
-                        value={elecEFSource}
-                        onChange={(e) => setElecEFSource(e.target.value)}
-                        className="h-8 text-xs bg-white"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Fuel receipt → fuel_invoices (CBAM Scope 1) */}
-                {docType === 'fuel_receipt' && (
-                  <div className="space-y-2.5 rounded-lg border border-orange-200 bg-orange-50/70 p-3">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-800">
-                      <Flame className="h-3.5 w-3.5 text-orange-600" />
-                      <span>Dữ liệu nhiên liệu — đồng bộ Báo cáo CBAM (Scope 1)</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-orange-900 font-medium">Kỳ thanh toán</Label>
-                        <Input
-                          value={fuelBillingPeriod}
-                          onChange={(e) => setFuelBillingPeriod(e.target.value)}
-                          placeholder="2024-Q2 hoặc 2024-05"
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-orange-900 font-medium">Loại nhiên liệu</Label>
-                        <Select value={fuelType} onValueChange={setFuelType}>
-                          <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="diesel">Diesel</SelectItem>
-                            <SelectItem value="petrol">Xăng (Petrol)</SelectItem>
-                            <SelectItem value="lpg">LPG</SelectItem>
-                            <SelectItem value="cng">CNG</SelectItem>
-                            <SelectItem value="coal">Than đá (Coal)</SelectItem>
-                            <SelectItem value="biomass">Sinh khối (Biomass)</SelectItem>
-                            <SelectItem value="other">Khác</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-orange-900 font-medium">Lượng nhiên liệu (lít) *</Label>
-                        <Input
-                          type="number"
-                          value={fuelQtyLiters}
-                          onChange={(e) => setFuelQtyLiters(e.target.value)}
-                          placeholder="500"
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px] text-orange-900 font-medium">
-                          Hệ số phát thải (kg CO₂e/lít)
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.0001"
-                          value={fuelEF}
-                          onChange={(e) => setFuelEF(e.target.value)}
-                          placeholder="Để trống = tự động"
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Factor version IDs */}
-                {['emission_factor_source', 'methodology', 'pcf_source'].includes(docType) && (
-                  <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-                    <Label className="text-xs font-semibold text-amber-900">Factor Version ID được tài liệu chứng minh</Label>
-                    <Textarea
-                      value={factorVersionIds}
-                      onChange={(event) => setFactorVersionIds(event.target.value)}
-                      placeholder="Ví dụ: cat-cotton-100:v1, energy-grid-vn-2023:v1"
-                      maxLength={20000}
-                      rows={2}
-                      className="text-xs bg-white"
-                    />
-                    <p className="text-[11px] text-amber-900 leading-tight">
-                      Nhập mã phiên bản trong dòng tính Audit Pack, phân cách bằng dấu phẩy hoặc xuống dòng.
-                    </p>
-                  </div>
-                )}
-
-                {/* Other doc types guidance banner when no specific box is rendered */}
-                {!['electricity_bill', 'fuel_receipt', 'emission_factor_source', 'methodology', 'pcf_source'].includes(docType) && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-xs text-slate-600 flex items-start gap-2.5">
-                    <FileText className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-slate-800">Trích xuất tự động qua AI &amp; OCR</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                        Hệ thống sẽ tự động quét nội dung bảng số liệu, tra cứu mã định danh và lưu vết bằng chứng vào Audit Trail ngay khi bạn hoàn tất tải lên.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tệp tải lên */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-slate-700">Tệp chứng từ *</Label>
-                    <span className="text-[11px] text-slate-400">Tối đa 20MB</span>
-                  </div>
-                  {file ? (
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border border-emerald-300 bg-emerald-50/60 transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileCheck2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-emerald-950 truncate max-w-[240px] sm:max-w-[320px]">
-                            {file.name}
+              ) : (
+                /* AI Analysis Result & Verification Form */
+                <div className="space-y-4">
+                  {aiAnalysisResult && (
+                    <div className="rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 p-3.5 shadow-sm flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="rounded-lg bg-emerald-600 p-1.5 text-white shrink-0 mt-0.5 shadow-xs">
+                          <Sparkles className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-emerald-950">
+                              AI đã nhận diện: {aiAnalysisResult.document_title}
+                            </span>
+                            <Badge className="bg-emerald-700 text-white hover:bg-emerald-800 text-[10px] h-5">
+                              Độ tin cậy: {Math.round(aiAnalysisResult.confidence * 100)}%
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-emerald-800 mt-0.5 leading-snug">
+                            {aiAnalysisResult.summary}
                           </p>
-                          <p className="text-[10px] text-emerald-700">
-                            {(file.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
+                          <div className="flex items-center gap-2 mt-1.5 text-[11px] text-emerald-900 font-semibold flex-wrap">
+                            {aiAnalysisResult.supplier_name && (
+                              <span className="bg-emerald-100/90 px-2 py-0.5 rounded border border-emerald-200">
+                                NCC: {aiAnalysisResult.supplier_name}
+                              </span>
+                            )}
+                            {aiAnalysisResult.kwh_total != null && (
+                              <span className="bg-sky-100/90 px-2 py-0.5 rounded border border-sky-200 text-sky-900">
+                                ⚡ {aiAnalysisResult.kwh_total.toLocaleString('vi-VN')} kWh
+                              </span>
+                            )}
+                            {aiAnalysisResult.fuel_liters != null && (
+                              <span className="bg-orange-100/90 px-2 py-0.5 rounded border border-orange-200 text-orange-900">
+                                🔥 {aiAnalysisResult.fuel_liters.toLocaleString('vi-VN')} lít
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-xs text-sky-700 hover:text-sky-800 hover:bg-sky-50"
+                          className="h-7 text-[11px] border-emerald-300 text-emerald-800 hover:bg-emerald-100"
                           disabled={analyzingImage}
                           onClick={() => void analyzeSelectedFile(file)}
                         >
-                          <Sparkles className="h-3.5 w-3.5 mr-1 text-sky-600" />
-                          Quét lại AI
+                          <Sparkles className="h-3 w-3 mr-1" /> Quét lại
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-xs text-slate-600 hover:text-red-600 hover:bg-red-50"
+                          className="h-7 text-[11px] text-slate-600 hover:text-red-600 hover:bg-red-50"
                           onClick={() => {
                             setFile(null);
                             setAiAnalysisResult(null);
                           }}
                         >
-                          Đổi file
+                          Đổi tệp
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                    <Input
-                      type="file"
-                      accept={ACCEPT}
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] ?? null;
-                        setFile(selected);
-                        if (selected) {
-                          void analyzeSelectedFile(selected);
-                        }
-                      }}
-                      className="h-9 text-xs file:mr-2 file:h-7 file:border-0 file:bg-slate-100 file:text-xs file:font-medium file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-                    />
                   )}
-                </div>
 
-                {/* Ghi chú */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Ghi chú (tùy chọn)</Label>
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={2}
-                    placeholder="Lưu ý nội bộ hoặc bối cảnh liên quan chứng từ..."
-                    className="text-xs resize-none"
-                  />
+                  {/* 2-column editable review grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Cột 1: Thông tin phân loại & liên kết */}
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            Loại chứng từ
+                            <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-200 bg-emerald-50">
+                              ✨ Tự nhận diện
+                            </Badge>
+                          </Label>
+                        </div>
+                        <Select value={docType} onValueChange={setDocType}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DOC_TYPES.map((d) => (
+                              <SelectItem key={d.value} value={d.value}>
+                                {d.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-700">Kỳ bắt đầu</Label>
+                          <Input
+                            type="date"
+                            value={periodStart}
+                            onChange={(e) => setPeriodStart(e.target.value)}
+                            className="h-9 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-700">Kỳ kết thúc</Label>
+                          <Input
+                            type="date"
+                            value={periodEnd}
+                            onChange={(e) => setPeriodEnd(e.target.value)}
+                            className="h-9 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-700">Nhà cung cấp / Bên phát hành</Label>
+                        <Input
+                          value={supplier}
+                          onChange={(e) => setSupplier(e.target.value)}
+                          placeholder="EVN HCMC, Petrolimex…"
+                          className="h-9 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700">Gắn chứng từ với sản phẩm</Label>
+                          <span className="text-[11px] text-slate-400">Độ phủ Audit Pack</span>
+                        </div>
+                        <Select value={evidenceProductId} onValueChange={setEvidenceProductId}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__company__">Hồ sơ chung của công ty</SelectItem>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.productCode} - {product.productName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-semibold text-slate-700">Số dòng tính được chứng minh</Label>
+                          <span className="text-[11px] text-slate-400">Activity Data &amp; EF</span>
+                        </div>
+                        <Input
+                          value={calculationTermNumbers}
+                          onChange={(event) => setCalculationTermNumbers(event.target.value)}
+                          placeholder="Ví dụ: 1, 2, 5"
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Cột 2: Dữ liệu chuyên biệt & Tệp */}
+                    <div className="space-y-3">
+                      {/* Electricity bill */}
+                      {docType === 'electricity_bill' && (
+                        <div className="space-y-2.5 rounded-lg border border-sky-200 bg-sky-50/70 p-3">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-800">
+                            <Zap className="h-3.5 w-3.5 text-sky-600" />
+                            <span>Dữ liệu hóa đơn điện — CBAM Scope 2</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-sky-900 font-medium">Cơ sở / Nhà máy</Label>
+                              <Input
+                                value={elecFacilityName}
+                                onChange={(e) => setElecFacilityName(e.target.value)}
+                                placeholder="Main Facility"
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-sky-900 font-medium">Kỳ thanh toán</Label>
+                              <Input
+                                value={elecBillingPeriod}
+                                onChange={(e) => setElecBillingPeriod(e.target.value)}
+                                placeholder="2024-Q2 hoặc 2024-05"
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-sky-900 font-medium">Lượng điện (kWh) *</Label>
+                              <Input
+                                type="number"
+                                value={elecKwh}
+                                onChange={(e) => setElecKwh(e.target.value)}
+                                placeholder="12500"
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-sky-900 font-medium">Hệ số phát thải (kg CO₂e/kWh)</Label>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                value={elecEF}
+                                onChange={(e) => setElecEF(e.target.value)}
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px] text-sky-900 font-medium">Nguồn hệ số phát thải</Label>
+                            <Input
+                              value={elecEFSource}
+                              onChange={(e) => setElecEFSource(e.target.value)}
+                              className="h-8 text-xs bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fuel receipt */}
+                      {docType === 'fuel_receipt' && (
+                        <div className="space-y-2.5 rounded-lg border border-orange-200 bg-orange-50/70 p-3">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-800">
+                            <Flame className="h-3.5 w-3.5 text-orange-600" />
+                            <span>Dữ liệu nhiên liệu — CBAM Scope 1</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-orange-900 font-medium">Kỳ thanh toán</Label>
+                              <Input
+                                value={fuelBillingPeriod}
+                                onChange={(e) => setFuelBillingPeriod(e.target.value)}
+                                placeholder="2024-Q2 hoặc 2024-05"
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-orange-900 font-medium">Loại nhiên liệu</Label>
+                              <Select value={fuelType} onValueChange={setFuelType}>
+                                <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="diesel">Diesel</SelectItem>
+                                  <SelectItem value="petrol">Xăng (Petrol)</SelectItem>
+                                  <SelectItem value="lpg">LPG</SelectItem>
+                                  <SelectItem value="cng">CNG</SelectItem>
+                                  <SelectItem value="coal">Than đá (Coal)</SelectItem>
+                                  <SelectItem value="biomass">Sinh khối (Biomass)</SelectItem>
+                                  <SelectItem value="other">Khác</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-orange-900 font-medium">Lượng nhiên liệu (lít) *</Label>
+                              <Input
+                                type="number"
+                                value={fuelQtyLiters}
+                                onChange={(e) => setFuelQtyLiters(e.target.value)}
+                                placeholder="500"
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-orange-900 font-medium">Hệ số phát thải (kg CO₂e/lít)</Label>
+                              <Input
+                                type="number"
+                                step="0.0001"
+                                value={fuelEF}
+                                onChange={(e) => setFuelEF(e.target.value)}
+                                placeholder="Để trống = tự động"
+                                className="h-8 text-xs bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* File Card */}
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileCheck2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-emerald-950 truncate max-w-[220px]">
+                              {file.name}
+                            </p>
+                            <p className="text-[10px] text-emerald-700">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB · SHA-256 Verified
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[11px] text-slate-500 hover:text-slate-700"
+                          onClick={() => {
+                            setFile(null);
+                            setAiAnalysisResult(null);
+                          }}
+                        >
+                          Chọn tệp khác
+                        </Button>
+                      </div>
+
+                      {/* Ghi chú */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-700">Ghi chú &amp; Tóm tắt AI</Label>
+                        <Textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          rows={2}
+                          placeholder="Lưu ý nội bộ hoặc bối cảnh liên quan chứng từ..."
+                          className="text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* TAB 2: MANUAL ENTRY */}
+            <TabsContent value="manual" className="space-y-4 m-0">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 flex items-center justify-between text-xs text-slate-700">
+                <div className="flex items-center gap-2">
+                  <PenLine className="h-4 w-4 text-slate-600 shrink-0" />
+                  <span className="text-[11px]">
+                    <strong>Chế độ nhập thủ công:</strong> Tự chọn loại chứng từ và điền biểu mẫu. Bạn có thể đính kèm file minh chứng tùy chọn nếu có.
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cột 1: Thông tin phân loại & liên kết */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700">Loại chứng từ *</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-[11px] text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                        onClick={() => {
+                          const label = DOC_TYPES.find((d) => d.value === docType)?.label ?? docType;
+                          void downloadTemplate(docType, label);
+                        }}
+                      >
+                        <Download className="h-3 w-3 mr-1" /> Tải file mẫu
+                      </Button>
+                    </div>
+                    <Select value={docType} onValueChange={setDocType}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DOC_TYPES.map((d) => (
+                          <SelectItem key={d.value} value={d.value}>
+                            {d.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold text-slate-700">Kỳ bắt đầu</Label>
+                      <Input
+                        type="date"
+                        value={periodStart}
+                        onChange={(e) => setPeriodStart(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold text-slate-700">Kỳ kết thúc</Label>
+                      <Input
+                        type="date"
+                        value={periodEnd}
+                        onChange={(e) => setPeriodEnd(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-slate-700">Nhà cung cấp / Bên phát hành</Label>
+                    <Input
+                      value={supplier}
+                      onChange={(e) => setSupplier(e.target.value)}
+                      placeholder="EVN HCMC, Petrolimex…"
+                      className="h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700">Gắn chứng từ với sản phẩm</Label>
+                      <span className="text-[11px] text-slate-400">Độ phủ Audit Pack</span>
+                    </div>
+                    <Select value={evidenceProductId} onValueChange={setEvidenceProductId}>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__company__">Hồ sơ chung của công ty</SelectItem>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.productCode} - {product.productName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700">Số dòng tính được chứng minh</Label>
+                      <span className="text-[11px] text-slate-400">Activity Data &amp; EF</span>
+                    </div>
+                    <Input
+                      value={calculationTermNumbers}
+                      onChange={(event) => setCalculationTermNumbers(event.target.value)}
+                      placeholder="Ví dụ: 1, 2, 5"
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Cột 2: Dữ liệu chuyên biệt & File tùy chọn */}
+                <div className="space-y-3">
+                  {/* Electricity bill */}
+                  {docType === 'electricity_bill' && (
+                    <div className="space-y-2.5 rounded-lg border border-sky-200 bg-sky-50/70 p-3">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-800">
+                        <Zap className="h-3.5 w-3.5 text-sky-600" />
+                        <span>Dữ liệu hóa đơn điện — CBAM Scope 2</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-sky-900 font-medium">Cơ sở / Nhà máy</Label>
+                          <Input
+                            value={elecFacilityName}
+                            onChange={(e) => setElecFacilityName(e.target.value)}
+                            placeholder="Main Facility"
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-sky-900 font-medium">Kỳ thanh toán</Label>
+                          <Input
+                            value={elecBillingPeriod}
+                            onChange={(e) => setElecBillingPeriod(e.target.value)}
+                            placeholder="2024-Q2 hoặc 2024-05"
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-sky-900 font-medium">Lượng điện (kWh) *</Label>
+                          <Input
+                            type="number"
+                            value={elecKwh}
+                            onChange={(e) => setElecKwh(e.target.value)}
+                            placeholder="12500"
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-sky-900 font-medium">Hệ số phát thải (kg CO₂e/kWh)</Label>
+                          <Input
+                            type="number"
+                            step="0.0001"
+                            value={elecEF}
+                            onChange={(e) => setElecEF(e.target.value)}
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-sky-900 font-medium">Nguồn hệ số phát thải</Label>
+                        <Input
+                          value={elecEFSource}
+                          onChange={(e) => setElecEFSource(e.target.value)}
+                          className="h-8 text-xs bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fuel receipt */}
+                  {docType === 'fuel_receipt' && (
+                    <div className="space-y-2.5 rounded-lg border border-orange-200 bg-orange-50/70 p-3">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-800">
+                        <Flame className="h-3.5 w-3.5 text-orange-600" />
+                        <span>Dữ liệu nhiên liệu — CBAM Scope 1</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-orange-900 font-medium">Kỳ thanh toán</Label>
+                          <Input
+                            value={fuelBillingPeriod}
+                            onChange={(e) => setFuelBillingPeriod(e.target.value)}
+                            placeholder="2024-Q2 hoặc 2024-05"
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-orange-900 font-medium">Loại nhiên liệu</Label>
+                          <Select value={fuelType} onValueChange={setFuelType}>
+                            <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="diesel">Diesel</SelectItem>
+                              <SelectItem value="petrol">Xăng (Petrol)</SelectItem>
+                              <SelectItem value="lpg">LPG</SelectItem>
+                              <SelectItem value="cng">CNG</SelectItem>
+                              <SelectItem value="coal">Than đá (Coal)</SelectItem>
+                              <SelectItem value="biomass">Sinh khối (Biomass)</SelectItem>
+                              <SelectItem value="other">Khác</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-orange-900 font-medium">Lượng nhiên liệu (lít) *</Label>
+                          <Input
+                            type="number"
+                            value={fuelQtyLiters}
+                            onChange={(e) => setFuelQtyLiters(e.target.value)}
+                            placeholder="500"
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-orange-900 font-medium">Hệ số phát thải (kg CO₂e/lít)</Label>
+                          <Input
+                            type="number"
+                            step="0.0001"
+                            value={fuelEF}
+                            onChange={(e) => setFuelEF(e.target.value)}
+                            placeholder="Để trống = tự động"
+                            className="h-8 text-xs bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Factor version IDs */}
+                  {['emission_factor_source', 'methodology', 'pcf_source'].includes(docType) && (
+                    <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                      <Label className="text-xs font-semibold text-amber-900">Factor Version ID được tài liệu chứng minh</Label>
+                      <Textarea
+                        value={factorVersionIds}
+                        onChange={(event) => setFactorVersionIds(event.target.value)}
+                        placeholder="Ví dụ: cat-cotton-100:v1, energy-grid-vn-2023:v1"
+                        maxLength={20000}
+                        rows={2}
+                        className="text-xs bg-white"
+                      />
+                    </div>
+                  )}
+
+                  {/* Tệp đính kèm tùy chọn */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700">Tệp minh chứng đính kèm (Tùy chọn)</Label>
+                      <span className="text-[11px] text-slate-400">Tối đa 20MB</span>
+                    </div>
+                    {file ? (
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileCheck2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-slate-800 truncate max-w-[200px] sm:max-w-xs">{file.name}</p>
+                            <p className="text-[10px] text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-red-600 hover:bg-red-50"
+                          onClick={() => setFile(null)}
+                        >
+                          Xóa file
+                        </Button>
+                      </div>
+                    ) : (
+                      <Input
+                        ref={manualFileInputRef}
+                        type="file"
+                        accept={ACCEPT}
+                        onChange={(e) => {
+                          const selected = e.target.files?.[0] ?? null;
+                          setFile(selected);
+                        }}
+                        className="h-9 text-xs file:mr-2 file:h-7 file:border-0 file:bg-slate-100 file:text-xs file:font-medium file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                      />
+                    )}
+                  </div>
+
+                  {/* Ghi chú */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-slate-700">Ghi chú (tùy chọn)</Label>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={2}
+                      placeholder="Lưu ý nội bộ hoặc bối cảnh liên quan chứng từ..."
+                      className="text-xs resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Dialog Footer */}
           <DialogFooter className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
@@ -1296,20 +1662,37 @@ export default function EvidencePage() {
               >
                 Huỷ
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleUpload}
-                disabled={!file || uploading}
-                className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
-              >
-                {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-1.5" />
-                )}
-                Tải lên &amp; cho AI đọc
-              </Button>
+              {uploadMode === 'ai_import' ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleUpload}
+                  disabled={!file || analyzingImage || uploading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  )}
+                  Xác nhận &amp; Lưu chứng từ
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  ) : (
+                    <PenLine className="h-4 w-4 mr-1.5" />
+                  )}
+                  Lưu chứng từ
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </DialogContent>
