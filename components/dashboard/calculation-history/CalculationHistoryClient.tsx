@@ -42,8 +42,6 @@ interface HistoryRecord {
   createdBy: string;
 }
 
-const MIN_COMPONENT_CO2 = 0.01;
-
 const TRANSPORT_FACTOR_BY_MODE: Record<"road" | "sea" | "air" | "rail", number> = {
   road: 0.089,
   sea: 0.016,
@@ -111,31 +109,14 @@ const resolvePackagingPerProduct = (product: ProductRecord): number => {
   return 0;
 };
 
-const applyMinimumComponentValues = (record: HistoryRecord): HistoryRecord => {
-  const hasCarbonData =
-  record.totalCO2 > 0 ||
-  record.materialsCO2 > 0 ||
-  record.manufacturingCO2 > 0;
-
-  if (!hasCarbonData) {
-    return record;
-  }
-
-  const transportCO2 =
-  record.transportCO2 > 0 ? record.transportCO2 : MIN_COMPONENT_CO2;
-  const packagingCO2 =
-  record.packagingCO2 > 0 ? record.packagingCO2 : MIN_COMPONENT_CO2;
-  const totalFromBreakdown =
-  record.materialsCO2 +
-  record.manufacturingCO2 +
-  transportCO2 +
-  packagingCO2;
-
+const sanitizeComponentValues = (record: HistoryRecord): HistoryRecord => {
   return {
     ...record,
-    transportCO2,
-    packagingCO2,
-    totalCO2: Math.max(record.totalCO2, totalFromBreakdown)
+    materialsCO2: Math.max(0, Number(record.materialsCO2) || 0),
+    manufacturingCO2: Math.max(0, Number(record.manufacturingCO2) || 0),
+    transportCO2: Math.max(0, Number(record.transportCO2) || 0),
+    packagingCO2: Math.max(0, Number(record.packagingCO2) || 0),
+    totalCO2: Math.max(0, Number(record.totalCO2) || 0)
   };
 };
 
@@ -155,26 +136,32 @@ const CalculationHistoryClient: React.FC<CalculationHistoryClientProps> = ({
   history;
   const historyForView = React.useMemo(() => {
     if (filteredHistory.length === 0) {
-      return fallbackHistory ? [applyMinimumComponentValues(fallbackHistory)] : [];
+      return fallbackHistory ? [sanitizeComponentValues(fallbackHistory)] : [];
     }
 
     if (!fallbackHistory || !productId) {
-      return filteredHistory.map((item) => applyMinimumComponentValues(item as HistoryRecord));
+      return filteredHistory.map((item) => sanitizeComponentValues(item as HistoryRecord));
     }
 
     return filteredHistory.map((item) => {
       if (item.productId !== productId) {
-        return applyMinimumComponentValues(item as HistoryRecord);
+        return sanitizeComponentValues(item as HistoryRecord);
       }
 
-      return applyMinimumComponentValues({
+      return sanitizeComponentValues({
         ...item,
         transportCO2:
-        item.transportCO2 > 0 ? item.transportCO2 : fallbackHistory.transportCO2,
+        typeof item.transportCO2 === "number" && !Number.isNaN(item.transportCO2) ?
+        item.transportCO2 :
+        fallbackHistory.transportCO2,
         packagingCO2:
-        item.packagingCO2 > 0 ? item.packagingCO2 : fallbackHistory.packagingCO2,
+        typeof item.packagingCO2 === "number" && !Number.isNaN(item.packagingCO2) ?
+        item.packagingCO2 :
+        fallbackHistory.packagingCO2,
         totalCO2:
-        item.totalCO2 > 0 ? item.totalCO2 : fallbackHistory.totalCO2
+        typeof item.totalCO2 === "number" && !Number.isNaN(item.totalCO2) ?
+        item.totalCO2 :
+        fallbackHistory.totalCO2
       } as HistoryRecord);
     });
   }, [fallbackHistory, filteredHistory, productId]);

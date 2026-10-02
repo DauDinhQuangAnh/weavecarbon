@@ -53,14 +53,39 @@ export interface IndustrialMeasurementPoint {
   id: string; facilityRevisionId: string; facilityReference?: string; processRevisionId: string | null;
   measurementPointReference: string; revision: number; measurementType: string; canonicalUnit: string;
   sourceType: "meter" | "plc" | "sensor" | "weavenode" | "manual" | "api";
-  calibrationStatus: "unknown" | "current" | "expired" | "not_applicable"; createdAt: string;
+  deviceIdentity: string | null;
+  calibrationStatus: "unknown" | "current" | "expired" | "not_applicable";
+  calibrationDueOn: string | null;
+  samplingIntervalSeconds: number | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
 }
 
 export interface IndustrialActivity {
   id: string; activityReference: string; facilityRevisionId: string; facilityReference?: string; facilityName?: string;
-  processRevisionId?: string | null;
+  processRevisionId?: string | null; measurementPointRevisionId?: string | null;
   activityType: string; periodStart: string; periodEnd: string; quantity: number; canonicalUnit: string;
   sourceKind: string; dataQualityLevel: "L1" | "L2" | "L3" | "L4" | "L5"; sourceSha256: string;
+  rawPayload?: Record<string, unknown>; evidenceDocumentIds?: string[]; createdAt?: string;
+}
+
+export interface IndustrialActivityReview {
+  id: string; activityId: string; reviewerId: string; reviewerName: string;
+  reviewerRole: "industrial_activity_reviewer"; decision: "approved" | "needs_information" | "rejected";
+  notes: string; sourceSha256: string; evidenceSnapshot: unknown[]; createdAt: string;
+}
+
+export interface IndustrialActivityLineageEvidence {
+  id: string; name: string; type: string; status: string; checksumSha256: string | null;
+}
+
+export interface IndustrialActivityLineage {
+  activity: IndustrialActivity;
+  facility: { id: string; reference: string; name: string };
+  process: { id: string; reference: string; name: string } | null;
+  measurementPoint: { id: string; reference: string; type: string } | null;
+  evidence: IndustrialActivityLineageEvidence[];
+  latestReview: IndustrialActivityReview | null;
 }
 
 export type AllocationLevel = "facility" | "process" | "batch" | "product";
@@ -127,10 +152,22 @@ export const industrialCoreApi = {
   createProcess: (input: { facilityRevisionId: string; processReference: string; name: string; processType: string; lifecycleStatus: "active" }) =>
     api.post<IndustrialProcess>("/industrial-core/processes", input),
   measurementPoints: () => api.get<IndustrialMeasurementPoint[]>("/industrial-core/measurement-points"),
-  createMeasurementPoint: (input: { facilityRevisionId: string; processRevisionId?: string; measurementPointReference: string; measurementType: string; canonicalUnit: string; sourceType: "meter" | "plc" | "sensor" | "weavenode" | "manual" | "api" }) =>
+  createMeasurementPoint: (input: { facilityRevisionId: string; processRevisionId?: string; measurementPointReference: string; measurementType: string; canonicalUnit: string; sourceType: "meter" | "plc" | "sensor" | "weavenode" | "manual" | "api"; deviceIdentity?: string; calibrationStatus?: "unknown" | "current" | "expired" | "not_applicable"; calibrationDueOn?: string; samplingIntervalSeconds?: number }) =>
     api.post<IndustrialMeasurementPoint>("/industrial-core/measurement-points", input),
-  activities: () => api.get<IndustrialActivity[]>("/industrial-core/activities?limit=100"),
-  activityLineage: (activityId: string) => api.get<unknown>(`/industrial-core/activities/${encodeURIComponent(activityId)}/lineage`),
+  activities: (limit = 100) => api.get<IndustrialActivity[]>(`/industrial-core/activities?limit=${Math.min(Math.max(limit, 1), 500)}`),
+  createActivity: (input: {
+    activityReference: string; facilityRevisionId: string; processRevisionId?: string;
+    measurementPointRevisionId?: string; activityType: string; periodStart: string; periodEnd: string;
+    quantity: number; canonicalUnit: string; sourceKind: "invoice" | "meter" | "plc" | "sensor" | "supplier" | "manual" | "api";
+    dataQualityLevel: "L1" | "L2" | "L3" | "L4" | "L5"; rawPayload: Record<string, unknown>;
+    sourceSha256: string; evidenceDocumentIds: string[];
+  }) => api.post<IndustrialActivity>("/industrial-core/activities", input),
+  activityLineage: (activityId: string) => api.get<IndustrialActivityLineage>(`/industrial-core/activities/${encodeURIComponent(activityId)}/lineage`),
+  reviewActivity: (activityId: string, input: {
+    reviewerRole: "industrial_activity_reviewer";
+    decision: "approved" | "needs_information" | "rejected";
+    notes: string;
+  }) => api.post<IndustrialActivityReview>(`/industrial-core/activities/${encodeURIComponent(activityId)}/reviews`, input),
   allocationRules: () => api.get<DynamicAllocationRule[]>("/dynamic-allocation/rules"),
   createAllocationRule: (input: {
     allocationReference: string; facilityRevisionId: string; sourceLevel: Exclude<AllocationLevel, "product">;
@@ -138,7 +175,7 @@ export const industrialCoreApi = {
     methodologyReference: string; methodologyVersion: string; rationale: string;
     approvalStatus: "draft" | "approved"; evidenceDocumentId?: string;
   }) => api.post<DynamicAllocationRule>("/dynamic-allocation/rules", input),
-  allocationRuns: () => api.get<DynamicAllocationRun[]>("/dynamic-allocation/runs?limit=100"),
+  allocationRuns: (limit = 100) => api.get<DynamicAllocationRun[]>(`/dynamic-allocation/runs?limit=${Math.min(Math.max(limit, 1), 500)}`),
   createAllocationRun: (input: {
     ruleRevisionId: string; sourceActivityId?: string; sourceAllocationLineId?: string;
     targets: Array<{ targetEntityId: string; driverValue: number }>;

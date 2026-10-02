@@ -7,7 +7,29 @@ export interface IndustryPackManifest {
   contextFieldDescriptions: Record<string, string>; allocationPolicy: string; validationRules: string[];
   evidenceChecklist: string[]; targetMappings: string[]; disclaimer: string;
 }
-export interface IndustryPackPilot { id: string; studyReference: string; revision: number; packId: string; packVersion: string; packApprovalStatus: string; status: string; result: { totals: { grossKgCo2e: number; grossTco2e: number; intensityKgCo2ePerTonne: number } | null; findings: Array<{ code: string }>; disclaimer: string }; resultSha256: string; }
+export interface IndustryPackPilot {
+  id: string;
+  facilityRevisionId?: string;
+  processRevisionId?: string;
+  studyReference: string;
+  revision: number;
+  packId: string;
+  packVersion: string;
+  packApprovalStatus: string;
+  periodStart?: string;
+  periodEnd?: string;
+  inputSha256?: string;
+  resultSha256: string;
+  status: string;
+  createdAt?: string;
+  evidenceSnapshot?: Array<{ id: string; status: string; checksumSha256: string; fileSizeBytes: number; name?: string }>;
+  result: {
+    totals: { grossKgCo2e: number; grossTco2e: number; intensityKgCo2ePerTonne: number } | null;
+    findings: Array<{ code: string; severity?: string; message?: string }>;
+    lines?: Array<{ category?: string; sourceReference?: string; activityQuantity?: number; activityUnit?: string; calculatedTco2e?: number; factorLabel?: string; evidenceDocumentIds?: string[] }>;
+    disclaimer: string;
+  };
+}
 export const industryPacksApi = {
   manifests: () => api.get<IndustryPackManifest[]>("/industry-packs/manifests"),
   pilots: () => api.get<IndustryPackPilot[]>("/industry-packs/pilots"),

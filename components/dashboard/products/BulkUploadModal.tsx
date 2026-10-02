@@ -1022,6 +1022,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [importedCount, setImportedCount] = useState(0);
   const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [backendValidationPassed, setBackendValidationPassed] = useState(false);
   const normalizedStarterDomesticMarket =
   normalizeDestinationMarket(starterDomesticMarket);
   const starterDomesticOnly = normalizedStarterDomesticMarket.length > 0;
@@ -1036,6 +1037,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     setImportedCount(0);
     setImportResult(null);
     setError(null);
+    setBackendValidationPassed(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -1064,6 +1066,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
       setFile(selectedFile);
       setError(null);
+      setBackendValidationPassed(false);
       setIsProcessing(true);
 
       try {
@@ -1158,6 +1161,40 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               result = mergeValidationWarnings(result, backendWarnings);
             }
 
+            if (backendValidation.invalidRows.length > 0) {
+              const invalidIndexes = new Set(
+                backendValidation.invalidRows.map((invalidRow) => invalidRow.row)
+              );
+              const backendInvalidRows = backendValidation.invalidRows.map((invalidRow) => {
+                const source = result.validRows[invalidRow.row - 1];
+                const displayRow = source?.sourceRow || invalidRow.row;
+                return {
+                  row: displayRow,
+                  data: source || {},
+                  errors: invalidRow.errors.map((validationItem) => ({
+                    row: displayRow,
+                    field: validationItem.field || "general",
+                    message: validationItem.message,
+                    severity: "error" as const
+                  }))
+                };
+              });
+              const remainingRows = result.validRows.filter(
+                (_row, index) => !invalidIndexes.has(index + 1)
+              );
+              const invalidRows = [...result.invalidRows, ...backendInvalidRows];
+              result = {
+                ...result,
+                isValid: invalidRows.length === 0,
+                validRows: remainingRows,
+                invalidRows,
+                validCount: remainingRows.length,
+                errorCount: invalidRows.length
+              };
+            }
+
+            setBackendValidationPassed(true);
+
             if (
             backendValidation.errorCount > 0 ||
             backendValidation.warningCount > 0)
@@ -1174,7 +1211,9 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
               validationError,
               t("errors.validateApiFallback")
             );
-            toast.warning(message);
+            setBackendValidationPassed(false);
+            setError(message);
+            toast.error(message);
           }
         }
 
@@ -1194,17 +1233,17 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   }, []);
 
   const handleProceedToPreview = useCallback(() => {
-    if (!validationResult) return;
+    if (!validationResult || !backendValidationPassed) return;
 
     setIsProcessing(true);
     const calculatedRows = calculateBulkCarbon(validationResult.validRows);
     setProcessedRows(calculatedRows);
     setCurrentStep(2);
     setIsProcessing(false);
-  }, [validationResult]);
+  }, [backendValidationPassed, validationResult]);
 
   const handleImportProducts = useCallback(async () => {
-    if (processedRows.length === 0) return;
+    if (processedRows.length === 0 || !backendValidationPassed || isProcessing) return;
 
     setCurrentStep(3);
     setIsProcessing(true);
@@ -1242,6 +1281,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     }
   }, [
     normalizedStarterDomesticMarket,
+    backendValidationPassed,
+    isProcessing,
     onCompleted,
     processedRows,
     starterDomesticOnly,
@@ -1370,7 +1411,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     </Button>
                     <Button
                   onClick={handleProceedToPreview}
-                  disabled={isProcessing}>
+                  disabled={isProcessing || !backendValidationPassed}>
 
                       {isProcessing ?
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" /> :
@@ -1447,7 +1488,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   <Button variant="outline" className="w-full sm:w-auto" onClick={() => setCurrentStep(1)}>
                     <ArrowLeft className="w-4 h-4 mr-1" /> {t("actions.back")}
                   </Button>
-                  <Button className="w-full sm:w-auto" onClick={() => void handleImportProducts()}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    disabled={isProcessing || !backendValidationPassed}
+                    onClick={() => void handleImportProducts()}>
                     <CheckCircle2 className="w-4 h-4 mr-1" /> {t("actions.importCount", { count: processedRows.length })}
                   </Button>
                 </div>

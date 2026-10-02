@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue } from
 "@/components/ui/select";
-import { Ship, Plane, Truck, Trash2, MapPin, Info } from "lucide-react";
+import { Ship, Plane, Train, Truck, Trash2, MapPin, Info } from "lucide-react";
 import AddressSelection from "@/components/ui/AddressSelection";
 import { LegInput, AddressData } from "./TransportClient";
 
@@ -34,7 +34,6 @@ interface TransportLegCardProps {
   leg: LegInput;
   index: number;
   canRemove: boolean;
-  hasLocationPermission: boolean;
   onUpdate: (id: string, field: keyof LegInput, value: string | AddressData) => void;
   onRemove: (id: string) => void;
   roadRouteIssue?: string | null;
@@ -47,7 +46,6 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
   leg,
   index,
   canRemove,
-  hasLocationPermission,
   onUpdate,
   onRemove,
   roadRouteIssue,
@@ -62,6 +60,8 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
         return <Ship className="w-4 h-4" />;
       case "air":
         return <Plane className="w-4 h-4" />;
+      case "rail":
+        return <Train className="w-4 h-4" />;
       default:
         return <Truck className="w-4 h-4" />;
     }
@@ -125,7 +125,7 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
               </SelectItem>
               <SelectItem value="rail">
                 <div className="flex items-center gap-2">
-                  <Truck className="w-4 h-4" />
+                  <Train className="w-4 h-4" />
                   {t("rail")}
                 </div>
               </SelectItem>
@@ -169,12 +169,6 @@ const TransportLegCard: React.FC<TransportLegCardProps> = ({
             onChange={(e) => onUpdate(leg.id, "distanceKm", e.target.value)}
             className="mt-1 bg-background border border-foreground/10" />
 
-          {!hasLocationPermission &&
-          <p className="text-xs text-muted-foreground mt-1">
-              <Info className="w-3 h-3 inline mr-1" />
-              {t("locationPermissionHint")}
-            </p>
-          }
           {roadRouteIssue ?
           <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               <Info className="mr-1 inline h-3 w-3" />

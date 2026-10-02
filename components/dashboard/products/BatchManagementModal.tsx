@@ -17,9 +17,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle2,
+  Archive,
   Layers,
   Package,
+  Pencil,
   Plus,
+  Save,
   Search,
   Send,
   Trash2
@@ -27,6 +30,7 @@ import {
 import {
   addProductToBatch,
   createProductBatch,
+  deleteProductBatch,
   fetchAllProducts,
   formatApiErrorMessage,
   getProductBatchById,
@@ -34,6 +38,8 @@ import {
   listProductBatches,
   publishProductBatch,
   removeProductBatchItem,
+  updateProductBatch,
+  updateProductBatchItem,
   type ProductBatchDetail,
   type ProductBatchSummary,
   type ProductRecord
@@ -138,6 +144,12 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailLoadError, setDetailLoadError] = useState<string | null>(null);
+  const [initialLoadError, setInitialLoadError] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [isEditingMetadata, setIsEditingMetadata] = useState(false);
+  const [editBatchName, setEditBatchName] = useState("");
+  const [editBatchDescription, setEditBatchDescription] = useState("");
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
 
   const [newBatchName, setNewBatchName] = useState("");
   const [newBatchDescription, setNewBatchDescription] = useState("");
@@ -220,6 +232,12 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
     try {
       const detail = await getProductBatchById(normalizedBatchId);
       setSelectedBatchDetail(detail);
+      setIsEditingMetadata(false);
+      setEditBatchName(detail.name);
+      setEditBatchDescription(detail.description || "");
+      setQuantityDrafts(Object.fromEntries(
+        detail.items.map((item) => [item.productId, String(item.quantity)])
+      ));
       setDetailLoadError(null);
     } catch (error) {
       setSelectedBatchDetail(null);
@@ -238,6 +256,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
 
     const init = async () => {
       setIsLoading(true);
+      setInitialLoadError(null);
       try {
         const [batchResult, productResult] = await Promise.all([
         listProductBatches({ page: 1, page_size: 100 }),
@@ -272,7 +291,9 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
         }
       } catch (error) {
         if (!cancelled) {
-          toast.error(formatApiErrorMessage(error, t("errors.loadBatchDataFailed")));
+          const message = formatApiErrorMessage(error, t("errors.loadBatchDataFailed"));
+          setInitialLoadError(message);
+          toast.error(message);
         }
       } finally {
         if (!cancelled) {
@@ -404,6 +425,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
 
   const handleAddProductToBatch = async (product: ProductRecord) => {
     if (!selectedBatchId) return;
+    if (activeAction) return;
     if (!isValidBatchId(selectedBatchId)) {
       toast.error(t("errors.invalidBatchIdForUpdate"));
       return;
@@ -414,6 +436,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
     }
 
     try {
+      setActiveAction(`add:${product.id}`);
       await addProductToBatch(selectedBatchId, {
         product_id: product.id,
         quantity: product.quantity > 0 ? product.quantity : 1,
@@ -432,27 +455,100 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
       toast.success(t("toasts.addedProductToBatch", { name: product.productName }));
     } catch (error) {
       toast.error(formatApiErrorMessage(error, t("errors.addProductFailed")));
+    } finally {
+      setActiveAction(null);
     }
   };
 
   const handleRemoveProductFromBatch = async (productId: string) => {
     if (!selectedBatchId) return;
+    if (activeAction) return;
     if (!isValidBatchId(selectedBatchId)) {
       toast.error(t("errors.invalidBatchIdForUpdate"));
       return;
     }
 
     try {
+      setActiveAction(`remove:${productId}`);
       await removeProductBatchItem(selectedBatchId, productId);
       await Promise.all([loadBatchDetail(selectedBatchId), loadBatches()]);
       onCompleted?.();
       toast.success(t("toasts.removedProduct"));
     } catch (error) {
       toast.error(formatApiErrorMessage(error, t("errors.removeProductFailed")));
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleSaveBatchMetadata = async () => {
+    if (!selectedBatchId || !selectedBatch || selectedBatch.status !== "draft") return;
+    if (!editBatchName.trim()) {
+      toast.error(t("errors.enterBatchName"));
+      return;
+    }
+    if (activeAction) return;
+
+    try {
+      setActiveAction("metadata");
+      await updateProductBatch(selectedBatchId, {
+        name: editBatchName.trim(),
+        description: editBatchDescription.trim()
+      });
+      await Promise.all([loadBatchDetail(selectedBatchId), loadBatches()]);
+      setIsEditingMetadata(false);
+      onCompleted?.();
+      toast.success(t("toasts.updatedBatch"));
+    } catch (error) {
+      toast.error(formatApiErrorMessage(error, t("errors.updateBatchFailed")));
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleUpdateQuantity = async (productId: string) => {
+    if (!selectedBatchId || activeAction) return;
+    const quantity = Number(quantityDrafts[productId]);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error(t("errors.invalidQuantity"));
+      return;
+    }
+
+    try {
+      setActiveAction(`quantity:${productId}`);
+      await updateProductBatchItem(selectedBatchId, productId, { quantity });
+      await Promise.all([loadBatchDetail(selectedBatchId), loadBatches()]);
+      onCompleted?.();
+      toast.success(t("toasts.updatedQuantity"));
+    } catch (error) {
+      toast.error(formatApiErrorMessage(error, t("errors.updateQuantityFailed")));
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleArchiveBatch = async () => {
+    if (!selectedBatchId || !selectedBatch || activeAction) return;
+    if (!window.confirm(t("actions.archiveConfirm", { name: selectedBatch.name }))) return;
+
+    try {
+      setActiveAction("archive");
+      await deleteProductBatch(selectedBatchId);
+      await loadBatches();
+      setSelectedBatchId(null);
+      setSelectedBatchDetail(null);
+      setActiveTab("list");
+      onCompleted?.();
+      toast.success(t("toasts.archivedBatch"));
+    } catch (error) {
+      toast.error(formatApiErrorMessage(error, t("errors.archiveBatchFailed")));
+    } finally {
+      setActiveAction(null);
     }
   };
 
   const handlePublishBatch = async () => {
+    if (activeAction) return;
     if (!selectedBatch || resolvedItemCount === 0) {
       toast.error(t("errors.atLeastOneProduct"));
       return;
@@ -469,6 +565,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
     }
 
     setIsPublishing(true);
+    setActiveAction("publish");
 
     try {
       const publishResult = await publishProductBatch(selectedBatchId);
@@ -491,6 +588,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
       toast.error(formatApiErrorMessage(error, t("errors.publishBatchFailed")));
     } finally {
       setIsPublishing(false);
+      setActiveAction(null);
     }
   };
 
@@ -539,6 +637,27 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
               {t("tabs.detail", { count: selectedBatch ? resolvedItemCount : 0 })}
             </TabsTrigger>
           </TabsList>
+
+          {initialLoadError && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <span>{initialLoadError}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setInitialLoadError(null);
+                  setIsLoading(true);
+                  void Promise.all([loadBatches(), loadProducts()])
+                    .catch((error) => setInitialLoadError(
+                      formatApiErrorMessage(error, t("errors.loadBatchDataFailed"))
+                    ))
+                    .finally(() => setIsLoading(false));
+                }}>
+                {t("actions.retry")}
+              </Button>
+            </div>
+          )}
 
           <TabsContent value="list" className="flex-1 overflow-auto space-y-3">
             {isLoading ?
@@ -698,15 +817,68 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                 <Card>
                   <CardContent className="p-4">
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-lg">{selectedBatch.name}</h3>
-                        {selectedBatch.description &&
-                      <p className="text-sm text-muted-foreground">{selectedBatch.description}</p>
-                      }
+                      <div className="min-w-0 flex-1">
+                        {isEditingMetadata && selectedBatch.status === "draft" ? (
+                          <div className="space-y-2">
+                            <Input
+                              value={editBatchName}
+                              maxLength={255}
+                              onChange={(event) => setEditBatchName(event.target.value)}
+                              aria-label={t("form.batchName")}
+                            />
+                            <Textarea
+                              value={editBatchDescription}
+                              maxLength={1000}
+                              rows={2}
+                              onChange={(event) => setEditBatchDescription(event.target.value)}
+                              aria-label={t("form.description")}
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <h3 className="font-bold text-lg">{selectedBatch.name}</h3>
+                            {selectedBatch.description && (
+                              <p className="text-sm text-muted-foreground">{selectedBatch.description}</p>
+                            )}
+                          </>
+                        )}
                       </div>
-                      <Badge className={getStatusBadgeClass(selectedBatch.status)}>
-                        {getStatusLabel(selectedBatch.status)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={getStatusBadgeClass(selectedBatch.status)}>
+                          {getStatusLabel(selectedBatch.status)}
+                        </Badge>
+                        {selectedBatch.status === "draft" && selectedBatchDetail && !isDetailLoading && (
+                          isEditingMetadata ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={activeAction !== null}
+                              onClick={() => void handleSaveBatchMetadata()}>
+                              <Save className="mr-1 h-4 w-4" /> {t("actions.save")}
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={activeAction !== null}
+                              onClick={() => setIsEditingMetadata(true)}>
+                              <Pencil className="mr-1 h-4 w-4" /> {t("actions.edit")}
+                            </Button>
+                          )
+                        )}
+                        {selectedBatch.status !== "archived" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={activeAction !== null}
+                            onClick={() => void handleArchiveBatch()}>
+                            <Archive className="mr-1 h-4 w-4" /> {t("actions.archive")}
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 text-center sm:grid-cols-2 lg:grid-cols-4">
@@ -770,7 +942,34 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                             <p className="text-sm text-muted-foreground">{item.productCode}</p>
                           </div>
                           <div className="sm:text-right">
-                            <p className="font-medium">{item.quantity} {t("detail.unit")}</p>
+                            {selectedBatch.status === "draft" && selectedBatchHasValidId ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min="0.0001"
+                                  step="any"
+                                  value={quantityDrafts[item.productId] ?? String(item.quantity)}
+                                  onChange={(event) => setQuantityDrafts((current) => ({
+                                    ...current,
+                                    [item.productId]: event.target.value
+                                  }))}
+                                  className="h-8 w-24 text-right"
+                                  aria-label={t("detail.quantityFor", { name: item.productName })}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  disabled={activeAction !== null}
+                                  onClick={() => void handleUpdateQuantity(item.productId)}>
+                                  <Save className="h-3.5 w-3.5" />
+                                  <span className="sr-only">{t("actions.saveQuantity")}</span>
+                                </Button>
+                              </div>
+                            ) : (
+                              <p className="font-medium">{item.quantity} {t("detail.unit")}</p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               {(item.quantity * item.co2PerUnit).toFixed(1)} kg CO2e
                             </p>
@@ -780,6 +979,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                       variant="ghost"
                       size="icon"
                       className="self-start sm:self-auto"
+                      disabled={activeAction !== null}
                       onClick={() => void handleRemoveProductFromBatch(item.productId)}>
 
                               <Trash2 className="w-4 h-4 text-destructive" />
@@ -801,7 +1001,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                     </div>
                 }
 
-                  {selectedBatch.status === "draft" && selectedBatchHasValidId &&
+                  {selectedBatch.status === "draft" && selectedBatchHasValidId && selectedBatchDetail &&
                 <div className="mt-4">
                       <p className="text-sm font-medium mb-2">{t("detail.addProductsTitle")}</p>
                       <div className="relative mb-2">
@@ -823,7 +1023,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                         {addableProducts.slice(0, 5).map((product) =>
                     <div
                       key={product.id}
-                      className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer"
+                      className={`flex items-center gap-2 rounded p-2 ${activeAction ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted"}`}
                       onClick={() => void handleAddProductToBatch(product)}>
 
                             <Plus className="w-4 h-4 text-primary" />
@@ -838,13 +1038,15 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                 }
                 </div>
 
-                {selectedBatch.status === "draft" && selectedBatchHasValidId &&
+                  {selectedBatch.status === "draft" && selectedBatchHasValidId && selectedBatchDetail &&
               <div className="pt-4 border-t">
                     <Button
                   onClick={() => void handlePublishBatch()}
                   className="w-full"
                   disabled={
                     isPublishing ||
+                    activeAction !== null ||
+                    isDetailLoading ||
                     resolvedItemCount === 0 ||
                     selectedBatchHasNonDomesticProduct
                   }>

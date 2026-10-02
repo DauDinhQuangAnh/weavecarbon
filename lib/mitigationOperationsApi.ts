@@ -5,9 +5,16 @@ export interface MitigationScenario { id:string;initiativeId:string;initiativeRe
 export interface AllowanceAllocation { id:string;facilityRevisionId:string;facilityName?:string;allocationReference:string;revision:number;reportingYear:number;instrumentType:string;recordStatus:string;quantityTco2e:number;allocationSha256:string; }
 export interface AllowancePosition { id:string;facilityRevisionId:string;corporateInventoryId:string;reportingYear:number;grossEmissionsTco2e:number;authorityQuotaTco2e:number;internalBudgetTco2e:number;creditReferenceTco2e:number;plannedReductionTco2e:number;projectedPositionTco2e:number;readinessStatus:string;blockers:string[];payloadSha256:string;disclaimer:string; }
 
+export interface TransitionLifecycleInput {
+  lifecycleStatus: "proposed" | "approved_internal" | "in_progress" | "completed" | "cancelled";
+  reason?: string;
+  notes?: string;
+}
+
 export const mitigationOperationsApi={
   initiatives:()=>api.get<MitigationInitiative[]>("/mitigation-operations/initiatives"),
   createInitiative:(value:Record<string,unknown>)=>api.post<MitigationInitiative>("/mitigation-operations/initiatives",value),
+  transitionInitiativeLifecycle:(id:string, input:TransitionLifecycleInput)=>api.patch<MitigationInitiative>(`/mitigation-operations/initiatives/${id}/lifecycle`, input),
   scenarios:()=>api.get<MitigationScenario[]>("/mitigation-operations/scenarios"),
   createScenario:(value:Record<string,unknown>)=>api.post<MitigationScenario>("/mitigation-operations/scenarios",value),
   allocations:()=>api.get<AllowanceAllocation[]>("/mitigation-operations/allocations"),

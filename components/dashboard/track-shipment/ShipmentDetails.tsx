@@ -33,6 +33,8 @@ import { useAppRoutes } from "@/lib/demo/routes";
 import { updateLogisticsShipmentStatus } from "@/lib/logisticsApi";
 import { isApiError } from "@/lib/apiClient";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
+import { showNoPermissionToast } from "@/lib/noPermissionToast";
 
 interface ShipmentDetailsProps {
   shipment: TrackShipment | null;
@@ -122,6 +124,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   const displayLocale = "vi-VN";
   const router = useRouter();
   const appRoutes = useAppRoutes();
+  const { canMutate } = usePermissions();
   const [isCancelling, setIsCancelling] = useState(false);
   const formatDistanceKm = (value: number) =>
   value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
@@ -136,8 +139,9 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   Boolean(
     shipment &&
     shipment.shipmentId &&
-    shipment.simulationEnabled &&
-    shipment.status === "pending" &&
+    (shipment.status === "pending" ||
+      (shipment.status === "in_transit" && !shipment.simulationEnabled)) &&
+    canMutate &&
     !appRoutes.isDemo
   );
 
@@ -193,6 +197,10 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
   mode;
 
   const handleCancelShipment = async () => {
+    if (!canMutate) {
+      showNoPermissionToast();
+      return;
+    }
     if (!shipment?.shipmentId || !canCancel || isCancelling) return;
 
     const confirmed = window.confirm(t("confirmCancel"));
@@ -265,6 +273,9 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
             </div>
             <p className={`break-words text-base font-semibold sm:text-lg ${statusPalette.locationText}`}>
               {shipment.currentLocation}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Vị trí ước tính từ trạng thái và tuyến, không phải dữ liệu GPS của hãng vận chuyển.
             </p>
           </div>
 

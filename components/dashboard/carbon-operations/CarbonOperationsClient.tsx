@@ -14,6 +14,7 @@ import {
   Layers,
   Loader2,
   Plus,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -30,7 +31,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import ActivityOperationsPanel from "@/components/dashboard/carbon-operations/ActivityOperationsPanel";
+import { usePermissions } from "@/hooks/usePermissions";
+import { toast } from "@/hooks/useToast";
 import { isApiError } from "@/lib/apiClient";
+import { selectLatestRevisions, isControlledEvidence } from "@/lib/industrialOperations";
+import { listEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import {
   INDUSTRIAL_CORE_DEMO_REGISTRY,
   industrialCoreApi,
@@ -43,6 +49,8 @@ import {
   type IndustrialMeasurementPoint,
   type IndustrialProcess,
 } from "@/lib/industrialCoreApi";
+
+type SaveAction = "facility" | "process" | "point" | "allocationRule" | "allocationRun";
 
 const statusStyles: Record<CapabilityStatus, string> = {
   implemented: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -64,6 +72,15 @@ export default function CarbonOperationsClient({
   demo?: boolean;
 }) {
   const t = useTranslations("carbonOperations");
+  const { isRoot, canMutate, isPlanLocked } = usePermissions();
+  const canWrite = !demo && isRoot && canMutate;
+  const readOnlyMessage = demo
+    ? t("demoReadOnly")
+    : !isRoot
+      ? t("adminRequired")
+      : isPlanLocked
+        ? t("subscriptionReadOnly")
+        : t("readOnly");
   const [registry, setRegistry] =
     useState<IndustrialCapabilityRegistry | null>(null);
   const [facilities, setFacilities] = useState<IndustrialFacility[]>([]);
@@ -78,10 +95,12 @@ export default function CarbonOperationsClient({
   const [allocationRuns, setAllocationRuns] = useState<
     DynamicAllocationRun[]
   >([]);
-  const [lineage, setLineage] = useState<unknown>(null);
+  const [evidence, setEvidence] = useState<EvidenceDocumentV2[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<Set<SaveAction>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [actionErrors, setActionErrors] = useState<Partial<Record<SaveAction, string>>>({});
+  const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [processForm, setProcessForm] = useState({
     facilityRevisionId: "",
@@ -95,7 +114,11 @@ export default function CarbonOperationsClient({
     measurementPointReference: "",
     measurementType: "electricity",
     canonicalUnit: "kWh",
-    sourceType: "meter" as const,
+    sourceType: "meter" as IndustrialMeasurementPoint["sourceType"],
+    deviceIdentity: "",
+    calibrationStatus: "unknown" as "unknown" | "current" | "expired" | "not_applicable",
+    calibrationDueOn: "",
+    samplingIntervalSeconds: "",
   });
   const [allocationRuleForm, setAllocationRuleForm] = useState({
     facilityRevisionId: "",
@@ -116,9 +139,23 @@ export default function CarbonOperationsClient({
     Record<string, string>
   >({});
 
+  const isSaving = (action: SaveAction) => saving.has(action);
+  const setActionSaving = (action: SaveAction, value: boolean) => {
+    setSaving((current) => {
+      const next = new Set(current);
+      if (value) next.add(action); else next.delete(action);
+      return next;
+    });
+  };
+  const setActionError = (action: SaveAction, message?: string) => {
+    setActionErrors((current) => ({ ...current, [action]: message }));
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setActionErrors({});
+    setLoadWarnings([]);
     if (demo) {
       setRegistry(INDUSTRIAL_CORE_DEMO_REGISTRY);
       setFacilities([]);
@@ -127,19 +164,12 @@ export default function CarbonOperationsClient({
       setActivities([]);
       setAllocationRules([]);
       setAllocationRuns([]);
+      setEvidence([]);
       setLoading(false);
       return;
     }
     try {
-      const [
-        capabilityData,
-        facilityData,
-        processData,
-        pointData,
-        activityData,
-        ruleData,
-        runData,
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         industrialCoreApi.capabilities(),
         industrialCoreApi.facilities(),
         industrialCoreApi.processes(),
@@ -147,14 +177,32 @@ export default function CarbonOperationsClient({
         industrialCoreApi.activities(),
         industrialCoreApi.allocationRules(),
         industrialCoreApi.allocationRuns(),
+        listEvidenceV2(),
       ]);
-      setRegistry(capabilityData);
-      setFacilities(facilityData);
-      setProcesses(processData);
-      setMeasurementPoints(pointData);
-      setActivities(activityData);
-      setAllocationRules(ruleData);
-      setAllocationRuns(runData);
+      const sectionNames = [t("capabilitySection"), t("facilitiesTitle"), t("processFormTitle"), t("pointFormTitle"), t("activityLedgerTitle"), t("allocationRuleTitle"), t("allocationRunTitle"), t("activityEvidence")];
+      const warnings: string[] = [];
+      results.forEach((result, index) => {
+        if (result.status === "rejected") warnings.push(`${sectionNames[index]}: ${isApiError(result.reason) ? result.reason.message : t("loadError")}`);
+      });
+      if (results[0].status === "fulfilled") {
+        setRegistry(results[0].value as IndustrialCapabilityRegistry);
+      } else {
+        setRegistry({
+          ...INDUSTRIAL_CORE_DEMO_REGISTRY,
+          platformVersion: t("unavailable"),
+          truthBoundary: t("capabilityUnavailable"),
+          layers: [],
+          entities: [],
+        });
+      }
+      if (results[1].status === "fulfilled") setFacilities(results[1].value as IndustrialFacility[]);
+      if (results[2].status === "fulfilled") setProcesses(results[2].value as IndustrialProcess[]);
+      if (results[3].status === "fulfilled") setMeasurementPoints(results[3].value as IndustrialMeasurementPoint[]);
+      if (results[4].status === "fulfilled") setActivities(results[4].value as IndustrialActivity[]);
+      if (results[5].status === "fulfilled") setAllocationRules(results[5].value as DynamicAllocationRule[]);
+      if (results[6].status === "fulfilled") setAllocationRuns(results[6].value as DynamicAllocationRun[]);
+      if (results[7].status === "fulfilled") setEvidence((results[7].value as { items: EvidenceDocumentV2[] }).items);
+      setLoadWarnings(warnings);
     } catch (cause) {
       setError(isApiError(cause) ? cause.message : t("loadError"));
     } finally {
@@ -178,11 +226,16 @@ export default function CarbonOperationsClient({
     [registry]
   );
 
+  const latestFacilities = useMemo(() => selectLatestRevisions(facilities, (item) => item.facilityReference), [facilities]);
+  const latestProcesses = useMemo(() => selectLatestRevisions(processes, (item) => item.processReference), [processes]);
+  const latestMeasurementPoints = useMemo(() => selectLatestRevisions(measurementPoints, (item) => item.measurementPointReference), [measurementPoints]);
+  const controlledEvidence = useMemo(() => evidence.filter(isControlledEvidence), [evidence]);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (demo || saving) return;
-    setSaving(true);
-    setError(null);
+    if (!canWrite || isSaving("facility")) return;
+    setActionSaving("facility", true);
+    setActionError("facility");
     try {
       const created = await industrialCoreApi.createFacility({
         ...form,
@@ -191,18 +244,19 @@ export default function CarbonOperationsClient({
       });
       setFacilities((current) => [created, ...current]);
       setForm(emptyForm);
+      toast({ title: t("facilityCreated") });
     } catch (cause) {
-      setError(isApiError(cause) ? cause.message : t("saveError"));
+      setActionError("facility", isApiError(cause) ? cause.message : t("facilitySaveError"));
     } finally {
-      setSaving(false);
+      setActionSaving("facility", false);
     }
   };
 
   const submitProcess = async (event: FormEvent) => {
     event.preventDefault();
-    if (demo || saving) return;
-    setSaving(true);
-    setError(null);
+    if (!canWrite || isSaving("process")) return;
+    setActionSaving("process", true);
+    setActionError("process");
     try {
       const created = await industrialCoreApi.createProcess({
         ...processForm,
@@ -215,22 +269,26 @@ export default function CarbonOperationsClient({
         name: "",
         processType: "",
       });
+      toast({ title: t("processCreated") });
     } catch (cause) {
-      setError(isApiError(cause) ? cause.message : t("saveError"));
+      setActionError("process", isApiError(cause) ? cause.message : t("processSaveError"));
     } finally {
-      setSaving(false);
+      setActionSaving("process", false);
     }
   };
 
   const submitPoint = async (event: FormEvent) => {
     event.preventDefault();
-    if (demo || saving) return;
-    setSaving(true);
-    setError(null);
+    if (!canWrite || isSaving("point")) return;
+    setActionSaving("point", true);
+    setActionError("point");
     try {
       const payload = {
         ...pointForm,
         processRevisionId: pointForm.processRevisionId || undefined,
+        deviceIdentity: pointForm.deviceIdentity || undefined,
+        calibrationDueOn: pointForm.calibrationDueOn || undefined,
+        samplingIntervalSeconds: pointForm.samplingIntervalSeconds ? Number(pointForm.samplingIntervalSeconds) : undefined,
       };
       const created = await industrialCoreApi.createMeasurementPoint(payload);
       setMeasurementPoints((current) => [created, ...current]);
@@ -241,19 +299,16 @@ export default function CarbonOperationsClient({
         measurementType: "electricity",
         canonicalUnit: "kWh",
         sourceType: "meter",
+        deviceIdentity: "",
+        calibrationStatus: "unknown",
+        calibrationDueOn: "",
+        samplingIntervalSeconds: "",
       });
+      toast({ title: t("pointCreated") });
     } catch (cause) {
-      setError(isApiError(cause) ? cause.message : t("saveError"));
+      setActionError("point", isApiError(cause) ? cause.message : t("pointSaveError"));
     } finally {
-      setSaving(false);
-    }
-  };
-
-  const inspectLineage = async (activityId: string) => {
-    try {
-      setLineage(await industrialCoreApi.activityLineage(activityId));
-    } catch (cause) {
-      setError(isApiError(cause) ? cause.message : t("loadError"));
+      setActionSaving("point", false);
     }
   };
 
@@ -262,7 +317,7 @@ export default function CarbonOperationsClient({
   );
   const allocationTargets =
     selectedAllocationRule?.targetLevel === "process"
-      ? processes.filter(
+      ? latestProcesses.filter(
           (item) =>
             item.facilityRevisionId ===
             selectedAllocationRule.facilityRevisionId
@@ -278,9 +333,9 @@ export default function CarbonOperationsClient({
 
   const submitAllocationRule = async (event: FormEvent) => {
     event.preventDefault();
-    if (demo || saving) return;
-    setSaving(true);
-    setError(null);
+    if (!canWrite || isSaving("allocationRule")) return;
+    setActionSaving("allocationRule", true);
+    setActionError("allocationRule");
     try {
       const created = await industrialCoreApi.createAllocationRule({
         ...allocationRuleForm,
@@ -300,16 +355,17 @@ export default function CarbonOperationsClient({
         approvalStatus: "draft",
         evidenceDocumentId: "",
       });
+      toast({ title: t("allocationRuleCreated") });
     } catch (cause) {
-      setError(isApiError(cause) ? cause.message : t("allocationSaveError"));
+      setActionError("allocationRule", isApiError(cause) ? cause.message : t("allocationRuleSaveError"));
     } finally {
-      setSaving(false);
+      setActionSaving("allocationRule", false);
     }
   };
 
   const submitAllocationRun = async (event: FormEvent) => {
     event.preventDefault();
-    if (demo || saving) return;
+    if (!canWrite || isSaving("allocationRun")) return;
     const targets = allocationTargets
       .map((target) => ({
         targetEntityId: target.id,
@@ -320,11 +376,11 @@ export default function CarbonOperationsClient({
           Number.isFinite(target.driverValue) && target.driverValue > 0
       );
     if (!targets.length) {
-      setError(t("allocationTargetRequired"));
+      setActionError("allocationRun", t("allocationTargetRequired"));
       return;
     }
-    setSaving(true);
-    setError(null);
+    setActionSaving("allocationRun", true);
+    setActionError("allocationRun");
     try {
       const created = await industrialCoreApi.createAllocationRun({
         ruleRevisionId: allocationRunForm.ruleRevisionId,
@@ -333,10 +389,11 @@ export default function CarbonOperationsClient({
       });
       setAllocationRuns((current) => [created, ...current]);
       setAllocationDrivers({});
+      toast({ title: t("allocationRunCreated") });
     } catch (cause) {
-      setError(isApiError(cause) ? cause.message : t("allocationSaveError"));
+      setActionError("allocationRun", isApiError(cause) ? cause.message : t("allocationRunSaveError"));
     } finally {
-      setSaving(false);
+      setActionSaving("allocationRun", false);
     }
   };
 
@@ -379,6 +436,17 @@ export default function CarbonOperationsClient({
         </div>
       )}
 
+      {loadWarnings.length > 0 && (
+        <div role="alert" className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="font-semibold">{t("partialLoadTitle")}</p><ul className="mt-1 list-disc pl-5 text-xs">{loadWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>
+          <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" />{t("retry")}</Button>
+        </div>
+      )}
+
+      {!loading && !canWrite && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><span className="font-semibold">{t("readOnlyTitle")}:</span> {readOnlyMessage}</div>
+      )}
+
       {loading ? (
         <div className="flex min-h-64 items-center justify-center">
           <div className="text-center">
@@ -392,7 +460,7 @@ export default function CarbonOperationsClient({
         registry && (
           <>
             {/* ── KPI Capability Cards ── */}
-            <section className="grid gap-3 sm:grid-cols-3 md:gap-4">
+            {registry.layers.length > 0 ? <section className="grid gap-3 sm:grid-cols-3 md:gap-4">
               {(["implemented", "partial", "planned"] as CapabilityStatus[]).map(
                 (status) => {
                   const icon =
@@ -434,7 +502,7 @@ export default function CarbonOperationsClient({
                   );
                 }
               )}
-            </section>
+            </section> : <Card className="border-amber-200 bg-amber-50"><CardContent className="p-4 text-sm text-amber-900">{t("capabilityUnavailable")}</CardContent></Card>}
 
             {/* ── Truth Boundary Alert ── */}
             <Card className="rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50/70 via-amber-50/40 to-orange-50/30 shadow-xs">
@@ -450,6 +518,13 @@ export default function CarbonOperationsClient({
                     {registry.truthBoundary}
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-xl border border-emerald-200 bg-emerald-50/50 shadow-xs">
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="text-sm font-bold text-emerald-950">{t("companyReadinessTitle")}</p><p className="mt-1 text-xs text-emerald-900/80">{t("companyReadinessDescription")}</p></div>
+                <div className="flex flex-wrap gap-2"><Badge variant="outline">{t("readinessFacilities", { count: latestFacilities.length })}</Badge><Badge variant="outline">{t("readinessProcesses", { count: latestProcesses.length })}</Badge><Badge variant="outline">{t("readinessPoints", { count: latestMeasurementPoints.length })}</Badge><Badge variant="outline">{t("readinessActivities", { count: activities.length })}</Badge></div>
               </CardContent>
             </Card>
 
@@ -542,6 +617,7 @@ export default function CarbonOperationsClient({
                 </CardHeader>
                 <CardContent className="pt-4">
                   <form className="space-y-3.5" onSubmit={submit}>
+                    {actionErrors.facility && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">{actionErrors.facility}</p>}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label
@@ -554,7 +630,7 @@ export default function CarbonOperationsClient({
                           id="facility-reference"
                           required
                           maxLength={120}
-                          disabled={demo || saving}
+                          disabled={!canWrite || isSaving("facility")}
                           value={form.facilityReference}
                           onChange={(e) =>
                             setForm({
@@ -577,7 +653,7 @@ export default function CarbonOperationsClient({
                           id="facility-country"
                           required
                           maxLength={2}
-                          disabled={demo || saving}
+                          disabled={!canWrite || isSaving("facility")}
                           value={form.countryCode}
                           onChange={(e) =>
                             setForm({ ...form, countryCode: e.target.value })
@@ -598,7 +674,7 @@ export default function CarbonOperationsClient({
                         id="facility-name"
                         required
                         maxLength={240}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("facility")}
                         value={form.name}
                         onChange={(e) =>
                           setForm({ ...form, name: e.target.value })
@@ -606,6 +682,11 @@ export default function CarbonOperationsClient({
                         className="h-9 rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
                         placeholder="Nhà máy May Vinatex Nam Định"
                       />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="facility-timezone" className="text-xs font-semibold text-slate-700">{t("fields.timezone")}</Label>
+                      <Input id="facility-timezone" required list="facility-timezones" disabled={!canWrite || isSaving("facility")} value={form.timezone} onChange={(event) => setForm({ ...form, timezone: event.target.value })} className="h-9 rounded-lg border-slate-200 text-sm" placeholder="Asia/Ho_Chi_Minh" />
+                      <datalist id="facility-timezones"><option value="Asia/Ho_Chi_Minh" /><option value="Asia/Bangkok" /><option value="Asia/Singapore" /><option value="Asia/Tokyo" /><option value="Asia/Seoul" /><option value="Europe/Amsterdam" /><option value="Europe/Berlin" /><option value="America/Los_Angeles" /><option value="America/New_York" /></datalist>
                     </div>
                     <div className="space-y-1.5">
                       <Label
@@ -616,7 +697,7 @@ export default function CarbonOperationsClient({
                       </Label>
                       <Textarea
                         id="facility-boundary"
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("facility")}
                         value={form.boundaryNotes}
                         onChange={(e) =>
                           setForm({ ...form, boundaryNotes: e.target.value })
@@ -627,10 +708,10 @@ export default function CarbonOperationsClient({
                     </div>
                     <Button
                       type="submit"
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("facility")}
                       className="h-9.5 w-full rounded-xl bg-emerald-600 font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors"
                     >
-                      {saving && (
+                      {isSaving("facility") && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       {t("createFacility")}
@@ -670,15 +751,13 @@ export default function CarbonOperationsClient({
                             </p>
                             <p className="text-xs text-slate-500 font-mono mt-0.5">
                               {facility.facilityReference} ·{" "}
-                              {facility.countryCode} · rev {facility.revision}
+                              {facility.countryCode} · {facility.timezone} · rev {facility.revision}
                             </p>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px] font-medium"
-                          >
-                            {facility.lifecycleStatus}
-                          </Badge>
+                          <div className="flex gap-1.5">
+                            <Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px] font-medium">{facility.lifecycleStatus}</Badge>
+                            <Badge variant="outline" className="text-[11px]">{latestFacilities.some((item) => item.id === facility.id) ? t("currentRevision") : t("historicalRevision")}</Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -703,6 +782,7 @@ export default function CarbonOperationsClient({
                 </CardHeader>
                 <CardContent className="pt-4">
                   <form className="space-y-3" onSubmit={submitProcess}>
+                    {actionErrors.process && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">{actionErrors.process}</p>}
                     <div className="space-y-1">
                       <Label
                         htmlFor="process-facility"
@@ -713,7 +793,7 @@ export default function CarbonOperationsClient({
                       <select
                         id="process-facility"
                         required
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("process")}
                         className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                         value={processForm.facilityRevisionId}
                         onChange={(e) =>
@@ -724,7 +804,7 @@ export default function CarbonOperationsClient({
                         }
                       >
                         <option value="">{t("selectFacility")}</option>
-                        {facilities.map((item) => (
+                        {latestFacilities.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name} · rev {item.revision}
                           </option>
@@ -736,7 +816,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("fields.processReference")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("process")}
                         value={processForm.processReference}
                         onChange={(e) =>
                           setProcessForm({
@@ -749,7 +829,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("fields.processType")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("process")}
                         value={processForm.processType}
                         onChange={(e) =>
                           setProcessForm({
@@ -763,7 +843,7 @@ export default function CarbonOperationsClient({
                     <Input
                       required
                       placeholder={t("fields.processName")}
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("process")}
                       value={processForm.name}
                       onChange={(e) =>
                         setProcessForm({
@@ -774,7 +854,7 @@ export default function CarbonOperationsClient({
                       className="h-9 rounded-lg border-slate-200 text-xs"
                     />
                     <Button
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("process")}
                       className="h-9 w-full rounded-xl bg-emerald-600 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors"
                     >
                       {t("createProcess")}
@@ -790,7 +870,7 @@ export default function CarbonOperationsClient({
                         <span className="font-semibold">{item.name}</span>
                         <span className="text-slate-500 font-mono">
                           {" "}
-                          · {item.processReference} · {item.processType}
+                          · {item.processReference} · {item.processType} · rev {item.revision}
                         </span>
                       </div>
                     ))}
@@ -812,9 +892,10 @@ export default function CarbonOperationsClient({
                 </CardHeader>
                 <CardContent className="pt-4">
                   <form className="space-y-3" onSubmit={submitPoint}>
+                    {actionErrors.point && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">{actionErrors.point}</p>}
                     <select
                       required
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("point")}
                       aria-label={t("fields.facility")}
                       className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={pointForm.facilityRevisionId}
@@ -827,14 +908,14 @@ export default function CarbonOperationsClient({
                       }
                     >
                       <option value="">{t("selectFacility")}</option>
-                      {facilities.map((item) => (
+                      {latestFacilities.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
                         </option>
                       ))}
                     </select>
                     <select
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("point")}
                       aria-label={t("fields.processName")}
                       className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={pointForm.processRevisionId}
@@ -846,7 +927,7 @@ export default function CarbonOperationsClient({
                       }
                     >
                       <option value="">{t("optionalProcess")}</option>
-                      {processes
+                      {latestProcesses
                         .filter(
                           (item) =>
                             item.facilityRevisionId ===
@@ -861,7 +942,7 @@ export default function CarbonOperationsClient({
                     <Input
                       required
                       placeholder={t("fields.pointReference")}
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("point")}
                       value={pointForm.measurementPointReference}
                       onChange={(e) =>
                         setPointForm({
@@ -875,7 +956,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("fields.measurementType")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("point")}
                         value={pointForm.measurementType}
                         onChange={(e) =>
                           setPointForm({
@@ -888,7 +969,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("fields.unit")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("point")}
                         value={pointForm.canonicalUnit}
                         onChange={(e) =>
                           setPointForm({
@@ -899,8 +980,21 @@ export default function CarbonOperationsClient({
                         className="h-9 rounded-lg border-slate-200 text-xs"
                       />
                     </div>
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                      <select aria-label={t("fields.sourceType")} disabled={!canWrite || isSaving("point")} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs" value={pointForm.sourceType} onChange={(event) => setPointForm({ ...pointForm, sourceType: event.target.value as typeof pointForm.sourceType })}>
+                        {["meter", "plc", "sensor", "weavenode", "manual", "api"].map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                      <Input placeholder={t("fields.deviceIdentity")} disabled={!canWrite || isSaving("point")} value={pointForm.deviceIdentity} onChange={(event) => setPointForm({ ...pointForm, deviceIdentity: event.target.value })} />
+                    </div>
+                    <div className="grid gap-2.5 sm:grid-cols-3">
+                      <select aria-label={t("fields.calibrationStatus")} disabled={!canWrite || isSaving("point")} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs" value={pointForm.calibrationStatus} onChange={(event) => setPointForm({ ...pointForm, calibrationStatus: event.target.value as typeof pointForm.calibrationStatus })}>
+                        {["unknown", "current", "expired", "not_applicable"].map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                      <Input type="date" aria-label={t("fields.calibrationDueOn")} disabled={!canWrite || isSaving("point") || pointForm.calibrationStatus === "not_applicable"} value={pointForm.calibrationDueOn} onChange={(event) => setPointForm({ ...pointForm, calibrationDueOn: event.target.value })} />
+                      <Input type="number" min="1" step="1" aria-label={t("fields.samplingInterval")} placeholder={t("fields.samplingInterval")} disabled={!canWrite || isSaving("point")} value={pointForm.samplingIntervalSeconds} onChange={(event) => setPointForm({ ...pointForm, samplingIntervalSeconds: event.target.value })} />
+                    </div>
                     <Button
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("point")}
                       className="h-9 w-full rounded-xl bg-emerald-600 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors"
                     >
                       {t("createPoint")}
@@ -918,7 +1012,7 @@ export default function CarbonOperationsClient({
                         </span>
                         <span className="text-slate-500">
                           {" "}
-                          · {item.measurementType} · {item.canonicalUnit}
+                          · {item.measurementType} · {item.canonicalUnit} · {item.sourceType} · rev {item.revision}
                         </span>
                       </div>
                     ))}
@@ -928,63 +1022,16 @@ export default function CarbonOperationsClient({
             </section>
 
             {/* ── Activity Ledger & Evidence Lineage ── */}
-            <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
-              <CardHeader className="pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-emerald-600" />
-                  <CardTitle className="text-base font-bold text-slate-900">
-                    {t("activityLedgerTitle")}
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-xs text-slate-500">
-                  {t("activityLedgerDescription", {
-                    count: activities.length,
-                  })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-2">
-                  {activities.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs text-slate-500">
-                      {t("emptyActivities")}
-                    </p>
-                  ) : (
-                    activities.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 hover:bg-slate-50 transition-colors"
-                      >
-                        <div>
-                          <p className="font-semibold text-sm text-slate-900 font-mono">
-                            {item.activityReference}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {item.quantity} {item.canonicalUnit} ·{" "}
-                            <span className="text-emerald-700 font-medium">
-                              {item.dataQualityLevel}
-                            </span>
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => void inspectLineage(item.id)}
-                          className="h-8 rounded-lg border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-100"
-                        >
-                          {t("viewLineage")}
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {lineage !== null && (
-                  <pre className="mt-4 max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 font-mono text-xs text-emerald-300 border border-emerald-950">
-                    {JSON.stringify(lineage, null, 2)}
-                  </pre>
-                )}
-              </CardContent>
-            </Card>
+            <ActivityOperationsPanel
+              activities={activities}
+              facilities={latestFacilities}
+              processes={latestProcesses}
+              measurementPoints={latestMeasurementPoints}
+              evidence={evidence}
+              canWrite={canWrite}
+              readOnlyMessage={readOnlyMessage}
+              onCreated={(created) => setActivities((current) => [created, ...current])}
+            />
 
             {/* ── Governed Allocation Rules & Deterministic Runs ── */}
             <section className="grid gap-4 md:gap-6 xl:grid-cols-2">
@@ -1002,9 +1049,10 @@ export default function CarbonOperationsClient({
                 </CardHeader>
                 <CardContent className="pt-4">
                   <form className="space-y-3" onSubmit={submitAllocationRule}>
+                    {actionErrors.allocationRule && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">{actionErrors.allocationRule}</p>}
                     <select
                       required
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("allocationRule")}
                       aria-label={t("fields.facility")}
                       className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={allocationRuleForm.facilityRevisionId}
@@ -1016,7 +1064,7 @@ export default function CarbonOperationsClient({
                       }
                     >
                       <option value="">{t("selectFacility")}</option>
-                      {facilities.map((item) => (
+                      {latestFacilities.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
                         </option>
@@ -1026,7 +1074,7 @@ export default function CarbonOperationsClient({
                     <Input
                       required
                       placeholder={t("allocationReference")}
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("allocationRule")}
                       value={allocationRuleForm.allocationReference}
                       onChange={(e) =>
                         setAllocationRuleForm({
@@ -1039,7 +1087,7 @@ export default function CarbonOperationsClient({
 
                     <div className="grid gap-2.5 sm:grid-cols-2">
                       <select
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("allocationRule")}
                         aria-label={t("allocationMethod")}
                         className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                         value={allocationRuleForm.allocationMethod}
@@ -1073,7 +1121,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("driverUnit")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("allocationRule")}
                         value={allocationRuleForm.driverUnit}
                         onChange={(e) =>
                           setAllocationRuleForm({
@@ -1089,7 +1137,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("methodologyReference")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("allocationRule")}
                         value={allocationRuleForm.methodologyReference}
                         onChange={(e) =>
                           setAllocationRuleForm({
@@ -1102,7 +1150,7 @@ export default function CarbonOperationsClient({
                       <Input
                         required
                         placeholder={t("methodologyVersion")}
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("allocationRule")}
                         value={allocationRuleForm.methodologyVersion}
                         onChange={(e) =>
                           setAllocationRuleForm({
@@ -1117,7 +1165,7 @@ export default function CarbonOperationsClient({
                     <Textarea
                       required
                       placeholder={t("allocationRationale")}
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("allocationRule")}
                       value={allocationRuleForm.rationale}
                       onChange={(e) =>
                         setAllocationRuleForm({
@@ -1130,7 +1178,7 @@ export default function CarbonOperationsClient({
 
                     <div className="grid gap-2.5 sm:grid-cols-2">
                       <select
-                        disabled={demo || saving}
+                        disabled={!canWrite || isSaving("allocationRule")}
                         aria-label={t("approvalStatus")}
                         className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                         value={allocationRuleForm.approvalStatus}
@@ -1146,22 +1194,21 @@ export default function CarbonOperationsClient({
                         <option value="draft">{t("draft")}</option>
                         <option value="approved">{t("approved")}</option>
                       </select>
-                      <Input
-                        placeholder={t("approvalEvidence")}
-                        disabled={demo || saving}
+                      <select
+                        aria-label={t("approvalEvidence")}
+                        required={allocationRuleForm.approvalStatus === "approved"}
+                        disabled={!canWrite || isSaving("allocationRule")}
                         value={allocationRuleForm.evidenceDocumentId}
-                        onChange={(e) =>
-                          setAllocationRuleForm({
-                            ...allocationRuleForm,
-                            evidenceDocumentId: e.target.value,
-                          })
-                        }
-                        className="h-9 rounded-lg border-slate-200 text-xs"
-                      />
+                        onChange={(event) => setAllocationRuleForm({ ...allocationRuleForm, evidenceDocumentId: event.target.value })}
+                        className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs"
+                      >
+                        <option value="">{t("selectControlledEvidence")}</option>
+                        {controlledEvidence.map((item) => <option key={item.id} value={item.id}>{item.documentName} · {item.status} · {item.checksumSha256?.slice(0, 12)}…</option>)}
+                      </select>
                     </div>
 
                     <Button
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("allocationRule") || (allocationRuleForm.approvalStatus === "approved" && !allocationRuleForm.evidenceDocumentId)}
                       className="h-9 w-full rounded-xl bg-emerald-600 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors"
                     >
                       {t("createAllocationRule")}
@@ -1213,9 +1260,10 @@ export default function CarbonOperationsClient({
                 </CardHeader>
                 <CardContent className="pt-4">
                   <form className="space-y-3" onSubmit={submitAllocationRun}>
+                    {actionErrors.allocationRun && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-800">{actionErrors.allocationRun}</p>}
                     <select
                       required
-                      disabled={demo || saving}
+                      disabled={!canWrite || isSaving("allocationRun")}
                       aria-label={t("allocationRuleTitle")}
                       className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={allocationRunForm.ruleRevisionId}
@@ -1243,7 +1291,7 @@ export default function CarbonOperationsClient({
 
                     <select
                       required
-                      disabled={demo || saving || !selectedAllocationRule}
+                      disabled={!canWrite || isSaving("allocationRun") || !selectedAllocationRule}
                       aria-label={t("sourceActivity")}
                       className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={allocationRunForm.sourceActivityId}
@@ -1288,7 +1336,7 @@ export default function CarbonOperationsClient({
                               type="number"
                               min="0"
                               step="any"
-                              disabled={demo || saving}
+                              disabled={!canWrite || isSaving("allocationRun")}
                               value={allocationDrivers[target.id] || ""}
                               onChange={(e) =>
                                 setAllocationDrivers({
@@ -1306,8 +1354,8 @@ export default function CarbonOperationsClient({
 
                     <Button
                       disabled={
-                        demo ||
-                        saving ||
+                        !canWrite ||
+                        isSaving("allocationRun") ||
                         !selectedAllocationRule ||
                         !allocationRunForm.sourceActivityId
                       }

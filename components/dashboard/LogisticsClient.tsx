@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -61,6 +61,9 @@ import SupplyChainMap, {
 } from "./logistic/SupplyChainMap";
 import { getShipmentColor } from "@/lib/shipmentColors";
 import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeometry";
+import { usePermissions } from "@/hooks/usePermissions";
+import { showNoPermissionToast } from "@/lib/noPermissionToast";
+import { isApiError } from "@/lib/apiClient";
 
 const ProductQRCode = dynamic(() => import("./ProductQRCode"), { ssr: false });
 
@@ -220,21 +223,34 @@ function getModeLabel(mode: LogisticsTransportMode): string {
 // would change identity on every render.
 const MAP_CENTER: [number, number] = [20, 100];
 
+const toMapTransportMode = (
+  mode: LogisticsTransportMode
+): SupplyChainRoute["mode"] => {
+  if (mode === "road") return "truck";
+  if (mode === "sea") return "ship";
+  return mode;
+};
+
 const LogisticsClient: React.FC = () => {
   const t = useTranslations("logistics");
   const { setPageTitle } = useDashboardTitle();
+  const { canMutate } = usePermissions();
 
   const [overview, setOverview] = useState<LogisticsOverview | null>(null);
   const [shipments, setShipments] = useState<LogisticsShipmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [updatingShipmentId, setUpdatingShipmentId] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+  const hasLoadedRef = useRef(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [marketFilter, setMarketFilter] = useState("all");
   const [modeFilter, setModeFilter] = useState<"all" | LogisticsTransportMode>(
     "all"
   );
-  const [activeTab, setActiveTab] = useState<"active" | "history">("history");
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
 
   const [selectedShipment, setSelectedShipment] =
     useState<LogisticsShipmentSummary | null>(null);
@@ -278,22 +294,43 @@ const LogisticsClient: React.FC = () => {
   }, [setPageTitle, t]);
 
   const loadData = useCallback(async (showRefreshing = false) => {
-    if (showRefreshing) setRefreshing(true);
+    const requestId = ++requestIdRef.current;
+    const refreshInPlace = showRefreshing || hasLoadedRef.current;
+    if (refreshInPlace) setRefreshing(true);
     else setLoading(true);
-    try {
-      const [ov, list] = await Promise.all([
-        fetchLogisticsOverview(),
-        fetchAllLogisticsShipments(),
-      ]);
-      setOverview(ov);
-      setShipments(list);
-    } catch {
-      toast.error("Không thể tải dữ liệu logistics.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    setDataError(null);
+
+    const [overviewResult, shipmentsResult] = await Promise.allSettled([
+      fetchLogisticsOverview(),
+      fetchAllLogisticsShipments({
+        transport_mode: modeFilter === "all" ? undefined : modeFilter,
+      }),
+    ]);
+
+    if (requestId !== requestIdRef.current) return;
+
+    const failures: string[] = [];
+    if (overviewResult.status === "fulfilled") {
+      setOverview(overviewResult.value);
+    } else {
+      failures.push("tổng quan");
     }
-  }, []);
+    if (shipmentsResult.status === "fulfilled") {
+      setShipments(shipmentsResult.value);
+    } else {
+      failures.push("danh sách lô hàng");
+    }
+
+    if (failures.length > 0) {
+      const message = `Không thể tải ${failures.join(" và ")}. Dữ liệu đang hiển thị có thể chưa mới.`;
+      setDataError(message);
+      if (showRefreshing) toast.error(message);
+    }
+
+    hasLoadedRef.current = true;
+    setLoading(false);
+    setRefreshing(false);
+  }, [modeFilter]);
 
   useEffect(() => {
     void loadData();
@@ -383,7 +420,7 @@ const LogisticsClient: React.FC = () => {
     const seen = new Set<string>();
     return mapSourceShipments.flatMap((s) => {
       const nodes: SupplyChainNode[] = [];
-      if (s.origin.lat && s.origin.lng) {
+      if (s.origin.lat != null && s.origin.lng != null) {
         const key = `${s.origin.lat?.toFixed(1)},${s.origin.lng?.toFixed(1)}`;
         if (!seen.has(key)) {
           seen.add(key);
@@ -398,7 +435,7 @@ const LogisticsClient: React.FC = () => {
           });
         }
       }
-      if (s.destination.lat && s.destination.lng) {
+      if (s.destination.lat != null && s.destination.lng != null) {
         const key = `${s.destination.lat?.toFixed(1)},${s.destination.lng?.toFixed(1)}`;
         if (!seen.has(key)) {
           seen.add(key);
@@ -426,7 +463,10 @@ const LogisticsClient: React.FC = () => {
     return mapSourceShipments
       .filter(
         (s) =>
-          s.origin.lat && s.origin.lng && s.destination.lat && s.destination.lng
+          s.origin.lat != null &&
+          s.origin.lng != null &&
+          s.destination.lat != null &&
+          s.destination.lng != null
       )
       .map((s) => ({
         id: s.id,
@@ -440,14 +480,12 @@ const LogisticsClient: React.FC = () => {
           lng: s.destination.lng!,
           name: s.destination.city || s.destination.country,
         },
-        // Shipment summaries don't carry per-leg transport mode. Same-country
-        // legs are drawn as road (and resolved to a real driving route
-        // below); cross-border legs fall back to the sea pathfinding graph,
-        // which itself falls back to a straight line when no path resolves.
-        mode:
-          s.origin.country && s.origin.country === s.destination.country
-            ? ("truck" as const)
-            : ("ship" as const),
+        mode: toMapTransportMode(
+          s.primaryTransportMode ??
+            (s.origin.country && s.origin.country === s.destination.country
+              ? "road"
+              : "sea")
+        ),
         status:
           s.status === "delivered"
             ? ("completed" as const)
@@ -499,13 +537,45 @@ const LogisticsClient: React.FC = () => {
     (s) => s.status === "delivered" || s.status === "cancelled"
   ).length;
 
-  const handleConfirmDelivered = async (id: string) => {
+  const handleAdvanceShipment = async (shipment: LogisticsShipmentSummary) => {
+    if (!canMutate) {
+      showNoPermissionToast();
+      return;
+    }
+    if (shipment.simulationEnabled) {
+      toast.info("Trạng thái lô hàng mô phỏng được hệ thống tự động cập nhật.");
+      return;
+    }
+
+    const nextStatus = shipment.status === "pending" ? "in_transit" : "delivered";
     try {
-      await updateLogisticsShipmentStatus(id, "delivered");
-      toast.success("Đã xác nhận giao hàng.");
-      void loadData(true);
-    } catch {
-      toast.error("Không thể cập nhật trạng thái.");
+      setUpdatingShipmentId(shipment.id);
+      await updateLogisticsShipmentStatus(shipment.id, nextStatus);
+      toast.success(nextStatus === "in_transit" ? "Đã bắt đầu vận chuyển." : "Đã xác nhận giao hàng.");
+      await loadData(true);
+    } catch (error) {
+      toast.error(isApiError(error) && error.message ? error.message : "Không thể cập nhật trạng thái.");
+    } finally {
+      setUpdatingShipmentId(null);
+    }
+  };
+
+  const handleCancelShipment = async (shipment: LogisticsShipmentSummary) => {
+    if (!canMutate) {
+      showNoPermissionToast();
+      return;
+    }
+    if (!window.confirm(`Hủy lô hàng ${shipment.referenceNumber || shipment.id}?`)) return;
+
+    try {
+      setUpdatingShipmentId(shipment.id);
+      await updateLogisticsShipmentStatus(shipment.id, "cancelled");
+      toast.success("Đã hủy lô hàng.");
+      await loadData(true);
+    } catch (error) {
+      toast.error(isApiError(error) && error.message ? error.message : "Không thể hủy lô hàng.");
+    } finally {
+      setUpdatingShipmentId(null);
     }
   };
 
@@ -529,7 +599,7 @@ const LogisticsClient: React.FC = () => {
           </p>
           {overview && (
             <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
-              CO₂e Scope 3: {overview.totalCo2e.toFixed(0)} kg
+              CO₂e vận chuyển ước tính: {overview.totalCo2e.toFixed(0)} kg
             </span>
           )}
         </div>
@@ -548,6 +618,24 @@ const LogisticsClient: React.FC = () => {
           <span>{refreshing ? "Đang đồng bộ…" : "Cập nhật"}</span>
         </Button>
       </div>
+
+      {dataError && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <span className="inline-flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            {dataError}
+          </span>
+          <Button variant="outline" size="sm" onClick={() => void loadData(true)} disabled={refreshing}>
+            Thử lại
+          </Button>
+        </div>
+      )}
+
+      {!canMutate && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          Bạn đang ở chế độ chỉ xem. Các thao tác đổi trạng thái và hủy lô hàng đã được khóa.
+        </div>
+      )}
 
       {/* ── Stats Cards ── */}
       {overview && (
@@ -589,7 +677,7 @@ const LogisticsClient: React.FC = () => {
               onClick: () => setActiveTab("history"),
             },
             {
-              label: "kg CO₂e Scope 3",
+              label: "kg CO₂e ước tính",
               value: overview.totalCo2e.toFixed(0),
               icon: <Activity className="h-4 w-4 text-emerald-700" />,
               iconBg: "bg-emerald-100/70",
@@ -732,9 +820,10 @@ const LogisticsClient: React.FC = () => {
               {filteredShipments.map((s) => {
                 const isSelected = selectedShipment?.id === s.id;
                 const primaryMode: LogisticsTransportMode =
-                  s.origin.country && s.origin.country === s.destination.country
+                  s.primaryTransportMode ??
+                  (s.origin.country && s.origin.country === s.destination.country
                     ? "road"
-                    : "sea";
+                    : "sea");
 
                 return (
                   <Card
@@ -790,7 +879,7 @@ const LogisticsClient: React.FC = () => {
                           <p className="mt-1 text-[11px] text-slate-500 font-medium">
                             {s.estimatedArrival
                               ? `ETA: ${new Date(s.estimatedArrival).toLocaleDateString("vi-VN")}`
-                              : "CO₂e Scope 3"}
+                              : "CO₂e vận chuyển ước tính"}
                           </p>
                         </div>
 
@@ -814,15 +903,35 @@ const LogisticsClient: React.FC = () => {
                             )}
                           </Button>
 
-                          {s.status !== "delivered" && s.status !== "cancelled" && (
+                          {!s.simulationEnabled &&
+                            (s.status === "pending" || s.status === "in_transit") && (
                             <Button
                               variant="outline"
                               size="sm"
                               className="h-8 gap-1 rounded-lg border-emerald-200 bg-emerald-50/60 px-2.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900"
-                              onClick={() => void handleConfirmDelivered(s.id)}
+                              onClick={() => void handleAdvanceShipment(s)}
+                              disabled={!canMutate || updatingShipmentId === s.id}
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                              <span className="hidden sm:inline">Xác nhận</span>
+                              {updatingShipmentId === s.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              )}
+                              <span className="hidden sm:inline">
+                                {s.status === "pending" ? "Bắt đầu" : "Đã giao"}
+                              </span>
+                            </Button>
+                          )}
+                          {(s.status === "pending" ||
+                            (s.status === "in_transit" && !s.simulationEnabled)) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-lg px-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                              onClick={() => void handleCancelShipment(s)}
+                              disabled={!canMutate || updatingShipmentId === s.id}
+                            >
+                              Hủy
                             </Button>
                           )}
                         </div>
@@ -1094,7 +1203,7 @@ const LogisticsClient: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold text-slate-700">Tổng CO₂e Scope 3 vận chuyển</p>
+                      <p className="text-xs font-semibold text-slate-700">Tổng CO₂e vận chuyển ước tính</p>
                       <Badge variant="outline" className="bg-emerald-100 text-[10px] text-emerald-800 border-emerald-200 font-semibold">
                         DEFRA {DEFRA_VERSION}
                       </Badge>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "@/lib/apiClient";
 
 export interface CalculationHistoryItem {
   id: string;
@@ -29,25 +30,30 @@ const normalizeHistory = (raw: unknown): CalculationHistoryItem[] => {
     `calc-${Date.now()}-${index}`,
     productId: typeof item.productId === "string" ? item.productId : "",
     productName: typeof item.productName === "string" ? item.productName : "",
-    materialsCO2: Number(item.materialsCO2 ?? item.materials) || 0,
+    materialsCO2: Number(item.materialsCO2 ?? item.materialsCo2e ?? item.materials) || 0,
     manufacturingCO2: Number(
       item.manufacturingCO2 ??
+      item.productionCo2e ??
       item.productionCO2 ??
       item.manufacturing ??
       item.production
     ) || 0,
-    transportCO2: Number(item.transportCO2 ?? item.transport) || 0,
-    packagingCO2: Number(item.packagingCO2 ?? item.packaging) || 0,
-    totalCO2: Number(item.totalCO2 ?? item.total) || 0,
+    transportCO2: Number(item.transportCO2 ?? item.transportCo2e ?? item.transport) || 0,
+    packagingCO2: Number(item.packagingCO2 ?? item.packagingCo2e ?? item.packaging) || 0,
+    totalCO2: Number(item.totalCO2 ?? item.totalCo2e ?? item.total) || 0,
     carbonVersion:
     typeof item.carbonVersion === "string" ?
     item.carbonVersion :
+    typeof item.engineVersion === "string" ?
+    item.engineVersion :
     typeof item.version === "string" ?
     item.version :
     "v1",
     createdAt:
     typeof item.createdAt === "string" && item.createdAt.length > 0 ?
     item.createdAt :
+    typeof item.calculatedAt === "string" ?
+    item.calculatedAt :
     new Date().toISOString(),
     createdBy: typeof item.createdBy === "string" ? item.createdBy : "system"
   }));
@@ -74,8 +80,50 @@ const readHistoryFromStorage = () => {
 export const useCalculationHistory = () => {
   const [history, setHistory] = useState<CalculationHistoryItem[]>(readHistoryFromStorage);
   const isHydratedRef = useRef(false);
-  const isLoaded = true;
+  const [isLoaded, setIsLoaded] = useState(false);
 
+  const fetchBackendCalculations = useCallback(async () => {
+    try {
+      const response = await api.get<{ data?: any[] }>("/carbon-calculations");
+      const items = Array.isArray(response?.data) ?
+      response.data :
+      Array.isArray(response) ?
+      response :
+      [];
+
+      if (items.length > 0) {
+        const mapped: CalculationHistoryItem[] = items.map((row: any, idx: number) => ({
+          id: String(row.id || `calc-be-${idx}`),
+          productId: String(row.productId || row.product_id || ""),
+          productName: String(
+            row.notes || (row.productId ? `Sản phẩm ${row.productId}` : "Bản tính phát thải")
+          ),
+          materialsCO2: Number(row.materialsCo2e ?? row.materialsCO2) || 0,
+          manufacturingCO2: Number(row.productionCo2e ?? row.manufacturingCO2) || 0,
+          transportCO2: Number(row.transportCo2e ?? row.transportCO2) || 0,
+          packagingCO2: Number(row.packagingCO2 ?? row.packagingCo2e) || 0,
+          totalCO2: Number(row.totalCo2e ?? row.totalCO2) || 0,
+          carbonVersion: String(row.engineVersion || row.methodology || row.methodologyVersion || "v2.1"),
+          createdAt: String(row.calculatedAt || row.createdAt || new Date().toISOString()),
+          createdBy: String(row.userId || row.createdBy || "system")
+        }));
+
+        setHistory((prev) => {
+          const beIds = new Set(mapped.map((m) => m.id));
+          const localOnly = prev.filter((p) => !beIds.has(p.id) && !p.id.startsWith("calc-be-"));
+          return [...mapped, ...localOnly];
+        });
+      }
+    } catch {
+      // Graceful fallback to localStorage
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBackendCalculations();
+  }, [fetchBackendCalculations]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -121,6 +169,7 @@ export const useCalculationHistory = () => {
     isLoaded,
     addCalculation,
     deleteCalculation,
-    getByProductId
+    getByProductId,
+    refresh: fetchBackendCalculations
   };
 };

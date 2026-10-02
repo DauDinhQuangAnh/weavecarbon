@@ -13,10 +13,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, Loader2, Plus, Upload } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileCheck2,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -25,6 +35,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
+import { EvidenceSelector } from '@/components/evidence/EvidenceSelector';
 
 type GapStatus =
   | 'missing'
@@ -79,11 +90,21 @@ const EMPTY_FORM = {
 
 export default function DataGapPage() {
   const { user } = useAuth();
+  const isViewer = user?.company_role === 'viewer';
   const companyId = user?.company_id ?? null;
   const [rows, setRows] = useState<GapRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingGap, setEditingGap] = useState<GapRow | null>(null);
+  const [editForm, setEditForm] = useState(EMPTY_FORM);
+
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const [resolvingGap, setResolvingGap] = useState<GapRow | null>(null);
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
+  const [resolveNotes, setResolveNotes] = useState('');
 
   const load = useCallback(async () => {
     if (!companyId) return;
@@ -134,12 +155,83 @@ export default function DataGapPage() {
     }
   };
 
-  const markUploaded = async (r: GapRow) => {
+  const openEdit = (r: GapRow) => {
+    setEditingGap(r);
+    setEditForm({
+      dataGroup: r.dataGroup,
+      currentStatus: r.currentStatus,
+      riskLevel: r.riskLevel,
+      requiredAction: r.requiredAction || '',
+      owner: r.owner || '',
+      deadline: r.deadline ? r.deadline.slice(0, 10) : '',
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editingGap || !editForm.dataGroup) return;
     try {
-      await api.put(`/data-gaps/${r.id}`, { currentStatus: 'uploaded' });
+      await api.put(`/data-gaps/${editingGap.id}`, {
+        dataGroup: editForm.dataGroup,
+        currentStatus: editForm.currentStatus,
+        riskLevel: editForm.riskLevel,
+        requiredAction: editForm.requiredAction || null,
+        owner: editForm.owner || null,
+        deadline: editForm.deadline || null,
+      });
+      setEditOpen(false);
+      setEditingGap(null);
+      toast({ title: 'Đã cập nhật mục kiểm toán.' });
       await load();
     } catch (e) {
       toast({ title: (e as Error).message || 'Lỗi cập nhật', variant: 'destructive' });
+    }
+  };
+
+  const deleteRow = async (id: string, name: string) => {
+    if (!window.confirm(`Xoá mục kiểm toán "${name}"? Hành động này sẽ được ghi vào nhật ký kiểm toán.`)) return;
+    try {
+      await api.delete(`/data-gaps/${id}`);
+      toast({ title: 'Đã xoá mục kiểm toán.' });
+      await load();
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi xoá mục', variant: 'destructive' });
+    }
+  };
+
+  const openResolve = (r: GapRow) => {
+    setResolvingGap(r);
+    setSelectedEvidenceId(null);
+    setResolveNotes(r.requiredAction || '');
+    setResolveOpen(true);
+  };
+
+  const confirmResolve = async () => {
+    if (!resolvingGap) return;
+    if (!selectedEvidenceId) {
+      toast({
+        title: 'Chưa chọn chứng từ',
+        description: 'Vui lòng chọn chứng từ thật từ Evidence Vault để hoàn tất khoảng trống.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    try {
+      const updatedAction = resolveNotes
+        ? `${resolveNotes} (Đã gắn chứng từ #${selectedEvidenceId.slice(0, 8)})`
+        : `Đã gắn chứng từ #${selectedEvidenceId.slice(0, 8)}`;
+
+      await api.put(`/data-gaps/${resolvingGap.id}`, {
+        currentStatus: 'uploaded',
+        requiredAction: updatedAction,
+      });
+      setResolveOpen(false);
+      setResolvingGap(null);
+      setSelectedEvidenceId(null);
+      toast({ title: 'Đã liên kết chứng từ và đánh dấu Đã tải lên.' });
+      await load();
+    } catch (e) {
+      toast({ title: (e as Error).message || 'Lỗi liên kết chứng từ', variant: 'destructive' });
     }
   };
 
@@ -396,18 +488,43 @@ export default function DataGapPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {r.currentStatus !== 'verified' &&
-                          r.currentStatus !== 'uploaded' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 border-slate-200 text-xs font-medium text-slate-700 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50"
-                              onClick={() => markUploaded(r)}
-                            >
-                              <Upload className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                              Đã tải lên
-                            </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {r.currentStatus !== 'verified' &&
+                            r.currentStatus !== 'uploaded' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-emerald-200 text-xs font-medium text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100"
+                                onClick={() => openResolve(r)}
+                                title="Gắn chứng từ để giải quyết khoảng trống"
+                              >
+                                <Upload className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                Gắn chứng từ
+                              </Button>
+                            )}
+                          {!isViewer && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                                onClick={() => openEdit(r)}
+                                title="Chỉnh sửa mục kiểm toán"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => deleteRow(r.id, r.dataGroup)}
+                                title="Xoá mục kiểm toán"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
                           )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -417,6 +534,140 @@ export default function DataGapPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Data Gap Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Chỉnh sửa khoảng trống dữ liệu</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Cập nhật thông tin nhóm dữ liệu, trạng thái, người phụ trách và hạn chót.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3.5 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Nhóm dữ liệu</Label>
+              <Input
+                placeholder="Tên nhóm dữ liệu"
+                value={editForm.dataGroup}
+                onChange={(e) => setEditForm({ ...editForm, dataGroup: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Trạng thái</Label>
+                <Select
+                  value={editForm.currentStatus}
+                  onValueChange={(v) => setEditForm({ ...editForm, currentStatus: v as GapStatus })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(STATUS_LABEL) as GapStatus[]).map((s) => (
+                      <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Mức rủi ro</Label>
+                <Select
+                  value={editForm.riskLevel}
+                  onValueChange={(v) => setEditForm({ ...editForm, riskLevel: v as Risk })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['low', 'medium', 'high'] as Risk[]).map((r) => (
+                      <SelectItem key={r} value={r}>{r.toUpperCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Hành động yêu cầu</Label>
+              <Input
+                placeholder="Cần thu thập tài liệu gì..."
+                value={editForm.requiredAction}
+                onChange={(e) => setEditForm({ ...editForm, requiredAction: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Người phụ trách</Label>
+                <Input
+                  placeholder="Ví dụ: Nguyễn Văn A"
+                  value={editForm.owner}
+                  onChange={(e) => setEditForm({ ...editForm, owner: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Hạn chót</Label>
+                <Input
+                  type="date"
+                  value={editForm.deadline}
+                  onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(false)}>
+              Hủy
+            </Button>
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={saveEdit}>
+              Lưu thay đổi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resolve / Link Evidence Modal */}
+      <Dialog open={resolveOpen} onOpenChange={setResolveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FileCheck2 className="w-5 h-5 text-emerald-600" />
+              Giải quyết khoảng trống: {resolvingGap?.dataGroup}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Chọn chứng từ thật từ Evidence Vault để xác minh và hoàn tất mục kiểm toán này.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3.5 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Chứng từ đính kèm</Label>
+              <EvidenceSelector
+                value={selectedEvidenceId}
+                onChange={(id) => setSelectedEvidenceId(id)}
+                placeholder="Chọn chứng từ đã lưu..."
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Ghi chú đối chiếu / Giải trình</Label>
+              <Input
+                placeholder="Ví dụ: Hóa đơn điện tháng 5 kèm chữ ký số"
+                value={resolveNotes}
+                onChange={(e) => setResolveNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setResolveOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              size="sm"
+              disabled={!selectedEvidenceId}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={confirmResolve}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              Xác nhận hoàn tất
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

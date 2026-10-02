@@ -34,7 +34,8 @@ import {
   Upload,
   Download,
 } from 'lucide-react';
-import { api } from '@/lib/apiClient';
+import { api, authTokenStore } from '@/lib/apiClient';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/useToast';
 import { EvidenceLevelBadge } from '@/components/evidence/EvidenceLevelBadge';
 import { EvidenceTrustBadge } from '@/components/evidence/EvidenceTrustBadge';
@@ -272,11 +273,14 @@ interface ExtractedField {
 const PAGE_SIZE = 50;
 
 export default function EvidencePage() {
+  const { user } = useAuth();
+  const isViewer = user?.company_role === 'viewer';
   const searchParams = useSearchParams();
   const highlightId = searchParams.get('highlight');
 
   const [rows, setRows] = useState<EvDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -499,6 +503,39 @@ export default function EvidencePage() {
     if (highlighted) void openReview(highlighted);
   }, [highlightId, openReview, reviewDoc?.id, reviewOpen, rows]);
 
+  const handleDownloadDoc = async (doc: EvDoc) => {
+    try {
+      setDownloadingId(doc.id);
+      const token = authTokenStore.getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const res = await fetch(`/api/evidence/${doc.id}/download`, { headers });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.error?.message || 'Không thể tải file gốc');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.fileName || doc.documentName || 'evidence-file';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({
+        title: 'Lỗi tải file',
+        description: err instanceof Error ? err.message : 'Tệp tin không khả dụng trên máy chủ.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const handleDeleteDoc = async (doc: EvDoc) => {
     const label = DOC_TYPES.find((d) => d.value === doc.kind)?.label ?? doc.kind;
     if (!window.confirm(`Xoá "${doc.fileName || doc.documentName}" (${label})?\nHóa đơn liên kết (điện/nhiên liệu) cũng sẽ bị xoá.`)) return;
@@ -658,7 +695,7 @@ export default function EvidencePage() {
                         {r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—'}
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -666,19 +703,37 @@ export default function EvidencePage() {
                           >
                             Xem
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={downloadingId === r.id}
+                            onClick={() => handleDownloadDoc(r)}
+                            title="Tải file gốc về máy"
+                            className="text-slate-600 hover:text-slate-900"
+                          >
+                            {downloadingId === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5" />
+                            )}
+                            <span className="ml-1 hidden sm:inline">Tải về</span>
+                          </Button>
                           {r.status === 'ocr_parsed' || r.status === 'logic_checked' || r.status === 'source_matched' || r.status === 'cross_checked' || r.status === 'verified' || r.status === 'locked' ? (
                             <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200 gap-1">
                               <BrainCircuit className="h-3 w-3" /> RAG
                             </Badge>
                           ) : null}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => handleDeleteDoc(r)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {!isViewer && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteDoc(r)}
+                              title="Xóa chứng từ"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

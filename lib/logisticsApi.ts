@@ -58,6 +58,7 @@ export interface LogisticsShipmentSummary {
   totalWeightKg: number;
   totalDistanceKm: number;
   totalCo2e: number;
+  primaryTransportMode: LogisticsTransportMode | null;
   pendingUntil: string | null;
   estimatedArrival: string | null;
   estimatedArrivalAt: string | null;
@@ -275,6 +276,13 @@ const toTransportMode = (value: unknown): LogisticsTransportMode => {
   return "road";
 };
 
+const toOptionalTransportMode = (value: unknown): LogisticsTransportMode | null => {
+  const mode = asString(value).toLowerCase();
+  return mode === "road" || mode === "sea" || mode === "air" || mode === "rail"
+    ? mode
+    : null;
+};
+
 const normalizeLocation = (value: unknown): LogisticsLocation => {
   if (!isObject(value)) {
     return {
@@ -372,6 +380,9 @@ value: unknown)
     totalWeightKg: Math.max(0, asNumber(value.totalWeightKg ?? value.total_weight_kg)),
     totalDistanceKm: Math.max(0, asNumber(value.totalDistanceKm ?? value.total_distance_km)),
     totalCo2e: Math.max(0, asNumber(value.totalCo2e ?? value.total_co2e)),
+    primaryTransportMode: toOptionalTransportMode(
+      value.primaryTransportMode ?? value.primary_transport_mode
+    ),
     pendingUntil: normalizeTemporalValue(value.pendingUntil ?? value.pending_until),
     estimatedArrival: toIsoDate(value.estimatedArrival ?? value.estimated_arrival),
     estimatedArrivalAt: normalizeTemporalValue(

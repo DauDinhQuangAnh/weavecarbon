@@ -17,6 +17,7 @@ import {
   Loader2,
   Plane,
   Ship,
+  Train,
   Truck } from
 "lucide-react";
 import { LegInput } from "./TransportClient";
@@ -25,7 +26,7 @@ interface TransportResultsSidebarProps {
   legs: LegInput[];
   totalDistance: number;
   totalCO2: number;
-  hasLocationPermission: boolean;
+  canSubmit: boolean;
   calculateLegCO2: (leg: LegInput) => number;
   onSubmit: () => void;
   isLoading?: boolean;
@@ -36,7 +37,7 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
   legs,
   totalDistance,
   totalCO2,
-  hasLocationPermission,
+  canSubmit,
   calculateLegCO2,
   onSubmit,
   isLoading = false,
@@ -50,6 +51,8 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
         return <Ship className="w-4 h-4" />;
       case "air":
         return <Plane className="w-4 h-4" />;
+      case "rail":
+        return <Train className="w-4 h-4" />;
       default:
         return <Truck className="w-4 h-4" />;
     }
@@ -89,7 +92,7 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">{t("estimatedCO2")}</span>
             <Badge variant="secondary">
-              {hasLocationPermission ? t("highConfidence") : t("estimate")}
+              {t("estimate")}
             </Badge>
           </div>
           <p className="text-3xl font-bold text-primary">
@@ -121,7 +124,7 @@ const TransportResultsSidebar: React.FC<TransportResultsSidebarProps> = ({
             className="w-full !bg-emerald-600 !text-white hover:!bg-emerald-700"
             size="lg"
             onClick={onSubmit}
-            disabled={isLoading || totalDistance === 0}>
+            disabled={!canSubmit || isLoading || totalDistance === 0}>
 
             <CheckCircle2 className="w-4 h-4 mr-2" />
             {t("saveAndView")}

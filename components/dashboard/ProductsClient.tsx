@@ -54,6 +54,7 @@ import {
   fetchProducts,
   isPublishedProductStatus,
   isValidProductId,
+  listProductBatches,
   type ProductRecord,
   type ProductStatus } from
 "@/lib/productsApi";
@@ -225,8 +226,10 @@ const ProductsClient: React.FC = () => {
   const [batchCount, setBatchCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const loadRequestSeqRef = useRef(0);
+  const statsRequestSeqRef = useRef(0);
   const [shipmentStatusById, setShipmentStatusById] = useState<
     Record<string, LogisticsShipmentStatus>
   >({});
@@ -769,41 +772,6 @@ const ProductsClient: React.FC = () => {
         } :
         result.pagination
       );
-      setBatchCount(0);
-
-      const draftCount = result.items.filter((item) => item.status === "draft").length;
-      const publishedCount = result.items.filter(
-        (item) => item.status === "published"
-      ).length;
-      const isGlobalQuery =
-      debouncedSearchQuery.trim().length === 0 && statusFilter === "all";
-
-      setStats((previous) => {
-        if (isGlobalQuery) {
-          return {
-            total: result.pagination.total,
-            draft:
-            result.pagination.total <= result.items.length ?
-            draftCount :
-            Math.max(previous.draft, draftCount),
-            published:
-            result.pagination.total <= result.items.length ?
-            publishedCount :
-            Math.max(previous.published, publishedCount)
-          };
-        }
-
-        if (previous.total === 0 && result.pagination.total > 0) {
-          return {
-            total: result.pagination.total,
-            draft: draftCount,
-            published: publishedCount
-          };
-        }
-
-        return previous;
-      });
-
       const totalPages = Math.max(1, result.pagination.total_pages || 1);
       if (currentPage > totalPages) {
         setCurrentPage(totalPages);
@@ -812,13 +780,6 @@ const ProductsClient: React.FC = () => {
       if (requestSeq !== loadRequestSeqRef.current) {
         return;
       }
-      setProducts([]);
-      setPagination({
-        page: 1,
-        page_size: ITEMS_PER_PAGE,
-        total: 0,
-        total_pages: 0
-      });
       setError(t("errors.failedLoadProducts"));
     } finally {
       if (requestSeq === loadRequestSeqRef.current) {
@@ -827,9 +788,56 @@ const ProductsClient: React.FC = () => {
     }
   }, [debouncedSearchQuery, statusFilter, currentPage, t]);
 
+  const loadCatalogStats = useCallback(async () => {
+    const requestSeq = statsRequestSeqRef.current + 1;
+    statsRequestSeqRef.current = requestSeq;
+    setStatsError(null);
+
+    const [draftResult, publishedResult, batchesResult] = await Promise.allSettled([
+      fetchProducts({ status: "draft", page: 1, page_size: 1 }),
+      fetchProducts({ status: "published", page: 1, page_size: 1 }),
+      listProductBatches({ page: 1, page_size: 1 })
+    ]);
+
+    if (requestSeq !== statsRequestSeqRef.current) return;
+
+    const draft = draftResult.status === "fulfilled"
+      ? draftResult.value.pagination.total
+      : null;
+    const published = publishedResult.status === "fulfilled"
+      ? publishedResult.value.pagination.total
+      : null;
+
+    setStats((previous) => {
+      const nextDraft = draft ?? previous.draft;
+      const nextPublished = published ?? previous.published;
+      return {
+        total: nextDraft + nextPublished,
+        draft: nextDraft,
+        published: nextPublished
+      };
+    });
+
+    if (batchesResult.status === "fulfilled") {
+      setBatchCount(batchesResult.value.pagination.total);
+    }
+
+    if (
+      draftResult.status === "rejected" ||
+      publishedResult.status === "rejected" ||
+      batchesResult.status === "rejected"
+    ) {
+      setStatsError(t("errors.failedLoadStats"));
+    }
+  }, [t]);
+
   useEffect(() => {
     void loadProducts();
   }, [loadProducts, refreshKey]);
+
+  useEffect(() => {
+    void loadCatalogStats();
+  }, [loadCatalogStats, refreshKey]);
 
   useEffect(() => {
     const shipmentIds = Array.from(
@@ -980,6 +988,12 @@ const ProductsClient: React.FC = () => {
   return (
     <>
       <div className="space-y-3 md:space-y-6">
+        {!canMutate && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span className="font-semibold">{t("readOnlyTitle")}:</span>{" "}
+            {t("readOnlyDescription")}
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
           <Card
             className={statCardClass("all")}
@@ -1039,6 +1053,20 @@ const ProductsClient: React.FC = () => {
           </Card>
         </div>
 
+        {(error || statsError) && (
+          <div className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between">
+            <span>{[error, statsError].filter(Boolean).join(" ")}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-red-200 bg-white text-red-700 hover:bg-red-100"
+              onClick={triggerRefresh}>
+              {t("retry")}
+            </Button>
+          </div>
+        )}
+
         <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs md:p-3.5">
           <div className="relative min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -1088,6 +1116,8 @@ const ProductsClient: React.FC = () => {
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 lg:justify-end">
               <Button
                 variant="outline"
+                disabled={!canMutate}
+                title={!canMutate ? t("readOnlyDescription") : undefined}
                 onClick={() => {
                   if (!canMutate) {
                     notifyNoPermission();
@@ -1100,6 +1130,8 @@ const ProductsClient: React.FC = () => {
               </Button>
               <Button
                 variant="outline"
+                disabled={!canMutate || trialSkuLimitReached}
+                title={!canMutate ? t("readOnlyDescription") : undefined}
                 onClick={() => {
                   if (!canMutate) {
                     notifyNoPermission();
@@ -1116,6 +1148,8 @@ const ProductsClient: React.FC = () => {
               </Button>
               <Button
                 onClick={openCreateAssessment}
+                disabled={!canMutate || trialSkuLimitReached}
+                title={!canMutate ? t("readOnlyDescription") : undefined}
                 className="h-8.5 gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 sm:h-9 sm:gap-2 sm:px-3.5 sm:text-sm">
                 <PlusCircle className="w-4 h-4" /> {t("addProduct")}
               </Button>
@@ -1162,6 +1196,8 @@ const ProductsClient: React.FC = () => {
                 </p>
                 <Button
                   onClick={openCreateAssessment}
+                  disabled={!canMutate || trialSkuLimitReached}
+                  title={!canMutate ? t("readOnlyDescription") : undefined}
                   className="mt-4 gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 sm:text-sm">
                   <PlusCircle className="w-4 h-4" /> {t("createNew")}
                 </Button>
@@ -1177,6 +1213,7 @@ const ProductsClient: React.FC = () => {
                   ? t("actions.editProductDisabledCancelledShipment")
                   : t("actions.editProduct");
               const isEditButtonDisabled =
+                !canMutate ||
                 editBlockedByCancelledShipment ||
                 editingProductId === product.id ||
                 deletingProductId === product.id;
@@ -1239,6 +1276,31 @@ const ProductsClient: React.FC = () => {
                             : "-"}
                         </p>
                         <p className="mt-1 text-[11px] text-slate-500 font-medium">{t("co2PerUnit")}</p>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {product.carbonAuthority?.authoritative ? (
+                            <Badge
+                              variant="outline"
+                              title={t("carbonTruth.authoritativeDescription")}
+                              className="border-emerald-200 bg-emerald-50 text-[10px] font-medium text-emerald-700">
+                              {t("carbonTruth.authoritative")}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              title={t("carbonTruth.unverifiedDescription")}
+                              className="border-amber-200 bg-amber-50 text-[10px] font-medium text-amber-700">
+                              {t("carbonTruth.unverified")}
+                            </Badge>
+                          )}
+                          {product.carbonResults?.proxyUsed && (
+                            <Badge
+                              variant="outline"
+                              title={t("carbonTruth.proxyDescription")}
+                              className="border-sky-200 bg-sky-50 text-[10px] font-medium text-sky-700">
+                              {t("carbonTruth.proxy")}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       <div
@@ -1269,7 +1331,7 @@ const ProductsClient: React.FC = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
-                          disabled={deletingProductId === product.id || editingProductId === product.id}
+                          disabled={!canMutate || deletingProductId === product.id || editingProductId === product.id}
                           onClick={(e) => {
                             e.stopPropagation();
                             void handleDeleteProduct(product);

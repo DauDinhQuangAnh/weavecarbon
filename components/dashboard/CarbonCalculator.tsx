@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,13 +21,18 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
+  BookmarkCheck,
   Calculator,
   CheckCircle2,
+  Database,
+  ExternalLink,
   Factory,
+  History,
   Info,
   Leaf,
   Loader2,
   Package,
+  Save,
   ShieldCheck,
   Sparkles,
   Truck,
@@ -145,6 +151,7 @@ Kết quả:
 }
 
 export default function CarbonCalculator() {
+  const router = useRouter();
   const [category, setCategory] = useState<ProductCategory>('textile');
   const [weight, setWeight] = useState('');
   const [material, setMaterial] = useState('');
@@ -154,6 +161,9 @@ export default function CarbonCalculator() {
   const [assessment, setAssessment] = useState<string | null>(null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
+  const [snapshotSavedId, setSnapshotSavedId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const materialOptions = MATERIAL_OPTIONS_BY_CATEGORY[category];
 
@@ -161,12 +171,82 @@ export default function CarbonCalculator() {
     setEmissions(null);
     setAssessment(null);
     setAssessmentError(null);
+    setSnapshotSavedId(null);
+    setSaveError(null);
   };
 
   const handleCategoryChange = (value: ProductCategory) => {
     setCategory(value);
     setMaterial('');
     resetDerivedState();
+  };
+
+  const saveSnapshot = async () => {
+    if (!emissions || isSavingSnapshot) return;
+
+    setIsSavingSnapshot(true);
+    setSaveError(null);
+
+    const kg = parseFloat(weight);
+    const distanceKm = parseFloat(transportDistance);
+    const materialOption = materialOptions.find((m) => m.value === material);
+    const materialLabel = materialOption?.label ?? material;
+    const destinationLabel = getDestinationLabel(destination);
+
+    const payload = {
+      calculation_type: 'product_proxy',
+      notes: `Proxy: ${materialLabel} (${kg} kg) -> ${destinationLabel}`,
+      carbon_input: {
+        unitMassKg: kg,
+        quantity: 1,
+        productCategory: category,
+        materials: [
+          {
+            id: material,
+            name: materialLabel,
+            factorId: material,
+            percentage: 100,
+            source: 'domestic',
+            isPrimaryData: false
+          }
+        ],
+        accessories: [],
+        packaging: {
+          factorId: 'packaging-minimal-proxy',
+          weightKg: kg * 0.05
+        },
+        processFactorIds: ['process-cutting-sewing'],
+        energyMix: [
+          {
+            factorId: 'energy-grid-vn-2023',
+            percentage: 100,
+            geography: 'Vietnam'
+          }
+        ],
+        manufacturingGeography: 'Vietnam',
+        originGeography: 'Vietnam',
+        destinationMarket: destination,
+        reportingActorRole: 'manufacturer',
+        transport: [
+          {
+            mode: 'sea',
+            factorId: 'transport-sea-defra-2025',
+            distanceKm: distanceKm,
+            boundaryType: 'gate_to_market'
+          }
+        ]
+      }
+    };
+
+    try {
+      const res = await api.post<{ success?: boolean; data?: { id?: string } }>('/carbon-calculations', payload);
+      const savedId = res?.data?.id || (res as any)?.id || 'calc-saved';
+      setSnapshotSavedId(savedId);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Không thể lưu snapshot vào hệ thống.');
+    } finally {
+      setIsSavingSnapshot(false);
+    }
   };
 
   const calculate = () => {
@@ -252,6 +332,18 @@ export default function CarbonCalculator() {
               Ước tính nhanh phát thải CO₂e theo ngành hàng, tỷ trọng vật liệu, chế biến năng lượng và hành trình xuất khẩu.
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/calculation-history')}
+            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold h-9"
+          >
+            <History className="w-4 h-4 mr-1.5 text-slate-500" />
+            Lịch sử tính toán
+          </Button>
         </div>
       </div>
 
@@ -458,6 +550,59 @@ export default function CarbonCalculator() {
                     cho 1 đơn vị sản phẩm hoàn thiện
                   </p>
                 </div>
+
+                {/* Snapshot Persistence Action Row */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <Database className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      {snapshotSavedId ? (
+                        <span className="text-emerald-700 font-medium flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Đã lưu snapshot vào backend ({snapshotSavedId})
+                        </span>
+                      ) : (
+                        'Lưu kết quả tính toán thành snapshot có thể truy vết trên backend.'
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {snapshotSavedId ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push('/calculation-history')}
+                        className="h-8 rounded-lg text-xs font-semibold border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                        Xem trong Lịch sử
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={saveSnapshot}
+                        disabled={isSavingSnapshot}
+                        className="h-8 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                      >
+                        {isSavingSnapshot ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        {isSavingSnapshot ? 'Đang lưu...' : 'Lưu Snapshot'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {saveError && (
+                  <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{saveError}</span>
+                  </div>
+                )}
 
                 {/* Breakdown List */}
                 <div className="space-y-3.5 rounded-xl border border-slate-100 bg-slate-50/60 p-4">

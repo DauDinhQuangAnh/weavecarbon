@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
@@ -17,6 +17,9 @@ import {
   type LogisticsShipmentDetail } from
 "@/lib/logisticsApi";
 import { PRODUCT_USAGE_UPDATED_EVENT } from "@/lib/productUsageEvents";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 
 const buildContainerNo = (referenceNumber: string, fallbackId: string) => {
   const normalizedReference = referenceNumber.replace(/[^a-zA-Z0-9]/g, "");
@@ -71,6 +74,9 @@ const TrackShipmentClient: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [allShipments, setAllShipments] = useState<TrackShipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadRequestIdRef = useRef(0);
   const [selectedShipment, setSelectedShipment] =
   useState<TrackShipment | null>(null);
   const preferredShipmentId = searchParams.get("shipmentId");
@@ -80,6 +86,9 @@ const TrackShipmentClient: React.FC = () => {
   }, [setPageTitle, t]);
 
   const loadShipments = useCallback(async (preferredId?: string | null) => {
+    const requestId = ++loadRequestIdRef.current;
+    setLoading(true);
+    setLoadError(null);
     try {
       const shipmentDetails = await fetchAllLogisticsShipmentDetails();
       const nextShipments = shipmentDetails.map((shipment) =>
@@ -93,14 +102,19 @@ const TrackShipmentClient: React.FC = () => {
       setSelectedShipment((prev) => {
         const targetId = preferredId || prev?.id;
         if (targetId) {
-          const matched = nextShipments.find((shipment) => shipment.id === targetId);
+          const matched = nextShipments.find(
+            (shipment) => shipment.id === targetId || shipment.shipmentId === targetId
+          );
           if (matched) return matched;
         }
         return nextShipments[0] || null;
       });
     } catch {
-      setAllShipments([]);
-      setSelectedShipment(null);
+      if (requestId === loadRequestIdRef.current) {
+        setLoadError("Không thể tải dữ liệu theo dõi lô hàng. Dữ liệu cũ vẫn được giữ lại nếu có.");
+      }
+    } finally {
+      if (requestId === loadRequestIdRef.current) setLoading(false);
     }
   }, [t]);
 
@@ -147,6 +161,28 @@ const TrackShipmentClient: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {loadError && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="flex flex-col gap-3 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+            <span className="inline-flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {loadError}
+            </span>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Thử lại
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {loading && allShipments.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="inline-flex items-center gap-2 p-4 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Đang tải dữ liệu theo dõi lô hàng...
+          </CardContent>
+        </Card>
+      )}
       <div className="grid gap-4 sm:gap-6 xl:grid-cols-3">
         <ShipmentList
           shipments={filteredShipments}

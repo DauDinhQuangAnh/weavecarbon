@@ -1,14 +1,149 @@
 "use client";
-import {FormEvent,useCallback,useEffect,useState} from "react";import {FileLock2,Leaf,Loader2,Scale} from "lucide-react";import {useTranslations} from "next-intl";import {Badge} from "@/components/ui/badge";import {Button} from "@/components/ui/button";import {Card,CardContent,CardDescription,CardHeader,CardTitle} from "@/components/ui/card";import {Input} from "@/components/ui/input";import {Textarea} from "@/components/ui/textarea";import {isApiError} from "@/lib/apiClient";import {industrialCoreApi,type IndustrialFacility} from "@/lib/industrialCoreApi";import {fetchCorporateGhgInventories,type CorporateGhgInventory} from "@/lib/weave-v2/corporateGhgInventoryApi";import {mitigationOperationsApi,type AllowanceAllocation,type AllowancePosition,type MitigationInitiative,type MitigationScenario} from "@/lib/mitigationOperationsApi";
-const ids=(value:string)=>value.split(",").map((item)=>item.trim()).filter(Boolean);const select="h-10 w-full rounded-md border bg-background px-3 text-sm";
-export default function MitigationOperationsClient({demo=false}:{demo?:boolean}){const t=useTranslations("mitigationOperations");const[facilities,setFacilities]=useState<IndustrialFacility[]>([]);const[inventories,setInventories]=useState<CorporateGhgInventory[]>([]);const[initiatives,setInitiatives]=useState<MitigationInitiative[]>([]);const[scenarios,setScenarios]=useState<MitigationScenario[]>([]);const[allocations,setAllocations]=useState<AllowanceAllocation[]>([]);const[positions,setPositions]=useState<AllowancePosition[]>([]);const[loading,setLoading]=useState(!demo);const[saving,setSaving]=useState(false);const[error,setError]=useState<string|null>(null);
-const[initiative,setInitiative]=useState({initiativeReference:"",facilityRevisionId:"",title:"",lifecycleStatus:"proposed",ownerName:"",baselineYear:2025,targetReductionTco2e:0,plannedStart:"2026-01-01",plannedEnd:"2027-12-31",methodology:"",assumptions:"",evidenceDocumentIds:""});const[scenario,setScenario]=useState({initiativeId:"",scenarioReference:"",scenarioType:"planned",periodStart:"2026-01-01",periodEnd:"2026-12-31",baselineEmissionsTco2e:0,projectedEmissionsTco2e:0,assumptions:"",sensitivity:"",evidenceDocumentIds:""});const[allocation,setAllocation]=useState({allocationReference:"",facilityRevisionId:"",reportingYear:2026,instrumentType:"authority_quota",recordStatus:"draft_reference",quantityTco2e:0,vintageYear:2026,externalReference:"",evidenceDocumentId:"",notes:""});const[position,setPosition]=useState({facilityRevisionId:"",corporateInventoryId:"",reportingYear:2026,allocationIds:"",scenarioIds:""});
-const load=useCallback(async()=>{if(demo)return;setLoading(true);try{const[f,i,m,s,a,p]=await Promise.all([industrialCoreApi.facilities(),fetchCorporateGhgInventories(),mitigationOperationsApi.initiatives(),mitigationOperationsApi.scenarios(),mitigationOperationsApi.allocations(),mitigationOperationsApi.positions()]);setFacilities(f);setInventories(i);setInitiatives(m);setScenarios(s);setAllocations(a);setPositions(p);}catch(e){setError(isApiError(e)?e.message:t("loadError"));}finally{setLoading(false);}},[demo,t]);useEffect(()=>{void load();},[load]);
-const save=async(e:FormEvent,action:()=>Promise<unknown> )=>{e.preventDefault();if(demo||saving)return;setSaving(true);setError(null);try{await action();await load();}catch(x){setError(isApiError(x)?x.message:t("saveError"));}finally{setSaving(false);}};
-const saveInitiative=(e:FormEvent)=>save(e,()=>mitigationOperationsApi.createInitiative({...initiative,methodology:{description:initiative.methodology},assumptions:{description:initiative.assumptions},evidenceDocumentIds:ids(initiative.evidenceDocumentIds)}));
-const saveScenario=(e:FormEvent)=>save(e,()=>mitigationOperationsApi.createScenario({...scenario,annualProjection:[{year:Number(scenario.periodEnd.slice(0,4)),projectedTco2e:Number(scenario.projectedEmissionsTco2e)}],assumptions:{description:scenario.assumptions},sensitivity:{description:scenario.sensitivity},evidenceDocumentIds:ids(scenario.evidenceDocumentIds)}));
-const saveAllocation=(e:FormEvent)=>save(e,()=>mitigationOperationsApi.createAllocation({...allocation,externalReference:allocation.externalReference||null,evidenceDocumentId:allocation.evidenceDocumentId||null}));
-const savePosition=(e:FormEvent)=>save(e,()=>mitigationOperationsApi.createPosition({...position,allocationIds:ids(position.allocationIds),scenarioIds:ids(position.scenarioIds)}));
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { AlertCircle, FileLock2, Leaf, Loader2, Scale, ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
+import { isApiError } from "@/lib/apiClient";
+import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
+import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
+import { mitigationOperationsApi, type AllowanceAllocation, type AllowancePosition, type MitigationInitiative, type MitigationScenario } from "@/lib/mitigationOperationsApi";
+const ids = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
+const select = "h-10 w-full rounded-md border bg-background px-3 text-sm";
+
+export default function MitigationOperationsClient({ demo = false }: { demo?: boolean }) {
+  const t = useTranslations("mitigationOperations");
+  const { user } = useAuth();
+  const isCompanyAdmin = user?.company_role === "root" || user?.is_root === true;
+
+  const [facilities, setFacilities] = useState<IndustrialFacility[]>([]);
+  const [inventories, setInventories] = useState<CorporateGhgInventory[]>([]);
+  const [initiatives, setInitiatives] = useState<MitigationInitiative[]>([]);
+  const [scenarios, setScenarios] = useState<MitigationScenario[]>([]);
+  const [allocations, setAllocations] = useState<AllowanceAllocation[]>([]);
+  const [positions, setPositions] = useState<AllowancePosition[]>([]);
+  const [loading, setLoading] = useState(!demo);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [transitioningInitiative, setTransitioningInitiative] = useState<MitigationInitiative | null>(null);
+  const [targetStatus, setTargetStatus] = useState<"proposed" | "approved_internal" | "in_progress" | "completed" | "cancelled">("in_progress");
+  const [transitionReason, setTransitionReason] = useState("");
+  const [transitionNotes, setTransitionNotes] = useState("");
+  const [transitioning, setTransitioning] = useState(false);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
+
+  const [initiative, setInitiative] = useState({ initiativeReference: "", facilityRevisionId: "", title: "", lifecycleStatus: "proposed", ownerName: "", baselineYear: 2025, targetReductionTco2e: 0, plannedStart: "2026-01-01", plannedEnd: "2027-12-31", methodology: "", assumptions: "", evidenceDocumentIds: "" });
+  const [scenario, setScenario] = useState({ initiativeId: "", scenarioReference: "", scenarioType: "planned", periodStart: "2026-01-01", periodEnd: "2026-12-31", baselineEmissionsTco2e: 0, projectedEmissionsTco2e: 0, assumptions: "", sensitivity: "", evidenceDocumentIds: "" });
+  const [allocation, setAllocation] = useState({ allocationReference: "", facilityRevisionId: "", reportingYear: 2026, instrumentType: "authority_quota", recordStatus: "draft_reference", quantityTco2e: 0, vintageYear: 2026, externalReference: "", evidenceDocumentId: "", notes: "" });
+  const [position, setPosition] = useState({ facilityRevisionId: "", corporateInventoryId: "", reportingYear: 2026, allocationIds: "", scenarioIds: "" });
+
+  const load = useCallback(async () => {
+    if (demo) return;
+    setLoading(true);
+    try {
+      const [f, i, m, s, a, p] = await Promise.all([
+        industrialCoreApi.facilities(),
+        fetchCorporateGhgInventories(),
+        mitigationOperationsApi.initiatives(),
+        mitigationOperationsApi.scenarios(),
+        mitigationOperationsApi.allocations(),
+        mitigationOperationsApi.positions()
+      ]);
+      setFacilities(f); setInventories(i); setInitiatives(m); setScenarios(s); setAllocations(a); setPositions(p);
+    } catch (e) {
+      setError(isApiError(e) ? e.message : t("loadError"));
+    } finally {
+      setLoading(false);
+    }
+  }, [demo, t]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const save = async (e: FormEvent, action: () => Promise<unknown>) => {
+    e.preventDefault();
+    if (demo || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await action();
+      await load();
+    } catch (x) {
+      setError(isApiError(x) ? x.message : t("saveError"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveInitiative = (e: FormEvent) => save(e, () => mitigationOperationsApi.createInitiative({ ...initiative, methodology: { description: initiative.methodology }, assumptions: { description: initiative.assumptions }, evidenceDocumentIds: ids(initiative.evidenceDocumentIds) }));
+  const saveScenario = (e: FormEvent) => save(e, () => mitigationOperationsApi.createScenario({ ...scenario, annualProjection: [{ year: Number(scenario.periodEnd.slice(0, 4)), projectedTco2e: Number(scenario.projectedEmissionsTco2e) }], assumptions: { description: scenario.assumptions }, sensitivity: { description: scenario.sensitivity }, evidenceDocumentIds: ids(scenario.evidenceDocumentIds) }));
+  const saveAllocation = (e: FormEvent) => save(e, () => mitigationOperationsApi.createAllocation({ ...allocation, externalReference: allocation.externalReference || null, evidenceDocumentId: allocation.evidenceDocumentId || null }));
+  const savePosition = (e: FormEvent) => save(e, () => mitigationOperationsApi.createPosition({ ...position, allocationIds: ids(position.allocationIds), scenarioIds: ids(position.scenarioIds) }));
+
+  const handleOpenTransition = (item: MitigationInitiative) => {
+    setTransitioningInitiative(item);
+    setTargetStatus(
+      item.lifecycleStatus === "proposed"
+        ? "approved_internal"
+        : item.lifecycleStatus === "approved_internal"
+        ? "in_progress"
+        : item.lifecycleStatus === "in_progress"
+        ? "completed"
+        : "in_progress"
+    );
+    setTransitionReason("");
+    setTransitionNotes("");
+    setTransitionError(null);
+  };
+
+  const handleConfirmTransition = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!transitioningInitiative || transitioning) return;
+    setTransitioning(true);
+    setTransitionError(null);
+    try {
+      await mitigationOperationsApi.transitionInitiativeLifecycle(transitioningInitiative.id, {
+        lifecycleStatus: targetStatus,
+        reason: transitionReason,
+        notes: transitionNotes,
+      });
+      setTransitioningInitiative(null);
+      await load();
+    } catch (cause) {
+      setTransitionError(isApiError(cause) ? cause.message : "Không thể cập nhật trạng thái vòng đời.");
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const getLifecycleBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "border-emerald-300 bg-emerald-50 text-emerald-800";
+      case "in_progress":
+        return "border-sky-300 bg-sky-50 text-sky-800";
+      case "approved_internal":
+        return "border-indigo-300 bg-indigo-50 text-indigo-800";
+      case "cancelled":
+        return "border-rose-300 bg-rose-50 text-rose-800";
+      default:
+        return "border-slate-300 bg-slate-50 text-slate-700";
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
       <section className="rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-950 to-cyan-950 p-7 text-white shadow-md">
@@ -63,31 +198,86 @@ const savePosition=(e:FormEvent)=>save(e,()=>mitigationOperationsApi.createPosit
                 <label className="text-xs font-semibold text-slate-700 block">Mục tiêu giảm (tCO₂e)</label>
                 <Input required disabled={demo} type="number" min="0.000001" step="any" placeholder={t("targetReduction")} value={initiative.targetReductionTco2e || ""} onChange={e => setInitiative({ ...initiative, targetReductionTco2e: Number(e.target.value) })} />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700 block">Tài liệu bằng chứng</label>
-                <Input required disabled={demo} placeholder={t("evidenceIds")} value={initiative.evidenceDocumentIds} onChange={e => setInitiative({ ...initiative, evidenceDocumentIds: e.target.value })} />
+              <div className="space-y-1.5 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700 block">Tài liệu bằng chứng (Evidence Vault)</label>
+                  <span className="text-[11px] text-slate-500">ISO 14064 Bắt buộc</span>
+                </div>
+                <EvidenceSelector
+                  value={initiative.evidenceDocumentIds.split(",")[0]?.trim() || null}
+                  onChange={(evidenceId) => {
+                    setInitiative((prev) => ({
+                      ...prev,
+                      evidenceDocumentIds: evidenceId || "",
+                    }));
+                  }}
+                  placeholder="Chọn chứng từ đã xác minh từ Evidence Vault..."
+                  disabled={demo || !isCompanyAdmin}
+                  required
+                />
+                <Input
+                  required
+                  disabled={demo || !isCompanyAdmin}
+                  placeholder={t("evidenceIds")}
+                  value={initiative.evidenceDocumentIds}
+                  onChange={e => setInitiative({ ...initiative, evidenceDocumentIds: e.target.value })}
+                  className="font-mono text-xs"
+                />
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Phương pháp tính</label>
-                <Textarea required disabled={demo} placeholder={t("methodology")} value={initiative.methodology} onChange={e => setInitiative({ ...initiative, methodology: e.target.value })} />
+                <Textarea required disabled={demo || !isCompanyAdmin} placeholder={t("methodology")} value={initiative.methodology} onChange={e => setInitiative({ ...initiative, methodology: e.target.value })} />
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Giả định tính toán</label>
-                <Textarea required disabled={demo} placeholder={t("assumptions")} value={initiative.assumptions} onChange={e => setInitiative({ ...initiative, assumptions: e.target.value })} />
+                <Textarea required disabled={demo || !isCompanyAdmin} placeholder={t("assumptions")} value={initiative.assumptions} onChange={e => setInitiative({ ...initiative, assumptions: e.target.value })} />
               </div>
-              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={demo || saving}>
+
+              {!isCompanyAdmin && !demo && (
+                <div className="md:col-span-2 rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 border border-amber-200 flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>Chỉ Quản trị viên (Company Admin) mới có quyền tạo sáng kiến và thay đổi vòng đời.</span>
+                </div>
+              )}
+              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={demo || saving || !isCompanyAdmin}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createInitiative")}
               </Button>
             </form>
             <div className="pt-2 space-y-2">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sáng kiến hiện có</h4>
-              {initiatives.slice(0, 4).map(x => (
-                <div key={x.id} className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-slate-50 transition-colors">
-                  <span className="text-sm"><b>{x.initiativeReference}</b> · {x.title}</span>
-                  <Badge variant="outline" className="font-mono text-emerald-800 border-emerald-200 bg-emerald-50">{x.targetReductionTco2e} tCO₂e</Badge>
-                </div>
-              ))}
+              {initiatives.length === 0 ? (
+                <p className="text-xs text-slate-400 py-2 text-center">Chưa có sáng kiến nào</p>
+              ) : (
+                initiatives.slice(0, 6).map(x => (
+                  <div key={x.id} className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-sm font-semibold text-slate-900">{x.initiativeReference}</span>
+                        <span className="text-xs text-slate-500 ml-1.5">(rev {x.revision}) · {x.title}</span>
+                      </div>
+                      <Badge variant="outline" className={`font-mono text-xs ${getLifecycleBadge(x.lifecycleStatus)}`}>
+                        {x.lifecycleStatus}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/50">
+                      <span className="font-mono text-emerald-800 font-semibold">{x.targetReductionTco2e} tCO₂e</span>
+                      {isCompanyAdmin && !demo && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
+                          onClick={() => handleOpenTransition(x)}
+                        >
+                          <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />
+                          Chuyển trạng thái
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -285,6 +475,89 @@ const savePosition=(e:FormEvent)=>save(e,()=>mitigationOperationsApi.createPosit
           <Leaf className="ml-auto hidden h-5 w-5 text-emerald-700 md:block" />
         </CardContent>
       </Card>
+
+      {/* Initiative Lifecycle Transition Modal */}
+      <Dialog open={Boolean(transitioningInitiative)} onOpenChange={(open) => { if (!open) setTransitioningInitiative(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
+              Chuyển trạng thái Vòng đời Sáng kiến
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              {transitioningInitiative?.initiativeReference} · {transitioningInitiative?.title} (Hiện tại: <span className="font-semibold">{transitioningInitiative?.lifecycleStatus}</span>)
+            </DialogDescription>
+          </DialogHeader>
+
+          {transitionError && (
+            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700 border border-red-200 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>{transitionError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleConfirmTransition} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Trạng thái mới</label>
+              <select
+                className={select}
+                value={targetStatus}
+                onChange={(e) => setTargetStatus(e.target.value as any)}
+                disabled={transitioning}
+              >
+                <option value="proposed">Đề xuất (proposed)</option>
+                <option value="approved_internal">Duyệt nội bộ (approved_internal)</option>
+                <option value="in_progress">Đang thực hiện (in_progress)</option>
+                <option value="completed">Đã hoàn thành (completed)</option>
+                <option value="cancelled">Hủy bỏ (cancelled)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Lý do chuyển trạng thái</label>
+              <Input
+                required
+                placeholder="VD: Dự án đã nghiệm thu vận hành thử nghiệm..."
+                value={transitionReason}
+                onChange={(e) => setTransitionReason(e.target.value)}
+                disabled={transitioning}
+                className="text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Ghi chú kiểm toán (Audit Trail)</label>
+              <Textarea
+                rows={3}
+                placeholder="Nhập ghi chú chi tiết về tiến độ, bằng chứng hoàn thành hoặc lý do hủy..."
+                value={transitionNotes}
+                onChange={(e) => setTransitionNotes(e.target.value)}
+                disabled={transitioning}
+                className="text-xs"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTransitioningInitiative(null)}
+                disabled={transitioning}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={transitioning}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {transitioning && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Xác nhận Chuyển trạng thái
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

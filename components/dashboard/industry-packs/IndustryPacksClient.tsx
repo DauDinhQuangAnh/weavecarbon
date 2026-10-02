@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Factory, Loader2 } from "lucide-react";
+import { Download, Factory, FileSpreadsheet, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,65 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
     } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); }
     finally { setSaving(false); }
   };
+
+  const downloadPilotReportCsv = (pilot: IndustryPackPilot) => {
+    const rows = [
+      ["WEAVECARBON INDUSTRY STUDY REPORT", "G2-05 & G2-12"],
+      ["Study Reference", pilot.studyReference],
+      ["Revision", String(pilot.revision)],
+      ["Industry Pack", pilot.packId],
+      ["Pack Version", pilot.packVersion],
+      ["Approval Status", pilot.packApprovalStatus],
+      ["Status", pilot.status],
+      ["Period", `${pilot.periodStart} to ${pilot.periodEnd}`],
+      ["Gross Emissions (tCO2e)", String(pilot.result.totals?.grossTco2e ?? 0)],
+      ["Emission Intensity (kgCO2e/t)", String(pilot.result.totals?.intensityKgCo2ePerTonne ?? 0)],
+      ["Input SHA-256", pilot.inputSha256],
+      ["Result SHA-256", pilot.resultSha256],
+      ["Created At", pilot.createdAt],
+      [],
+      ["--- ACTIVITY LINES BREAKDOWN ---"],
+      ["Category", "Source Reference", "Quantity", "Unit", "CO2e (t)", "Factor Label", "Evidence Document IDs"],
+      ...(pilot.result.lines || []).map((l: any) => [
+        l.category || "",
+        l.sourceReference || "",
+        String(l.activityQuantity || 0),
+        l.activityUnit || "",
+        String(l.calculatedTco2e || 0),
+        l.factorLabel || "",
+        Array.isArray(l.evidenceDocumentIds) ? l.evidenceDocumentIds.join(";") : ""
+      ]),
+      [],
+      ["--- AUDIT FINDINGS & BENCHMARKS ---"],
+      ["Finding Code", "Severity", "Message"],
+      ...(pilot.result.findings || []).map((f: any) => [
+        f.code || "",
+        f.severity || "info",
+        `"${(f.message || "").replace(/"/g, '""')}"`
+      ])
+    ];
+
+    const csvContent = "\uFEFF" + rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Industry_Study_${pilot.studyReference}_rev${pilot.revision}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPilotAuditJson = (pilot: IndustryPackPilot) => {
+    const jsonStr = JSON.stringify(pilot, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Audit_Evidence_${pilot.studyReference}_rev${pilot.revision}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin" /></div>;
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
@@ -337,7 +396,13 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                     >
                       <option value="">{t("selectFactor")}</option>
                       {factors
-                        .filter((factor) => factor.governanceStatus === "approved_for_release_candidate" && factor.unit === `kgCO2e/${line.activityUnit}`)
+                        .filter((factor) => {
+                          if (!(factor.governanceStatus === "approved_for_release_candidate")) return false;
+                          const normActivityUnit = line.activityUnit.trim().toLowerCase();
+                          if (!normActivityUnit) return true;
+                          const normFactorUnit = factor.unit.trim().toLowerCase();
+                          return normFactorUnit === `kgco2e/${normActivityUnit}` || normFactorUnit === normActivityUnit;
+                        })
                         .map((factor) => (
                           <option key={factor.id} value={factor.id}>
                             {factor.label} · {factor.unit}
@@ -395,6 +460,28 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                     : t("noTotals")}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">{pilot.result.findings.map((finding) => finding.code).join(" · ")}</p>
+                <div className="mt-3 flex items-center gap-2 pt-2 border-t border-slate-200/60">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-emerald-600/30 text-emerald-800 hover:bg-emerald-50"
+                    onClick={() => downloadPilotReportCsv(pilot)}
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                    Tải Báo cáo (CSV/Excel)
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+                    onClick={() => downloadPilotAuditJson(pilot)}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
+                    Bằng chứng Audit (JSON)
+                  </Button>
+                </div>
               </div>
             ))
           )}

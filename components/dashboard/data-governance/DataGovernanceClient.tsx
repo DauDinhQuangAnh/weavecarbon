@@ -1,14 +1,24 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { DatabaseZap, Gauge, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, DatabaseZap, Eye, Gauge, Info, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
 import { isApiError } from "@/lib/apiClient";
 import { dataGovernanceApi, type DqlAssessment, type FactorProposal } from "@/lib/dataGovernanceApi";
 
@@ -20,9 +30,21 @@ const initialFactor = { proposalReference: "", factorId: "", label: "", factorVa
 
 export default function DataGovernanceClient({ demo = false }: { demo?: boolean }) {
   const t = useTranslations("dataGovernance");
+  const { user } = useAuth();
+  const isViewer = user?.company_role === "viewer";
+  const isCompanyAdmin = user?.company_role === "root" || user?.is_root === true;
+
   const [dql, setDql] = useState<DqlAssessment[]>([]); const [factors, setFactors] = useState<FactorProposal[]>([]);
   const [dqlForm, setDqlForm] = useState(initialDql); const [factorForm, setFactorForm] = useState(initialFactor);
   const [loading, setLoading] = useState(!demo); const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null);
+
+  const [reviewingProposal, setReviewingProposal] = useState<FactorProposal | null>(null);
+  const [reviewDecision, setReviewDecision] = useState<"approved_for_release_candidate" | "needs_information" | "rejected">("approved_for_release_candidate");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [selectedDql, setSelectedDql] = useState<DqlAssessment | null>(null);
+
   const load = useCallback(async () => { if (demo) return; setLoading(true); setError(null); try {
     const [dqlRows, factorRows] = await Promise.all([dataGovernanceApi.dql(), dataGovernanceApi.factorProposals()]);
     setDql(dqlRows); setFactors(factorRows);
@@ -41,6 +63,33 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
     setFactors((rows) => [created, ...rows]); setFactorForm(initialFactor);
   } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); } };
 
+  const handleOpenReview = (proposal: FactorProposal) => {
+    setReviewingProposal(proposal);
+    setReviewDecision("approved_for_release_candidate");
+    setReviewNotes("");
+    setReviewError(null);
+  };
+
+  const handleSubmitReview = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!reviewingProposal || submittingReview) return;
+    setSubmittingReview(true);
+    setReviewError(null);
+    try {
+      await dataGovernanceApi.reviewFactorProposal(reviewingProposal.id, {
+        reviewerRole: "emission_factor_reviewer",
+        decision: reviewDecision,
+        notes: reviewNotes,
+      });
+      setReviewingProposal(null);
+      await load();
+    } catch (cause) {
+      setReviewError(isApiError(cause) ? cause.message : "Có lỗi khi ghi nhận phê duyệt.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-emerald-700" /></div>;
   const getDqlBadgeClass = (level: string) => {
     switch (level) {
@@ -52,6 +101,21 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
         return "border-amber-300 bg-amber-50 text-amber-800 font-semibold";
       default:
         return "border-rose-300 bg-rose-50 text-rose-800 font-semibold";
+    }
+  };
+
+  const getProposalStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "approved_for_release_candidate":
+        return "border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold";
+      case "rejected":
+        return "border-rose-300 bg-rose-50 text-rose-800 font-semibold";
+      case "needs_information":
+        return "border-amber-300 bg-amber-50 text-amber-800 font-semibold";
+      case "pending_review":
+        return "border-sky-300 bg-sky-50 text-sky-800 font-semibold";
+      default:
+        return "border-slate-300 bg-slate-50 text-slate-700 font-semibold";
     }
   };
 
@@ -165,7 +229,13 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 />
               </div>
 
-              <Button disabled={demo || saving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+              {!isCompanyAdmin && !demo && (
+                <div className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 border border-amber-200 flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>Chỉ Quản trị viên (Company Admin) mới có quyền lưu đánh giá DQL.</span>
+                </div>
+              )}
+              <Button disabled={demo || saving || !isCompanyAdmin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("score")}
               </Button>
@@ -182,9 +252,21 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                       <p className="font-semibold text-sm text-slate-900">{item.subjectReference}</p>
                       <p className="text-xs text-slate-500">{item.methodologyVersion} · Điểm tổng: <span className="font-bold text-slate-700">{item.overallScore}/5</span></p>
                     </div>
-                    <Badge variant="outline" className={getDqlBadgeClass(item.dataQualityLevel)}>
-                      {item.dataQualityLevel}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={getDqlBadgeClass(item.dataQualityLevel)}>
+                        {item.dataQualityLevel}
+                      </Badge>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                        onClick={() => setSelectedDql(item)}
+                        title="Xem chi tiết"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
@@ -296,18 +378,40 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-slate-700">Mã tài liệu chứng minh</Label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-slate-700">Tài liệu chứng minh (Evidence Vault)</Label>
+                  <span className="text-[11px] text-slate-500">ISO 14064-1 Bắt buộc</span>
+                </div>
+                <EvidenceSelector
+                  value={factorForm.evidenceDocumentIds.split(",")[0]?.trim() || null}
+                  onChange={(evidenceId) => {
+                    setFactorForm((prev) => ({
+                      ...prev,
+                      evidenceDocumentIds: evidenceId || "",
+                    }));
+                  }}
+                  placeholder="Chọn chứng từ đã xác minh từ Evidence Vault..."
+                  disabled={demo || saving || !isCompanyAdmin}
+                  required
+                />
                 <Input
                   required
-                  disabled={demo || saving}
+                  disabled={demo || saving || !isCompanyAdmin}
                   placeholder={t("evidenceIds")}
                   value={factorForm.evidenceDocumentIds}
                   onChange={(e) => setFactorForm({ ...factorForm, evidenceDocumentIds: e.target.value })}
+                  className="font-mono text-xs"
                 />
               </div>
 
-              <Button disabled={demo || saving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+              {!isCompanyAdmin && !demo && (
+                <div className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 border border-amber-200 flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>Chỉ Quản trị viên (Company Admin) mới có quyền tạo đề xuất hệ số.</span>
+                </div>
+              )}
+              <Button disabled={demo || saving || !isCompanyAdmin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("submitFactor")}
               </Button>
@@ -319,17 +423,34 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 <p className="text-xs text-slate-400 py-3 text-center">Chưa có đề xuất hệ số nào</p>
               ) : (
                 factors.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-slate-50 transition-colors">
+                  <div key={item.id} className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-slate-50 transition-colors space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-semibold text-sm text-slate-900">{item.label}</p>
-                      <Badge variant="outline" className="text-xs font-mono">
+                      <div>
+                        <p className="font-semibold text-sm text-slate-900">{item.label}</p>
+                        <p className="text-xs text-slate-500 font-mono">{item.proposalReference} (rev {item.revision})</p>
+                      </div>
+                      <Badge variant="outline" className={`text-xs font-mono ${getProposalStatusBadgeClass(item.governanceStatus)}`}>
                         {item.governanceStatus}
                       </Badge>
                     </div>
-                    <p className="text-xs text-emerald-800 font-mono font-medium mt-1">
-                      {item.factorValue} {item.unit}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">{item.sourceName}</p>
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/50">
+                      <div>
+                        <span className="text-emerald-800 font-mono font-bold">{item.factorValue} {item.unit}</span>
+                        <span className="text-slate-400 ml-2">· {item.sourceName} ({item.geography})</span>
+                      </div>
+                      {isCompanyAdmin && !demo && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
+                          onClick={() => handleOpenReview(item)}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                          Đánh giá & Duyệt
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -337,6 +458,133 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
           </CardContent>
         </Card>
       </section>
+
+      {/* Factor Review Modal */}
+      <Dialog open={Boolean(reviewingProposal)} onOpenChange={(open) => { if (!open) setReviewingProposal(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+              Thẩm định & Phê duyệt Hệ số
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              {reviewingProposal?.label} ({reviewingProposal?.proposalReference}) · Giá trị: {reviewingProposal?.factorValue} {reviewingProposal?.unit}
+            </DialogDescription>
+          </DialogHeader>
+
+          {reviewError && (
+            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700 border border-red-200 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>{reviewError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmitReview} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-slate-700">Quyết định thẩm định</Label>
+              <select
+                className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                value={reviewDecision}
+                onChange={(e) => setReviewDecision(e.target.value as any)}
+                disabled={submittingReview}
+              >
+                <option value="approved_for_release_candidate">Phê duyệt (Release Candidate)</option>
+                <option value="needs_information">Yêu cầu bổ sung chứng từ / thông tin</option>
+                <option value="rejected">Từ chối đề xuất</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-slate-700">Vai trò kiểm duyệt</Label>
+              <Input
+                disabled
+                value="emission_factor_reviewer"
+                className="bg-slate-100 font-mono text-xs text-slate-600"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-slate-700">Giải trình thẩm định & Ghi chú kiểm toán</Label>
+              <Textarea
+                required
+                rows={3}
+                placeholder="Nêu rõ lý do phê duyệt, đối chiếu tài liệu nguồn hoặc yêu cầu bổ sung theo ISO 14064..."
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                disabled={submittingReview}
+                className="text-xs"
+              />
+              <p className="text-[11px] text-slate-400">Ghi chú này sẽ được lưu bất biến vào nhật ký kiểm toán (Audit Trail).</p>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setReviewingProposal(null)}
+                disabled={submittingReview}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={submittingReview}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {submittingReview && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Xác nhận Quyết định
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* DQL Detail Dialog */}
+      <Dialog open={Boolean(selectedDql)} onOpenChange={(open) => { if (!open) setSelectedDql(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <Gauge className="h-5 w-5 text-emerald-600" />
+              Chi tiết Hồ sơ DQL · {selectedDql?.subjectReference}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              {selectedDql?.methodologyVersion} · Đối tượng: {selectedDql?.subjectType}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDql && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-100/70 border border-slate-200">
+                <div>
+                  <p className="text-xs text-slate-500">Xếp hạng DQL</p>
+                  <p className="text-xl font-bold text-slate-900">{selectedDql.dataQualityLevel}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Điểm tổng hợp</p>
+                  <p className="text-xl font-bold text-emerald-700">{selectedDql.overallScore} / 5</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Độ đầy đủ</p>
+                  <p className="text-xl font-bold text-sky-700">{selectedDql.completenessPercent}%</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Cơ sở lý luận & Bằng chứng</Label>
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-40 overflow-y-auto">
+                  {selectedDql.rationale}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setSelectedDql(null)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

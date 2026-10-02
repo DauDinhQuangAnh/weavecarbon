@@ -8,9 +8,20 @@ export interface FactorProposal {
   id: string; proposalReference: string; revision: number; factorId: string; label: string;
   factorValue: number; unit: string; sourceName: string; geography: string; governanceStatus: string; createdAt: string;
 }
+export interface FactorReviewInput {
+  reviewerRole: string;
+  decision: "approved_for_release_candidate" | "needs_information" | "rejected";
+  notes: string;
+}
+export interface FactorReview {
+  id: string; proposalId: string; reviewerId: string; reviewerNameSnapshot: string;
+  reviewerRole: string; decision: string; notes: string; createdAt: string;
+}
 export const dataGovernanceApi = {
   dql: () => api.get<DqlAssessment[]>("/data-governance/dql-assessments"),
   createDql: (input: Record<string, unknown>) => api.post<DqlAssessment>("/data-governance/dql-assessments", input),
   factorProposals: () => api.get<FactorProposal[]>("/data-governance/factor-proposals"),
-  createFactorProposal: (input: Record<string, unknown>) => api.post<FactorProposal>("/data-governance/factor-proposals", input)
+  createFactorProposal: (input: Record<string, unknown>) => api.post<FactorProposal>("/data-governance/factor-proposals", input),
+  reviewFactorProposal: (proposalId: string, input: FactorReviewInput) =>
+    api.post<FactorReview>(`/data-governance/factor-proposals/${proposalId}/reviews`, input)
 };

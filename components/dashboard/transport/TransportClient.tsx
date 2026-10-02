@@ -16,7 +16,6 @@ import { useDashboardTitle } from "@/contexts/DashboardContext";
 import TransportScopeSelector from "./TransportScopeSelector";
 import TransportLegCard from "./TransportLegCard";
 import TransportResultsSidebar from "./TransportResultsSidebar";
-import PermissionDialog from "@/components/ui/PermissionDialog";
 import type { TransportLeg } from "@/types/transport";
 import {
   fetchAllLogisticsShipmentDetails,
@@ -45,6 +44,9 @@ import {
   type RoadRouteFailureReason
 } from "@/lib/roadRouting";
 import { runWithConcurrency } from "@/lib/concurrency";
+import { usePermissions } from "@/hooks/usePermissions";
+import { showNoPermissionToast } from "@/lib/noPermissionToast";
+import { useAppRoutes } from "@/lib/demo/routes";
 
 export interface AddressData {
   streetAddress: string;
@@ -582,13 +584,14 @@ const TransportClient: React.FC<TransportClientProps> = ({
 }) => {
   const t = useTranslations("transport");
   const router = useRouter();
+  const appRoutes = useAppRoutes();
+  const { canMutate } = usePermissions();
+  const canSave = canMutate && !appRoutes.isDemo;
   const { setPageTitle } = useDashboardTitle();
   const hasLookupInput = Boolean(shipmentId || productId || productCode || productName);
   const [transportScope, setTransportScope] = useState<
     "domestic" | "international">(
     "international");
-  const [showLocationDialog, setShowLocationDialog] = useState(false);
-  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [legs, setLegs] = useState<LegInput[]>([createInitialLeg()]);
   const [loadedProduct, setLoadedProduct] = useState<ProductRecord | null>(null);
   const [shipmentLoadState, setShipmentLoadState] = useState<ShipmentLoadState>(
@@ -1054,6 +1057,10 @@ const updateLeg = (
       router.push("/calculation-history");
       return;
     }
+    if (!canSave) {
+      showNoPermissionToast();
+      return;
+    }
 
     setIsSaving(true);
 
@@ -1205,11 +1212,6 @@ const updateLeg = (
     }
   };
 
-  const handleLocationPermission = async () => {
-    setHasLocationPermission(true);
-    setShowLocationDialog(false);
-  };
-
   const isShipmentLoading = hasLookupInput && shipmentLoadState === "loading";
   const isBusy = isShipmentLoading || isSaving || isResolvingRoadRoutes;
   const canRetryShipment =
@@ -1236,15 +1238,14 @@ const updateLeg = (
 
   return (
     <>
-      <PermissionDialog
-        open={showLocationDialog}
-        onOpenChange={setShowLocationDialog}
-        type="location"
-        onAllow={handleLocationPermission}
-        onDeny={() => setShowLocationDialog(false)} />
-
-
       <div className="space-y-6">
+        {!canSave && (
+          <Card className="border-slate-200 bg-slate-50">
+            <CardContent className="p-4 text-sm text-slate-700">
+              Bạn đang ở chế độ chỉ xem. Có thể thử cấu hình tuyến, nhưng không thể lưu thay đổi vào sản phẩm.
+            </CardContent>
+          </Card>
+        )}
         {hasLookupInput && shipmentLoadState !== "ready" && shipmentLoadState !== "idle" &&
         <Card>
             <CardContent className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1334,7 +1335,6 @@ const updateLeg = (
               leg={leg}
               index={index}
               canRemove={legs.length > 1}
-              hasLocationPermission={hasLocationPermission}
               onUpdate={updateLeg}
               onRemove={handleRemoveLeg}
               roadRouteIssue={roadRouteFailureByLegId[leg.id] ? t("status.roadRouteUnconfirmed") : null}
@@ -1367,7 +1367,7 @@ const updateLeg = (
             legs={legs}
             totalDistance={totalDistance}
             totalCO2={totalCO2}
-            hasLocationPermission={hasLocationPermission}
+            canSubmit={canSave || !productId}
             calculateLegCO2={calculateLegCO2}
             onSubmit={handleSubmit}
             isLoading={isBusy}

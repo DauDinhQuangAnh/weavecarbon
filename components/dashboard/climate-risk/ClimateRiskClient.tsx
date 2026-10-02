@@ -1,19 +1,45 @@
 "use client";
 
-import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useCallback, useEffect, useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { CloudSun, Loader2, MapPin, ShieldAlert, BarChart3, AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
+import {
+  CloudSun,
+  Loader2,
+  MapPin,
+  ShieldAlert,
+  BarChart3,
+  AlertCircle,
+  CheckCircle2,
+  ChevronRight,
+  Download,
+  FileText,
+  ShieldCheck,
+  Grid,
+  Flame,
+  Droplets,
+  Sun,
+  Layers,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
+import { GisCoordinateMap } from "@/components/dashboard/climate-risk/GisCoordinateMap";
 import { isApiError } from "@/lib/apiClient";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
 import { listEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
-import { climateRiskApi, type ClimateAssessment, type ClimateLocation, type ClimatePortfolio } from "@/lib/climateRiskApi";
+import {
+  climateRiskApi,
+  type ClimateAssessment,
+  type ClimateLocation,
+  type ClimatePortfolio,
+} from "@/lib/climateRiskApi";
 
-const selectClass = "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
+const selectClass =
+  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
 
 const evidenceReady = (item: EvidenceDocumentV2) =>
   ["locked", "third_party_verified"].includes(item.status) &&
@@ -35,7 +61,7 @@ const initialLocation = {
   longitude: "",
   precisionMeters: "100",
   locationBasis: "",
-  evidenceDocumentId: ""
+  evidenceDocumentId: "",
 };
 
 const initialAssessment = {
@@ -65,17 +91,23 @@ const initialAssessment = {
   businessDependencyPercent: "",
   priorityBand: "medium",
   ratingRationale: "",
-  evidenceDocumentId: ""
+  evidenceDocumentId: "",
 };
 
 export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) {
   const t = useTranslations("climateRisk");
+  const { user } = useAuth();
+  const isCompanyAdmin = user?.company_role === "root" || user?.is_root === true;
+  const isViewer = user?.company_role === "viewer";
+
   const [facilities, setFacilities] = useState<IndustrialFacility[]>([]);
   const [evidence, setEvidence] = useState<EvidenceDocumentV2[]>([]);
   const [locations, setLocations] = useState<ClimateLocation[]>([]);
   const [assessments, setAssessments] = useState<ClimateAssessment[]>([]);
   const [portfolios, setPortfolios] = useState<ClimatePortfolio[]>([]);
-  const [portfolioDetail, setPortfolioDetail] = useState<(ClimatePortfolio & { assessments: ClimateAssessment[] }) | null>(null);
+  const [portfolioDetail, setPortfolioDetail] = useState<
+    (ClimatePortfolio & { assessments: ClimateAssessment[] }) | null
+  >(null);
   const [loading, setLoading] = useState(!demo);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,13 +121,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
     if (demo) return;
     setLoading(true);
     try {
-      const [facilityRows, evidenceResponse, locationRows, assessmentRows, portfolioRows] = await Promise.all([
-        industrialCoreApi.facilities(),
-        listEvidenceV2(),
-        climateRiskApi.locations(),
-        climateRiskApi.assessments(),
-        climateRiskApi.portfolios()
-      ]);
+      const [facilityRows, evidenceResponse, locationRows, assessmentRows, portfolioRows] =
+        await Promise.all([
+          industrialCoreApi.facilities(),
+          listEvidenceV2(),
+          climateRiskApi.locations(),
+          climateRiskApi.assessments(),
+          climateRiskApi.portfolios(),
+        ]);
       setFacilities(facilityRows);
       setEvidence(evidenceResponse.items.filter(evidenceReady));
       setLocations(locationRows);
@@ -129,12 +162,16 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
   const createLocation = (event: FormEvent) => {
     event.preventDefault();
+    if (!isCompanyAdmin && !demo) {
+      setError("Chỉ Company Admin / Quản trị viên mới có quyền tạo vị trí cơ sở rủi ro khí hậu.");
+      return;
+    }
     void run(async () => {
       await climateRiskApi.createLocation({
         ...locationForm,
         latitude: Number(locationForm.latitude),
         longitude: Number(locationForm.longitude),
-        precisionMeters: Number(locationForm.precisionMeters)
+        precisionMeters: Number(locationForm.precisionMeters),
       });
       setLocationForm(initialLocation);
     });
@@ -142,13 +179,17 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
   const createAssessment = (event: FormEvent) => {
     event.preventDefault();
+    if (!isCompanyAdmin && !demo) {
+      setError("Chỉ Company Admin / Quản trị viên mới có quyền tạo đánh giá hiểm họa khí hậu.");
+      return;
+    }
     void run(async () => {
       await climateRiskApi.createAssessment({
         ...assessmentForm,
         metricValue: Number(assessmentForm.metricValue),
         exposureRating: Number(assessmentForm.exposureRating),
         vulnerabilityRating: Number(assessmentForm.vulnerabilityRating),
-        businessDependencyPercent: Number(assessmentForm.businessDependencyPercent)
+        businessDependencyPercent: Number(assessmentForm.businessDependencyPercent),
       });
       setAssessmentForm(initialAssessment);
     });
@@ -156,11 +197,15 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
   const createPortfolio = (event: FormEvent) => {
     event.preventDefault();
+    if (!isCompanyAdmin && !demo) {
+      setError("Chỉ Company Admin / Quản trị viên mới có quyền lập danh mục rủi ro khí hậu.");
+      return;
+    }
     void run(async () => {
       await climateRiskApi.createPortfolio({
         portfolioReference,
         methodologyNotes,
-        assessmentIds: selectedIds
+        assessmentIds: selectedIds,
       });
       setPortfolioReference("");
       setMethodologyNotes("");
@@ -174,6 +219,110 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       setError(null);
     } catch (cause) {
       setError(isApiError(cause) ? cause.message : t("loadError"));
+    }
+  };
+
+  // 5x5 Heatmap Matrix Calculation (Exposure 1-5 vs Vulnerability 1-5)
+  const heatmapData = useMemo(() => {
+    const grid: Record<string, ClimateAssessment[]> = {};
+    for (let exp = 1; exp <= 5; exp++) {
+      for (let vuln = 1; vuln <= 5; vuln++) {
+        grid[`${exp}-${vuln}`] = [];
+      }
+    }
+    for (const item of assessments) {
+      const exp = Math.min(5, Math.max(1, Math.round(item.exposureRating || 3)));
+      const vuln = Math.min(5, Math.max(1, Math.round(item.vulnerabilityRating || 3)));
+      const key = `${exp}-${vuln}`;
+      if (grid[key]) {
+        grid[key].push(item);
+      }
+    }
+    return grid;
+  }, [assessments]);
+
+  // Export Dossier Functions
+  const downloadPortfolioCsv = (portfolio: ClimatePortfolio, members: ClimateAssessment[] = []) => {
+    const rows = [
+      ["DANH_MUC_RUI_RO", "THONG_TIN", "GIA_TRI"],
+      ["PORTFOLIO", "Ma danh muc", portfolio.portfolioReference],
+      ["PORTFOLIO", "Kich ban tham chieu", portfolio.scenarioReference || ""],
+      ["PORTFOLIO", "So luong co so", String(portfolio.facilityCount || 0)],
+      ["PORTFOLIO", "Trang thai tham dinh", portfolio.prioritySummary?.reviewStatus || ""],
+      ["PORTFOLIO", "Ty le phu thuoc rui ro cao (High)", `${portfolio.prioritySummary?.dependencyPercentByPriority?.high ?? 0}%`],
+      ["PORTFOLIO", "Ty le phu thuoc rui ro trung binh (Medium)", `${portfolio.prioritySummary?.dependencyPercentByPriority?.medium ?? 0}%`],
+      ["PORTFOLIO", "Ty le phu thuoc rui ro thap (Low)", `${portfolio.prioritySummary?.dependencyPercentByPriority?.low ?? 0}%`],
+      ["PORTFOLIO", "Ghi chu phuong phap luan", (portfolio.methodologyNotes || "").replace(/"/g, '""')],
+      ["PORTFOLIO", "Ma dinh danh Portfolio ID", portfolio.id],
+      ["---", "---", "---"],
+      ["CHI_TIET_HIEM_HOA", "CO_SO", "LOAI_HIEM_HOA", "NGUON", "MO_HINH", "CHI_SO", "GIA_TRI", "PHOI_NHIEM", "TON_THUONG", "PHU_THUOC_%", "MUC_UU_TIEN", "MA_BAM_HO_SO"],
+      ...members.map((m) => [
+        "ASSESSMENT",
+        m.facilityName || m.facilityRevisionId,
+        m.hazardType,
+        m.sourceKind,
+        m.modelName || "—",
+        m.hazardMetric,
+        `${m.metricValue} ${m.metricUnit}`,
+        String(m.exposureRating),
+        String(m.vulnerabilityRating),
+        `${m.businessDependencyPercent}%`,
+        m.priorityBand,
+        m.evidenceSnapshot?.checksumSha256 || m.id,
+      ]),
+    ];
+
+    const csvContent = "\uFEFF" + rows.map((r) => r.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `TCFD_ClimateRisk_${portfolio.portfolioReference}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPortfolioAuditJson = (portfolio: ClimatePortfolio, members: ClimateAssessment[] = []) => {
+    const auditData = {
+      standard: "TCFD / IFRS S2 Physical Climate Risk Assessment",
+      exportedAt: new Date().toISOString(),
+      portfolioId: portfolio.id,
+      portfolioReference: portfolio.portfolioReference,
+      methodologyNotes: portfolio.methodologyNotes,
+      prioritySummary: portfolio.prioritySummary,
+      assessmentsCount: members.length,
+      assessments: members,
+      legalDisclaimer:
+        "Báo cáo sàng lọc rủi ro khí hậu vật lý nội bộ tuân thủ khuyến nghị TCFD và chuẩn mực công bố phát triển bền vững IFRS S2.",
+    };
+
+    const blob = new Blob([JSON.stringify(auditData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `TCFD_Audit_${portfolio.portfolioReference}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPortfolio = async (portfolio: ClimatePortfolio, type: "csv" | "json") => {
+    try {
+      const full = await climateRiskApi.portfolio(portfolio.id);
+      if (type === "csv") {
+        downloadPortfolioCsv(full, full.assessments || []);
+      } else {
+        downloadPortfolioAuditJson(full, full.assessments || []);
+      }
+    } catch {
+      if (type === "csv") {
+        downloadPortfolioCsv(portfolio, []);
+      } else {
+        downloadPortfolioAuditJson(portfolio, []);
+      }
     }
   };
 
@@ -191,24 +340,40 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
       {/* Top Hero Banner */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-sky-950 to-teal-950 p-6 md:p-8 text-white shadow-sm border border-slate-800">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-300 ring-1 ring-inset ring-sky-500/30">
-              <CloudSun className="h-3.5 w-3.5" />
-              G2-07 · Climate Risk
-            </span>
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-300 border border-emerald-500/20">
-              TCFD / IFRS S2 Aligned
-            </span>
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-teal-950 p-6 md:p-8 text-white shadow-md border border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-300 ring-1 ring-inset ring-sky-500/30">
+                <CloudSun className="h-3.5 w-3.5" />
+                G2-07 · Climate Risk
+              </span>
+              <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-300 border border-emerald-500/20">
+                TCFD / IFRS S2 Aligned
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{t("title")}</h1>
+            <p className="max-w-3xl text-sm md:text-base text-slate-300 leading-relaxed">{t("description")}</p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{t("title")}</h1>
-          <p className="max-w-3xl text-sm md:text-base text-slate-300 leading-relaxed">{t("description")}</p>
+
+          <div>
+            {isCompanyAdmin ? (
+              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 px-3 py-1 text-xs">
+                <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                Company Admin (Quyền quản trị rủi ro khí hậu)
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-amber-300 border-amber-500/30 px-3 py-1 text-xs">
+                <ShieldAlert className="w-3.5 h-3.5 mr-1" />
+                Chế độ xem ({user?.company_role || "member"})
+              </Badge>
+            )}
+          </div>
         </div>
       </section>
 
       {/* Caution & notices */}
-      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-sm">
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-xs">
         <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
         <div className="space-y-1">
           <p className="font-semibold text-amber-950">Lưu ý ranh giới đánh giá rủi ro vật lý</p>
@@ -217,14 +382,17 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       </div>
 
       {error && (
-        <div role="alert" className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-xs"
+        >
           <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
       {demo && (
-        <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 shadow-sm">
+        <div className="flex items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 shadow-xs">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-sky-600" />
           <span>{t("demoReadOnly")}</span>
         </div>
@@ -232,46 +400,64 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
       {/* Overview stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Cơ sở đánh giá</p>
           <p className="mt-1 text-2xl font-bold text-slate-900">{facilities.length}</p>
           <p className="text-xs text-slate-500 mt-0.5">Nhà máy / chi nhánh</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tọa độ định vị</p>
           <p className="mt-1 text-2xl font-bold text-sky-700">{locations.length}</p>
           <p className="text-xs text-slate-500 mt-0.5">Vị trí GIS xác minh</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Đánh giá hiểm họa</p>
           <p className="mt-1 text-2xl font-bold text-teal-700">{assessments.length}</p>
           <p className="text-xs text-slate-500 mt-0.5">Kịch bản khí hậu</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Danh mục rủi ro</p>
           <p className="mt-1 text-2xl font-bold text-indigo-700">{portfolios.length}</p>
           <p className="text-xs text-slate-500 mt-0.5">Portfolio báo cáo</p>
         </div>
       </div>
 
-      {/* 1. Location Form */}
-      <Card className="shadow-sm border-slate-200">
+      {/* 1. Location Form with GIS Map */}
+      <Card className="shadow-xs border-slate-200/80">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <MapPin className="h-5 w-5 text-sky-600" />
             {t("locationTitle")}
           </CardTitle>
           <CardDescription className="text-xs text-slate-500">{t("locationDescription")}</CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-6">
+          {/* Interactive GIS Map */}
+          <GisCoordinateMap
+            latitude={locationForm.latitude}
+            longitude={locationForm.longitude}
+            precisionMeters={locationForm.precisionMeters}
+            existingLocations={locations}
+            onSelectCoordinates={(lat, lng) =>
+              setLocationForm({
+                ...locationForm,
+                latitude: lat.toFixed(6),
+                longitude: lng.toFixed(6),
+              })
+            }
+            disabled={demo || isViewer}
+          />
+
           <form className="grid gap-4 md:grid-cols-3" onSubmit={createLocation}>
             <Field label={t("facility")}>
               <select
                 required
-                disabled={demo}
+                disabled={demo || isViewer}
                 className={selectClass}
                 value={locationForm.facilityRevisionId}
-                onChange={(event) => setLocationForm({ ...locationForm, facilityRevisionId: event.target.value })}
+                onChange={(event) =>
+                  setLocationForm({ ...locationForm, facilityRevisionId: event.target.value })
+                }
               >
                 <option value="">{t("selectFacility")}</option>
                 {facilities.map((f) => (
@@ -285,7 +471,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("latitude")}>
               <Input
                 required
-                disabled={demo}
+                disabled={demo || isViewer}
                 type="number"
                 min="-90"
                 max="90"
@@ -299,7 +485,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("longitude")}>
               <Input
                 required
-                disabled={demo}
+                disabled={demo || isViewer}
                 type="number"
                 min="-180"
                 max="180"
@@ -313,19 +499,21 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("precision")}>
               <Input
                 required
-                disabled={demo}
+                disabled={demo || isViewer}
                 type="number"
                 min="1"
                 max="100000"
                 value={locationForm.precisionMeters}
-                onChange={(event) => setLocationForm({ ...locationForm, precisionMeters: event.target.value })}
+                onChange={(event) =>
+                  setLocationForm({ ...locationForm, precisionMeters: event.target.value })
+                }
               />
             </Field>
 
             <Field label={t("locationBasis")}>
               <Input
                 required
-                disabled={demo}
+                disabled={demo || isViewer}
                 placeholder="Ví dụ: GPS khảo sát thực địa, Trích lục địa chính"
                 value={locationForm.locationBasis}
                 onChange={(event) => setLocationForm({ ...locationForm, locationBasis: event.target.value })}
@@ -333,24 +521,17 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             </Field>
 
             <Field label={t("locationEvidence")}>
-              <select
-                required
-                disabled={demo}
-                className={selectClass}
+              <EvidenceSelector
                 value={locationForm.evidenceDocumentId}
-                onChange={(event) => setLocationForm({ ...locationForm, evidenceDocumentId: event.target.value })}
-              >
-                <option value="">{t("selectEvidence")}</option>
-                {evidence.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.documentName}
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => setLocationForm({ ...locationForm, evidenceDocumentId: id })}
+                disabled={demo || isViewer}
+                placeholder="Chọn chứng từ thực địa từ Vault..."
+                required
+              />
             </Field>
 
             <div className="md:col-span-3 pt-2">
-              <Button disabled={demo || saving} className="bg-sky-600 hover:bg-sky-700 text-white">
+              <Button disabled={demo || saving || isViewer} className="bg-sky-600 hover:bg-sky-700 text-white font-medium">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
                 {t("saveLocation")}
               </Button>
@@ -359,13 +540,20 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
           {locations.length > 0 && (
             <div className="mt-6 pt-6 border-t border-slate-100">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Vị trí đã lưu ({locations.length})</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                Vị trí đã lưu ({locations.length})
+              </p>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {locations.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-sm hover:border-sky-300 transition-colors">
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-sm hover:border-sky-300 transition-colors"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <b className="text-slate-900 font-semibold">{item.facilityName || item.facilityRevisionId}</b>
-                      <Badge variant="outline" className="text-xs bg-white text-slate-700">±{item.precisionMeters} m</Badge>
+                      <Badge variant="outline" className="text-xs bg-white text-slate-700 font-medium">
+                        ±{item.precisionMeters} m
+                      </Badge>
                     </div>
                     <p className="mt-1 text-slate-600 text-xs font-mono">
                       {item.latitude}, {item.longitude}
@@ -380,9 +568,9 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       </Card>
 
       {/* 2. Assessment Form */}
-      <Card className="shadow-sm border-slate-200">
+      <Card className="shadow-xs border-slate-200/80">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <ShieldAlert className="h-5 w-5 text-teal-600" />
             {t("assessmentTitle")}
           </CardTitle>
@@ -394,11 +582,15 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("facility")}>
                 <select
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   className={selectClass}
                   value={assessmentForm.facilityRevisionId}
                   onChange={(event) =>
-                    setAssessmentForm({ ...assessmentForm, facilityRevisionId: event.target.value, locationRevisionId: "" })
+                    setAssessmentForm({
+                      ...assessmentForm,
+                      facilityRevisionId: event.target.value,
+                      locationRevisionId: "",
+                    })
                   }
                 >
                   <option value="">{t("selectFacility")}</option>
@@ -413,10 +605,12 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("locationRevision")}>
                 <select
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   className={selectClass}
                   value={assessmentForm.locationRevisionId}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, locationRevisionId: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, locationRevisionId: event.target.value })
+                  }
                 >
                   <option value="">{t("selectLocation")}</option>
                   {locations
@@ -431,10 +625,12 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
               <Field label={t("hazard")}>
                 <select
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   className={selectClass}
                   value={assessmentForm.hazardType}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, hazardType: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, hazardType: event.target.value })
+                  }
                 >
                   <option value="heat">{t("heat")}</option>
                   <option value="drought">{t("drought")}</option>
@@ -444,14 +640,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
               <Field label={t("scenarioKind")}>
                 <select
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   className={selectClass}
                   value={assessmentForm.scenarioKind}
                   onChange={(event) =>
                     setAssessmentForm({
                       ...assessmentForm,
                       scenarioKind: event.target.value,
-                      sourceKind: event.target.value === "historical" ? "ERA5_LAND" : "CMIP6"
+                      sourceKind: event.target.value === "historical" ? "ERA5_LAND" : "CMIP6",
                     })
                   }
                 >
@@ -463,19 +659,23 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("scenarioReference")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   placeholder="Ví dụ: SSP2-4.5 / Historical 1991-2020"
                   value={assessmentForm.scenarioReference}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, scenarioReference: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, scenarioReference: event.target.value })
+                  }
                 />
               </Field>
 
               <Field label={t("sourceKind")}>
                 <select
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   className={selectClass}
                   value={assessmentForm.sourceKind}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, sourceKind: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, sourceKind: event.target.value })
+                  }
                 >
                   {assessmentForm.scenarioKind === "historical" ? (
                     <option value="ERA5_LAND">ERA5-Land</option>
@@ -489,41 +689,51 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("horizonStart")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="date"
                   value={assessmentForm.horizonStart}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, horizonStart: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, horizonStart: event.target.value })
+                  }
                 />
               </Field>
 
               <Field label={t("horizonEnd")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="date"
                   value={assessmentForm.horizonEnd}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, horizonEnd: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, horizonEnd: event.target.value })
+                  }
                 />
               </Field>
 
               <Field label={t("sourceUrl")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="url"
                   placeholder="https://cds.climate.copernicus.eu/..."
                   value={assessmentForm.sourceUrl}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, sourceUrl: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, sourceUrl: event.target.value })
+                  }
                 />
               </Field>
 
-              {(["datasetIdentifier", "datasetVersion", "spatialResolution", "temporalResolution"] as const).map((key) => (
+              {(
+                ["datasetIdentifier", "datasetVersion", "spatialResolution", "temporalResolution"] as const
+              ).map((key) => (
                 <Field key={key} label={t(key)}>
                   <Input
                     required
-                    disabled={demo}
+                    disabled={demo || isViewer}
                     value={assessmentForm[key]}
-                    onChange={(event) => setAssessmentForm({ ...assessmentForm, [key]: event.target.value })}
+                    onChange={(event) =>
+                      setAssessmentForm({ ...assessmentForm, [key]: event.target.value })
+                    }
                   />
                 </Field>
               ))}
@@ -531,10 +741,12 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("gridReference")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   placeholder="Grid ID / cell reference"
                   value={assessmentForm.gridReference}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, gridReference: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, gridReference: event.target.value })
+                  }
                 />
               </Field>
 
@@ -543,9 +755,11 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                   <Field key={key} label={t(key)}>
                     <Input
                       required
-                      disabled={demo}
+                      disabled={demo || isViewer}
                       value={assessmentForm[key]}
-                      onChange={(event) => setAssessmentForm({ ...assessmentForm, [key]: event.target.value })}
+                      onChange={(event) =>
+                        setAssessmentForm({ ...assessmentForm, [key]: event.target.value })
+                      }
                     />
                   </Field>
                 ))}
@@ -554,10 +768,12 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 <Field key={key} label={t(key)}>
                   <Input
                     required
-                    disabled={demo}
+                    disabled={demo || isViewer}
                     placeholder={key === "hazardMetric" ? "VD: annual_consecutive_dry_days" : "VD: days, mm, °C"}
                     value={assessmentForm[key]}
-                    onChange={(event) => setAssessmentForm({ ...assessmentForm, [key]: event.target.value })}
+                    onChange={(event) =>
+                      setAssessmentForm({ ...assessmentForm, [key]: event.target.value })
+                    }
                   />
                 </Field>
               ))}
@@ -565,58 +781,71 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("metricValue")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="number"
                   step="0.00000001"
                   value={assessmentForm.metricValue}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, metricValue: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, metricValue: event.target.value })
+                  }
                 />
               </Field>
 
               <Field label={t("exposure")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="number"
                   min="1"
                   max="5"
                   value={assessmentForm.exposureRating}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, exposureRating: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, exposureRating: event.target.value })
+                  }
                 />
               </Field>
 
               <Field label={t("vulnerability")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="number"
                   min="1"
                   max="5"
                   value={assessmentForm.vulnerabilityRating}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, vulnerabilityRating: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, vulnerabilityRating: event.target.value })
+                  }
                 />
               </Field>
 
               <Field label={t("dependency")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   type="number"
                   min="0"
                   max="100"
                   step="0.001"
                   placeholder="VD: 45 (%)"
                   value={assessmentForm.businessDependencyPercent}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, businessDependencyPercent: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({
+                      ...assessmentForm,
+                      businessDependencyPercent: event.target.value,
+                    })
+                  }
                 />
               </Field>
 
               <Field label={t("priority")}>
                 <select
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   className={selectClass}
                   value={assessmentForm.priorityBand}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, priorityBand: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, priorityBand: event.target.value })
+                  }
                 >
                   <option value="low">{t("low")}</option>
                   <option value="medium">{t("medium")}</option>
@@ -625,20 +854,13 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               </Field>
 
               <Field label={t("sourceEvidence")}>
-                <select
-                  required
-                  disabled={demo}
-                  className={selectClass}
+                <EvidenceSelector
                   value={assessmentForm.evidenceDocumentId}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, evidenceDocumentId: event.target.value })}
-                >
-                  <option value="">{t("selectEvidence")}</option>
-                  {evidence.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.documentName}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(id) => setAssessmentForm({ ...assessmentForm, evidenceDocumentId: id })}
+                  disabled={demo || isViewer}
+                  placeholder="Chọn chứng từ khoa học từ Vault..."
+                  required
+                />
               </Field>
             </div>
 
@@ -646,67 +868,74 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("spatialMatchNotes")}>
                 <Textarea
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   rows={3}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   value={assessmentForm.spatialMatchNotes}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, spatialMatchNotes: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, spatialMatchNotes: event.target.value })
+                  }
                 />
               </Field>
               <Field label={t("uncertainty")}>
                 <Textarea
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   rows={3}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   value={assessmentForm.uncertaintyNotes}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, uncertaintyNotes: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, uncertaintyNotes: event.target.value })
+                  }
                 />
               </Field>
-              <Field label={t("rationale")}>
+              <Field label={t("ratingRationale")}>
                 <Textarea
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   rows={3}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   value={assessmentForm.ratingRationale}
-                  onChange={(event) => setAssessmentForm({ ...assessmentForm, ratingRationale: event.target.value })}
+                  onChange={(event) =>
+                    setAssessmentForm({ ...assessmentForm, ratingRationale: event.target.value })
+                  }
                 />
               </Field>
             </div>
 
-            <div className="pt-2">
-              <Button disabled={demo || saving} className="bg-teal-600 hover:bg-teal-700 text-white">
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
-                {t("saveAssessment")}
-              </Button>
-            </div>
+            <Button disabled={demo || saving || isViewer} className="bg-teal-600 hover:bg-teal-700 text-white font-medium">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
+              {t("saveAssessment")}
+            </Button>
           </form>
 
           {assessments.length > 0 && (
             <div className="mt-6 pt-6 border-t border-slate-100">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Đánh giá hiểm họa ({assessments.length})</p>
-              <div className="grid gap-3 md:grid-cols-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                Đánh giá hiểm họa ({assessments.length})
+              </p>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {assessments.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-sm hover:border-teal-300 transition-colors">
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-sm hover:border-teal-300 transition-colors"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <b className="text-slate-900 font-semibold">
-                        {item.facilityName || item.facilityRevisionId} · {item.hazardType}
-                      </b>
+                      <b className="text-slate-900 font-semibold">{item.facilityName || item.facilityRevisionId}</b>
                       <Badge
                         variant="outline"
                         className={
                           item.priorityBand === "high"
-                            ? "bg-red-50 text-red-700 border-red-200"
+                            ? "bg-red-50 text-red-700 border-red-200 font-medium"
                             : item.priorityBand === "medium"
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-amber-50 text-amber-700 border-amber-200 font-medium"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200 font-medium"
                         }
                       >
                         {item.priorityBand}
                       </Badge>
                     </div>
-                    <p className="mt-1 text-slate-600">
+                    <p className="mt-1 text-slate-600 text-xs">
                       {item.scenarioReference} · {item.horizonStart}–{item.horizonEnd} · {item.sourceKind}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
@@ -724,10 +953,78 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
         </CardContent>
       </Card>
 
+      {/* TCFD / IFRS S2 5x5 Heatmap Matrix */}
+      <Card className="shadow-xs border-slate-200/80">
+        <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
+                <Grid className="h-4 w-4 text-indigo-600" />
+                Ma trận Rủi ro TCFD / IFRS S2 (5x5 Heatmap Matrix)
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Phân bổ hiểm họa khí hậu theo Mức độ phơi nhiễm (Exposure) và Tính tổn thương (Vulnerability)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" /> Low
+              </span>
+              <span className="flex items-center gap-1 text-amber-700 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> Medium
+              </span>
+              <span className="flex items-center gap-1 text-red-700 font-medium">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> High Priority
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="max-w-2xl mx-auto space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 pb-1">
+              <span>↑ Phơi nhiễm (Exposure 5 → 1)</span>
+              <span>Tính tổn thương (Vulnerability 1 → 5) →</span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5 text-center text-xs font-mono">
+              {[5, 4, 3, 2, 1].map((exp) =>
+                [1, 2, 3, 4, 5].map((vuln) => {
+                  const key = `${exp}-${vuln}`;
+                  const count = heatmapData[key]?.length || 0;
+                  const isHigh = exp >= 4 && vuln >= 4;
+                  const isMedium = (exp >= 3 && vuln >= 2) || (exp >= 2 && vuln >= 3);
+                  const bg = isHigh
+                    ? "bg-red-100 hover:bg-red-200 border-red-300 text-red-900 font-bold"
+                    : isMedium
+                    ? "bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-900 font-semibold"
+                    : "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-900";
+
+                  return (
+                    <div
+                      key={key}
+                      className={`h-12 rounded-lg border flex flex-col items-center justify-center transition-all p-1 ${bg}`}
+                      title={`Exposure: ${exp}, Vulnerability: ${vuln} (${count} đánh giá)`}
+                    >
+                      <span className="text-[10px] text-slate-500 opacity-70">
+                        {exp}x{vuln}
+                      </span>
+                      {count > 0 ? (
+                        <span className="text-sm font-bold">{count}</span>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 3. Portfolio Form */}
-      <Card className="shadow-sm border-slate-200">
+      <Card className="shadow-xs border-slate-200/80">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <BarChart3 className="h-5 w-5 text-indigo-600" />
             {t("portfolioTitle")}
           </CardTitle>
@@ -739,7 +1036,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("portfolioReference")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   placeholder="Ví dụ: PORTFOLIO-VN-TEXTILE-2030"
                   value={portfolioReference}
                   onChange={(event) => setPortfolioReference(event.target.value)}
@@ -748,52 +1045,56 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("methodologyNotes")}>
                 <Textarea
                   required
-                  disabled={demo}
+                  disabled={demo || isViewer}
                   rows={2}
                   className="rounded-lg border-slate-200 bg-white text-sm"
-                  placeholder="Phương pháp tổng hợp danh mục..."
+                  placeholder="Mô tả phương pháp tiếp cận danh mục TCFD..."
                   value={methodologyNotes}
                   onChange={(event) => setMethodologyNotes(event.target.value)}
                 />
               </Field>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Chọn hiểm họa đưa vào Portfolio ({selectedIds.length} đã chọn)
-              </p>
-              <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/30 p-3">
+            <div className="space-y-2">
+              <span className="font-medium text-xs uppercase tracking-wide text-slate-500 block">
+                {t("selectAssessments")} (Chọn tối thiểu 2 đánh giá)
+              </span>
+              <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 text-sm">
                 {assessments.map((item) => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5 text-sm hover:bg-slate-50 cursor-pointer"
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white p-2.5 hover:bg-slate-50 transition-colors"
                   >
                     <input
-                      disabled={demo}
                       type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      disabled={demo || isViewer}
                       checked={selectedIds.includes(item.id)}
                       onChange={(event) =>
                         setSelectedIds((current) =>
-                          event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id)
+                          event.target.checked
+                            ? [...current, item.id]
+                            : current.filter((id) => id !== item.id)
                         )
                       }
+                      className="rounded text-indigo-600 focus:ring-indigo-500"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium text-slate-900">{item.facilityName || item.facilityRevisionId}</span>
+                      <span className="font-semibold text-slate-900">{item.facilityName || item.facilityRevisionId}</span>
                       <span className="text-slate-500 text-xs ml-2">
                         · {item.hazardType} · {item.scenarioReference} · Phụ thuộc: {item.businessDependencyPercent}%
                       </span>
                     </div>
-                    <Badge variant="outline" className="text-xs">{item.priorityBand}</Badge>
+                    <Badge variant="outline" className="text-xs font-semibold">
+                      {item.priorityBand}
+                    </Badge>
                   </label>
                 ))}
               </div>
             </div>
 
             <Button
-              disabled={demo || saving || selectedIds.length < 2}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={demo || saving || isViewer || selectedIds.length < 2}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
             >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
               {t("createPortfolio")}
@@ -802,35 +1103,72 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
           {portfolios.length > 0 && (
             <div className="mt-6 pt-6 border-t border-slate-100">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Danh mục rủi ro ({portfolios.length})</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                Danh mục rủi ro ({portfolios.length})
+              </p>
               <div className="grid gap-4 md:grid-cols-2">
                 {portfolios.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-sm hover:border-indigo-300 transition-colors">
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 text-sm hover:border-indigo-300 transition-colors space-y-3"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <b className="text-slate-900 font-semibold">{item.portfolioReference}</b>
-                      <Badge variant="outline" className="bg-white">{item.prioritySummary.reviewStatus}</Badge>
+                      <b className="text-slate-900 font-bold">{item.portfolioReference}</b>
+                      <Badge variant="outline" className="bg-white font-semibold">
+                        {item.prioritySummary.reviewStatus}
+                      </Badge>
                     </div>
-                    <p className="mt-1 text-slate-600">
+                    <p className="text-slate-600 text-xs">
                       {item.scenarioReference} · {item.facilityCount} {t("facilityCount")}
                     </p>
-                    <div className="mt-2 flex items-center gap-3 text-xs">
-                      <span className="text-red-700 font-medium">{t("high")}: {item.prioritySummary.dependencyPercentByPriority.high}%</span>
-                      <span className="text-amber-700 font-medium">{t("medium")}: {item.prioritySummary.dependencyPercentByPriority.medium}%</span>
-                      <span className="text-emerald-700 font-medium">{t("low")}: {item.prioritySummary.dependencyPercentByPriority.low}%</span>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-red-700 font-medium">
+                        {t("high")}: {item.prioritySummary.dependencyPercentByPriority.high}%
+                      </span>
+                      <span className="text-amber-700 font-medium">
+                        {t("medium")}: {item.prioritySummary.dependencyPercentByPriority.medium}%
+                      </span>
+                      <span className="text-emerald-700 font-medium">
+                        {t("low")}: {item.prioritySummary.dependencyPercentByPriority.low}%
+                      </span>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="text-xs text-slate-500">
                       {t("incompleteCoverage")}: {item.prioritySummary.incompleteHazardCoverageFacilities}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="mt-3 bg-white hover:bg-slate-100"
-                      onClick={() => void inspectPortfolio(item.id)}
-                    >
-                      <ChevronRight className="mr-1 h-3.5 w-3.5" />
-                      {t("inspectPortfolio")}
-                    </Button>
+
+                    {/* Actions & Export Buttons */}
+                    <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-slate-200/60">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 bg-white hover:bg-slate-100 text-xs text-slate-700"
+                        onClick={() => void inspectPortfolio(item.id)}
+                      >
+                        <ChevronRight className="mr-1 h-3.5 w-3.5" />
+                        {t("inspectPortfolio")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-sky-300 text-sky-700 hover:bg-sky-50 text-xs"
+                        onClick={() => void handleDownloadPortfolio(item, "csv")}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" />
+                        Tải Báo cáo (CSV)
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-slate-300 text-slate-700 hover:bg-slate-100 text-xs"
+                        onClick={() => void handleDownloadPortfolio(item, "json")}
+                      >
+                        <FileText className="mr-1 h-3.5 w-3.5" />
+                        Audit JSON
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -838,19 +1176,41 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
           )}
 
           {portfolioDetail && (
-            <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50/40 p-5">
-              <h3 className="font-semibold text-indigo-950 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-indigo-700" />
-                {portfolioDetail.portfolioReference} · {t("portfolioMembers")}
-              </h3>
-              <div className="mt-3 space-y-2">
+            <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-indigo-950 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-indigo-700" />
+                  {portfolioDetail.portfolioReference} · {t("portfolioMembers")}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs bg-white text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+                    onClick={() => downloadPortfolioCsv(portfolioDetail, portfolioDetail.assessments)}
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    Xuất CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs bg-white text-slate-700 hover:bg-slate-100 border-slate-200"
+                    onClick={() => downloadPortfolioAuditJson(portfolioDetail, portfolioDetail.assessments)}
+                  >
+                    <FileText className="w-3 h-3 mr-1" />
+                    Audit JSON
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
                 {portfolioDetail.assessments.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-3.5 text-sm shadow-2xs">
+                  <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3.5 text-sm shadow-2xs">
                     <div className="flex items-center justify-between">
-                      <b className="text-slate-900 font-medium">
+                      <b className="text-slate-900 font-semibold">
                         {item.facilityName || item.facilityRevisionId} · {item.hazardType}
                       </b>
-                      <Badge variant="outline">{item.priorityBand}</Badge>
+                      <Badge variant="outline" className="font-semibold">{item.priorityBand}</Badge>
                     </div>
                     <p className="mt-1 text-slate-600 text-xs">
                       {item.hazardMetric}: {item.metricValue} {item.metricUnit} · Tỷ lệ phụ thuộc doanh nghiệp: {item.businessDependencyPercent}%
