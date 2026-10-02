@@ -2,6 +2,7 @@
 
 import type { DemoDataset } from "@/lib/demo/schema";
 import {
+  getDemoProducts,
   getEmissionBreakdown,
   getMarketReadiness,
   getOverviewRecommendations,
@@ -230,6 +231,28 @@ export const getDemoOverviewPayload = (dataset: DemoDataset) => {
     })),
     marketReadiness: getMarketReadiness(dataset),
     recommendations: getOverviewRecommendations(dataset),
+    productEmissions: getDemoProducts(dataset)
+      .map((p) => {
+        const per = p.carbonResults?.perProduct;
+        const materials = toNumber(per?.materials, 0);
+        const production = toNumber(per?.production, 0);
+        const transport = toNumber(per?.transport, 0);
+        const packaging = toNumber(per?.packaging, 0);
+        const total = toNumber(per?.total, materials + production + transport + packaging);
+        return {
+          id: p.id,
+          name: p.productName || p.productCode || "Untitled product",
+          sku: p.productCode || p.id,
+          materials: round(materials, 2),
+          production: round(production, 2),
+          transport: round(transport, 2),
+          packaging: round(packaging, 2),
+          total: round(total, 2),
+        };
+      })
+      .filter((item) => item.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 12),
   };
 };
 

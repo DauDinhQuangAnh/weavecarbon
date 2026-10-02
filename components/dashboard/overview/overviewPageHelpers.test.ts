@@ -50,3 +50,22 @@ describe("getImpactColor", () => {
     expect(getImpactColor("low")).toContain("sky");
   });
 });
+
+describe("getDemoOverviewPayload productEmissions", () => {
+  it("includes productEmissions correctly mapped from dataset products", async () => {
+    const { getDemoOverviewPayload } = await import("@/lib/demo/domain/overview");
+    const demoSeed = (await import("@/lib/demo/seed/demo-b2b-standard20.json")).default;
+    const payload = getDemoOverviewPayload(demoSeed as unknown as import("@/lib/demo/schema").DemoDataset);
+
+    expect(Array.isArray(payload.productEmissions)).toBe(true);
+    expect(payload.productEmissions.length).toBeGreaterThan(0);
+    const first = payload.productEmissions[0];
+    expect(first).toHaveProperty("name");
+    expect(first).toHaveProperty("sku");
+    expect(first).toHaveProperty("materials");
+    expect(first).toHaveProperty("production");
+    expect(first).toHaveProperty("transport");
+    expect(first).toHaveProperty("packaging");
+    expect(first.total).toBeGreaterThan(0);
+  });
+});
