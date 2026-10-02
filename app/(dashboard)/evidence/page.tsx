@@ -366,11 +366,12 @@ export default function EvidencePage() {
         if (data.period_end) {
           setPeriodEnd(data.period_end);
         }
-        if (data.billing_period) {
+        const effectiveBillingPeriod = data.billing_period || (data.period_start ? data.period_start.slice(0, 7) : '');
+        if (effectiveBillingPeriod) {
           if (data.detected_kind === 'electricity_bill') {
-            setElecBillingPeriod(data.billing_period);
+            setElecBillingPeriod(effectiveBillingPeriod);
           } else if (data.detected_kind === 'fuel_receipt') {
-            setFuelBillingPeriod(data.billing_period);
+            setFuelBillingPeriod(effectiveBillingPeriod);
           }
         }
         if (data.detected_kind === 'electricity_bill') {
