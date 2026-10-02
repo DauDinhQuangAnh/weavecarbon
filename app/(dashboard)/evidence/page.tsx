@@ -506,17 +506,7 @@ export default function EvidencePage() {
   const handleDownloadDoc = async (doc: EvDoc) => {
     try {
       setDownloadingId(doc.id);
-      const token = authTokenStore.getAccessToken();
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      const res = await fetch(`/api/evidence/${doc.id}/download`, { headers });
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => null);
-        throw new Error(errJson?.error?.message || 'Không thể tải file gốc');
-      }
-      const blob = await res.blob();
+      const blob = await api.get<Blob>(`/evidence/${doc.id}/download`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

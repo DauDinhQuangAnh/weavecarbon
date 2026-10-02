@@ -20,7 +20,7 @@ import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
 import { isApiError } from "@/lib/apiClient";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
 import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
-import { mitigationOperationsApi, type AllowanceAllocation, type AllowancePosition, type MitigationInitiative, type MitigationScenario } from "@/lib/mitigationOperationsApi";
+import { mitigationOperationsApi, type AllowanceAllocation, type AllowancePosition, type MitigationInitiative, type MitigationScenario, type InitiativeLifecycleStatus } from "@/lib/mitigationOperationsApi";
 const ids = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const select = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 
@@ -502,7 +502,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
               <select
                 className={select}
                 value={targetStatus}
-                onChange={(e) => setTargetStatus(e.target.value as any)}
+                onChange={(e) => setTargetStatus(e.target.value as InitiativeLifecycleStatus)}
                 disabled={transitioning}
               >
                 <option value="proposed">Đề xuất (proposed)</option>

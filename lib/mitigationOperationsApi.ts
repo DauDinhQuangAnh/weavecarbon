@@ -5,8 +5,10 @@ export interface MitigationScenario { id:string;initiativeId:string;initiativeRe
 export interface AllowanceAllocation { id:string;facilityRevisionId:string;facilityName?:string;allocationReference:string;revision:number;reportingYear:number;instrumentType:string;recordStatus:string;quantityTco2e:number;allocationSha256:string; }
 export interface AllowancePosition { id:string;facilityRevisionId:string;corporateInventoryId:string;reportingYear:number;grossEmissionsTco2e:number;authorityQuotaTco2e:number;internalBudgetTco2e:number;creditReferenceTco2e:number;plannedReductionTco2e:number;projectedPositionTco2e:number;readinessStatus:string;blockers:string[];payloadSha256:string;disclaimer:string; }
 
+export type InitiativeLifecycleStatus = "proposed" | "approved_internal" | "in_progress" | "completed" | "cancelled";
+
 export interface TransitionLifecycleInput {
-  lifecycleStatus: "proposed" | "approved_internal" | "in_progress" | "completed" | "cancelled";
+  lifecycleStatus: InitiativeLifecycleStatus;
   reason?: string;
   notes?: string;
 }

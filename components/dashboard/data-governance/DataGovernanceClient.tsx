@@ -485,7 +485,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
               <select
                 className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 value={reviewDecision}
-                onChange={(e) => setReviewDecision(e.target.value as any)}
+                onChange={(e) => setReviewDecision(e.target.value as 'approved_for_release_candidate' | 'needs_information' | 'rejected')}
                 disabled={submittingReview}
               >
                 <option value="approved_for_release_candidate">Phê duyệt (Release Candidate)</option>

@@ -240,7 +240,8 @@ export default function CarbonCalculator() {
 
     try {
       const res = await api.post<{ success?: boolean; data?: { id?: string } }>('/carbon-calculations', payload);
-      const savedId = res?.data?.id || (res as any)?.id || 'calc-saved';
+      const resFallback = res as unknown as { id?: string } | undefined;
+      const savedId = res?.data?.id || resFallback?.id || 'calc-saved';
       setSnapshotSavedId(savedId);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Không thể lưu snapshot vào hệ thống.');

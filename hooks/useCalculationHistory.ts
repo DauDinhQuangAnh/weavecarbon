@@ -84,15 +84,15 @@ export const useCalculationHistory = () => {
 
   const fetchBackendCalculations = useCallback(async () => {
     try {
-      const response = await api.get<{ data?: any[] }>("/carbon-calculations");
-      const items = Array.isArray(response?.data) ?
-      response.data :
-      Array.isArray(response) ?
-      response :
-      [];
+      const response = await api.get<{ data?: Record<string, unknown>[] }>("/carbon-calculations");
+      const items: Record<string, unknown>[] = Array.isArray(response?.data) ?
+        response.data :
+        Array.isArray(response) ?
+        (response as Record<string, unknown>[]) :
+        [];
 
       if (items.length > 0) {
-        const mapped: CalculationHistoryItem[] = items.map((row: any, idx: number) => ({
+        const mapped: CalculationHistoryItem[] = items.map((row, idx) => ({
           id: String(row.id || `calc-be-${idx}`),
           productId: String(row.productId || row.product_id || ""),
           productName: String(

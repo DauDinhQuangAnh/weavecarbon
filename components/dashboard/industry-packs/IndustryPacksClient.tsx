@@ -75,22 +75,22 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
       [],
       ["--- ACTIVITY LINES BREAKDOWN ---"],
       ["Category", "Source Reference", "Quantity", "Unit", "CO2e (t)", "Factor Label", "Evidence Document IDs"],
-      ...(pilot.result.lines || []).map((l: any) => [
-        l.category || "",
-        l.sourceReference || "",
+      ...((pilot.result.lines || []) as Record<string, unknown>[]).map((l) => [
+        String(l.category || ""),
+        String(l.sourceReference || ""),
         String(l.activityQuantity || 0),
-        l.activityUnit || "",
+        String(l.activityUnit || ""),
         String(l.calculatedTco2e || 0),
-        l.factorLabel || "",
-        Array.isArray(l.evidenceDocumentIds) ? l.evidenceDocumentIds.join(";") : ""
+        String(l.factorLabel || ""),
+        Array.isArray(l.evidenceDocumentIds) ? (l.evidenceDocumentIds as unknown[]).join(";") : ""
       ]),
       [],
       ["--- AUDIT FINDINGS & BENCHMARKS ---"],
       ["Finding Code", "Severity", "Message"],
-      ...(pilot.result.findings || []).map((f: any) => [
-        f.code || "",
-        f.severity || "info",
-        `"${(f.message || "").replace(/"/g, '""')}"`
+      ...((pilot.result.findings || []) as Record<string, unknown>[]).map((f) => [
+        String(f.code || ""),
+        String(f.severity || "info"),
+        `"${String(f.message || "").replace(/"/g, '""')}"`
       ])
     ];
 
