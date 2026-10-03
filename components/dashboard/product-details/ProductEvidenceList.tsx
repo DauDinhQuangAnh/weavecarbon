@@ -8,8 +8,12 @@ import { apiRequest } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { shortHash } from '@/lib/documentHash';
 
+import type { EvidenceDocument } from '@/hooks/useEvidenceUpload';
+
 interface Props {
   productId: string;
+  evidenceLookupCode?: string;
+  initialDocument?: EvidenceDocument | null;
 }
 
 interface EvidenceRow {
@@ -58,11 +62,11 @@ const normalizeEvidenceRow = (value: unknown): EvidenceRow | null => {
     value.file_name ?? value.fileName ?? value.documentName ?? value.document_name,
     'Evidence document'
   );
-  const checksum = asString(value.checksumSha256 ?? value.checksum_sha256);
+  const checksum = asString(value.checksumSha256 ?? value.checksum_sha256 ?? value.storage_path ?? value.storagePath);
 
   return {
     id,
-    kind: asString(value.kind, 'other'),
+    kind: asString(value.kind ?? value.evidence_type ?? value.evidenceType, 'other'),
     status: asString(value.status, 'pending'),
     file_name: fileName,
     storage_path: asString(value.storage_path ?? value.storagePath, checksum),
@@ -98,10 +102,20 @@ const STATUS_STYLE: Record<string, string> = {
   rejected: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
-const ProductEvidenceList: React.FC<Props> = ({ productId }) => {
+const ProductEvidenceList: React.FC<Props> = ({
+  productId,
+  evidenceLookupCode,
+  initialDocument,
+}) => {
   const { user } = useAuth();
   const companyId = user?.company_id ?? null;
-  const [rows, setRows] = useState<EvidenceRow[]>([]);
+  const [rows, setRows] = useState<EvidenceRow[]>(() => {
+    if (initialDocument) {
+      const row = normalizeEvidenceRow(initialDocument);
+      return row ? [row] : [];
+    }
+    return [];
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -110,20 +124,79 @@ const ProductEvidenceList: React.FC<Props> = ({ productId }) => {
       return;
     }
     let cancelled = false;
-    apiRequest<unknown>(`/evidence?productId=${productId}`)
-      .then((data) => {
-        if (!cancelled) setRows(normalizeEvidenceRows(data));
-      })
-      .catch(() => {
-        /* fail silently — empty list is fine */
-      })
-      .finally(() => {
+
+    const loadEvidence = async () => {
+      try {
+        const data = await apiRequest<unknown>(`/evidence?productId=${productId}`);
+        const normalized = normalizeEvidenceRows(data);
+        if (!cancelled && normalized.length > 0) {
+          setRows(normalized);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback 1: Query by lookupCode if present
+        if (evidenceLookupCode) {
+          try {
+            const fallbackData = await apiRequest<unknown>(
+              `/evidence?lookup_code=${encodeURIComponent(evidenceLookupCode)}`
+            );
+            const fallbackRows = normalizeEvidenceRows(fallbackData);
+            if (!cancelled && fallbackRows.length > 0) {
+              setRows(fallbackRows);
+              setLoading(false);
+              // Auto-heal relationship in database
+              apiRequest('/evidence', {
+                method: 'POST',
+                body: JSON.stringify({
+                  action: 'link',
+                  evidenceId: fallbackRows[0].id,
+                  productId,
+                }),
+              }).catch(() => {});
+              return;
+            }
+          } catch {
+            // Ignore fallback lookup errors
+          }
+        }
+
+        // Fallback 2: Use in-memory initialDocument
+        if (initialDocument) {
+          const directRow = normalizeEvidenceRow(initialDocument);
+          if (directRow && !cancelled) {
+            setRows([directRow]);
+            setLoading(false);
+            if (directRow.id) {
+              apiRequest('/evidence', {
+                method: 'POST',
+                body: JSON.stringify({
+                  action: 'link',
+                  evidenceId: directRow.id,
+                  productId,
+                }),
+              }).catch(() => {});
+            }
+            return;
+          }
+        }
+
+        if (!cancelled) setRows([]);
+      } catch {
+        if (initialDocument && !cancelled) {
+          const directRow = normalizeEvidenceRow(initialDocument);
+          if (directRow) setRows([directRow]);
+        }
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    loadEvidence();
     return () => {
       cancelled = true;
     };
-  }, [companyId, productId]);
+  }, [companyId, productId, evidenceLookupCode, initialDocument]);
 
   return (
     <Card>
@@ -185,6 +258,35 @@ const ProductEvidenceList: React.FC<Props> = ({ productId }) => {
                         <span>OCR {Math.round(r.ocr_confidence * 100)}%</span>
                       )}
                     </div>
+                    {r.extracted && Object.keys(r.extracted).length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        {Boolean(r.extracted.supplier || r.extracted.supplier_name) && (
+                          <span className="rounded bg-muted/80 px-1.5 py-0.5 font-medium text-foreground">
+                            {String(r.extracted.supplier || r.extracted.supplier_name)}
+                          </span>
+                        )}
+                        {Boolean(r.extracted.billing_period || r.extracted.period_start) && (
+                          <span className="rounded bg-muted/60 px-1.5 py-0.5 text-muted-foreground">
+                            Kỳ: {String(r.extracted.billing_period || r.extracted.period_start)}
+                          </span>
+                        )}
+                        {typeof (r.extracted.kwh_total ?? r.extracted.kwh) === 'number' && (
+                          <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-700">
+                            {Number(r.extracted.kwh_total ?? r.extracted.kwh).toLocaleString('vi-VN')} kWh
+                          </span>
+                        )}
+                        {typeof (r.extracted.fuel_liters) === 'number' && (
+                          <span className="rounded bg-amber-500/10 px-1.5 py-0.5 font-semibold text-amber-700">
+                            {Number(r.extracted.fuel_liters).toLocaleString('vi-VN')} L
+                          </span>
+                        )}
+                        {typeof (r.extracted.amount_vnd ?? r.extracted.total_amount) === 'number' && (
+                          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 font-semibold text-blue-700">
+                            {Number(r.extracted.amount_vnd ?? r.extracted.total_amount).toLocaleString('vi-VN')} ₫
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </li>
               );

@@ -1929,7 +1929,11 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
           </Card>
 
 
-          <ProductEvidenceList productId={product.id} />
+          <ProductEvidenceList
+            productId={product.id}
+            evidenceLookupCode={product.evidenceLookupCode}
+            initialDocument={product.evidenceDocument}
+          />
 
           <EndOfLifeAssessment product={product} />
 

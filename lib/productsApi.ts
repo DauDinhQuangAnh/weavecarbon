@@ -12,7 +12,8 @@ import type {
   MaterialInput,
   ProductAssessmentData,
   ProductCategory,
-  TransportLeg } from
+  TransportLeg,
+  EvidenceDocument } from
 "@/components/dashboard/assessment/steps/types";
 
 export type ProductStatus = "draft" | "published";
@@ -1751,6 +1752,7 @@ export const normalizeProductFromUnknown = (value: unknown): ProductRecord | nul
       source.hs_code
     ),
     facility: asString(payload.facility ?? source.facility),
+    evidenceDocument: (payload.evidenceDocument ?? payload.evidence_document ?? source.evidenceDocument ?? source.evidence_document) as EvidenceDocument | undefined,
     evidenceLookupCode: asString(
       payload.evidenceLookupCode ??
       payload.evidence_lookup_code ??
