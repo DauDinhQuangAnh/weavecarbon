@@ -105,51 +105,50 @@ const ProductOverviewHeader: React.FC<ProductOverviewHeaderProps> = ({
   return (
     <div className="mb-4 sm:mb-6">
       <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 sm:h-12 sm:w-12">
-                <Package className="h-5 w-5 text-slate-700 sm:h-6 sm:w-6" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="break-words text-base font-bold text-slate-900 sm:text-lg">
-                  {product.productName}
-                </h1>
-                <p className="break-all text-xs text-slate-600 sm:text-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 sm:h-12 sm:w-12">
+              <Package className="h-5 w-5 text-slate-700 sm:h-6 sm:w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="break-words text-base font-bold text-slate-900 sm:text-lg">
+                {product.productName}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 sm:text-sm">
+                <span className="font-medium text-slate-500">
                   {tProductDetail("header.skuLabel")}: {product.productCode}
-                </p>
+                </span>
+                <span className="text-slate-300">•</span>
+                <div className="inline-flex items-center gap-1.5 text-slate-700">
+                  <Package className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{toDisplayText(product.category, productTypeLabels)}</span>
+                </div>
+                <span className="text-slate-300">•</span>
+                <div className="inline-flex items-center gap-1.5 text-slate-700">
+                  <Globe className="h-3.5 w-3.5 text-slate-400" />
+                  <span>{toDisplayText(product.destinationMarket, marketLabels)}</span>
+                </div>
+                <span className="text-slate-300">•</span>
+                <div className="inline-flex items-center gap-1.5 text-slate-700">
+                  <Scale className="h-3.5 w-3.5 text-slate-400" />
+                  <span>
+                    {`${(product.weight || "").trim()} ${(product.unit || "").trim()}`.trim() ||
+                      tSummary("na")}
+                  </span>
+                </div>
               </div>
             </div>
-
-            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-              <Badge className={`${PRODUCT_STATUS_CLASS[productStatus]} whitespace-nowrap font-medium`}>
-                {productStatusLabelMap[productStatus]}
-              </Badge>
-
-              <Badge className={`${CARBON_STATUS_CLASS[carbonStatus]} whitespace-nowrap font-medium`}>
-                {carbonStatusLabel}
-              </Badge>
-            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:text-sm">
-              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span>{toDisplayText(product.category, productTypeLabels)}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:text-sm">
-              <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>{toDisplayText(product.destinationMarket, marketLabels)}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:text-sm">
-              <Scale className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>
-                {`${(product.weight || "").trim()} ${(product.unit || "").trim()}`.trim() ||
-                  tSummary("na")}
-              </span>
-            </div>
-          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
+            <Badge className={`${PRODUCT_STATUS_CLASS[productStatus]} whitespace-nowrap font-medium text-xs`}>
+              {productStatusLabelMap[productStatus]}
+            </Badge>
 
+            <Badge className={`${CARBON_STATUS_CLASS[carbonStatus]} whitespace-nowrap font-medium text-xs`}>
+              {carbonStatusLabel}
+            </Badge>
+          </div>
         </div>
       </div>
     </div>
