@@ -303,9 +303,16 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         const payload = getBodyObject(body);
         return {
           handled: true,
-          value: await mutateDemoResult((dataset) =>
-            createDemoProduct(dataset, payload as never)
-          ),
+          value: await mutateDemoResult((dataset) => {
+            const result = createDemoProduct(dataset, payload as never);
+            const lookupCode = (payload.evidenceLookupCode || payload.evidence_lookup_code) as string | undefined;
+            if (lookupCode && Array.isArray(dataset.uiState.uploadedEvidence)) {
+              dataset.uiState.uploadedEvidence = (dataset.uiState.uploadedEvidence as Record<string, unknown>[]).map((d) =>
+                d.id === lookupCode ? { ...d, productId: result.id } : d
+              );
+            }
+            return result;
+          }),
         };
       }
 
@@ -359,11 +366,19 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       if (method === "PUT" && /^\/products\/[^/]+$/.test(pathname)) {
         const match = ensurePathMatches(pathname.match(/^\/products\/([^/]+)$/), pathname);
         const productId = decodeURIComponent(match[1]);
+        const payload = getBodyObject(body);
         return {
           handled: true,
-          value: await mutateDemoResult((dataset) =>
-            updateDemoProduct(dataset, productId, body as never)
-          ),
+          value: await mutateDemoResult((dataset) => {
+            const result = updateDemoProduct(dataset, productId, payload as never);
+            const lookupCode = (payload.evidenceLookupCode || payload.evidence_lookup_code) as string | undefined;
+            if (lookupCode && Array.isArray(dataset.uiState.uploadedEvidence)) {
+              dataset.uiState.uploadedEvidence = (dataset.uiState.uploadedEvidence as Record<string, unknown>[]).map((d) =>
+                d.id === lookupCode ? { ...d, productId: result.id } : d
+              );
+            }
+            return result;
+          }),
         };
       }
 
@@ -848,8 +863,11 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
             ? (dataset.uiState.deletedEvidenceIds as string[])
             : []
         );
-        const allDocuments = getDemoEvidenceDocuments(dataset).filter(
-          (d) => !deletedIds.has(d.id)
+        const uploaded = Array.isArray(dataset.uiState.uploadedEvidence)
+          ? (dataset.uiState.uploadedEvidence as Record<string, unknown>[])
+          : [];
+        const allDocuments = [...uploaded, ...getDemoEvidenceDocuments(dataset)].filter(
+          (d) => !deletedIds.has(String(d.id))
         );
         const page = searchParams.get("page") ? Number(searchParams.get("page")) : 1;
         const pageSize = searchParams.get("page_size") ? Number(searchParams.get("page_size")) : allDocuments.length;
@@ -976,11 +994,14 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       if (method === "POST" && pathname === "/evidence/upload") {
         let kind = "electricity_bill";
         let fileName = "demo-upload.pdf";
+        let productIdVal: string | undefined;
         if (typeof FormData !== "undefined" && body instanceof FormData) {
           const kindVal = body.get("kind");
           if (typeof kindVal === "string" && kindVal) kind = kindVal;
           const fileVal = body.get("file");
           if (typeof File !== "undefined" && fileVal instanceof File) fileName = fileVal.name;
+          const pVal = body.get("productId");
+          if (typeof pVal === "string" && pVal) productIdVal = pVal;
         }
 
         const isFuel = kind === "fuel_receipt" || /xang|dau|diesel|petrol/i.test(fileName);
@@ -1029,24 +1050,36 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
               emission_factor: 0.6592
             };
 
+        const newDoc = {
+          id: `ev-demo-${Date.now()}`,
+          kind,
+          documentName: fileName,
+          fileName: fileName,
+          file_name: fileName,
+          productId: productIdVal,
+          status: "extracted",
+          verificationLevel: 2,
+          trustScore: 92,
+          checksumSha256: `sha256-${Date.now().toString(16)}`,
+          warnings: [] as string[],
+          extractedJson,
+          extracted: extractedJson,
+          ocr_confidence: 0.94,
+          createdAt: new Date().toISOString()
+        };
+
         return {
           handled: true,
-          value: {
-            id: `ev-demo-${Date.now()}`,
-            kind,
-            documentName: fileName,
-            fileName: fileName,
-            file_name: fileName,
-            status: "extracted",
-            verificationLevel: 2,
-            trustScore: 92,
-            checksumSha256: "pending-demo-upload-hash",
-            warnings: [],
-            extractedJson,
-            extracted: extractedJson,
-            ocr_confidence: 0.94,
-            createdAt: new Date().toISOString()
-          }
+          value: await mutateDemoResult((dataset) => {
+            const current = Array.isArray(dataset.uiState.uploadedEvidence)
+              ? (dataset.uiState.uploadedEvidence as Record<string, unknown>[])
+              : [];
+            dataset.uiState = {
+              ...dataset.uiState,
+              uploadedEvidence: [newDoc, ...current]
+            };
+            return newDoc;
+          }),
         };
       }
 
@@ -1062,9 +1095,27 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
 
       if (method === "GET" && /^\/evidence\/[^/]+\/fields$/.test(pathname)) {
         const match = ensurePathMatches(pathname.match(/^\/evidence\/([^/]+)\/fields$/), pathname);
+        const evidenceId = decodeURIComponent(match[1]);
+        const dataset = getDemoDataset();
+        const uploaded = Array.isArray(dataset.uiState.uploadedEvidence)
+          ? (dataset.uiState.uploadedEvidence as Record<string, unknown>[])
+          : [];
+        const customDoc = uploaded.find((d) => d.id === evidenceId);
+        if (customDoc) {
+          const ext = (customDoc.extractedJson || customDoc.extracted || {}) as Record<string, unknown>;
+          const fields = Object.entries(ext).map(([fieldKey, value], index) => ({
+            id: `${customDoc.id}-field-${index + 1}`,
+            field_key: fieldKey,
+            label: fieldKey,
+            ai_value: String(value ?? ""),
+            confirmed_value: String(value ?? ""),
+            confidence: 0.94 - index * 0.01,
+          }));
+          return { handled: true, value: fields };
+        }
         return {
           handled: true,
-          value: getDemoEvidenceFields(getDemoDataset(), decodeURIComponent(match[1])),
+          value: getDemoEvidenceFields(dataset, evidenceId),
         };
       }
 

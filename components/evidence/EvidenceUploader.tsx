@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,9 @@ import {
   CheckCircle2,
   Sparkles,
   FileText,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
 } from 'lucide-react';
 import {
   useEvidenceUpload,
@@ -36,6 +39,31 @@ const KIND_LABELS: Record<EvidenceKind, string> = {
   transport_bol: 'Vận đơn',
   erp_export: 'Xuất ERP',
   other: 'Khác',
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  supplier: 'Nhà cung cấp',
+  supplier_name: 'Nhà cung cấp / Phát hành',
+  facility: 'Cơ sở / Nhà máy',
+  facility_name: 'Cơ sở / Nhà máy',
+  customer_code: 'Mã khách hàng',
+  meter_number: 'Số công tơ',
+  billing_period: 'Kỳ hóa đơn',
+  period_start: 'Ngày bắt đầu kỳ',
+  period_end: 'Ngày kết thúc kỳ',
+  kwh: 'Sản lượng điện (kWh)',
+  kwh_total: 'Sản lượng điện (kWh)',
+  fuel_type: 'Loại nhiên liệu',
+  fuel_liters: 'Số lượng nhiên liệu (Lít)',
+  amount_vnd: 'Tổng thanh toán (VNĐ)',
+  total_amount: 'Tổng thanh toán (VNĐ)',
+  currency: 'Đơn vị tiền tệ',
+  emission_factor: 'Hệ số phát thải (kg CO₂e/đơn vị)',
+  emission_factor_source: 'Nguồn hệ số phát thải',
+  confidence: 'Độ tin cậy OCR',
+  detected_kind: 'Loại chứng từ nhận diện',
+  document_title: 'Tiêu đề tài liệu',
+  summary: 'Tóm tắt phân tích',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -95,8 +123,59 @@ const EvidenceUploader: React.FC<Props> = ({
 
   const handleReview = () => {
     if (!latest) return;
-    router.push(`/evidence?highlight=${encodeURIComponent(latest.id)}`);
+    const url = `/evidence?highlight=${encodeURIComponent(latest.id)}`;
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank");
+    } else {
+      router.push(url);
+    }
   };
+
+  const [showAllFields, setShowAllFields] = useState(false);
+
+  const allFields = useMemo(() => {
+    if (!latest) return [];
+    const map: Record<string, unknown> = {};
+
+    if (latest.aiAnalysis) {
+      Object.entries(latest.aiAnalysis).forEach(([k, v]) => {
+        if (v != null && v !== "" && k !== "success" && k !== "source") {
+          map[k] = v;
+        }
+      });
+    }
+
+    const raw = (latest.extracted || (latest as unknown as Record<string, unknown>).extractedJson) as Record<string, unknown> | undefined;
+    if (raw && typeof raw === "object") {
+      Object.entries(raw).forEach(([k, v]) => {
+        if (v != null && v !== "") {
+          map[k] = v;
+        }
+      });
+    }
+
+    return Object.entries(map).map(([key, val]) => {
+      let formatted = String(val);
+      if (typeof val === "number") {
+        if (key.includes("amount") || key.includes("vnd")) {
+          formatted = `${val.toLocaleString("vi-VN")} ₫`;
+        } else if (key.includes("kwh")) {
+          formatted = `${val.toLocaleString("vi-VN")} kWh`;
+        } else if (key.includes("liters")) {
+          formatted = `${val.toLocaleString("vi-VN")} lít`;
+        } else if (key === "confidence") {
+          formatted = `${Math.round(val > 1 ? val : val * 100)}%`;
+        } else {
+          formatted = val.toLocaleString("vi-VN");
+        }
+      }
+      return {
+        key,
+        label: FIELD_LABELS[key] || key.replace(/_/g, " "),
+        val: formatted,
+      };
+    });
+  }, [latest]);
 
   const isBusy = uploading || processing || analyzing;
   const displayName = latest?.file_name || latest?.fileName || latest?.documentName || 'Chứng từ đã tải';
@@ -214,10 +293,13 @@ const EvidenceUploader: React.FC<Props> = ({
         {/* Extracted result */}
         {latest && (
           <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2 border-b pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
               <div className="flex items-center gap-2 min-w-0">
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+                <Badge variant="outline" className="text-[10px] font-mono text-slate-600 bg-slate-50 shrink-0">
+                  Mã: {latest.id}
+                </Badge>
               </div>
               <StatusBadge status={latest.status} />
             </div>
@@ -277,6 +359,46 @@ const EvidenceUploader: React.FC<Props> = ({
                     }
                   />
                 )}
+                {kwhTotal == null && kind === 'electricity_bill' && (
+                  <div className="col-span-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 rounded-md p-2 flex items-start gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Ghi chú:</strong> Ảnh chụp chưa phát hiện rõ chỉ số kWh — hệ thống đã nhận diện nhà cung cấp &amp; cơ sở. Bạn có thể kiểm tra danh sách trường bên dưới hoặc điền trực tiếp kWh.
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Chi tiết tất cả các trường bóc tách */}
+            {allFields.length > 0 && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAllFields(!showAllFields)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-sky-700 hover:text-sky-900 hover:underline"
+                >
+                  {showAllFields ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {showAllFields ? 'Thu gọn chi tiết dữ liệu bóc tách' : `Xem chi tiết tất cả thông tin AI bóc tách (${allFields.length} trường)`}
+                </button>
+
+                {showAllFields && (
+                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs space-y-1.5 animate-in fade-in-50 duration-200">
+                    <p className="font-semibold text-slate-800 pb-1 border-b text-[11px] uppercase tracking-wide">
+                      Bảng dữ liệu AI bóc tách ({displayName})
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 max-h-60 overflow-y-auto pr-1">
+                      {allFields.map((f) => (
+                        <div key={f.key} className="flex justify-between items-center py-1 border-b border-slate-100 text-[11px]">
+                          <span className="text-slate-600 font-medium">{f.label}:</span>
+                          <span className="text-slate-900 font-mono font-semibold text-right truncate ml-2 max-w-[55%]">
+                            {f.val}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -291,6 +413,17 @@ const EvidenceUploader: React.FC<Props> = ({
                 </p>
               </div>
             )}
+
+            {/* Banner xác thực lưu trữ và liên kết */}
+            <div className="rounded-lg bg-emerald-50/60 border border-emerald-200/70 p-2.5 text-[11px] text-emerald-900 flex items-start gap-2">
+              <FileCheck2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5 leading-relaxed">
+                <p className="font-semibold">Bảo lưu chứng từ &amp; Liên kết sản phẩm (Inherited Credibility):</p>
+                <p className="text-emerald-800 text-[11px]">
+                  Chứng từ đã lưu vào kho <code>/evidence</code> (Mã: <strong>{latest.id}</strong>). Khi bạn lưu hoặc xuất bản sản phẩm, mã này sẽ được lưu cùng sản phẩm để chứng minh minh bạch phát thải.
+                </p>
+              </div>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-2 pt-1">
               {onExtracted && (
@@ -315,7 +448,9 @@ const EvidenceUploader: React.FC<Props> = ({
                 variant="outline"
                 className="text-xs text-slate-700 hover:bg-slate-100"
                 onClick={handleReview}
+                title="Mở cổng kiểm duyệt chứng từ trong tab mới"
               >
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
                 Mở kiểm duyệt AI/OCR
               </Button>
             </div>
