@@ -7,8 +7,9 @@ import type {
   CarbonRange,
   ProductCategory
 } from "@/lib/carbon/types";
+import type { EvidenceDocument } from "@/hooks/useEvidenceUpload";
 
-export type { ProductCategory };
+export type { ProductCategory, EvidenceDocument };
 
 
 export interface MaterialInput {
@@ -86,6 +87,7 @@ export interface ProductAssessmentData {
   cnCode?: string;
   facility?: string;
   evidenceLookupCode?: string;
+  evidenceDocument?: EvidenceDocument;
   supplierCountry?: string;
   supplyGap?: boolean;
   customsDeclarationNo?: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,10 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
+import { apiRequest } from '@/lib/apiClient';
 import {
   useEvidenceUpload,
   type EvidenceDocument,
@@ -29,7 +32,10 @@ interface Props {
   companyId: string | null;
   productId?: string;
   defaultKind?: EvidenceKind;
+  initialDocument?: EvidenceDocument | null;
+  lookupCode?: string | null;
   onExtracted?: (doc: EvidenceDocument) => void;
+  onRemove?: () => void;
 }
 
 const KIND_LABELS: Record<EvidenceKind, string> = {
@@ -117,14 +123,92 @@ const EvidenceUploader: React.FC<Props> = ({
   companyId,
   productId,
   defaultKind = 'electricity_bill',
+  initialDocument = null,
+  lookupCode = null,
   onExtracted,
+  onRemove,
 }) => {
   const router = useRouter();
   const { upload, uploading, processing, analyzeFile, analyzing } = useEvidenceUpload(companyId);
-  const [kind, setKind] = useState<EvidenceKind>(defaultKind);
-  const [latest, setLatest] = useState<EvidenceDocument | null>(null);
-  const [applied, setApplied] = useState(false);
+  const [kind, setKind] = useState<EvidenceKind>(() => {
+    if (initialDocument?.kind && initialDocument.kind in KIND_LABELS) {
+      return initialDocument.kind as EvidenceKind;
+    }
+    return defaultKind;
+  });
+  const [latest, setLatest] = useState<EvidenceDocument | null>(() => initialDocument || null);
+  const [applied, setApplied] = useState(() => Boolean(initialDocument));
   const [dragOver, setDragOver] = useState(false);
+
+  // Sync if initialDocument updates from outside (e.g. step navigation or draft restored)
+  useEffect(() => {
+    if (initialDocument) {
+      setLatest(initialDocument);
+      setApplied(true);
+      if (initialDocument.kind && initialDocument.kind in KIND_LABELS) {
+        setKind(initialDocument.kind as EvidenceKind);
+      }
+    }
+  }, [initialDocument]);
+
+  // If initialDocument was not cached in memory, but lookupCode exists, load it from backend
+  useEffect(() => {
+    if (!latest && !initialDocument && (lookupCode || productId) && companyId) {
+      let cancelled = false;
+      const fetchExisting = async () => {
+        try {
+          const query = lookupCode
+            ? `lookup_code=${encodeURIComponent(lookupCode)}`
+            : `product_id=${encodeURIComponent(productId!)}`;
+          const res = await apiRequest<{ items: Array<Record<string, unknown>> }>(`/evidence?${query}`);
+          if (!cancelled && res?.items && res.items.length > 0) {
+            const row = res.items[0];
+            const rawExt = (row.extractedJson || row.extracted || {}) as Record<string, unknown>;
+            const doc: EvidenceDocument = {
+              id: (row.id as string) || (row.lookupCode as string) || lookupCode || '',
+              company_id: (row.companyId || companyId) as string,
+              kind: (row.kind || row.evidenceType || defaultKind) as EvidenceKind,
+              status: (row.status as string) || 'extracted',
+              file_name: (row.fileName || row.documentName || row.originalFilename || 'Tài liệu đã lưu') as string,
+              fileName: (row.fileName || row.documentName || row.originalFilename || 'Tài liệu đã lưu') as string,
+              documentName: (row.documentName || row.fileName || 'Tài liệu đã lưu') as string,
+              storage_path: (row.storageKey || '') as string,
+              mime_type: (row.mimeType || 'application/pdf') as string,
+              extracted: {
+                supplier: (rawExt.supplier || rawExt.supplier_name) as string | undefined,
+                facility_name: (rawExt.facility_name || rawExt.facility) as string | undefined,
+                period_start: (rawExt.period_start || rawExt.billing_period) as string | undefined,
+                period_end: rawExt.period_end as string | undefined,
+                billing_period: (rawExt.billing_period || rawExt.period_start) as string | undefined,
+                kwh_total: typeof rawExt.kwh_total === 'number' ? rawExt.kwh_total : typeof rawExt.kwh === 'number' ? rawExt.kwh : undefined,
+                fuel_type: rawExt.fuel_type as string | undefined,
+                fuel_liters: typeof rawExt.fuel_liters === 'number' ? rawExt.fuel_liters : undefined,
+                amount_vnd: typeof rawExt.amount_vnd === 'number' ? rawExt.amount_vnd : typeof rawExt.total_amount === 'number' ? rawExt.total_amount : undefined,
+                confidence: typeof rawExt.confidence === 'number' ? rawExt.confidence : undefined,
+                summary: rawExt.summary as string | undefined,
+              },
+              ocr_confidence: typeof row.trustScore === 'number' ? row.trustScore / 100 : 0.92,
+              ocr_error: (row.extractionError || null) as string | null,
+              created_at: (row.createdAt || row.created_at || new Date().toISOString()) as string,
+              aiAnalysis: null,
+            };
+            setLatest(doc);
+            setApplied(true);
+            if (doc.kind && doc.kind in KIND_LABELS) {
+              setKind(doc.kind as EvidenceKind);
+            }
+            onExtracted?.(doc);
+          }
+        } catch {
+          // ignore lookup error
+        }
+      };
+      void fetchExisting();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [companyId, defaultKind, initialDocument, latest, lookupCode, onExtracted, productId]);
 
   const handleFile = async (file: File) => {
     setApplied(false);
@@ -148,6 +232,12 @@ const EvidenceUploader: React.FC<Props> = ({
     if (!latest) return;
     onExtracted?.(latest);
     setApplied(true);
+  };
+
+  const handleRemove = () => {
+    setLatest(null);
+    setApplied(false);
+    onRemove?.();
   };
 
   const handleReview = () => {
@@ -492,6 +582,19 @@ const EvidenceUploader: React.FC<Props> = ({
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
                 Mở kiểm duyệt AI/OCR
               </Button>
+              {onRemove && (
+                <Button
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                  onClick={handleRemove}
+                  title="Gỡ bỏ chứng từ này để tải chứng từ khác"
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5 text-rose-500" />
+                  Gỡ bỏ chứng từ
+                </Button>
+              )}
             </div>
           </div>
         )}

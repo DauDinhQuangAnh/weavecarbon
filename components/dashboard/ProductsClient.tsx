@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
@@ -368,6 +368,9 @@ const ProductsClient: React.FC = () => {
       productName: product.productName,
       productType: product.productType,
       productCategory: product.productCategory || "textile",
+      facility: product.facility,
+      evidenceLookupCode: product.evidenceLookupCode,
+      evidenceDocument: product.evidenceDocument,
       weightPerUnit: product.weightPerUnit,
       quantity: product.quantity,
       materials: product.materials,

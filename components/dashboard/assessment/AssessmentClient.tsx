@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -487,6 +487,7 @@ const initialProductData: ProductAssessmentData = {
   cnCode: "",
   facility: "",
   evidenceLookupCode: "",
+  evidenceDocument: undefined,
   supplierCountry: "",
   supplyGap: false,
   customsDeclarationNo: "",
@@ -622,6 +623,7 @@ const hasAssessmentDraftContent = (draft: ProductAssessmentSessionDraft) => {
       data.cnCode,
       data.facility,
       data.evidenceLookupCode,
+      (data.evidenceDocument ? "evidence" : ""),
       data.supplierCountry,
       data.customsDeclarationNo,
       data.poContractId,

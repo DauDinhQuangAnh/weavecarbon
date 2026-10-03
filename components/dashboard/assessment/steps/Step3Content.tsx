@@ -192,6 +192,7 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
     if (doc.id) {
       updates.evidenceLookupCode = doc.id;
     }
+    updates.evidenceDocument = doc;
     const facility = ext.facility_name || (typeof doc.aiAnalysis?.facility_name === "string" ? doc.aiAnalysis.facility_name : undefined);
     if (facility && !data.manufacturingLocation) {
       updates.manufacturingLocation = facility;
@@ -229,6 +230,13 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
     if (Object.keys(updates).length > 0) {
       onChange(updates);
     }
+  };
+
+  const handleEvidenceRemoved = () => {
+    onChange({
+      evidenceLookupCode: "",
+      evidenceDocument: undefined
+    });
   };
 
   return (
@@ -472,7 +480,10 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
         companyId={companyId}
         productId={(data as { productId?: string }).productId}
         defaultKind="electricity_bill"
+        initialDocument={data.evidenceDocument}
+        lookupCode={data.evidenceLookupCode}
         onExtracted={handleEvidenceExtracted}
+        onRemove={handleEvidenceRemoved}
       />
 
       <Card>
