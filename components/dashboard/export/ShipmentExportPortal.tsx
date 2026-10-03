@@ -6,8 +6,6 @@ import {
   ArrowRight,
   Box,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Compass,
   Download,
   ExternalLink,
@@ -27,7 +25,6 @@ import {
   Save,
   ShieldCheck,
   Ship,
-  SlidersHorizontal,
   Sparkles,
   Tag,
   Upload,
@@ -134,128 +131,127 @@ const parsePackageContents = (value: string) => value.split(',').map((entry) => 
   return { lineNumber: Number(lineNumber), quantity: Number(quantity) };
 }).filter((item) => Number.isInteger(item.lineNumber) && item.lineNumber > 0 && item.quantity > 0);
 
-const formatPackageContents = (contents: unknown[]) => contents.map((item) => {
-  const value = item as { lineNumber?: number; quantity?: number };
-  return value.lineNumber && value.quantity ? `${value.lineNumber}:${value.quantity}` : '';
-}).filter(Boolean).join(',');
-
-const packageCbm = (pkg: Pick<ShipmentPackage, 'quantity' | 'lengthCm' | 'widthCm' | 'heightCm' | 'dimensionMeasurementBasis'>) =>
-  (pkg.dimensionMeasurementBasis === 'group_total' ? 1 : Number(pkg.quantity || 0))
-  * Number(pkg.lengthCm || 0) * Number(pkg.widthCm || 0) * Number(pkg.heightCm || 0) / 1_000_000;
-
-interface DossierMeta {
-  id: string;
+interface RItemDef {
+  code: string;
   title: string;
   subtitle: string;
   tag: string;
   badgeTone: string;
-  description: string;
   icon: React.ElementType;
 }
 
-const DOSSIER_LIST: DossierMeta[] = [
+const R_ITEMS: RItemDef[] = [
   {
-    id: 'reach',
-    title: 'Hồ sơ REACH SVHC (Chất cấm EU)',
-    subtitle: 'EU REACH Regulation (EC 1907/2006)',
-    tag: 'REACH · Bắt buộc EU',
-    badgeTone: 'bg-red-50 text-red-700 border-red-200',
-    description: 'Sàng lọc và quản lý nồng độ chất nguy hại rất đáng quan ngại (SVHC > 0.1% w/w) cho dệt may & da giày xuất khẩu EU.',
-    icon: FlaskConical
+    code: 'R01',
+    title: 'Commercial Invoice & Hợp đồng (Hóa đơn thương mại)',
+    subtitle: 'Hóa đơn xuất khẩu, số PO, đơn giá, cước phí, bảo hiểm & thông tin đối tác',
+    tag: 'Thương mại & CBAM',
+    badgeTone: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+    icon: FileSpreadsheet
   },
   {
-    id: 'gpsr',
-    title: 'Hồ sơ Kỹ thuật GPSR',
-    subtitle: 'EU General Product Safety (EU 2023/988)',
-    tag: 'GPSR · EU 2024',
-    badgeTone: 'bg-amber-50 text-amber-700 border-amber-200',
-    description: 'Hồ sơ kỹ thuật an toàn sản phẩm chung, truy vết nguồn gốc, cảnh báo rủi ro và người đại diện EU (Responsible Person).',
-    icon: ShieldCheck
+    code: 'R02',
+    title: 'Packing List & Danh mục Đóng gói (Phiếu đóng gói)',
+    subtitle: 'Container, seal, dãy carton/pallet, trọng lượng Net/Gross, thể tích CBM',
+    tag: 'Kho vận & Đóng gói',
+    badgeTone: 'border-teal-300 bg-teal-50 text-teal-800',
+    icon: Package
   },
   {
-    id: 'pcf',
-    title: 'Nghiên cứu PCF & LCA Carbon',
-    subtitle: 'Product Carbon Footprint (ISO 14067)',
-    tag: 'ISO 14067 · PCF',
-    badgeTone: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    description: 'Báo cáo tính toán dấu chân carbon sản phẩm theo phân đoạn từ cái nôi đến cổng (Cradle-to-Gate) phục vụ kiểm toán.',
-    icon: Leaf
+    code: 'R03',
+    title: 'Carrier Documents & Vận đơn Hãng tàu (B/L / AWB)',
+    subtitle: 'Vận đơn đường biển/hàng không, booking confirmation, số container & seal do carrier cấp',
+    tag: 'Hãng tàu & Vận tải',
+    badgeTone: 'border-blue-300 bg-blue-50 text-blue-800',
+    icon: Ship
   },
   {
-    id: 'textile_label',
-    title: 'Ghi nhãn Xơ sợi Dệt may',
-    subtitle: 'EU Textile Regulation 1007/2011',
-    tag: 'Ghi nhãn dệt may',
-    badgeTone: 'bg-blue-50 text-blue-700 border-blue-200',
-    description: 'Bảng đối soát tỷ lệ phần trăm xơ sợi, nguồn gốc tái chế và nhãn chăm sóc đa ngôn ngữ theo quy định EU/US.',
-    icon: Tag
-  },
-  {
-    id: 'environmental_claim',
-    title: 'Đăng ký Công bố Môi trường',
-    subtitle: 'ISO 14021 & Green Claims',
-    tag: 'Green Claims',
-    badgeTone: 'bg-teal-50 text-teal-700 border-teal-200',
-    description: 'Đăng ký và xác minh tính pháp lý của các công bố bền vững (Recycled, Eco-friendly, Carbon Neutral) chống Greenwashing.',
-    icon: CheckCircle2
-  },
-  {
-    id: 'vn_customs',
-    title: 'Bàn giao Hải quan Việt Nam',
-    subtitle: 'Vietnam Customs Broker Handoff',
+    code: 'R04',
+    title: 'Dữ liệu Bàn giao Broker / VNACCS (Hải quan Việt Nam)',
+    subtitle: 'Tờ khai hải quan xuất khẩu, giấy phép xuất khẩu, kiểm tra chuyên ngành & đối soát R01/R02/R03',
     tag: 'Hải quan VN (VNACCS)',
-    badgeTone: 'bg-slate-100 text-slate-800 border-slate-200',
-    description: 'Bộ dữ liệu chuẩn hóa phục vụ đại lý khai báo tờ khai xuất khẩu thông quan tại chi cục hải quan cửa khẩu.',
+    badgeTone: 'border-slate-300 bg-slate-50 text-slate-800',
     icon: FileText
   },
   {
-    id: 'eu_import',
-    title: 'Bàn giao Nhập khẩu EU (EUCDM)',
-    subtitle: 'EU Customs Data Model Handoff',
+    code: 'R05',
+    title: 'Bàn giao Khai báo Nhập khẩu EU (EUCDM Handoff)',
+    subtitle: 'Gói dữ liệu điện tử bàn giao cho đơn vị thông quan tại cảng đến theo chuẩn EU Customs Data Model',
     tag: 'EU Import Declarant',
-    badgeTone: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    description: 'Gói dữ liệu điện tử bàn giao cho đơn vị thông quan nhập khẩu tại cảng đến theo mô hình dữ liệu EUCDM.',
+    badgeTone: 'border-indigo-300 bg-indigo-50 text-indigo-800',
     icon: Globe
   },
   {
-    id: 'ics2',
-    title: 'Dữ liệu An ninh Vận tải ICS2/ENS',
-    subtitle: 'EU Import Control System 2',
-    tag: 'ICS2 · Hãng tàu/Carrier',
-    badgeTone: 'bg-purple-50 text-purple-700 border-purple-200',
-    description: 'Dữ liệu an ninh khai trước (Entry Summary Declaration - ENS) bắt buộc chuyển giao cho hãng vận tải / hãng tàu trước khi bốc hàng.',
+    code: 'R06',
+    title: 'Dữ liệu An ninh Vận tải ICS2 / ENS Filer Handoff',
+    subtitle: 'Dữ liệu an ninh khai trước (Entry Summary Declaration - ENS) chuyển giao cho hãng vận tải',
+    tag: 'ICS2 · An ninh EU',
+    badgeTone: 'border-purple-300 bg-purple-50 text-purple-800',
     icon: Box
   },
   {
-    id: 'origin',
-    title: 'Hồ sơ Hỗ trợ Xuất xứ EVFTA',
-    subtitle: 'Rules of Origin (RVC / CTC)',
+    code: 'R07',
+    title: 'Hồ sơ Hỗ trợ Quy tắc Xuất xứ EVFTA (Rules of Origin)',
+    subtitle: 'Bảng tính giá trị gia tăng nội khối RVC, chuyển đổi mã số hàng hóa CTC phục vụ cấp C/O EUR.1',
     tag: 'Quy tắc xuất xứ',
-    badgeTone: 'bg-orange-50 text-orange-700 border-orange-200',
-    description: 'Bảng tính giá trị gia tăng nội khối RVC và chuyển đổi mã số hàng hóa CTC phục vụ xin C/O form EUR.1.',
+    badgeTone: 'border-orange-300 bg-orange-50 text-orange-800',
     icon: Compass
   },
   {
-    id: 'compliance_applicability',
-    title: 'Mức độ Áp dụng Quy định',
-    subtitle: 'Multi-regulation screening',
-    tag: 'Sàng lọc quy định',
-    badgeTone: 'bg-sky-50 text-sky-700 border-sky-200',
-    description: 'Ma trận đối soát tự động các quy chuẩn bắt buộc và khuyến nghị theo danh mục thị trường xuất khẩu mục tiêu.',
-    icon: Layers
+    code: 'R08',
+    title: 'Ghi nhãn Thành phần Xơ sợi Dệt may (Textile Fibre Label)',
+    subtitle: 'Đối soát tỷ lệ xơ sợi, nguồn gốc tái chế và nhãn chăm sóc đa ngôn ngữ theo Quy định EU 1007/2011',
+    tag: 'Ghi nhãn dệt may',
+    badgeTone: 'border-sky-300 bg-sky-50 text-sky-800',
+    icon: Tag
   },
   {
-    id: 'carrier_documents',
-    title: 'Chứng từ Vận tải & Hãng tàu',
-    subtitle: 'Carrier B/L, Booking & VGM documents',
-    tag: 'Chứng từ vận tải',
-    badgeTone: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-    description: 'Lưu trữ và đối chiếu số vận đơn chính thức, phiếu cân VGM, booking confirmation do carrier phát hành.',
-    icon: Ship
+    code: 'R09',
+    title: 'Đăng ký Công bố Môi trường (Environmental Claims)',
+    subtitle: 'Đăng ký và xác minh tính pháp lý của công bố bền vững (Recycled, Eco-friendly) theo ISO 14021',
+    tag: 'Green Claims',
+    badgeTone: 'border-teal-300 bg-teal-50 text-teal-800',
+    icon: CheckCircle2
+  },
+  {
+    code: 'R10',
+    title: 'Hồ sơ Kỹ thuật An toàn Sản phẩm EU (GPSR Technical File)',
+    subtitle: 'Hồ sơ kỹ thuật an toàn sản phẩm chung EU 2023/988, người đại diện EU (Responsible Person)',
+    tag: 'GPSR · EU 2024',
+    badgeTone: 'border-amber-300 bg-amber-50 text-amber-800',
+    icon: ShieldCheck
+  },
+  {
+    code: 'R11',
+    title: 'Hồ sơ Chất cấm & Nguy hại REACH / SVHC (REACH Article Dossier)',
+    subtitle: 'Sàng lọc nồng độ chất nguy hại SVHC > 0.1% w/w theo danh mục 253 chất của ECHA Candidate List',
+    tag: 'REACH · Bắt buộc EU',
+    badgeTone: 'border-red-300 bg-red-50 text-red-800',
+    icon: FlaskConical
+  },
+  {
+    code: 'R12',
+    title: 'Nghiên cứu Dấu chân Carbon Sản phẩm (Product Carbon Footprint - PCF)',
+    subtitle: 'Báo cáo tính toán dấu chân carbon sản phẩm theo chuẩn ISO 14067:2018 phục vụ kiểm toán',
+    tag: 'ISO 14067 · PCF',
+    badgeTone: 'border-emerald-300 bg-emerald-50 text-emerald-800',
+    icon: Leaf
+  },
+  {
+    code: 'R13',
+    title: 'Sàng lọc Mức độ Áp dụng Quy chuẩn (Compliance Applicability)',
+    subtitle: 'Ma trận đối soát tự động các quy chuẩn bắt buộc theo danh mục thị trường xuất khẩu mục tiêu',
+    tag: 'Sàng lọc quy định',
+    badgeTone: 'border-cyan-300 bg-cyan-50 text-cyan-800',
+    icon: Layers
   }
 ];
 
-export default function ShipmentExportPortal() {
+export interface ShipmentExportPortalProps {
+  documentManagerSlot?: React.ReactNode;
+}
+
+export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentExportPortalProps) {
   const [shipments, setShipments] = useState<LogisticsShipmentSummary[]>([]);
   const [shipmentId, setShipmentId] = useState('');
   const [bundle, setBundle] = useState<ShipmentExportBundle | null>(null);
@@ -264,17 +260,14 @@ export default function ShipmentExportPortal() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
-  // Modals state for streamlined UX
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isContainersModalOpen, setIsContainersModalOpen] = useState(false);
-  const [activeDossier, setActiveDossier] = useState<string | null>(null);
+  // Active R popup modal state
+  const [activeR, setActiveR] = useState<string | null>(null);
 
+  // R01 & R02 sub-modals or helpers
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [lineEdits, setLineEdits] = useState<Record<string, Partial<ShipmentExportLine>>>({});
   const [containerEdits, setContainerEdits] = useState<Record<string, Partial<ShipmentContainer>>>({});
   const [packageEdits, setPackageEdits] = useState<Record<string, Partial<ShipmentPackage>>>({});
+  const [lineEdits, setLineEdits] = useState<Record<string, Partial<ShipmentExportLine>>>({});
   const [newContainer, setNewContainer] = useState(emptyContainerForm);
   const [newPackage, setNewPackage] = useState(emptyPackageForm);
   const [documentFormats, setDocumentFormats] = useState<Partial<Record<ExportDocumentType, ExportOutputFormat>>>({
@@ -338,7 +331,7 @@ export default function ShipmentExportPortal() {
     finally { setBusy(null); }
   };
 
-  // 1-Click Demo Preset for fast onboarding / test
+  // 1-Click Demo Preset for R01
   const handleFillDemoPreset = () => {
     setProfile((prev) => ({
       ...prev,
@@ -365,10 +358,6 @@ export default function ShipmentExportPortal() {
       customsDeclarationNo: '104829384720',
       freightAmount: 2450,
       insuranceAmount: 180,
-      discountAmount: 0,
-      surchargeAmount: 120,
-      customsValueAmount: 38500,
-      customsValueBasis: 'FOB value + standard insurance adjustment',
       transportMode: 'sea',
       preferentialOriginClaim: true,
       exporter: {
@@ -382,33 +371,18 @@ export default function ShipmentExportPortal() {
         address: 'Keizersgracht 421, 1016 EK Amsterdam',
         country: 'NL',
         contact: 'compliance@nordicfashion.eu / +31-20-7123456'
-      },
-      consignee: {
-        name: 'Nordic Logistics Center',
-        address: 'Maasvlakte 2, Haven 9800, Rotterdam',
-        country: 'NL',
-        contact: 'receiving@nordiclogistics.nl'
-      },
-      notifyParty: {
-        name: 'Same as Consignee',
-        address: 'Maasvlakte 2, Haven 9800, Rotterdam',
-        country: 'NL',
-        contact: 'notify@nordiclogistics.nl'
       }
     }));
-    setIsImportModalOpen(false);
     toast.success('Đã nạp bộ dữ liệu mẫu xuất khẩu Châu Âu thành công!');
   };
 
-  // Download Sample Excel Template
+  // Download Sample Template for R01
   const handleDownloadTemplate = (format: 'xlsx' | 'csv' = 'xlsx') => {
     const templateData = [
       {
         'Số Commercial Invoice': 'INV-2026-EU-089',
         'Ngày invoice': '2026-06-15',
         'Nơi phát hành': 'Hanoi, Vietnam',
-        'Số Packing List': 'PKL-2026-EU-089',
-        'Ngày Packing List': '2026-06-15',
         'PO / Contract ID': 'PO-EU-2026-009',
         'Tiền tệ': 'USD',
         'Điều khoản thanh toán': 'T/T 60 days',
@@ -435,22 +409,22 @@ export default function ShipmentExportPortal() {
 
     const worksheet = XLSX.utils.json_to_sheet(templateData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'ThongSoXuatKhau');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'CommercialInvoice');
 
     if (format === 'csv') {
       const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
       const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'mau_thong_so_xuat_khau.csv';
+      link.download = 'mau_commercial_invoice.csv';
       link.click();
     } else {
-      XLSX.writeFile(workbook, 'mau_thong_so_xuat_khau.xlsx');
+      XLSX.writeFile(workbook, 'mau_commercial_invoice.xlsx');
     }
     toast.success(`Đã tải file mẫu ${format.toUpperCase()}`);
   };
 
-  // Import from Excel or CSV
+  // Import file for R01
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -464,17 +438,13 @@ export default function ShipmentExportPortal() {
       const worksheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
 
-      if (!rows.length) {
-        throw new Error('File dữ liệu trống.');
-      }
-
+      if (!rows.length) throw new Error('File dữ liệu trống.');
       const row = rows[0];
-      const getString = (keys: string[]) => {
+
+      const getStr = (keys: string[]) => {
         for (const k of keys) {
           const val = row[k];
-          if (val !== undefined && val !== null && String(val).trim()) {
-            return String(val).trim();
-          }
+          if (val !== undefined && val !== null && String(val).trim()) return String(val).trim();
         }
         return '';
       };
@@ -482,51 +452,46 @@ export default function ShipmentExportPortal() {
       const getNum = (keys: string[]) => {
         for (const k of keys) {
           const val = row[k];
-          if (val !== undefined && val !== null && !isNaN(Number(val))) {
-            return Number(val);
-          }
+          if (val !== undefined && val !== null && !isNaN(Number(val))) return Number(val);
         }
         return null;
       };
 
       setProfile((prev) => ({
         ...prev,
-        invoiceNumber: getString(['Số Commercial Invoice', 'invoiceNumber', 'invoice_number', 'so_invoice']) || prev.invoiceNumber,
-        invoiceDate: getString(['Ngày invoice', 'invoiceDate', 'invoice_date', 'ngay_invoice']) || prev.invoiceDate,
-        invoiceIssuePlace: getString(['Nơi phát hành', 'invoiceIssuePlace', 'noi_phat_hanh']) || prev.invoiceIssuePlace,
-        packingListNumber: getString(['Số Packing List', 'packingListNumber', 'packing_list_number', 'so_packing_list']) || prev.packingListNumber,
-        packingListDate: getString(['Ngày Packing List', 'packingListDate', 'ngay_packing_list']) || prev.packingListDate,
-        poContractId: getString(['PO / Contract ID', 'poContractId', 'po', 'contract_id']) || prev.poContractId,
-        currency: getString(['Tiền tệ', 'currency', 'tien_te']) || prev.currency,
-        paymentTerms: getString(['Điều khoản thanh toán', 'paymentTerms', 'dieu_khoan_thanh_toan']) || prev.paymentTerms,
-        incotermCode: getString(['Incoterm', 'incotermCode', 'incoterm']) || prev.incotermCode,
-        incotermLocation: getString(['Địa điểm Incoterm', 'incotermLocation', 'dia_diem_incoterm']) || prev.incotermLocation,
-        exporterTaxId: getString(['MST Exporter', 'exporterTaxId', 'ma_so_thue_exporter']) || prev.exporterTaxId,
-        portOfLoading: getString(['Cảng xếp hàng', 'portOfLoading', 'cang_xep_hang']) || prev.portOfLoading,
-        portOfDischarge: getString(['Cảng dỡ hàng', 'portOfDischarge', 'cang_do_hang']) || prev.portOfDischarge,
-        placeOfDelivery: getString(['Nơi giao hàng', 'placeOfDelivery', 'noi_giao_hang']) || prev.placeOfDelivery,
-        vesselName: getString(['Tên tàu', 'vesselName', 'ten_tau']) || prev.vesselName,
-        voyageNumber: getString(['Số voyage', 'voyageNumber', 'so_voyage']) || prev.voyageNumber,
-        billOfLadingNo: getString(['Số B/L', 'billOfLadingNo', 'so_bl', 'bl_no']) || prev.billOfLadingNo,
-        carrierName: getString(['Hãng vận tải', 'carrierName', 'hang_van_tai']) || prev.carrierName,
-        importerEori: getString(['EORI Importer', 'importerEori', 'eori']) || prev.importerEori,
-        customsDeclarationNo: getString(['Số tờ khai hải quan', 'customsDeclarationNo', 'to_khai_hai_quan']) || prev.customsDeclarationNo,
-        freightAmount: getNum(['Cước vận chuyển', 'freightAmount', 'cuoc_van_chuyen']) ?? prev.freightAmount,
-        insuranceAmount: getNum(['Bảo hiểm', 'insuranceAmount', 'bao_hiem']) ?? prev.insuranceAmount,
+        invoiceNumber: getStr(['Số Commercial Invoice', 'invoiceNumber', 'invoice_number']) || prev.invoiceNumber,
+        invoiceDate: getStr(['Ngày invoice', 'invoiceDate', 'invoice_date']) || prev.invoiceDate,
+        invoiceIssuePlace: getStr(['Nơi phát hành', 'invoiceIssuePlace']) || prev.invoiceIssuePlace,
+        poContractId: getStr(['PO / Contract ID', 'poContractId', 'po']) || prev.poContractId,
+        currency: getStr(['Tiền tệ', 'currency']) || prev.currency,
+        paymentTerms: getStr(['Điều khoản thanh toán', 'paymentTerms']) || prev.paymentTerms,
+        incotermCode: getStr(['Incoterm', 'incotermCode']) || prev.incotermCode,
+        incotermLocation: getStr(['Địa điểm Incoterm', 'incotermLocation']) || prev.incotermLocation,
+        exporterTaxId: getStr(['MST Exporter', 'exporterTaxId']) || prev.exporterTaxId,
+        portOfLoading: getStr(['Cảng xếp hàng', 'portOfLoading']) || prev.portOfLoading,
+        portOfDischarge: getStr(['Cảng dỡ hàng', 'portOfDischarge']) || prev.portOfDischarge,
+        placeOfDelivery: getStr(['Nơi giao hàng', 'placeOfDelivery']) || prev.placeOfDelivery,
+        vesselName: getStr(['Tên tàu', 'vesselName']) || prev.vesselName,
+        voyageNumber: getStr(['Số voyage', 'voyageNumber']) || prev.voyageNumber,
+        billOfLadingNo: getStr(['Số B/L', 'billOfLadingNo']) || prev.billOfLadingNo,
+        carrierName: getStr(['Hãng vận tải', 'carrierName']) || prev.carrierName,
+        importerEori: getStr(['EORI Importer', 'importerEori']) || prev.importerEori,
+        customsDeclarationNo: getStr(['Số tờ khai hải quan', 'customsDeclarationNo']) || prev.customsDeclarationNo,
+        freightAmount: getNum(['Cước vận chuyển', 'freightAmount']) ?? prev.freightAmount,
+        insuranceAmount: getNum(['Bảo hiểm', 'insuranceAmount']) ?? prev.insuranceAmount,
         exporter: {
           ...prev.exporter,
-          name: getString(['Tên Exporter', 'exporterName', 'exporter_name']) || prev.exporter.name,
-          address: getString(['Địa chỉ Exporter', 'exporterAddress']) || prev.exporter.address,
+          name: getStr(['Tên Exporter', 'exporterName']) || prev.exporter.name,
+          address: getStr(['Địa chỉ Exporter', 'exporterAddress']) || prev.exporter.address,
         },
         importer: {
           ...prev.importer,
-          name: getString(['Tên Importer', 'importerName', 'importer_name']) || prev.importer.name,
-          address: getString(['Địa chỉ Importer', 'importerAddress']) || prev.importer.address,
+          name: getStr(['Tên Importer', 'importerName']) || prev.importer.name,
+          address: getStr(['Địa chỉ Importer', 'importerAddress']) || prev.importer.address,
         }
       }));
 
-      setIsImportModalOpen(false);
-      toast.success('Đã nạp thành công thông số lô hàng từ file!');
+      toast.success('Đã nạp thành công thông số Commercial Invoice từ file!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Lỗi khi đọc file Excel/CSV.');
     } finally {
@@ -534,9 +499,9 @@ export default function ShipmentExportPortal() {
     }
   };
 
-  const selectedDossierMeta = useMemo(() => {
-    return DOSSIER_LIST.find((item) => item.id === activeDossier) || null;
-  }, [activeDossier]);
+  const selectedRMeta = useMemo(() => {
+    return R_ITEMS.find((item) => item.code === activeR) || null;
+  }, [activeR]);
 
   if (loading && !bundle) {
     return (
@@ -550,929 +515,398 @@ export default function ShipmentExportPortal() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Thông báo banner chuẩn hóa */}
-      <Card className="border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 via-teal-50/30 to-white shadow-xs">
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white shadow-xs">
-              <Ship className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900">
-                Trung tâm Điều hành Xuất khẩu Xanh (Green Export Gateway)
-              </p>
-              <p className="text-xs text-slate-600">
-                Chuẩn hóa bộ chứng từ thương mại & kỹ thuật: CBAM, EU ESPR, REACH SVHC, GPSR, B/L Carbon Annex.
-              </p>
-            </div>
-          </div>
-          <Badge variant="outline" className="border-emerald-300 bg-white text-emerald-800 font-semibold text-xs py-1 px-2.5">
-            ISO 14067 · GLEC v3.0
-          </Badge>
-        </CardContent>
-      </Card>
-
-      {/* SECTION 1: Chọn lô hàng & Tiến độ */}
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardHeader className="pb-3 border-b">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Package className="h-5 w-5 text-emerald-800" />
-              1. Lô hàng Xuất khẩu mục tiêu
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void reload()}
-                disabled={!shipmentId || Boolean(busy)}
-                className="text-xs h-8"
-              >
-                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                Làm mới
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-[1fr_auto]">
+    <div className="space-y-5">
+      {/* HEADER: Chọn shipment & Tiến độ tinh gọn */}
+      <Card className="border-slate-200 bg-white shadow-xs">
+        <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex-1 min-w-[280px] space-y-1.5">
+            <span className="text-xs font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+              <Package className="h-3.5 w-3.5 text-emerald-800" />
+              Lô hàng Xuất khẩu mục tiêu
+            </span>
             <Select value={shipmentId} onValueChange={setShipmentId}>
-              <SelectTrigger className="h-10 text-sm font-medium">
-                <SelectValue placeholder="Chọn lô hàng xuất khẩu..." />
+              <SelectTrigger className="h-10 text-sm font-semibold">
+                <SelectValue placeholder="Chọn shipment..." />
               </SelectTrigger>
               <SelectContent>
-                {shipments.map((shipment) => (
-                  <SelectItem key={shipment.id} value={shipment.id}>
-                    📦 {shipment.referenceNumber || shipment.id} · {shipment.origin.country} ➔ {shipment.destination.country} ({shipment.status})
+                {shipments.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    📦 {s.referenceNumber || s.id} · {s.origin.country} ➔ {s.destination.country} ({s.status})
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
-            {readiness && (
-              <div className="flex items-center gap-3 rounded-lg border bg-slate-50 px-3.5 py-2">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 font-medium">Mức hoàn thiện hồ sơ:</span>
-                    <span className="text-sm font-bold text-emerald-800">{readiness.documentCompleteness}%</span>
-                  </div>
-                  <Progress value={readiness.documentCompleteness} className="h-1.5 w-32" />
-                </div>
-                <Badge variant={readiness.status === 'ready_to_issue' ? 'default' : 'outline'} className="text-xs capitalize">
-                  {readiness.status}
-                </Badge>
-              </div>
-            )}
           </div>
 
-          {shipments.length === 0 && (
-            <p className="text-sm text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
-              Chưa có lô hàng nào. Hãy tạo shipment trong mục Logistics trước để tiến hành xuất khẩu.
-            </p>
+          {readiness && (
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-600 font-medium">Hoàn thiện hồ sơ:</span>
+                  <span className="text-sm font-bold text-emerald-800">{readiness.documentCompleteness}%</span>
+                </div>
+                <Progress value={readiness.documentCompleteness} className="h-1.5 w-36 mt-1" />
+              </div>
+              <Badge variant={readiness.status === 'ready_to_issue' ? 'default' : 'outline'} className="text-xs capitalize ml-2">
+                {readiness.status}
+              </Badge>
+            </div>
           )}
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void reload()}
+              disabled={!shipmentId || Boolean(busy)}
+              className="text-xs h-9 bg-white"
+            >
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              Làm mới
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {shipmentId && bundle && (
-        <>
-          {/* SECTION 2: Tóm tắt Hồ sơ Thương mại & Thanh công cụ Import / Chỉnh sửa */}
-          <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
-            <CardHeader className="bg-slate-50/80 border-b pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <FileSpreadsheet className="h-5 w-5 text-emerald-800" />
-                    2. Hồ sơ Thương mại & Vận tải (Commercial & Logistics)
-                  </CardTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Đồng bộ số Invoice, Packing List, hợp đồng PO, vận đơn B/L và thông tin hải quan.
-                  </p>
-                </div>
+      {/* DANH SÁCH CÁC R THU GỌN — CHỈ HIỂN THỊ TIÊU ĐỀ (TITLE ONLY) */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+            <Layers className="h-4 w-4 text-emerald-800" />
+            Danh mục Hồ sơ Quy chuẩn Xuất khẩu (R01 — R13)
+          </h2>
+          <span className="text-xs text-slate-500">
+            Bấm vào từng mục R để mở Popup nhập tay hoặc Import file
+          </span>
+        </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 gap-1.5 shadow-xs"
-                    onClick={() => setIsImportModalOpen(true)}
-                  >
-                    <Upload className="h-3.5 w-3.5 text-emerald-200" />
-                    Import từ File (Excel / CSV)
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-8 gap-1.5"
-                    onClick={() => setIsEditModalOpen(true)}
-                  >
-                    <Pencil className="h-3.5 w-3.5 text-slate-600" />
-                    Chỉnh sửa chi tiết
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-8 gap-1.5 border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-                    disabled={Boolean(busy)}
-                    onClick={() => void run('save', () => saveShipmentExportProfile(shipmentId, profile), 'Đã lưu hồ sơ lô hàng.')}
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    Lưu hồ sơ
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-4 sm:p-5">
-              {/* Grid tóm tắt các thông số cốt lõi */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
-                  <span className="text-[11px] font-semibold uppercase text-slate-500 tracking-wider block">Commercial Invoice</span>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {profile.invoiceNumber || <span className="text-slate-400 font-normal italic">Chưa nhập</span>}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Ngày: {profile.invoiceDate || '—'} · {profile.currency || 'USD'}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
-                  <span className="text-[11px] font-semibold uppercase text-slate-500 tracking-wider block">Hợp đồng PO & Packing List</span>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {profile.poContractId || <span className="text-slate-400 font-normal italic">Chưa có PO</span>}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    P/L: {profile.packingListNumber || 'Chưa lập'}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
-                  <span className="text-[11px] font-semibold uppercase text-slate-500 tracking-wider block">Vận đơn & Hãng tàu</span>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {profile.billOfLadingNo || <span className="text-slate-400 font-normal italic">Chưa có B/L</span>}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {profile.carrierName || 'Carrier'} · Tàu {profile.vesselName || '—'}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 space-y-1">
-                  <span className="text-[11px] font-semibold uppercase text-slate-500 tracking-wider block">Tuyến đường & Incoterm</span>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {profile.incotermCode || 'FOB'} · {profile.portOfLoading || 'Cảng đi'} ➔ {profile.portOfDischarge || 'Cảng đến'}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    Tờ khai: {profile.customsDeclarationNo || 'Chưa khai báo'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Tóm tắt bên mua / bên bán */}
-              <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs text-slate-600">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-900">Bên xuất khẩu:</span>
-                  <span>{profile.exporter.name || 'WeaveCarbon Garment JSC'} ({profile.exporter.country || 'VN'})</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="font-semibold text-slate-900">Bên nhập khẩu:</span>
-                  <span>{profile.importer.name || 'Buyer Partner'} ({profile.importer.country || 'EU'})</span>
-                  {profile.importerEori && (
-                    <Badge variant="outline" className="text-[10px] ml-1 bg-white">
-                      EORI: {profile.importerEori}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SECTION 3: Tóm tắt Container & Kiện hàng */}
-          <Card className="border-slate-200 bg-white shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <Box className="h-5 w-5 text-emerald-800" />
-                    3. Đóng gói, Container & Dòng hàng (Carton & Pallet)
-                  </CardTitle>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Cấu trúc phân bổ kiện theo pallet, container và snapshot danh mục SKU mã HS/CN.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="text-xs h-8 gap-1.5 border-slate-300"
-                    onClick={() => setIsContainersModalOpen(true)}
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5 text-slate-600" />
-                    Quản lý chi tiết Container & Kiện hàng (Pop-up)
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border bg-slate-50/50 p-3.5 flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
-                    <Ship className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 block">Số Container</span>
-                    <span className="text-base font-bold text-slate-900">
-                      {(bundle.containers || []).length} Container
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border bg-slate-50/50 p-3.5 flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-100 text-teal-800">
-                    <Package className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 block">Số Kiện / Pallet</span>
-                    <span className="text-base font-bold text-slate-900">
-                      {bundle.packages.length} Kiện hàng
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border bg-slate-50/50 p-3.5 flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-800">
-                    <Layers className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs text-slate-500 block">Dòng hàng Snapshot</span>
-                    <span className="text-base font-bold text-slate-900">
-                      {bundle.lines.length} Dòng SKU
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SECTION 4: HUB QUY ĐỊNH & HỒ SƠ KỸ THUẬT (REACH SVHC, GPSR, PCF...) */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-emerald-800" />
-                  4. Hồ sơ Tuân thủ & Bàn giao Kỹ thuật (Compliance Dossiers Hub)
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Chọn bất kỳ quy định nào bên dưới để mở cửa sổ Pop-up thực hiện kiểm tra, tải chứng từ và khóa kiểm toán.
-                </p>
-              </div>
-              <Badge variant="outline" className="text-xs text-slate-600 bg-white">
-                11 Nhóm Hồ sơ Chuẩn Quốc tế
-              </Badge>
-            </div>
-
-            {/* Grid 11 Thẻ Quy định */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {DOSSIER_LIST.map((dossier) => {
-                const Icon = dossier.icon;
-                return (
-                  <Card
-                    key={dossier.id}
-                    className="group relative cursor-pointer border border-slate-200 bg-white shadow-xs transition-all hover:border-emerald-400 hover:shadow-md hover:bg-emerald-50/10 rounded-xl"
-                    onClick={() => setActiveDossier(dossier.id)}
-                  >
-                    <CardContent className="p-4 flex flex-col justify-between h-full space-y-3">
-                      <div>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800 group-hover:bg-emerald-800 group-hover:text-white transition-colors">
-                            <Icon className="h-4.5 w-4.5" />
-                          </div>
-                          <Badge variant="outline" className={`text-[10px] ${dossier.badgeTone}`}>
-                            {dossier.tag}
-                          </Badge>
-                        </div>
-                        <h4 className="font-bold text-sm text-slate-900 mt-2.5 group-hover:text-emerald-800 transition-colors">
-                          {dossier.title}
-                        </h4>
-                        <p className="text-[11px] font-medium text-slate-500">
-                          {dossier.subtitle}
-                        </p>
-                        <p className="text-xs text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">
-                          {dossier.description}
-                        </p>
-                      </div>
-
-                      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-emerald-800 font-semibold">
-                        <span>Mở thực hiện hồ sơ</span>
-                        <ChevronRight className="h-3.5 w-3.5 transform group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* SECTION 5: MỨC HOÀN THIỆN TÀI LIỆU & PHÁT HÀNH (ISSUE / REVIEW) */}
-          <Card className="border-slate-200 bg-white shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <FileCheck2 className="h-5 w-5 text-emerald-800" />
-                  5. Bàn giao & Phát hành Bộ Chứng từ Xuất khẩu (Document Issue & Review)
-                </CardTitle>
-                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 text-xs">
-                  CBAM: {readiness?.cbam.status || 'Đang rà soát'}
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500">
-                Tạo bản review đối soát, ghi nhận phê duyệt nghiệp vụ và phát hành phiên bản bất biến gắn mã băm SHA-256.
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {readiness?.documents.map((doc) => {
-                  const existing = latestDocuments.get(doc.type);
-                  const ready = doc.status === 'ready';
-                  const supportsPdf = ['commercial_invoice', 'packing_list'].includes(doc.type);
-                  const supportsHandoffFormats = ['ics2_dataset', 'vn_customs_handoff', 'eu_import_handoff', 'origin_workbook'].includes(doc.type);
-                  const selectedFormat = documentFormats[doc.type]
-                    || (supportsHandoffFormats ? 'json' : 'xlsx');
-
-                  return (
-                    <div key={doc.type} className="flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-3">
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <b className="text-sm font-semibold text-slate-900">{DOCUMENT_LABELS[doc.type]}</b>
-                          {ready ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                          )}
-                        </div>
-                        <Badge variant={ready ? 'default' : 'outline'} className="text-[10px]">
-                          {doc.status}
-                        </Badge>
-                        {!ready && doc.messages.slice(0, 2).map((message) => (
-                          <p key={message} className="text-xs text-red-700">• {message}</p>
-                        ))}
-
-                        {supportsPdf && (
-                          <Select
-                            value={selectedFormat}
-                            onValueChange={(value) => setDocumentFormats((current) => ({ ...current, [doc.type]: value as ExportOutputFormat }))}
-                          >
-                            <SelectTrigger className="h-8 text-xs bg-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pdf">PDF / Bản in ký số</SelectItem>
-                              <SelectItem value="xlsx">XLSX / Bảng tính</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-
-                        {supportsHandoffFormats && (
-                          <Select
-                            value={selectedFormat}
-                            onValueChange={(value) => setDocumentFormats((current) => ({ ...current, [doc.type]: value as ExportOutputFormat }))}
-                          >
-                            <SelectTrigger className="h-8 text-xs bg-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="json">JSON / Cấu trúc điện tử</SelectItem>
-                              <SelectItem value="xlsx">XLSX / Bảng tính</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-
-                        {existing?.reportStatus === 'completed' && existing.requiredReviewerRole && existing.status === 'ready' && (
-                          <div className="space-y-1.5 rounded-lg border border-slate-200 bg-white p-2 text-xs">
-                            <p className="text-[11px] text-slate-600">
-                              <b>Duyệt:</b> {REVIEW_ROLE_LABELS[existing.requiredReviewerRole]}
-                            </p>
-                            <Input
-                              placeholder="Ghi chú đối chiếu..."
-                              className="h-7 text-xs"
-                              value={reviewNotes[existing.id] || ''}
-                              onChange={(event) => setReviewNotes((current) => ({ ...current, [existing.id]: event.target.value }))}
-                            />
-                            <div className="flex gap-1.5 pt-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-[11px] px-2"
-                                disabled={Boolean(busy)}
-                                onClick={() => void run(`review-${existing.id}`, () => reviewShipmentExportDocument(shipmentId, existing.id, { reviewerRole: existing.requiredReviewerRole!, decision: 'approved', notes: reviewNotes[existing.id] }), 'Đã duyệt.')}
-                              >
-                                Duyệt
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-[11px] px-2 text-amber-700"
-                                disabled={Boolean(busy)}
-                                onClick={() => void run(`review-${existing.id}`, () => reviewShipmentExportDocument(shipmentId, existing.id, { reviewerRole: existing.requiredReviewerRole!, decision: 'changes_requested', notes: reviewNotes[existing.id] }), 'Đã yêu cầu sửa.')}
-                              >
-                                Yêu cầu sửa
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="pt-2 border-t flex flex-wrap gap-1.5">
-                        <Button
-                          size="sm"
-                          disabled={!ready || Boolean(busy)}
-                          className="h-8 text-xs flex-1 bg-emerald-800 hover:bg-emerald-900"
-                          onClick={() => void run(`generate-${doc.type}`, () => generateShipmentExportDocument(shipmentId, doc.type, selectedFormat), `Đã đưa bản ${selectedFormat.toUpperCase()} vào hàng đợi tạo file.`)}
-                        >
-                          Tạo bản review
-                        </Button>
-                        {existing?.reportStatus === 'completed' && existing.reportId && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs bg-white"
-                            onClick={() => void downloadReportFile(existing.reportId, existing.filename || `${doc.type}.${existing.outputFormat || 'xlsx'}`)}
-                          >
-                            <Download className="mr-1 h-3 w-3" />
-                            Tải
-                          </Button>
-                        )}
-                        {existing?.reportStatus === 'completed' && existing.status === 'ready' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-                            disabled={!existing.readyToIssue || Boolean(busy)}
-                            onClick={() => void run(`issue-${existing.id}`, () => issueShipmentExportDocument(shipmentId, existing.id), doc.type === 'origin_workbook' ? 'Đã khóa bản bàn giao nội bộ.' : 'Đã phát hành.')}
-                          >
-                            <FileCheck2 className="mr-1 h-3 w-3" />
-                            Phát hành
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* DIALOG 1: IMPORT THÔNG SỐ XUẤT KHẨU TỪ FILE (EXCEL / CSV) */}
-      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="max-w-xl p-6">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <FileSpreadsheet className="h-5 w-5 text-emerald-800" />
-              Import Thông số Lô hàng & Xuất khẩu
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-600">
-              Nhập tự động 27 thông số thương mại, hải quan, vận đơn và thông tin các bên từ file Excel/CSV thay vì gõ tay từng trường.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* Tùy chọn 1: Nạp dữ liệu mẫu nhanh 1-Click */}
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 flex items-center justify-between gap-3">
-              <div>
-                <b className="text-sm text-emerald-950 flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-emerald-700" />
-                  Nạp nhanh bộ dữ liệu mẫu xuất khẩu EU
-                </b>
-                <p className="text-xs text-emerald-800/80 mt-0.5">
-                  Tự động điền đầy đủ Invoice, B/L ONE APUS, PO, Container 40HC, EORI & đối tác mẫu.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs shrink-0"
-                onClick={handleFillDemoPreset}
+        <div className="grid gap-2">
+          {R_ITEMS.map((r) => {
+            const Icon = r.icon;
+            return (
+              <div
+                key={r.code}
+                onClick={() => setActiveR(r.code)}
+                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/20 cursor-pointer transition-all"
               >
-                Nạp 1-Click
-              </Button>
-            </div>
-
-            {/* Tùy chọn 2: Tải file mẫu */}
-            <div className="rounded-xl border border-slate-200 p-3.5 space-y-2">
-              <span className="text-xs font-semibold text-slate-700 block">Tải file mẫu chuẩn hóa:</span>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs gap-1.5 bg-white"
-                  onClick={() => handleDownloadTemplate('xlsx')}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Tải Mẫu Excel (.xlsx)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs gap-1.5 bg-white"
-                  onClick={() => handleDownloadTemplate('csv')}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Tải Mẫu CSV
-                </Button>
-              </div>
-            </div>
-
-            {/* Tùy chọn 3: Upload file của người dùng */}
-            <div className="rounded-xl border-2 border-dashed border-slate-300 p-6 text-center hover:border-emerald-500 transition-colors bg-slate-50/50">
-              <FileUp className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-              <p className="text-sm font-medium text-slate-700">Chọn hoặc kéo thả file Excel / CSV vào đây</p>
-              <p className="text-xs text-slate-500 mt-1">Hỗ trợ các định dạng .xlsx, .xls, .csv</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-3 text-xs bg-white border-slate-300"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Chọn File Từ Máy
-              </Button>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setIsImportModalOpen(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* DIALOG 2: CHỈNH SỬA THỦ CÔNG CHI TIẾT (ORGANIZED IN TABS) */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
-          <DialogHeader className="border-b pb-3">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Pencil className="h-5 w-5 text-emerald-800" />
-              Chỉnh sửa Thông số Thương mại & Logistics
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-600">
-              Điều chỉnh các thông số phục vụ phát hành Commercial Invoice, Packing List và khai báo hải quan.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto py-2">
-            <Tabs defaultValue="invoice" className="w-full">
-              <TabsList className="grid grid-cols-4 w-full mb-4 bg-slate-100">
-                <TabsTrigger value="invoice" className="text-xs">1. Hóa đơn & PO</TabsTrigger>
-                <TabsTrigger value="logistics" className="text-xs">2. Vận tải & Hãng tàu</TabsTrigger>
-                <TabsTrigger value="customs" className="text-xs">3. Hải quan & Phí</TabsTrigger>
-                <TabsTrigger value="parties" className="text-xs">4. Các bên (Parties)</TabsTrigger>
-              </TabsList>
-
-              {/* TAB 1: HÓA ĐƠN & PO */}
-              <TabsContent value="invoice" className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Số Commercial Invoice</Label>
-                    <Input value={profile.invoiceNumber || ''} onChange={(e) => update('invoiceNumber', e.target.value)} />
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <span className="flex h-8 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs shadow-xs">
+                    {r.code}
+                  </span>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
+                    <Icon className="h-4.5 w-4.5" />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Ngày invoice</Label>
-                    <Input type="date" value={profile.invoiceDate || ''} onChange={(e) => update('invoiceDate', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Nơi phát hành invoice</Label>
-                    <Input value={profile.invoiceIssuePlace || ''} onChange={(e) => update('invoiceIssuePlace', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">PO / Contract ID</Label>
-                    <Input value={profile.poContractId || ''} onChange={(e) => update('poContractId', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Số Packing List</Label>
-                    <Input value={profile.packingListNumber || ''} onChange={(e) => update('packingListNumber', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Ngày Packing List</Label>
-                    <Input type="date" value={profile.packingListDate || ''} onChange={(e) => update('packingListDate', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Tiền tệ (ISO 4217)</Label>
-                    <Input value={profile.currency || 'USD'} onChange={(e) => update('currency', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Điều khoản thanh toán</Label>
-                    <Input value={profile.paymentTerms || ''} onChange={(e) => update('paymentTerms', e.target.value)} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* TAB 2: VẬN TẢI & HÃNG TÀU */}
-              <TabsContent value="logistics" className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Phương thức vận tải</Label>
-                    <Select value={profile.transportMode} onValueChange={(value) => update('transportMode', value)}>
-                      <SelectTrigger><SelectValue placeholder="Chọn phương thức" /></SelectTrigger>
-                      <SelectContent>
-                        {transportModes.map((mode) => <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Số B/L/AWB/CMR</Label>
-                    <Input value={profile.billOfLadingNo || ''} onChange={(e) => update('billOfLadingNo', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Hãng vận tải / Carrier</Label>
-                    <Input value={profile.carrierName || ''} onChange={(e) => update('carrierName', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Tên tàu / Chuyến bay</Label>
-                    <Input value={profile.vesselName || ''} onChange={(e) => update('vesselName', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Số voyage / Chuyến</Label>
-                    <Input value={profile.voyageNumber || ''} onChange={(e) => update('voyageNumber', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Incoterm</Label>
-                    <Input value={profile.incotermCode || 'FOB'} onChange={(e) => update('incotermCode', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Cảng/nơi xếp hàng</Label>
-                    <Input value={profile.portOfLoading || ''} onChange={(e) => update('portOfLoading', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Cảng/nơi dỡ hàng</Label>
-                    <Input value={profile.portOfDischarge || ''} onChange={(e) => update('portOfDischarge', e.target.value)} />
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <Label className="text-xs">Nơi giao hàng (Place of Delivery)</Label>
-                    <Input value={profile.placeOfDelivery || ''} onChange={(e) => update('placeOfDelivery', e.target.value)} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* TAB 3: HẢI QUAN & PHÍ */}
-              <TabsContent value="customs" className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Số tờ khai hải quan</Label>
-                    <Input value={profile.customsDeclarationNo || ''} onChange={(e) => update('customsDeclarationNo', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Mã số thuế exporter</Label>
-                    <Input value={profile.exporterTaxId || ''} onChange={(e) => update('exporterTaxId', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">EORI của importer</Label>
-                    <Input value={profile.importerEori || ''} onChange={(e) => update('importerEori', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">VAT ID của importer</Label>
-                    <Input value={profile.importerVatId || ''} onChange={(e) => update('importerVatId', e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Cước vận chuyển</Label>
-                    <Input type="number" value={profile.freightAmount ?? ''} onChange={(e) => update('freightAmount', e.target.value === '' ? null : Number(e.target.value))} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Bảo hiểm</Label>
-                    <Input type="number" value={profile.insuranceAmount ?? ''} onChange={(e) => update('insuranceAmount', e.target.value === '' ? null : Number(e.target.value))} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Yêu cầu ưu đãi xuất xứ EVFTA</Label>
-                    <Select value={profile.preferentialOriginClaim ? 'yes' : 'no'} onValueChange={(value) => update('preferentialOriginClaim', value === 'yes')}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no">Không</SelectItem>
-                        <SelectItem value="yes">Có — cần chứng từ xuất xứ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Customs value để đối soát</Label>
-                    <Input type="number" value={profile.customsValueAmount ?? ''} onChange={(e) => update('customsValueAmount', e.target.value === '' ? null : Number(e.target.value))} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* TAB 4: CÁC BÊN LIÊN QUAN */}
-              <TabsContent value="parties" className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(['exporter', 'importer', 'consignee', 'notifyParty'] as const).map((party) => (
-                    <div key={party} className="space-y-2 rounded-xl border p-3 bg-slate-50/50">
-                      <b className="text-xs uppercase font-bold text-slate-800">{party}</b>
-                      <Input placeholder="Tên pháp lý" className="h-8 text-xs" value={profile[party].name || ''} onChange={(event) => updateParty(party, 'name', event.target.value)} />
-                      <Input placeholder="Địa chỉ đầy đủ" className="h-8 text-xs" value={profile[party].address || ''} onChange={(event) => updateParty(party, 'address', event.target.value)} />
-                      <Input placeholder="Quốc gia (ISO 2 ký tự)" className="h-8 text-xs" maxLength={2} value={profile[party].country || ''} onChange={(event) => updateParty(party, 'country', event.target.value.toUpperCase())} />
-                      <Input placeholder="Email / Điện thoại liên hệ" className="h-8 text-xs" value={profile[party].contact || ''} onChange={(event) => updateParty(party, 'contact', event.target.value)} />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors truncate">
+                        {r.title}
+                      </span>
+                      <Badge variant="outline" className={`text-[10px] py-0 px-2 font-medium ${r.badgeTone}`}>
+                        {r.tag}
+                      </Badge>
                     </div>
-                  ))}
+                    <p className="text-xs text-slate-500 truncate mt-0.5">
+                      {r.subtitle}
+                    </p>
+                  </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
 
-          <DialogFooter className="pt-3 border-t">
-            <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(false)}>
-              Hủy
-            </Button>
-            <Button
-              size="sm"
-              className="bg-emerald-800 hover:bg-emerald-900 text-white"
-              disabled={Boolean(busy)}
-              onClick={() => {
-                void run('save', () => saveShipmentExportProfile(shipmentId, profile), 'Đã lưu hồ sơ lô hàng.');
-                setIsEditModalOpen(false);
-              }}
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 gap-1 text-xs text-emerald-800 group-hover:bg-emerald-100 font-semibold"
+                  >
+                    <span>Mở thực hiện</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* R14: DOCUMENT MANAGER SLOT (NẾU CÓ) */}
+          {documentManagerSlot && (
+            <div
+              onClick={() => setActiveR('R14')}
+              className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/20 cursor-pointer transition-all"
             >
-              Lưu & Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* DIALOG 3: QUẢN LÝ CONTAINER, PALLET & DÒNG HÀNG POP-UP */}
-      <Dialog open={isContainersModalOpen} onOpenChange={setIsContainersModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-6">
-          <DialogHeader className="border-b pb-3">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Box className="h-5 w-5 text-emerald-800" />
-              Quản lý Container, Pallet, Carton và Dòng hàng
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-600">
-              Mỗi carton phải thuộc một pallet; mỗi pallet phải thuộc một container/load unit trong cùng lô hàng.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto py-3 space-y-4">
-            {/* Cấu trúc Container */}
-            <div className="rounded-xl border p-4 bg-slate-50/50 space-y-3">
-              <b className="text-sm text-slate-900">Thêm mới Container</b>
-              <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
-                <Input placeholder="Số container" value={newContainer.containerNumber} onChange={(e) => setNewContainer((c) => ({ ...c, containerNumber: e.target.value }))} />
-                <Input placeholder="Số seal" value={newContainer.sealNumber} onChange={(e) => setNewContainer((c) => ({ ...c, sealNumber: e.target.value }))} />
-                <Input placeholder="Loại (vd 40HC)" value={newContainer.equipmentType} onChange={(e) => setNewContainer((c) => ({ ...c, equipmentType: e.target.value }))} />
-                <Input placeholder="Marks & numbers" value={newContainer.marksAndNumbers} onChange={(e) => setNewContainer((c) => ({ ...c, marksAndNumbers: e.target.value }))} />
-                <Input type="number" placeholder="Tare kg" value={newContainer.tareWeightKg} onChange={(e) => setNewContainer((c) => ({ ...c, tareWeightKg: e.target.value }))} />
-                <Button size="sm" variant="outline" className="bg-white border-emerald-300 text-emerald-800" onClick={() => void run('container', async () => {
-                  await createShipmentContainer(shipmentId, {
-                    containerNumber: newContainer.containerNumber, sealNumber: newContainer.sealNumber,
-                    equipmentType: newContainer.equipmentType, marksAndNumbers: newContainer.marksAndNumbers,
-                    tareWeightKg: newContainer.tareWeightKg === '' ? null : Number(newContainer.tareWeightKg),
-                    maxGrossWeightKg: newContainer.maxGrossWeightKg === '' ? null : Number(newContainer.maxGrossWeightKg)
-                  });
-                  setNewContainer(emptyContainerForm());
-                }, 'Đã thêm container.')} disabled={!newContainer.containerNumber || !newContainer.sealNumber || !newContainer.equipmentType || Boolean(busy)}>
-                  <PackagePlus className="mr-1 h-3.5 w-3.5" /> Thêm
-                </Button>
+              <div className="flex items-center gap-3.5 min-w-0">
+                <span className="flex h-8 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs shadow-xs">
+                  R14
+                </span>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
+                  <FileCheck2 className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
+                      Quản lý Chứng nhận & Hồ sơ Tuân thủ Thị trường
+                    </span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-2 font-medium border-emerald-300 bg-emerald-50 text-emerald-800">
+                      Chứng chỉ & Chứng nhận
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    Hồ sơ tuân thủ xuất khẩu và tài liệu chứng nhận vật liệu mở khóa theo thị trường.
+                  </p>
+                </div>
               </div>
 
-              {/* Danh sách Container hiện có */}
-              <div className="space-y-2 pt-2">
-                {(bundle?.containers || []).map((container) => {
-                  const edit = containerEdits[container.id] || {};
-                  return (
-                    <div key={container.id} className="grid gap-2 rounded-lg border bg-white p-2.5 md:grid-cols-4 items-center">
-                      <Input aria-label="Số container" className="h-8 text-xs font-mono font-medium" value={String(edit.containerNumber ?? container.containerNumber)} onChange={(e) => setContainerEdits((c) => ({ ...c, [container.id]: { ...c[container.id], containerNumber: e.target.value } }))} />
-                      <Input aria-label="Số seal" className="h-8 text-xs font-mono" value={String(edit.sealNumber ?? container.sealNumber)} onChange={(e) => setContainerEdits((c) => ({ ...c, [container.id]: { ...c[container.id], sealNumber: e.target.value } }))} />
-                      <Input aria-label="Loại thiết bị" className="h-8 text-xs" value={String(edit.equipmentType ?? container.equipmentType)} onChange={(e) => setContainerEdits((c) => ({ ...c, [container.id]: { ...c[container.id], equipmentType: e.target.value } }))} />
-                      <Button size="sm" variant="outline" className="h-8 text-xs bg-slate-50" disabled={!containerEdits[container.id] || Boolean(busy)} onClick={() => void run(`container-${container.id}`, () => updateShipmentContainer(shipmentId, container.id, containerEdits[container.id]), `Đã cập nhật ${container.containerNumber}.`)}>
-                        Lưu container
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1 text-xs text-emerald-800 group-hover:bg-emerald-100 font-semibold"
+              >
+                <span>Mở thực hiện</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Dòng hàng snapshot */}
-            <div className="rounded-xl border p-4 bg-slate-50/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <b className="text-sm text-slate-900">{bundle?.lines.length || 0} dòng hàng đã snapshot</b>
-                <Button size="sm" variant="outline" className="bg-white text-xs h-8" onClick={() => void run('sync', () => syncShipmentExportLines(shipmentId), 'Đã đồng bộ dòng hàng từ shipment.')} disabled={Boolean(busy)}>
-                  Đồng bộ lại từ Shipment
-                </Button>
-              </div>
-
-              <div className="max-h-64 space-y-2 overflow-auto rounded-lg border bg-white p-2">
-                {(bundle?.lines || []).map((line) => {
-                  const edit = lineEdits[line.id] || {};
-                  const value = <K extends keyof ShipmentExportLine>(key: K) => edit[key] ?? line[key];
-                  return (
-                    <div key={line.id} className="grid gap-2 rounded border p-2 md:grid-cols-4 text-xs">
-                      <Input disabled value={line.sku} className="h-7 text-xs font-mono font-bold" />
-                      <Input placeholder="Mô tả hàng hóa" className="h-7 text-xs" value={String(value('goodsDescription') ?? '')} onChange={(e) => setLineEdits((c) => ({ ...c, [line.id]: { ...c[line.id], goodsDescription: e.target.value } }))} />
-                      <Input placeholder="HS/CN" className="h-7 text-xs font-mono" value={String(value('hsCode') ?? '')} onChange={(e) => setLineEdits((c) => ({ ...c, [line.id]: { ...c[line.id], hsCode: e.target.value, hsCodeConfirmed: false } }))} />
-                      <Button size="sm" variant="outline" className="h-7 text-xs" disabled={!lineEdits[line.id] || Boolean(busy)} onClick={() => void run(`line-${line.id}`, () => updateShipmentExportLine(shipmentId, line.id, lineEdits[line.id]), `Đã cập nhật ${line.sku}.`)}>
-                        Lưu dòng
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Thêm kiện hàng */}
-            <div className="rounded-xl border p-4 bg-slate-50/50 space-y-3">
-              <b className="text-sm text-slate-900">Thêm kiện / Pallet mới</b>
-              <div className="grid gap-2 md:grid-cols-4">
-                <Input placeholder="Mã kiện" className="h-8 text-xs" value={newPackage.packageNumber} onChange={(e) => setNewPackage((c) => ({ ...c, packageNumber: e.target.value }))} />
-                <Select value={newPackage.packageType} onValueChange={(val) => setNewPackage((c) => ({ ...c, packageType: val, parentPackageId: val === 'pallet' ? '' : c.parentPackageId }))}>
-                  <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pallet">Pallet</SelectItem>
-                    <SelectItem value="carton">Carton</SelectItem>
-                    <SelectItem value="crate">Crate</SelectItem>
-                    <SelectItem value="bag">Bag</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={newPackage.containerId} onValueChange={(val) => setNewPackage((c) => ({ ...c, containerId: val, parentPackageId: '' }))}>
-                  <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Chọn container" /></SelectTrigger>
-                  <SelectContent>
-                    {(bundle?.containers || []).map((c) => <SelectItem key={c.id} value={c.id}>{c.containerNumber} / {c.sealNumber}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" className="h-8 text-xs bg-white border-emerald-300 text-emerald-800" onClick={() => void run('package', async () => {
-                  await createShipmentPackage(shipmentId, {
-                    packageNumber: newPackage.packageNumber, packageType: newPackage.packageType,
-                    marksAndNumbers: newPackage.marksAndNumbers, quantity: Number(newPackage.quantity),
-                    netWeightKg: Number(newPackage.netWeightKg), grossWeightKg: Number(newPackage.grossWeightKg),
-                    lengthCm: Number(newPackage.lengthCm), widthCm: Number(newPackage.widthCm), heightCm: Number(newPackage.heightCm),
-                    contents: newPackage.packageType === 'pallet' ? [] : parsePackageContents(newPackage.contentsText),
-                    containerId: newPackage.containerId, parentPackageId: newPackage.parentPackageId || null,
-                    sequenceNo: newPackage.sequenceNo === '' ? null : Number(newPackage.sequenceNo),
-                    weightMeasurementBasis: newPackage.weightMeasurementBasis,
-                    dimensionMeasurementBasis: newPackage.dimensionMeasurementBasis
-                  });
-                  setNewPackage(emptyPackageForm());
-                }, 'Đã thêm kiện hàng.')} disabled={!newPackage.packageNumber || !newPackage.containerId || Boolean(busy)}>
-                  <PackagePlus className="mr-1 h-3.5 w-3.5" /> Thêm kiện
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-3 border-t">
-            <Button size="sm" onClick={() => setIsContainersModalOpen(false)}>
-              Hoàn tất & Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* DIALOG 4: CỬA SỔ POP-UP THỰC HIỆN HỒ SƠ QUY ĐỊNH (REACH SVHC, GPSR, PCF...) */}
-      <Dialog open={Boolean(activeDossier)} onOpenChange={(open) => !open && setActiveDossier(null)}>
+      {/* ========================================================================= */}
+      {/* POPUP MODALS CHO TỪNG R CỤ THỂ                                           */}
+      {/* ========================================================================= */}
+      <Dialog open={Boolean(activeR)} onOpenChange={(open) => !open && setActiveR(null)}>
         <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-6">
           <DialogHeader className="border-b pb-3">
             <div className="flex items-center justify-between gap-2">
               <DialogTitle className="flex items-center gap-2 text-lg">
-                {selectedDossierMeta?.icon && (
-                  <selectedDossierMeta.icon className="h-5 w-5 text-emerald-800" />
-                )}
-                <span>{selectedDossierMeta?.title}</span>
-                <Badge variant="outline" className={`ml-2 text-xs ${selectedDossierMeta?.badgeTone}`}>
-                  {selectedDossierMeta?.tag}
-                </Badge>
+                <span className="flex h-6 w-9 shrink-0 items-center justify-center rounded bg-emerald-800 text-white font-mono font-bold text-xs">
+                  {activeR}
+                </span>
+                <span>{selectedRMeta?.title || (activeR === 'R14' ? 'Quản lý Chứng nhận & Hồ sơ Tuân thủ' : '')}</span>
               </DialogTitle>
             </div>
             <DialogDescription className="text-xs text-slate-600 mt-1">
-              {selectedDossierMeta?.description}
+              {selectedRMeta?.subtitle || ''}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-3">
-            {activeDossier === 'reach' && (
-              <ReachSvhcDossierPanel shipmentId={shipmentId} />
+          <div className="flex-1 overflow-y-auto py-3 space-y-4">
+            {/* -------------------- POPUP R01: COMMERCIAL INVOICE -------------------- */}
+            {activeR === 'R01' && (
+              <div className="space-y-4">
+                {/* Thanh công cụ Import / Nạp mẫu R01 */}
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <b className="text-sm text-emerald-950 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-emerald-700" />
+                      Công cụ nạp tự động thông số Hóa đơn & Hợp đồng
+                    </b>
+                    <p className="text-xs text-emerald-800/80 mt-0.5">
+                      Bạn có thể nạp mẫu 1-click hoặc tải file Excel/CSV từ ERP/kế toán để điền tự động.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="outline" className="text-xs bg-white h-8" onClick={() => handleDownloadTemplate('xlsx')}>
+                      <Download className="mr-1 h-3.5 w-3.5" /> Mẫu Excel
+                    </Button>
+                    <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} />
+                    <Button size="sm" variant="outline" className="text-xs bg-white h-8" onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="mr-1 h-3.5 w-3.5" /> Upload File
+                    </Button>
+                    <Button size="sm" className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8" onClick={handleFillDemoPreset}>
+                      Nạp mẫu 1-Click
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Form nhập tay chi tiết */}
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Số Commercial Invoice</Label><Input className="h-8 text-xs font-mono font-bold" value={profile.invoiceNumber || ''} onChange={(e) => update('invoiceNumber', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Ngày Invoice</Label><Input type="date" className="h-8 text-xs" value={profile.invoiceDate || ''} onChange={(e) => update('invoiceDate', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Nơi phát hành</Label><Input className="h-8 text-xs" value={profile.invoiceIssuePlace || ''} onChange={(e) => update('invoiceIssuePlace', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">PO / Contract ID</Label><Input className="h-8 text-xs font-mono" value={profile.poContractId || ''} onChange={(e) => update('poContractId', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Tiền tệ (ISO 4217)</Label><Input className="h-8 text-xs font-mono" value={profile.currency || 'USD'} onChange={(e) => update('currency', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Điều khoản thanh toán</Label><Input className="h-8 text-xs" value={profile.paymentTerms || ''} onChange={(e) => update('paymentTerms', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Incoterm</Label><Input className="h-8 text-xs" value={profile.incotermCode || 'FOB'} onChange={(e) => update('incotermCode', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Địa điểm Incoterm</Label><Input className="h-8 text-xs" value={profile.incotermLocation || ''} onChange={(e) => update('incotermLocation', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Số tờ khai hải quan</Label><Input className="h-8 text-xs font-mono" value={profile.customsDeclarationNo || ''} onChange={(e) => update('customsDeclarationNo', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Cước vận chuyển (USD)</Label><Input type="number" className="h-8 text-xs" value={profile.freightAmount ?? ''} onChange={(e) => update('freightAmount', e.target.value === '' ? null : Number(e.target.value))} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Bảo hiểm (USD)</Label><Input type="number" className="h-8 text-xs" value={profile.insuranceAmount ?? ''} onChange={(e) => update('insuranceAmount', e.target.value === '' ? null : Number(e.target.value))} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Customs value đối soát</Label><Input type="number" className="h-8 text-xs" value={profile.customsValueAmount ?? ''} onChange={(e) => update('customsValueAmount', e.target.value === '' ? null : Number(e.target.value))} /></div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 pt-2 border-t">
+                  <div className="rounded-lg border p-3 bg-slate-50/50 space-y-2">
+                    <b className="text-xs font-bold uppercase text-slate-800">Đơn vị Xuất khẩu (Exporter)</b>
+                    <Input placeholder="Tên công ty" className="h-8 text-xs" value={profile.exporter.name || ''} onChange={(e) => updateParty('exporter', 'name', e.target.value)} />
+                    <Input placeholder="Địa chỉ" className="h-8 text-xs" value={profile.exporter.address || ''} onChange={(e) => updateParty('exporter', 'address', e.target.value)} />
+                    <Input placeholder="Quốc gia (VN)" className="h-8 text-xs" maxLength={2} value={profile.exporter.country || 'VN'} onChange={(e) => updateParty('exporter', 'country', e.target.value.toUpperCase())} />
+                  </div>
+                  <div className="rounded-lg border p-3 bg-slate-50/50 space-y-2">
+                    <b className="text-xs font-bold uppercase text-slate-800">Đơn vị Nhập khẩu (Importer)</b>
+                    <Input placeholder="Tên công ty buyer" className="h-8 text-xs" value={profile.importer.name || ''} onChange={(e) => updateParty('importer', 'name', e.target.value)} />
+                    <Input placeholder="Địa chỉ" className="h-8 text-xs" value={profile.importer.address || ''} onChange={(e) => updateParty('importer', 'address', e.target.value)} />
+                    <Input placeholder="EORI của importer" className="h-8 text-xs font-mono" value={profile.importerEori || ''} onChange={(e) => update('importerEori', e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Phát hành R01 */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-800 hover:bg-emerald-900 text-white"
+                    disabled={Boolean(busy)}
+                    onClick={() => void run('save', () => saveShipmentExportProfile(shipmentId, profile), 'Đã lưu Commercial Invoice R01.')}
+                  >
+                    <Save className="mr-1.5 h-4 w-4" /> Lưu thông số R01
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={Boolean(busy)}
+                      onClick={() => void run('generate-commercial_invoice', () => generateShipmentExportDocument(shipmentId, 'commercial_invoice', 'pdf'), 'Đã đưa bản PDF Invoice vào hàng đợi tạo file.')}
+                    >
+                      Tạo bản review PDF
+                    </Button>
+                    {latestDocuments.get('commercial_invoice')?.reportId && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void downloadReportFile(latestDocuments.get('commercial_invoice')!.reportId!, 'commercial_invoice.pdf')}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" /> Tải file
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
-            {activeDossier === 'gpsr' && (
-              <GpsrTechnicalFilePanel shipmentId={shipmentId} />
+
+            {/* -------------------- POPUP R02: PACKING LIST -------------------- */}
+            {activeR === 'R02' && (
+              <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Số Packing List</Label><Input className="h-8 text-xs font-mono font-bold" value={profile.packingListNumber || ''} onChange={(e) => update('packingListNumber', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Ngày Packing List</Label><Input type="date" className="h-8 text-xs" value={profile.packingListDate || ''} onChange={(e) => update('packingListDate', e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">PO tham chiếu</Label><Input className="h-8 text-xs font-mono" value={profile.poContractId || ''} onChange={(e) => update('poContractId', e.target.value)} /></div>
+                </div>
+
+                {/* Quản lý Container */}
+                <div className="rounded-xl border p-3.5 bg-slate-50/50 space-y-3">
+                  <b className="text-xs font-bold uppercase text-slate-800">1. Container & Khóa Seal</b>
+                  <div className="grid gap-2 md:grid-cols-5">
+                    <Input placeholder="Số container" className="h-8 text-xs font-mono" value={newContainer.containerNumber} onChange={(e) => setNewContainer((c) => ({ ...c, containerNumber: e.target.value }))} />
+                    <Input placeholder="Số seal" className="h-8 text-xs font-mono" value={newContainer.sealNumber} onChange={(e) => setNewContainer((c) => ({ ...c, sealNumber: e.target.value }))} />
+                    <Input placeholder="Loại (40HC)" className="h-8 text-xs" value={newContainer.equipmentType} onChange={(e) => setNewContainer((c) => ({ ...c, equipmentType: e.target.value }))} />
+                    <Input placeholder="Marks & numbers" className="h-8 text-xs" value={newContainer.marksAndNumbers} onChange={(e) => setNewContainer((c) => ({ ...c, marksAndNumbers: e.target.value }))} />
+                    <Button size="sm" variant="outline" className="h-8 text-xs bg-white" onClick={() => void run('container', async () => {
+                      await createShipmentContainer(shipmentId, {
+                        containerNumber: newContainer.containerNumber, sealNumber: newContainer.sealNumber,
+                        equipmentType: newContainer.equipmentType, marksAndNumbers: newContainer.marksAndNumbers,
+                        tareWeightKg: newContainer.tareWeightKg === '' ? null : Number(newContainer.tareWeightKg),
+                        maxGrossWeightKg: newContainer.maxGrossWeightKg === '' ? null : Number(newContainer.maxGrossWeightKg)
+                      });
+                      setNewContainer(emptyContainerForm());
+                    }, 'Đã thêm container.')} disabled={!newContainer.containerNumber || !newContainer.sealNumber || Boolean(busy)}>
+                      <PackagePlus className="mr-1 h-3.5 w-3.5" /> Thêm Container
+                    </Button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {(bundle?.containers || []).map((c) => (
+                      <div key={c.id} className="flex items-center justify-between gap-2 p-2 rounded bg-white border text-xs">
+                        <span className="font-mono font-semibold">{c.containerNumber} / Seal: {c.sealNumber} ({c.equipmentType})</span>
+                        <Badge variant="outline" className="text-[10px]">Đã gán</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quản lý Kiện hàng & Pallet */}
+                <div className="rounded-xl border p-3.5 bg-slate-50/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <b className="text-xs font-bold uppercase text-slate-800">2. Kiện hàng ({bundle?.packages.length || 0} kiện)</b>
+                    <Button size="sm" variant="outline" className="h-7 text-xs bg-white" onClick={() => void run('sync', () => syncShipmentExportLines(shipmentId), 'Đã đồng bộ dòng hàng.')} disabled={Boolean(busy)}>
+                      Đồng bộ Dòng hàng SKU
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-2 md:grid-cols-4">
+                    <Input placeholder="Mã kiện" className="h-8 text-xs" value={newPackage.packageNumber} onChange={(e) => setNewPackage((c) => ({ ...c, packageNumber: e.target.value }))} />
+                    <Select value={newPackage.packageType} onValueChange={(val) => setNewPackage((c) => ({ ...c, packageType: val }))}>
+                      <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="carton">Carton</SelectItem><SelectItem value="pallet">Pallet</SelectItem><SelectItem value="crate">Crate</SelectItem></SelectContent>
+                    </Select>
+                    <Select value={newPackage.containerId} onValueChange={(val) => setNewPackage((c) => ({ ...c, containerId: val }))}>
+                      <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Chọn container" /></SelectTrigger>
+                      <SelectContent>{(bundle?.containers || []).map((c) => <SelectItem key={c.id} value={c.id}>{c.containerNumber}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline" className="h-8 text-xs bg-white" onClick={() => void run('package', async () => {
+                      await createShipmentPackage(shipmentId, {
+                        packageNumber: newPackage.packageNumber, packageType: newPackage.packageType,
+                        marksAndNumbers: newPackage.marksAndNumbers, quantity: Number(newPackage.quantity || 1),
+                        netWeightKg: Number(newPackage.netWeightKg || 10), grossWeightKg: Number(newPackage.grossWeightKg || 12),
+                        lengthCm: Number(newPackage.lengthCm || 60), widthCm: Number(newPackage.widthCm || 40), heightCm: Number(newPackage.heightCm || 40),
+                        contents: newPackage.packageType === 'pallet' ? [] : parsePackageContents(newPackage.contentsText),
+                        containerId: newPackage.containerId, parentPackageId: newPackage.parentPackageId || null,
+                        sequenceNo: null, weightMeasurementBasis: newPackage.weightMeasurementBasis, dimensionMeasurementBasis: newPackage.dimensionMeasurementBasis
+                      });
+                      setNewPackage(emptyPackageForm());
+                    }, 'Đã thêm kiện hàng.')} disabled={!newPackage.packageNumber || !newPackage.containerId || Boolean(busy)}>
+                      <PackagePlus className="mr-1 h-3.5 w-3.5" /> Thêm kiện
+                    </Button>
+                  </div>
+
+                  <div className="max-h-40 overflow-y-auto space-y-1 text-xs">
+                    {(bundle?.packages || []).map((pkg) => (
+                      <div key={pkg.id} className="flex items-center justify-between p-2 rounded bg-white border text-xs">
+                        <span>{pkg.packageNumber} ({pkg.packageType}) · {pkg.quantity} chiếc · Net: {pkg.netWeightKg}kg / Gross: {pkg.grossWeightKg}kg</span>
+                        <Badge variant="outline" className="text-[10px]">Đầy đủ</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Phát hành R02 */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-800 hover:bg-emerald-900 text-white"
+                    disabled={Boolean(busy)}
+                    onClick={() => void run('save', () => saveShipmentExportProfile(shipmentId, profile), 'Đã lưu Packing List R02.')}
+                  >
+                    <Save className="mr-1.5 h-4 w-4" /> Lưu thông số R02
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={Boolean(busy)}
+                      onClick={() => void run('generate-packing_list', () => generateShipmentExportDocument(shipmentId, 'packing_list', 'pdf'), 'Đã đưa bản PDF Packing List vào hàng đợi tạo file.')}
+                    >
+                      Tạo bản review PDF
+                    </Button>
+                    {latestDocuments.get('packing_list')?.reportId && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void downloadReportFile(latestDocuments.get('packing_list')!.reportId!, 'packing_list.pdf')}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" /> Tải file
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
-            {activeDossier === 'pcf' && (
-              <PcfStudyPanel shipmentId={shipmentId} />
+
+            {/* -------------------- POPUP R03: CARRIER DOCUMENTS -------------------- */}
+            {activeR === 'R03' && bundle && (
+              <CarrierDocumentPanel shipmentId={shipmentId} bundle={bundle} onChanged={reload} />
             )}
-            {activeDossier === 'textile_label' && (
-              <TextileFibreLabelPanel shipmentId={shipmentId} />
-            )}
-            {activeDossier === 'environmental_claim' && (
-              <EnvironmentalClaimRegisterPanel shipmentId={shipmentId} />
-            )}
-            {activeDossier === 'vn_customs' && bundle && (
+
+            {/* -------------------- POPUP R04: VN CUSTOMS -------------------- */}
+            {activeR === 'R04' && bundle && (
               <VnCustomsHandoffPanel
                 key={`${shipmentId}:${bundle.vnCustomsProfile?.updatedAt || 'new'}:${bundle.vnCustomsEvents.length}:${bundle.vnCustomsEvidence.length}`}
                 shipmentId={shipmentId}
@@ -1480,7 +914,9 @@ export default function ShipmentExportPortal() {
                 onChanged={reload}
               />
             )}
-            {activeDossier === 'eu_import' && bundle && (
+
+            {/* -------------------- POPUP R05: EU IMPORT (EUCDM) -------------------- */}
+            {activeR === 'R05' && bundle && (
               <EuImportHandoffPanel
                 key={`${shipmentId}:${bundle.euImportProfile?.updatedAt || 'new'}:${bundle.euImportLineDetails.length}:${bundle.euImportEvents.length}:${bundle.euImportEvidence.length}`}
                 shipmentId={shipmentId}
@@ -1488,7 +924,9 @@ export default function ShipmentExportPortal() {
                 onChanged={reload}
               />
             )}
-            {activeDossier === 'ics2' && bundle && (
+
+            {/* -------------------- POPUP R06: ICS2 FILING -------------------- */}
+            {activeR === 'R06' && bundle && (
               <Ics2HandoffPanel
                 key={`${shipmentId}:${bundle.ics2Profile?.updatedAt || 'new'}:${bundle.ics2Events.length}:${bundle.ics2Evidence.length}`}
                 shipmentId={shipmentId}
@@ -1496,7 +934,9 @@ export default function ShipmentExportPortal() {
                 onChanged={reload}
               />
             )}
-            {activeDossier === 'origin' && bundle && (
+
+            {/* -------------------- POPUP R07: EVFTA ORIGIN -------------------- */}
+            {activeR === 'R07' && bundle && (
               <OriginHandoffPanel
                 key={`${shipmentId}:${bundle.originProfile?.updatedAt || 'new'}:${bundle.carrierDocuments.filter((item) => item.type === 'origin_support').length}`}
                 shipmentId={shipmentId}
@@ -1504,17 +944,48 @@ export default function ShipmentExportPortal() {
                 onChanged={reload}
               />
             )}
-            {activeDossier === 'compliance_applicability' && (
+
+            {/* -------------------- POPUP R08: TEXTILE FIBRE LABEL -------------------- */}
+            {activeR === 'R08' && (
+              <TextileFibreLabelPanel shipmentId={shipmentId} />
+            )}
+
+            {/* -------------------- POPUP R09: ENVIRONMENTAL CLAIMS -------------------- */}
+            {activeR === 'R09' && (
+              <EnvironmentalClaimRegisterPanel shipmentId={shipmentId} />
+            )}
+
+            {/* -------------------- POPUP R10: GPSR TECHNICAL FILE -------------------- */}
+            {activeR === 'R10' && (
+              <GpsrTechnicalFilePanel shipmentId={shipmentId} />
+            )}
+
+            {/* -------------------- POPUP R11: REACH SVHC ARTICLE DOSSIER -------------------- */}
+            {activeR === 'R11' && (
+              <ReachSvhcDossierPanel shipmentId={shipmentId} />
+            )}
+
+            {/* -------------------- POPUP R12: PRODUCT CARBON FOOTPRINT (PCF) -------------------- */}
+            {activeR === 'R12' && (
+              <PcfStudyPanel shipmentId={shipmentId} />
+            )}
+
+            {/* -------------------- POPUP R13: COMPLIANCE APPLICABILITY -------------------- */}
+            {activeR === 'R13' && (
               <ComplianceApplicabilityPanel shipmentId={shipmentId} />
             )}
-            {activeDossier === 'carrier_documents' && bundle && (
-              <CarrierDocumentPanel shipmentId={shipmentId} bundle={bundle} onChanged={reload} />
+
+            {/* -------------------- POPUP R14: DOCUMENT MANAGER SLOT -------------------- */}
+            {activeR === 'R14' && documentManagerSlot && (
+              <div className="space-y-4">
+                {documentManagerSlot}
+              </div>
             )}
           </div>
 
           <DialogFooter className="pt-3 border-t">
-            <Button size="sm" variant="outline" onClick={() => setActiveDossier(null)}>
-              Đóng hồ sơ
+            <Button size="sm" variant="outline" onClick={() => setActiveR(null)}>
+              Đóng cửa sổ
             </Button>
           </DialogFooter>
         </DialogContent>

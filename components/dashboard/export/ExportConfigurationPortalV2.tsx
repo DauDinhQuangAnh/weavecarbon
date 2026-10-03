@@ -1812,8 +1812,8 @@ const ExportConfigurationPortalV2: React.FC<ExportConfigurationPortalV2Props> = 
   }
   return (
     <div className="space-y-6">
-      <ShipmentExportPortal />
-      {documentManagerSlot}
+      <ShipmentExportPortal documentManagerSlot={documentManagerSlot} />
+
     </div>
   );
 };
