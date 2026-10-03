@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
@@ -686,27 +686,29 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         }
       }
 
+      const osmStyleDefinition = {
+        version: 8 as const,
+        sources: {
+          osm: {
+            type: "raster" as const,
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution:
+              '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          },
+        },
+        layers: [
+          {
+            id: "osm-tiles",
+            type: "raster" as const,
+            source: "osm",
+          },
+        ],
+      };
+
       const mapStyle = hasToken
         ? "mapbox://styles/mapbox/streets-v12"
-        : {
-            version: 8 as const,
-            sources: {
-              osm: {
-                type: "raster" as const,
-                tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-                tileSize: 256,
-                attribution:
-                  '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-              },
-            },
-            layers: [
-              {
-                id: "osm-tiles",
-                type: "raster" as const,
-                source: "osm",
-              },
-            ],
-          };
+        : osmStyleDefinition;
 
       const initialLat = addressRef.current.lat;
       const initialLng = addressRef.current.lng;
@@ -726,6 +728,37 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
       map.addControl(new mapboxgl.NavigationControl(), "top-right");
       mapRef.current = map;
+
+      // Auto-fallback to OpenStreetMap when Mapbox token is restricted to production domain
+      let osmFallbackApplied = false;
+      map.on("error", (event) => {
+        const errMsg = String(
+          ((event as unknown) as { error?: { message?: string } }).error?.message || ""
+        );
+        const isAuthOrStyleError =
+          errMsg.includes("401") ||
+          errMsg.includes("403") ||
+          errMsg.includes("Unauthorized") ||
+          errMsg.toLowerCase().includes("style") ||
+          errMsg.toLowerCase().includes("fetch");
+
+        if (hasToken && !osmFallbackApplied && isAuthOrStyleError) {
+          osmFallbackApplied = true;
+          console.warn("[LocationPicker] Mapbox error – falling back to OpenStreetMap:", errMsg);
+          try {
+            map.setStyle(osmStyleDefinition as Parameters<typeof map.setStyle>[0]);
+            map.once("styledata", () => {
+              const curLat = addressRef.current.lat;
+              const curLng = addressRef.current.lng;
+              if (hasCoordinatePair(curLat, curLng)) {
+                syncMarker(curLng as number, curLat as number, { flyTo: false });
+              }
+            });
+          } catch {
+            // ignore setStyle errors in fallback
+          }
+        }
+      });
 
       map.on("load", () => {
         if (hasInitialCoordinates) {
