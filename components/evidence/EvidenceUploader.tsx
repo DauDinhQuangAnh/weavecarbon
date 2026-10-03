@@ -137,9 +137,19 @@ const EvidenceUploader: React.FC<Props> = ({
     if (!latest) return [];
     const map: Record<string, unknown> = {};
 
+    const isElec = latest.kind === 'electricity_bill' || latest.aiAnalysis?.detected_kind === 'electricity_bill';
+    const isFuel = latest.kind === 'fuel_receipt' || latest.aiAnalysis?.detected_kind === 'fuel_receipt';
+
+    const shouldIgnoreKey = (k: string) => {
+      if (k === 'success' || k === 'source' || k === 'raw_fields' || k === 'rawFields' || k === 'detected_kind' || k === 'document_title') return true;
+      if (isElec && (k === 'fuel_type' || k === 'fuel_liters')) return true;
+      if (isFuel && (k === 'kwh' || k === 'kwh_total')) return true;
+      return false;
+    };
+
     if (latest.aiAnalysis) {
       Object.entries(latest.aiAnalysis).forEach(([k, v]) => {
-        if (v != null && v !== "" && k !== "success" && k !== "source") {
+        if (v != null && v !== "" && typeof v !== "object" && !shouldIgnoreKey(k)) {
           map[k] = v;
         }
       });
@@ -148,7 +158,7 @@ const EvidenceUploader: React.FC<Props> = ({
     const raw = (latest.extracted || (latest as unknown as Record<string, unknown>).extractedJson) as Record<string, unknown> | undefined;
     if (raw && typeof raw === "object") {
       Object.entries(raw).forEach(([k, v]) => {
-        if (v != null && v !== "") {
+        if (v != null && v !== "" && typeof v !== "object" && !shouldIgnoreKey(k)) {
           map[k] = v;
         }
       });
@@ -316,7 +326,7 @@ const EvidenceUploader: React.FC<Props> = ({
                 {supplierName && <Field label="Nhà cung cấp / Phát hành" value={String(supplierName)} />}
                 {facilityName && <Field label="Cơ sở / Nhà máy" value={String(facilityName)} />}
                 {billingPeriod && <Field label="Kỳ thanh toán / Ngày" value={String(billingPeriod)} />}
-                {kwhTotal != null && (
+                {kwhTotal != null && kind !== 'fuel_receipt' && latest.kind !== 'fuel_receipt' && (
                   <Field
                     label="Sản lượng điện"
                     value={
@@ -327,7 +337,7 @@ const EvidenceUploader: React.FC<Props> = ({
                     }
                   />
                 )}
-                {fuelLiters != null && (
+                {fuelLiters != null && kind !== 'electricity_bill' && latest.kind !== 'electricity_bill' && (
                   <Field
                     label="Nhiên liệu"
                     value={
