@@ -1120,17 +1120,17 @@ const LogisticsClient: React.FC = () => {
                         </div>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
+                        <table className="w-full min-w-[720px] text-xs">
                           <thead className="bg-slate-50/80 text-slate-600 border-b border-slate-100">
                             <tr>
-                              <th className="px-3 py-2 text-left font-semibold">Chặng</th>
-                              <th className="px-3 py-2 text-left font-semibold">Tuyến</th>
-                              <th className="hidden px-3 py-2 text-left font-semibold md:table-cell">Phương thức</th>
-                              <th className="px-3 py-2 text-left font-semibold">Hệ số</th>
-                              <th className="px-3 py-2 text-right font-semibold">Cự ly (km)</th>
-                              <th className="hidden px-3 py-2 text-right font-semibold md:table-cell">Tonne-KM</th>
-                              <th className="hidden px-3 py-2 text-right font-semibold lg:table-cell">Hệ số (kg/t-km)</th>
-                              <th className="px-3 py-2 text-right font-semibold">CO₂e (kg)</th>
+                              <th className="px-3.5 py-2.5 text-left font-semibold whitespace-nowrap w-12">Chặng</th>
+                              <th className="px-3.5 py-2.5 text-left font-semibold min-w-[200px]">Tuyến</th>
+                              <th className="px-3.5 py-2.5 text-left font-semibold whitespace-nowrap">Phương thức</th>
+                              <th className="px-3.5 py-2.5 text-left font-semibold whitespace-nowrap">Hệ số</th>
+                              <th className="px-3.5 py-2.5 text-right font-semibold whitespace-nowrap">Cự ly (km)</th>
+                              <th className="px-3.5 py-2.5 text-right font-semibold whitespace-nowrap">Tonne-KM</th>
+                              <th className="px-3.5 py-2.5 text-right font-semibold whitespace-nowrap">Hệ số (kg/t-km)</th>
+                              <th className="px-3.5 py-2.5 text-right font-semibold whitespace-nowrap">CO₂e (kg)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
@@ -1141,31 +1141,33 @@ const LogisticsClient: React.FC = () => {
                               const tonneKm = (weightKg / 1000) * leg.distanceKm;
                               return (
                                 <tr key={leg.id} className="hover:bg-slate-50/50 transition-colors">
-                                  <td className="px-3 py-2.5 font-mono text-slate-500">{idx + 1}</td>
-                                  <td className="px-3 py-2.5 font-medium text-slate-800">
-                                    <span className="line-clamp-1">
-                                      {leg.originLocation} → {leg.destinationLocation}
-                                    </span>
+                                  <td className="px-3.5 py-2.5 font-mono text-slate-500 whitespace-nowrap">{idx + 1}</td>
+                                  <td className="px-3.5 py-2.5 font-medium text-slate-800">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span>{leg.originLocation}</span>
+                                      <span className="text-slate-400">→</span>
+                                      <span>{leg.destinationLocation}</span>
+                                    </div>
                                   </td>
-                                  <td className="hidden px-3 py-2.5 md:table-cell text-slate-600">{getModeLabel(leg.transportMode)}</td>
-                                  <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500">{factorKey}</td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{leg.distanceKm.toLocaleString()}</td>
-                                  <td className="hidden px-3 py-2.5 text-right tabular-nums text-slate-600 md:table-cell">{tonneKm.toFixed(2)}</td>
-                                  <td className="hidden px-3 py-2.5 text-right tabular-nums text-slate-600 lg:table-cell">{defra.factor}</td>
-                                  <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-emerald-700">{leg.co2e.toFixed(2)}</td>
+                                  <td className="px-3.5 py-2.5 text-slate-600 whitespace-nowrap">{getModeLabel(leg.transportMode)}</td>
+                                  <td className="px-3.5 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">{factorKey}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700 whitespace-nowrap">{leg.distanceKm.toLocaleString()}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600 whitespace-nowrap">{tonneKm.toFixed(2)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600 whitespace-nowrap">{defra.factor}</td>
+                                  <td className="px-3.5 py-2.5 text-right font-semibold tabular-nums text-emerald-700 whitespace-nowrap">{leg.co2e.toFixed(2)}</td>
                                 </tr>
                               );
                             })}
                           </tbody>
                           <tfoot>
-                            <tr className="border-t border-slate-200 bg-emerald-50/40">
-                              <td colSpan={4} className="px-3 py-2.5 font-bold text-slate-800">Tổng cộng</td>
-                              <td className="px-3 py-2.5 text-right font-bold tabular-nums text-slate-800">
+                            <tr className="border-t border-slate-200 bg-emerald-50/50">
+                              <td colSpan={4} className="px-3.5 py-2.5 font-bold text-slate-800">Tổng cộng</td>
+                              <td className="px-3.5 py-2.5 text-right font-bold tabular-nums text-slate-800 whitespace-nowrap">
                                 {selectedShipment.totalDistanceKm.toLocaleString()}
                               </td>
-                              <td className="hidden px-3 py-2.5 md:table-cell" />
-                              <td className="hidden px-3 py-2.5 lg:table-cell" />
-                              <td className="px-3 py-2.5 text-right font-bold tabular-nums text-emerald-700 text-sm">
+                              <td className="px-3.5 py-2.5" />
+                              <td className="px-3.5 py-2.5" />
+                              <td className="px-3.5 py-2.5 text-right font-bold tabular-nums text-emerald-700 text-sm whitespace-nowrap">
                                 {selectedShipment.totalCo2e.toFixed(2)}
                               </td>
                             </tr>
