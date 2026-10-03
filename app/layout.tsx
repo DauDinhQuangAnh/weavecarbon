@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster as SonnerToaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
@@ -10,8 +10,10 @@ import { ROOT_NAMESPACES } from "@/lib/i18n/namespaces";
 import { getBackendHealth } from "@/lib/backendHealth";
 import {
   DEFAULT_TOAST_DURATION,
+  DEFAULT_TOAST_EXPAND,
   DEFAULT_TOAST_POSITION,
-  DEFAULT_TOAST_SWIPE_DIRECTIONS
+  DEFAULT_TOAST_SWIPE_DIRECTIONS,
+  DEFAULT_TOAST_VISIBLE
 } from "@/lib/toastConfig";
 import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 
@@ -57,6 +59,8 @@ export default async function RootLayout({
                 <SonnerToaster
                   position={DEFAULT_TOAST_POSITION}
                   richColors
+                  expand={DEFAULT_TOAST_EXPAND}
+                  visibleToasts={DEFAULT_TOAST_VISIBLE}
                   closeButton={false}
                   duration={DEFAULT_TOAST_DURATION}
                   swipeDirections={[...DEFAULT_TOAST_SWIPE_DIRECTIONS]} />
