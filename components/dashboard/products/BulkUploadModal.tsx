@@ -1014,6 +1014,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [validationResult, setValidationResult] =
   useState<ValidationResult | null>(null);
   const [processedRows, setProcessedRows] = useState<BulkProductRow[]>([]);
@@ -1030,6 +1031,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const resetState = useCallback(() => {
     setCurrentStep(0);
     setFile(null);
+    setDragOver(false);
     setValidationResult(null);
     setProcessedRows([]);
     setIsProcessing(false);
@@ -1038,6 +1040,9 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     setImportResult(null);
     setError(null);
     setBackendValidationPassed(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }, []);
 
   const handleClose = useCallback(() => {
@@ -1045,10 +1050,8 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     onClose();
   }, [resetState, onClose]);
 
-  const handleFileSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedFile = e.target.files?.[0];
-      if (!selectedFile) return;
+  const processSelectedFile = useCallback(
+    async (selectedFile: File) => {
 
       const validTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1228,6 +1231,16 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     [normalizedStarterDomesticMarket, starterDomesticOnly, t]
   );
 
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0];
+      if (selectedFile) {
+        void processSelectedFile(selectedFile);
+      }
+    },
+    [processSelectedFile]
+  );
+
   const handleDownloadTemplate = useCallback((format: "xlsx" | "csv") => {
     void generateTemplate(format);
   }, []);
@@ -1337,64 +1350,103 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             </div>
 
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-                ${file ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50"}`}
-              onClick={() => fileInputRef.current?.click()}>
-
+              className={`group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200
+                ${
+                  dragOver
+                    ? "border-primary bg-primary/10 scale-[0.99]"
+                    : file
+                      ? "border-primary/80 bg-primary/5"
+                      : "border-slate-300 hover:border-primary/60 hover:bg-slate-50/80"
+                }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragOver(false);
+                const droppedFile = e.dataTransfer.files?.[0];
+                if (droppedFile) {
+                  void processSelectedFile(droppedFile);
+                }
+              }}
+              onClick={() => fileInputRef.current?.click()}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 className="hidden"
-                onChange={handleFileSelect} />
+                onChange={handleFileSelect}
+              />
 
-
-              {isProcessing ?
-              <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                  <p className="text-muted-foreground">{t("upload.processingFile")}</p>
-                </div> :
-              file ?
-              <div className="flex flex-col items-center gap-3">
-                  <FileCheck className="w-10 h-10 text-primary" />
+              {isProcessing ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
+                    <Loader2 className="h-7 w-7 text-primary animate-spin" />
+                  </div>
                   <div>
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(file.size / 1024).toFixed(1)} KB
+                    <p className="font-semibold text-slate-800">{t("upload.processingFile")}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Đang đọc và phân tích cấu trúc dữ liệu...
+                    </p>
+                  </div>
+                </div>
+              ) : file ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 shadow-sm">
+                    <FileCheck className="h-7 w-7 text-emerald-700" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{file.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {(file.size / 1024).toFixed(1)} KB · Đã sẵn sàng
                     </p>
                   </div>
                   <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFile(null);
-                    setError(null);
-                  }}>
-
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs text-slate-700 hover:text-rose-600 hover:bg-rose-50 border-slate-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                      setError(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
                     {t("upload.selectAnotherFile")}
                   </Button>
-                </div> :
-
-              <div className="flex flex-col items-center gap-3">
-                  <Upload className="w-10 h-10 text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20 shadow-sm transition-all group-hover:scale-105 group-hover:bg-primary/15">
+                    <Upload className="h-7 w-7 text-primary" />
+                  </div>
                   <div>
-                    <p className="font-medium">{t("upload.dropzoneTitle")}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-semibold text-slate-800">{t("upload.dropzoneTitle")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {t("upload.dropzoneDescription")}
                     </p>
                   </div>
                 </div>
-              }
+              )}
             </div>
 
-            {error &&
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center gap-2">
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
                 <p className="text-sm text-destructive">{error}</p>
               </div>
-            }
-          </div>);
+            )}
+          </div>
+        );
 
 
       case 1:
@@ -1576,27 +1628,32 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
             {BULK_UPLOAD_STEPS.map((step, index) =>
             <React.Fragment key={step.id}>
                 <div className="flex flex-col items-center">
-                <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                  ${
-                index < currentStep ?
-                "bg-primary text-primary-foreground" :
-                index === currentStep ?
-                "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2" :
-                "bg-muted text-muted-foreground"}`
-                }>
-
-                  {index < currentStep ?
-                <CheckCircle2 className="w-4 h-4" /> :
-
-                index + 1
-                }
-                </div>
-                <span
-                className={`text-xs mt-1 ${index <= currentStep ? "text-foreground" : "text-muted-foreground"}`}>
-
-                  {t(STEP_LABEL_KEYS[step.id])}
-                </span>
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                      index < currentStep
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : index === currentStep
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 ring-4 ring-primary/20"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {index < currentStep ? (
+                      <CheckCircle2 className="w-5 h-5" />
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs mt-1.5 font-medium transition-colors ${
+                      index === currentStep
+                        ? "text-primary font-semibold"
+                        : index < currentStep
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {t(STEP_LABEL_KEYS[step.id])}
+                  </span>
                 </div>
                 {index < BULK_UPLOAD_STEPS.length - 1 &&
               <div

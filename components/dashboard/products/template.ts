@@ -305,7 +305,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   }
 ];
 
-const buildSampleData = (): Array<Record<string, string | number>> => {
+export const buildSampleData = (): Array<Record<string, string | number>> => {
   const now = new Date();
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
     now.getDate()

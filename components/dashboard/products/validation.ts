@@ -203,6 +203,7 @@ const MATERIAL_SOURCE_MAP: Record<string, string> = {
 const MARKET_TYPE_MAP: Record<string, string> = {
   domestic: "domestic",
   noidia: "domestic",
+  trongnuoc: "domestic",
   vietnam: "domestic",
   export: "export",
   xuatkhau: "export"
@@ -269,6 +270,7 @@ const normalizeToken = (value: unknown): string =>
   String(value ?? "")
     .trim()
     .toLowerCase()
+    .replace(/đ/g, "d")
     .normalize("NFD")
     .replace(/%/g, " percent ")
     .replace(/[\u0300-\u036f]/g, "")
