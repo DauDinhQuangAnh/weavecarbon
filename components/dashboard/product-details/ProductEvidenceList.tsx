@@ -23,6 +23,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { apiRequest, API_BASE_URL, authTokenStore } from '@/lib/apiClient';
+import { fetchWithPolicy } from '@/lib/http/requestPolicy';
 import { useAuth } from '@/contexts/AuthContext';
 import { shortHash } from '@/lib/documentHash';
 
@@ -164,7 +165,7 @@ const ProductEvidenceList: React.FC<Props> = ({
     const token = authTokenStore.getAccessToken();
     const downloadUrl = `${API_BASE_URL}/evidence/${activeEvidence.id}/download?inline=true${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
-    fetch(downloadUrl, {
+    fetchWithPolicy(downloadUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',
     })
