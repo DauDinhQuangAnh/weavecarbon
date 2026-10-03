@@ -580,47 +580,46 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
           </span>
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {R_ITEMS.map((r) => {
             const Icon = r.icon;
             return (
               <div
                 key={r.code}
                 onClick={() => setActiveR(r.code)}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/20 cursor-pointer transition-all"
+                className="group relative flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-xs hover:border-emerald-500 hover:shadow-md hover:bg-emerald-50/15 cursor-pointer transition-all duration-200"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <span className="flex h-8 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs shadow-xs">
-                    {r.code}
-                  </span>
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
-                    <Icon className="h-4.5 w-4.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors truncate">
-                        {r.title}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-7 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs shadow-xs">
+                        {r.code}
                       </span>
-                      <Badge variant="outline" className={`text-[10px] py-0 px-2 font-medium ${r.badgeTone}`}>
-                        {r.tag}
-                      </Badge>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
+                        <Icon className="h-4 w-4" />
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 truncate mt-0.5">
+                    <Badge variant="outline" className={`text-[10px] py-0.5 px-2 font-medium truncate max-w-[140px] ${r.badgeTone}`}>
+                      {r.tag}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors line-clamp-2 leading-snug">
+                      {r.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 min-h-[32px] leading-relaxed">
                       {r.subtitle}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 gap-1 text-xs text-emerald-800 group-hover:bg-emerald-100 font-semibold"
-                  >
-                    <span>Mở thực hiện</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 group-hover:text-emerald-800 transition-colors">
+                  <span className="font-medium text-[11px]">Nhập tay hoặc Import</span>
+                  <span className="flex items-center gap-1 font-semibold text-emerald-800 text-xs group-hover:translate-x-0.5 transition-transform">
+                    <span>Mở popup</span>
                     <ExternalLink className="h-3.5 w-3.5" />
-                  </Button>
+                  </span>
                 </div>
               </div>
             );
@@ -630,39 +629,40 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
           {documentManagerSlot && (
             <div
               onClick={() => setActiveR('R14')}
-              className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs hover:border-emerald-400 hover:shadow-sm hover:bg-emerald-50/20 cursor-pointer transition-all"
+              className="group relative flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-xs hover:border-emerald-500 hover:shadow-md hover:bg-emerald-50/15 cursor-pointer transition-all duration-200"
             >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <span className="flex h-8 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs shadow-xs">
-                  R14
-                </span>
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
-                  <FileCheck2 className="h-4.5 w-4.5" />
-                </div>
-                <div className="min-w-0">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
-                      Quản lý Chứng nhận & Hồ sơ Tuân thủ Thị trường
+                    <span className="flex h-7 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-800 text-white font-mono font-bold text-xs shadow-xs">
+                      R14
                     </span>
-                    <Badge variant="outline" className="text-[10px] py-0 px-2 font-medium border-emerald-300 bg-emerald-50 text-emerald-800">
-                      Chứng chỉ & Chứng nhận
-                    </Badge>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 group-hover:bg-emerald-100 group-hover:text-emerald-800 transition-colors">
+                      <FileCheck2 className="h-4 w-4" />
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                  <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-medium border-emerald-300 bg-emerald-50 text-emerald-800">
+                    Chứng chỉ & Chứng nhận
+                  </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors line-clamp-2 leading-snug">
+                    Quản lý Chứng nhận & Hồ sơ Tuân thủ Thị trường
+                  </h3>
+                  <p className="text-xs text-slate-500 line-clamp-2 mt-1 min-h-[32px] leading-relaxed">
                     Hồ sơ tuân thủ xuất khẩu và tài liệu chứng nhận vật liệu mở khóa theo thị trường.
                   </p>
                 </div>
               </div>
 
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-8 gap-1 text-xs text-emerald-800 group-hover:bg-emerald-100 font-semibold"
-              >
-                <span>Mở thực hiện</span>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 group-hover:text-emerald-800 transition-colors">
+                <span className="font-medium text-[11px]">Chứng nhận thị trường</span>
+                <span className="flex items-center gap-1 font-semibold text-emerald-800 text-xs group-hover:translate-x-0.5 transition-transform">
+                  <span>Mở popup</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </span>
+              </div>
             </div>
           )}
         </div>
