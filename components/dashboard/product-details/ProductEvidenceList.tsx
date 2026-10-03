@@ -3,8 +3,26 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileCheck2, FileWarning, Loader2, ShieldCheck, FileText } from 'lucide-react';
-import { apiRequest } from '@/lib/apiClient';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  FileCheck2,
+  FileWarning,
+  Loader2,
+  ShieldCheck,
+  FileText,
+  Eye,
+  Download,
+  ExternalLink,
+  Image as ImageIcon,
+} from 'lucide-react';
+import { apiRequest, API_BASE_URL, authTokenStore } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { shortHash } from '@/lib/documentHash';
 
@@ -102,6 +120,12 @@ const STATUS_STYLE: Record<string, string> = {
   rejected: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
+const isImageFileName = (name: string): boolean =>
+  /\.(jpe?g|png|webp|gif|svg)$/i.test(name);
+
+const isPdfFileName = (name: string): boolean =>
+  /\.pdf$/i.test(name);
+
 const ProductEvidenceList: React.FC<Props> = ({
   productId,
   evidenceLookupCode,
@@ -117,6 +141,62 @@ const ProductEvidenceList: React.FC<Props> = ({
     return [];
   });
   const [loading, setLoading] = useState(true);
+  const [activeEvidence, setActiveEvidence] = useState<EvidenceRow | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeEvidence) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setPreviewLoading(false);
+      setPreviewError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    const token = authTokenStore.getAccessToken();
+    const downloadUrl = `${API_BASE_URL}/evidence/${activeEvidence.id}/download?inline=true${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+
+    fetch(downloadUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Không thể tải tệp tin (${res.status})`);
+        }
+        const blob = await res.blob();
+        if (!cancelled) {
+          const objectUrl = URL.createObjectURL(blob);
+          setPreviewUrl(objectUrl);
+          setPreviewLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setPreviewError(err?.message || 'Lỗi khi tải ảnh/tài liệu xem trước');
+          setPreviewLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeEvidence]);
+
+  const handleDownload = (doc: EvidenceRow | null) => {
+    if (!doc) return;
+    const token = authTokenStore.getAccessToken();
+    const url = `${API_BASE_URL}/evidence/${doc.id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    window.open(url, '_blank');
+  };
 
   useEffect(() => {
     if (!companyId) {
@@ -224,12 +304,23 @@ const ProductEvidenceList: React.FC<Props> = ({
             {rows.map((r) => {
               const hashHex =
                 r.storage_path.split('/').pop()?.split('.')[0] ?? '';
+              const isImg = isImageFileName(r.file_name);
               return (
-                <li key={r.id} className="flex items-start gap-3 py-3">
-                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                <li
+                  key={r.id}
+                  className="group flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/40 cursor-pointer"
+                  onClick={() => setActiveEvidence(r)}
+                >
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground group-hover:border-primary/40 group-hover:text-primary">
+                    {isImg ? (
+                      <ImageIcon className="h-4 w-4" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-sm font-medium">
+                      <span className="truncate text-sm font-medium group-hover:text-primary transition-colors">
                         {r.file_name}
                       </span>
                       <Badge
@@ -288,6 +379,21 @@ const ProductEvidenceList: React.FC<Props> = ({
                       </div>
                     )}
                   </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 text-xs text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveEvidence(r);
+                      }}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Xem
+                    </Button>
+                  </div>
                 </li>
               );
             })}
@@ -298,6 +404,151 @@ const ProductEvidenceList: React.FC<Props> = ({
           đảm bảo tamper-evident cho audit (ISO 14044 §4.4.2).
         </p>
       </CardContent>
+
+      <Dialog
+        open={Boolean(activeEvidence)}
+        onOpenChange={(open) => {
+          if (!open) setActiveEvidence(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              {activeEvidence && isImageFileName(activeEvidence.file_name) ? (
+                <ImageIcon className="h-5 w-5 text-primary" />
+              ) : (
+                <FileText className="h-5 w-5 text-primary" />
+              )}
+              <span className="truncate">{activeEvidence?.file_name}</span>
+            </DialogTitle>
+            <DialogDescription className="flex flex-wrap items-center gap-2 text-xs">
+              <span>{KIND_LABEL[activeEvidence?.kind || ''] ?? activeEvidence?.kind}</span>
+              <span>•</span>
+              <span className="font-mono">
+                SHA-256: {activeEvidence ? shortHash(activeEvidence.storage_path.split('/').pop()?.split('.')[0] ?? '') : ''}
+              </span>
+              {activeEvidence?.ocr_confidence !== null && (
+                <>
+                  <span>•</span>
+                  <span>Độ tin cậy OCR: {Math.round((activeEvidence?.ocr_confidence ?? 0) * 100)}%</span>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-2">
+            {previewLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm">Đang tải bản xem trước...</p>
+              </div>
+            ) : previewError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
+                <FileWarning className="h-10 w-10 text-destructive/70" />
+                <p className="text-sm text-destructive">{previewError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownload(activeEvidence)}
+                >
+                  <Download className="mr-1.5 h-4 w-4" />
+                  Tải trực tiếp về máy
+                </Button>
+              </div>
+            ) : previewUrl ? (
+              <div className="flex flex-col gap-4">
+                {activeEvidence && isImageFileName(activeEvidence.file_name) ? (
+                  <div className="flex justify-center items-center bg-muted/20 rounded-lg p-2 border overflow-hidden max-h-[55vh]">
+                    <img
+                      src={previewUrl}
+                      alt={activeEvidence.file_name}
+                      className="max-h-[50vh] w-auto object-contain rounded shadow-sm"
+                    />
+                  </div>
+                ) : activeEvidence && isPdfFileName(activeEvidence.file_name) ? (
+                  <iframe
+                    src={previewUrl}
+                    title={activeEvidence.file_name}
+                    className="w-full h-[55vh] border rounded-lg"
+                  />
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <FileText className="mx-auto mb-2 h-12 w-12 opacity-50" />
+                    <p className="text-sm">Định dạng file không hỗ trợ xem trực tiếp trong khung xem trước.</p>
+                  </div>
+                )}
+
+                {activeEvidence?.extracted && Object.keys(activeEvidence.extracted).length > 0 && (
+                  <div className="rounded-lg border bg-muted/30 p-3 text-xs">
+                    <p className="font-semibold text-foreground mb-1.5">Thông tin AI/OCR đã trích xuất:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-muted-foreground">
+                      {Boolean(activeEvidence.extracted.supplier || activeEvidence.extracted.supplier_name) && (
+                        <div>
+                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Nhà cung cấp</span>
+                          <span className="font-medium text-foreground">{String(activeEvidence.extracted.supplier || activeEvidence.extracted.supplier_name)}</span>
+                        </div>
+                      )}
+                      {Boolean(activeEvidence.extracted.billing_period || activeEvidence.extracted.period_start) && (
+                        <div>
+                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Kỳ thanh toán</span>
+                          <span className="font-medium text-foreground">{String(activeEvidence.extracted.billing_period || activeEvidence.extracted.period_start)}</span>
+                        </div>
+                      )}
+                      {typeof (activeEvidence.extracted.kwh_total ?? activeEvidence.extracted.kwh) === 'number' && (
+                        <div>
+                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Điện năng tiêu thụ</span>
+                          <span className="font-semibold text-emerald-600">{Number(activeEvidence.extracted.kwh_total ?? activeEvidence.extracted.kwh).toLocaleString('vi-VN')} kWh</span>
+                        </div>
+                      )}
+                      {typeof (activeEvidence.extracted.fuel_liters) === 'number' && (
+                        <div>
+                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Nhiên liệu</span>
+                          <span className="font-semibold text-amber-600">{Number(activeEvidence.extracted.fuel_liters).toLocaleString('vi-VN')} L</span>
+                        </div>
+                      )}
+                      {typeof (activeEvidence.extracted.amount_vnd ?? activeEvidence.extracted.total_amount) === 'number' && (
+                        <div>
+                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Tổng tiền</span>
+                          <span className="font-semibold text-blue-600">{Number(activeEvidence.extracted.amount_vnd ?? activeEvidence.extracted.total_amount).toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t mt-2">
+            <span className="text-xs text-muted-foreground">
+              {activeEvidence?.created_at
+                ? `Ngày tải lên: ${new Date(activeEvidence.created_at).toLocaleString('vi-VN')}`
+                : ''}
+            </span>
+            <div className="flex gap-2">
+              {previewUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(previewUrl, '_blank')}
+                >
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                  Mở tab mới
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleDownload(activeEvidence)}
+              >
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                Tải file gốc
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
