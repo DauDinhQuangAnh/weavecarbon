@@ -97,10 +97,11 @@ const PORT_HUB_SNAP_PROFILE_METERS =
 const RAIL_HUB_SNAP_PROFILE_METERS =
   [300, 800, 2000, "unlimited"] as const satisfies readonly SnapRadius[];
 
+const MAX_ROAD_ROUTE_DISTANCE_KM = 3500;
 const MAX_ROUTE_ATTEMPTS = 3;
 const MAX_ROUTE_CACHE_ENTRIES = 200;
 const RESOLVED_ROUTE_CACHE_TTL_MS = 10 * 60_000;
-const FAILED_ROUTE_CACHE_TTL_MS = 30_000;
+const FAILED_ROUTE_CACHE_TTL_MS = 5 * 60_000;
 const roadRouteCache = new Map<
   string,
   { expiresAt: number; promise: Promise<RoadRouteResolution> }
@@ -289,7 +290,7 @@ const mapDirectionsFailureReason = (
     return "no_segment";
   }
 
-  if (normalizedCode === "noroute") {
+  if (normalizedCode === "noroute" || normalizedCode === "invalidinput") {
     return "no_route";
   }
 
@@ -472,8 +473,8 @@ const executeRouteAttempt = async (
         Accept: "application/json"
       }
     }, {
-      retries: 1,
-      timeoutMs: 12_000
+      retries: 0,
+      timeoutMs: 5_000
     });
 
     let payload: MapboxDirectionsResponse | null = null;
@@ -554,6 +555,14 @@ export const fetchRoadRoute = async (
     return {
       attemptedRadiuses: [],
       failureReason: "invalid_coordinates",
+      ok: false
+    };
+  }
+
+  if (haversineDistanceKm(origin, destination) > MAX_ROAD_ROUTE_DISTANCE_KM) {
+    return {
+      attemptedRadiuses: [],
+      failureReason: "no_route",
       ok: false
     };
   }
