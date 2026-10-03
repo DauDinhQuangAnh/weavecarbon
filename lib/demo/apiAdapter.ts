@@ -868,22 +868,195 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         };
       }
 
+      if (method === "POST" && pathname === "/evidence/analyze-file") {
+        let hintKind = "electricity_bill";
+        let fileName = "Hoa_don_dien_EVN.pdf";
+        if (typeof FormData !== "undefined" && body instanceof FormData) {
+          const kindVal = body.get("hintKind");
+          if (typeof kindVal === "string" && kindVal) hintKind = kindVal;
+          const fileVal = body.get("file");
+          if (typeof File !== "undefined" && fileVal instanceof File) fileName = fileVal.name;
+        }
+
+        const isFuel = hintKind === "fuel_receipt" || /xang|dau|diesel|petrol/i.test(fileName);
+        const isMaterial = hintKind === "material_invoice" || /nguyen_lieu|vai|cotton|soi|bom/i.test(fileName);
+        const isTransport = hintKind === "transport_bol" || /van_don|bol|shipment|airway/i.test(fileName);
+
+        if (isFuel) {
+          return {
+            handled: true,
+            value: {
+              success: true,
+              source: "ai_vision",
+              detected_kind: "fuel_receipt",
+              document_title: "Hóa đơn nhiên liệu dầu Diesel - Petrolimex",
+              supplier_name: "Petrolimex Việt Nam",
+              facility_name: "Nhà máy Sản xuất WeaveCarbon",
+              billing_period: "2026-02",
+              period_start: "2026-02-01",
+              period_end: "2026-02-28",
+              fuel_type: "diesel",
+              fuel_liters: 1250,
+              emission_factor: 2.688,
+              emission_factor_source: "IPCC 2006 Emission Factors",
+              total_amount: 27500000,
+              currency: "VND",
+              confidence: 0.93,
+              summary: "AI đã trích xuất thành công hóa đơn dầu Diesel với khối lượng 1,250 lít phục vụ lò hơi sản xuất."
+            }
+          };
+        }
+
+        if (isMaterial) {
+          return {
+            handled: true,
+            value: {
+              success: true,
+              source: "ai_vision",
+              detected_kind: "material_invoice",
+              document_title: "Hóa đơn nguyên vật liệu dệt may",
+              supplier_name: "Công ty Cổ phần Bông Việt",
+              facility_name: "Kho nguyên liệu A",
+              billing_period: "2026-02",
+              period_start: "2026-02-10",
+              period_end: "2026-02-15",
+              total_amount: 85000000,
+              currency: "VND",
+              confidence: 0.91,
+              summary: "AI đã trích xuất thông tin hóa đơn 500 kg sợi Cotton chải kỹ từ nhà cung ứng Bông Việt."
+            }
+          };
+        }
+
+        if (isTransport) {
+          return {
+            handled: true,
+            value: {
+              success: true,
+              source: "ai_vision",
+              detected_kind: "transport_bol",
+              document_title: "Vận đơn Bill of Lading đường biển",
+              supplier_name: "Hãng tàu Maersk Line",
+              facility_name: "Cảng Cát Lái → Cảng Hamburg",
+              billing_period: "2026-02",
+              period_start: "2026-02-20",
+              period_end: "2026-03-15",
+              total_amount: 3200,
+              currency: "USD",
+              confidence: 0.92,
+              summary: "AI đã trích xuất vận đơn đường biển xuất khẩu tuyến Cát Lái - Hamburg, trọng lượng 18.5 tấn."
+            }
+          };
+        }
+
+        return {
+          handled: true,
+          value: {
+            success: true,
+            source: "ai_vision",
+            detected_kind: "electricity_bill",
+            document_title: "Hóa đơn tiền điện EVN",
+            supplier_name: "Tổng công ty Điện lực TP.HCM (EVN HCMC)",
+            facility_name: "Nhà máy Sản xuất WeaveCarbon",
+            billing_period: "2026-02",
+            period_start: "2026-02-01",
+            period_end: "2026-02-28",
+            kwh_total: 38500,
+            emission_factor: 0.6592,
+            emission_factor_source: "Quyết định 2626/QĐ-BCT",
+            total_amount: 77000000,
+            currency: "VND",
+            meter_number: "EVN-MTR-88910",
+            confidence: 0.94,
+            summary: "AI đã trích xuất thành công hóa đơn tiền điện EVN với sản lượng 38,500 kWh, hệ số phát thải 0.6592 kg CO₂e/kWh."
+          }
+        };
+      }
+
       if (method === "POST" && pathname === "/evidence/upload") {
+        let kind = "electricity_bill";
+        let fileName = "demo-upload.pdf";
+        if (typeof FormData !== "undefined" && body instanceof FormData) {
+          const kindVal = body.get("kind");
+          if (typeof kindVal === "string" && kindVal) kind = kindVal;
+          const fileVal = body.get("file");
+          if (typeof File !== "undefined" && fileVal instanceof File) fileName = fileVal.name;
+        }
+
+        const isFuel = kind === "fuel_receipt" || /xang|dau|diesel|petrol/i.test(fileName);
+        const isMaterial = kind === "material_invoice" || /nguyen_lieu|vai|cotton|soi|bom/i.test(fileName);
+        const isTransport = kind === "transport_bol" || /van_don|bol|shipment|airway/i.test(fileName);
+
+        const extractedJson = isFuel
+          ? {
+              supplier: "Petrolimex Việt Nam",
+              facility_name: "Nhà máy Sản xuất WeaveCarbon",
+              fuel_type: "diesel",
+              fuel_liters: 1250,
+              amount_vnd: 27500000,
+              billing_period: "2026-02",
+              period_start: "2026-02-01",
+              period_end: "2026-02-28"
+            }
+          : isMaterial
+          ? {
+              supplier: "Công ty Cổ phần Bông Việt",
+              facility_name: "Kho nguyên liệu A",
+              material_name: "Sợi Cotton 100%",
+              amount_vnd: 85000000,
+              billing_period: "2026-02",
+              period_start: "2026-02-10",
+              period_end: "2026-02-15"
+            }
+          : isTransport
+          ? {
+              supplier: "Maersk Line",
+              facility_name: "Cảng Cát Lái",
+              transport_mode: "sea",
+              billing_period: "2026-02",
+              period_start: "2026-02-20",
+              period_end: "2026-03-15"
+            }
+          : {
+              supplier: "EVN HCMC - Điện lực",
+              facility_name: "Nhà máy Sản xuất WeaveCarbon",
+              billing_period: "2026-02",
+              period_start: "2026-02-01",
+              period_end: "2026-02-28",
+              kwh_total: 38500,
+              kwh: 38500,
+              amount_vnd: 77000000,
+              emission_factor: 0.6592
+            };
+
         return {
           handled: true,
           value: {
             id: `ev-demo-${Date.now()}`,
-            kind: "supplier_declaration",
-            documentName: "demo-upload.pdf",
-            fileName: "demo-upload.pdf",
-            status: "processing",
-            verificationLevel: 0,
-            trustScore: 61,
+            kind,
+            documentName: fileName,
+            fileName: fileName,
+            file_name: fileName,
+            status: "extracted",
+            verificationLevel: 2,
+            trustScore: 92,
             checksumSha256: "pending-demo-upload-hash",
-            warnings: ["OCR processing in demo mode"],
-            extractedJson: {},
-            createdAt: new Date().toISOString(),
-          },
+            warnings: [],
+            extractedJson,
+            extracted: extractedJson,
+            ocr_confidence: 0.94,
+            createdAt: new Date().toISOString()
+          }
+        };
+      }
+
+      if (method === "GET" && /^\/evidence\/[^/]+\/status$/.test(pathname)) {
+        return {
+          handled: true,
+          value: {
+            status: "extracted",
+            fieldCount: 4
+          }
         };
       }
 

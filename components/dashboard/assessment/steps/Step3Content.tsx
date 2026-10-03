@@ -22,6 +22,7 @@ import {
 import { getMaterialById, MATERIAL_CATALOG } from "../materialCatalog";
 import { useAuth } from "@/contexts/AuthContext";
 import EvidenceUploader from "@/components/evidence/EvidenceUploader";
+import type { EvidenceDocument } from "@/hooks/useEvidenceUpload";
 
 interface Step3ProductionEnergyProps {
   data: ProductAssessmentData;
@@ -45,8 +46,8 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
   onChange
 }) => {
   const t = useTranslations("assessment.step3");
-  const { user } = useAuth();
-  const companyId = user?.company_id ?? null;
+  const { user, isDemoSession } = useAuth();
+  const companyId = user?.company_id ?? (isDemoSession ? "demo-company-id" : null);
 
   const materialWarnings = useMemo(() => {
     const warnings: { type: "info" | "warning"; message: string }[] = [];
@@ -183,6 +184,52 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
 
   const isSourceSelected = (sourceValue: string) =>
     data.energySources.some((energy) => energy.source === sourceValue);
+
+  const handleEvidenceExtracted = (doc: EvidenceDocument) => {
+    const ext = doc.extracted || {};
+    const updates: Partial<ProductAssessmentData> = {};
+
+    if (doc.id) {
+      updates.evidenceLookupCode = doc.id;
+    }
+    const facility = ext.facility_name || (typeof doc.aiAnalysis?.facility_name === "string" ? doc.aiAnalysis.facility_name : undefined);
+    if (facility && !data.manufacturingLocation) {
+      updates.manufacturingLocation = facility;
+    }
+    if (facility && !data.facility) {
+      updates.facility = facility;
+    }
+
+    if (doc.kind === "electricity_bill" || ext.kwh) {
+      const currentSources = [...(data.energySources || [])];
+      const hasGrid = currentSources.some((s) => s.source === "grid" || s.source === "national_grid");
+      if (!hasGrid && currentSources.length === 0) {
+        updates.energySources = [
+          {
+            id: `energy-${Date.now()}`,
+            source: "grid",
+            percentage: 100
+          }
+        ];
+      }
+    } else if (doc.kind === "fuel_receipt" || ext.fuel_liters) {
+      const currentSources = [...(data.energySources || [])];
+      const hasDiesel = currentSources.some((s) => s.source === "diesel" || s.source === "generator");
+      if (!hasDiesel && currentSources.length === 0) {
+        updates.energySources = [
+          {
+            id: `energy-${Date.now()}`,
+            source: "diesel",
+            percentage: 100
+          }
+        ];
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      onChange(updates);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -425,6 +472,7 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
         companyId={companyId}
         productId={(data as { productId?: string }).productId}
         defaultKind="electricity_bill"
+        onExtracted={handleEvidenceExtracted}
       />
 
       <Card>
