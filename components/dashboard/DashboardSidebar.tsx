@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -26,6 +26,13 @@ import {
   Truck,
   Users,
   RadioTower,
+  Activity,
+  GitBranch,
+  Inbox,
+  Workflow,
+  Flame,
+  ShieldCheck,
+  ChevronDown,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +42,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import { Company, Profile } from "@/types/app.type";
+import { PROTECTED_MENU_ITEMS, SIDEBAR_GROUPS, canShowNavigation } from "@/lib/dashboard/navigation";
 
 interface DashboardSidebarProps {
   company: Company | null;
@@ -46,27 +54,10 @@ interface DashboardSidebarProps {
   onToggleSidebar: () => void;
 }
 
-const menuItems = [
-  { icon: BarChart3,       labelKey: "overview",   path: "/overview"    },
-  { icon: Factory,         labelKey: "carbonOperations", path: "/carbon-operations" },
-  { icon: Package,         labelKey: "product",    path: "/products"    },
-  { icon: Truck,           labelKey: "logistics",  path: "/logistics"   },
-  { icon: CalculatorIcon,  labelKey: "calculator", path: "/carbon-calculator"  },
-  { icon: FileText,        labelKey: "evidence",   path: "/evidence"    },
-  { icon: AlertCircle,     labelKey: "dataGap",    path: "/data-gap"    },
-  { icon: DatabaseZap,     labelKey: "dataGovernance", path: "/data-governance" },
-  { icon: ClipboardCheck,  labelKey: "vnMrv", path: "/vn-mrv" },
-  { icon: Scale,           labelKey: "mitigationOperations", path: "/mitigation-operations" },
-  { icon: Layers3,         labelKey: "industryPacks", path: "/industry-packs" },
-  { icon: CloudSun,        labelKey: "climateRisk", path: "/climate-risk" },
-  { icon: RadioTower,      labelKey: "weavenode", path: "/weavenode" },
-  { icon: FileCheck,       labelKey: "export",     path: "/export"      },
-  { icon: TrendingUp,      labelKey: "reports",    path: "/reports"     },
-  { icon: History,         labelKey: "auditTrail", path: "/audit-trail" },
-  { icon: Users,           labelKey: "suppliers",  path: "/suppliers"   },
-  { icon: CreditCard,      labelKey: "billing",    path: "/billing"     },
-  { icon: Settings,        labelKey: "settings",   path: "/settings"    },
-];
+const icons = { AlertCircle, BarChart3, CalculatorIcon, CreditCard, Factory, DatabaseZap,
+  ClipboardCheck, CloudSun, Scale, Layers3, FileCheck, FileText, History, Package,
+  Settings, TrendingUp, Truck, Users, RadioTower, Activity, GitBranch, Inbox, Workflow, Flame, ShieldCheck };
+type NavigationItem = { path: string; icon: keyof typeof icons; labelKey?: string; label?: string };
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   company,
@@ -84,6 +75,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const appRoutes = useAppRoutes();
   const router = useRouter();
   const pathname = usePathname();
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["carbon"]);
+  useEffect(() => {
+    const group = SIDEBAR_GROUPS.find((entry) => entry.items.some((item) => pathname === appRoutes.toAppPath(item.path) || pathname.startsWith(`${appRoutes.toAppPath(item.path)}/`)));
+    if (group) setExpandedGroups((previous) => previous.includes(group.id) ? previous : [...previous, group.id]);
+  }, [pathname, appRoutes]);
   const [isLeavingDemo, setIsLeavingDemo] = useState(false);
   const hasSession = Boolean(
     user?.id || profile?.id || authTokenStore.getAccessToken()
@@ -128,13 +124,20 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     isTrialPlanFromPermissions ||
     getSubscriptionPlanFamily(menuPlan) === "trial";
 
-  const visibleMenuItems = menuItems.filter((item) =>
-    item.path === "/settings"
-      ? !isDemoSession && canAccessSettings
-      : isTrialPlan && (item.path === "/export" || item.path === "/reports")
-        ? false
-        : true
-  );
+  const access = { isDemo: isDemoSession, isTrial: isTrialPlan, canAccessSettings };
+  const visibleMenuItems = PROTECTED_MENU_ITEMS.filter((item) => canShowNavigation(item.path, access));
+  const renderMenuItem = (item: NavigationItem, nested = false) => {
+    const active = isActive(item.path);
+    const Icon = icons[item.icon];
+    return <Link key={item.path} href={appRoutes.toAppPath(item.path)} prefetch={false}
+      title={item.labelKey ? t(item.labelKey) : item.label}
+      aria-current={active ? "page" : undefined}
+      onClick={(event) => { if (active) { event.preventDefault(); return; } handleSidebarNavigate(); }}
+      className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${nested && sidebarOpen ? "pl-7" : ""} ${active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+      <Icon className="h-5 w-5 shrink-0" />
+      {sidebarOpen && <span className="text-sm font-medium">{item.labelKey ? t(item.labelKey) : item.label}</span>}
+    </Link>;
+  };
 
   return (
     <>
@@ -164,33 +167,20 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-4 py-4">
-          {visibleMenuItems.map((item) => {
-            const active = isActive(item.path);
-            return (
-              <Link
-                key={item.path}
-                href={appRoutes.toAppPath(item.path)}
-                prefetch={false}
-                onClick={(event) => {
-                  if (active) {
-                    event.preventDefault();
-                    return;
-                  }
-                  handleSidebarNavigate();
-                }}
-                className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                {sidebarOpen && (
-                  <span className="text-sm font-medium">{t(item.labelKey)}</span>
-                )}
-              </Link>
-            );
+          {visibleMenuItems.map((item) => renderMenuItem(item))}
+          {SIDEBAR_GROUPS.map((group) => {
+            const open = expandedGroups.includes(group.id);
+            const Icon = icons[group.icon];
+            return <div key={group.id} className="w-full max-w-[11.25rem] border-t border-border/60 pt-2">
+              {sidebarOpen && <button type="button" aria-expanded={open} aria-controls={`navigation-${group.id}`}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:bg-muted"
+                onClick={() => setExpandedGroups((previous) => open ? previous.filter((id) => id !== group.id) : [...previous, group.id])}>
+                <Icon className="h-4 w-4 shrink-0" /><span className="flex-1">{group.label}</span><ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+              </button>}
+              {(!sidebarOpen || open) && <div id={`navigation-${group.id}`} className="space-y-1">{group.items.map((item) => renderMenuItem(item, true))}</div>}
+            </div>;
           })}
+          {canShowNavigation("/settings", access) && <div className="w-full max-w-[11.25rem] border-t border-border pt-2">{renderMenuItem({ path: "/settings", icon: "Settings", labelKey: "settings" })}</div>}
         </nav>
 
         <div className="border-t border-border px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 lg:p-4">
