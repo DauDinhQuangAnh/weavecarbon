@@ -1,7 +1,7 @@
 /**
  * Weave Carbon — Credibility Engine type definitions.
  * The full calculation engine lives in lib/carbon/engine.ts.
- * These types are used by audit UI components (CompliancePanel, RedFlagBanner).
+ * These types are used by audit UI components such as CompliancePanel.
  */
 
 export type FactorScope = 1 | 2 | 3;

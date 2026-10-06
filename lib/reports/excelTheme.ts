@@ -10,6 +10,7 @@
  * embedding is needed here.
  */
 import type { Workbook, Worksheet, Row } from "exceljs";
+import { createWorkbook } from "./excelRuntime";
 
 export const THEME = {
   brand: "1A7A4A",       // primary green (header bars, KPI values)
@@ -72,8 +73,7 @@ const allBorders = (argb: string) => ({
 });
 
 export async function newBrandedWorkbook(): Promise<Workbook> {
-  const ExcelJS = await import("exceljs");
-  const wb = new ExcelJS.Workbook();
+  const wb = await createWorkbook();
   wb.creator = "WeaveCarbon Reporting Engine";
   wb.created = new Date();
   wb.modified = new Date();

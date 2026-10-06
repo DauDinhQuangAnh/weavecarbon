@@ -14,7 +14,7 @@ const LeafHero3D = () => {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const texturesRef = useRef<THREE.Texture[]>([]);
+  const texturesRef = useRef<(THREE.Texture | undefined)[]>([]);
   const currentFrameRef = useRef(0);
   const lastTimeRef = useRef(0);
   const sequencePlaneRef = useRef<THREE.Mesh<
@@ -181,31 +181,76 @@ const LeafHero3D = () => {
     handleVisibilityChange();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // --- 2. LOADING MANAGER (CHÌA KHÓA VẤN ĐỀ) ---
-    const manager = new THREE.LoadingManager();
+    // --- 2. LOAD ASSETS ---
+    const textureLoader = new THREE.TextureLoader();
+    const gltfLoader = new GLTFLoader();
+    const totalFrames = 200;
+    const lookAheadFrames = 24;
+    const maxConcurrentFrames = 6;
+    const loadedTextures: (THREE.Texture | undefined)[] = [];
+    const failedFrames = new Set<number>();
+    let nextFrameToRequest = 0;
+    let framesInFlight = 0;
+    let disposed = false;
+    let sequenceFinished = false;
 
-    // Khi tải xong TẤT CẢ (Ảnh + Model)
-    manager.onLoad = () => {
-      isLoadedRef.current = true;
+    const disposeLeafModel = (model: THREE.Object3D) => {
+      model.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          materials.forEach((material) => material.dispose());
+        }
+      });
     };
 
-    // --- 3. LOAD ASSETS ---
-    const textureLoader = new THREE.TextureLoader(manager);
-    const gltfLoader = new GLTFLoader(manager);
-    const totalFrames = 200;
-
-    // Load Sequence WebP
-    const loadedTextures: THREE.Texture[] = [];
-    for (let i = 1; i <= totalFrames; i++) {
-      const frameNumber = i.toString().padStart(4, "0");
-      // Dùng manager để theo dõi tiến độ
-      textureLoader.load(`/textures/sequence/${frameNumber}.webp`, (txt) => {
-        // Đảm bảo thứ tự mảng đúng với frame (vì load bất đồng bộ)
-        txt.colorSpace = THREE.SRGBColorSpace; // Quan trọng để màu không bị nhạt
-        loadedTextures[i - 1] = txt;
-      });
-    }
-    // Lưu ý: loadedTextures sẽ là mảng rỗng ban đầu, nhưng khi onLoad chạy thì nó đã đầy
+    // Keep only a short window of decoded 1920x1080 frames in memory.
+    // The animation holds its current image if a future frame arrives late.
+    const pumpFrames = () => {
+      const lastNeededFrame = Math.min(
+        totalFrames - 1,
+        currentFrameRef.current + lookAheadFrames - 1,
+      );
+      while (
+        !disposed && !sequenceFinished &&
+        framesInFlight < maxConcurrentFrames &&
+        nextFrameToRequest <= lastNeededFrame
+      ) {
+        const index = nextFrameToRequest++;
+        const frameNumber = (index + 1).toString().padStart(4, "0");
+        framesInFlight++;
+        textureLoader.load(
+          `/textures/sequence/${frameNumber}.webp`,
+          (texture) => {
+            framesInFlight--;
+            if (disposed || sequenceFinished) {
+              texture.dispose();
+              return;
+            }
+            texture.colorSpace = THREE.SRGBColorSpace;
+            loadedTextures[index] = texture;
+            if (index === 0 || failedFrames.has(0)) {
+              isLoadedRef.current = true;
+            }
+            pumpFrames();
+          },
+          undefined,
+          (error) => {
+            framesInFlight--;
+            if (disposed || sequenceFinished) return;
+            console.error(`Error loading leaf frame ${frameNumber}:`, error);
+            failedFrames.add(index);
+            if (index === 0) {
+              isLoadedRef.current = loadedTextures.some(Boolean);
+            }
+            pumpFrames();
+          },
+        );
+      }
+    };
+    pumpFrames();
     texturesRef.current = loadedTextures;
 
     // === SEQUENCE PLANE: Rendered as a 2D fullscreen overlay ===
@@ -350,6 +395,10 @@ const LeafHero3D = () => {
     gltfLoader.load(
       "/models/Leaf-Animation.glb",
       (gltf: { scene: THREE.Object3D<THREE.Object3DEventMap> | null }) => {
+        if (disposed) {
+          if (gltf.scene) disposeLeafModel(gltf.scene);
+          return;
+        }
         leafModelRef.current = gltf.scene;
         if (leafModelRef.current) {
           leafModelRef.current.visible = false;
@@ -444,7 +493,7 @@ const LeafHero3D = () => {
       }
       lastRenderTimeRef.current = time;
 
-      // CHỈ CHẠY KHI ĐÃ LOAD XONG - Use ref to avoid re-render issues
+      // Start as soon as the first sequence image is available.
       if (!isLoadedRef.current) {
         renderer.clear();
         renderer.render(sequenceScene, orthoCamera);
@@ -455,26 +504,31 @@ const LeafHero3D = () => {
       // Logic chuyển frame
       if (time - lastTimeRef.current > frameInterval) {
         // Hiện plane ngay frame đầu tiên
-        if (currentFrameRef.current === 0 && sequencePlaneRef.current) {
+        if (currentFrameRef.current === 0 && sequencePlaneRef.current && !sequencePlaneRef.current.material.map) {
           sequencePlaneRef.current.material.opacity = 1;
-          // Gán texture đầu tiên ngay lập tức để tránh chớp trắng
-          if (texturesRef.current[0]) {
-            sequencePlaneRef.current.material.map = texturesRef.current[0];
+          const firstAvailable = loadedTextures.findIndex(Boolean);
+          if (firstAvailable >= 0) {
+            currentFrameRef.current = firstAvailable;
+            sequencePlaneRef.current.material.map = loadedTextures[firstAvailable] ?? null;
             sequencePlaneRef.current.material.needsUpdate = true;
           }
         }
 
         if (currentFrameRef.current < totalFrames - 1) {
-          currentFrameRef.current++;
-
-          if (
-            texturesRef.current[currentFrameRef.current] &&
-            sequencePlaneRef.current
-          ) {
-            sequencePlaneRef.current.material.map =
-              texturesRef.current[currentFrameRef.current];
-            // Quan trọng: Báo ThreeJS cập nhật texture mới
-            sequencePlaneRef.current.material.needsUpdate = true;
+          const nextFrame = currentFrameRef.current + 1;
+          const nextTexture = loadedTextures[nextFrame];
+          if (nextTexture || failedFrames.has(nextFrame)) {
+            currentFrameRef.current = nextFrame;
+            if (nextTexture && sequencePlaneRef.current) {
+              sequencePlaneRef.current.material.map = nextTexture;
+              sequencePlaneRef.current.material.needsUpdate = true;
+              // Previous frames are no longer needed after the new frame is visible.
+              for (let index = 0; index < nextFrame; index++) {
+                loadedTextures[index]?.dispose();
+                loadedTextures[index] = undefined;
+              }
+            }
+            pumpFrames();
           }
         } else if (!hasAnimatedRef.current) {
           // Start transition - but ONLY if the 3D model is loaded
@@ -541,7 +595,11 @@ const LeafHero3D = () => {
           updateLeafMaterialState(1, false);
           if (sequencePlaneRef.current) {
             sequencePlaneRef.current.visible = false;
+            sequencePlaneRef.current.material.map = null;
           }
+          sequenceFinished = true;
+          loadedTextures.forEach((texture) => texture?.dispose());
+          loadedTextures.length = 0;
         }
       }
 
@@ -595,6 +653,7 @@ const LeafHero3D = () => {
 
     // Cleanup
     return () => {
+      disposed = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (viewportObserver) {
         viewportObserver.disconnect();
@@ -634,16 +693,7 @@ const LeafHero3D = () => {
 
       // Dispose model
       if (leafModelRef.current) {
-        leafModelRef.current.traverse((object) => {
-          if (object instanceof THREE.Mesh) {
-            object.geometry.dispose();
-            if (object.material instanceof THREE.Material) {
-              object.material.dispose();
-            } else if (Array.isArray(object.material)) {
-              object.material.forEach((material) => material.dispose());
-            }
-          }
-        });
+        disposeLeafModel(leafModelRef.current);
       }
       leafMaterialsRef.current = [];
 

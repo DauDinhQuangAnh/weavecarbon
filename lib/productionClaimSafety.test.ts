@@ -15,7 +15,6 @@ const productionClaimSurfaces = [
   'components/dashboard/reports/ReportClient.tsx',
   'components/dashboard/reports/ReportPreviewModal.tsx',
   'components/dashboard/CompliancePanel.tsx',
-  'components/ui/RedFlagBanner.tsx',
   'config/penalties.ts',
   'lib/weave-v2/productReportAdapter.ts',
   'lib/weave-v2/reportTemplate.ts',

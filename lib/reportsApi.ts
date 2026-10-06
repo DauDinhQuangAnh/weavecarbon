@@ -5,6 +5,7 @@ import type {
 } from "exceljs";
 import { api } from "@/lib/apiClient";
 import { THEME } from "@/lib/reports/excelTheme";
+import { createWorkbook } from "@/lib/reports/excelRuntime";
 import { sanitizeCsvValue } from "@/lib/reports/csv";
 
 export type ReportDatasetType =
@@ -860,8 +861,7 @@ export const buildSingleDatasetWorkbook = async (
   rows: Record<string, unknown>[],
   options: ReportWorkbookOptions = {}
 ) => {
-  const ExcelJS = await import("exceljs");
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createWorkbook();
   workbook.creator = "WeaveCarbon Reporting Engine";
   workbook.created = new Date();
   workbook.modified = new Date();
@@ -881,8 +881,7 @@ const buildFullCompanyWorkbook = async (
   datasets: Array<{ type: ReportDatasetType; columns: string[]; rows: Record<string, unknown>[] }>,
   options: ReportWorkbookOptions = {}
 ) => {
-  const ExcelJS = await import("exceljs");
-  const workbook = new ExcelJS.Workbook();
+  const workbook = await createWorkbook();
   workbook.creator = "WeaveCarbon Reporting Engine";
   workbook.created = new Date();
   workbook.modified = new Date();

@@ -1,4 +1,4 @@
-import * as XLSX from "@e965/xlsx";
+import type { WorkBook, WorkSheet } from "@e965/xlsx";
 import { BulkProductRow, ValidationError, ValidationResult } from "./types";
 import { TEMPLATE_COLUMNS } from "./template";
 
@@ -366,17 +366,18 @@ const mapHeaderToColumnKey = (
 };
 
 const pickBestWorksheet = (
-  workbook: XLSX.WorkBook,
-  headerKeyMap: Record<string, string>
-): XLSX.WorkSheet | null => {
-  let selectedWorksheet: XLSX.WorkSheet | null = null;
+  workbook: WorkBook,
+  headerKeyMap: Record<string, string>,
+  xlsx: typeof import("./spreadsheetRuntime")
+): WorkSheet | null => {
+  let selectedWorksheet: WorkSheet | null = null;
   let bestScore = -1;
 
   for (const sheetName of workbook.SheetNames) {
     const worksheet = workbook.Sheets[sheetName];
     if (!worksheet) continue;
 
-    const matrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
+    const matrix = xlsx.utils.sheet_to_json<unknown[]>(worksheet, {
       header: 1,
       defval: "",
       raw: false,
@@ -408,12 +409,13 @@ export function parseFile(file: File): Promise<Record<string, unknown>[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        const XLSX = await import("./spreadsheetRuntime");
         const data = event.target?.result;
         const workbook = XLSX.read(data, { type: "array" });
         const headerKeyMap = buildHeaderKeyMap();
-        const worksheet = pickBestWorksheet(workbook, headerKeyMap);
+        const worksheet = pickBestWorksheet(workbook, headerKeyMap, XLSX);
         if (!worksheet) {
           reject(new Error("Không tìm thấy sheet dữ liệu hợp lệ trong file import."));
           return;
