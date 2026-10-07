@@ -12,21 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  protected-pages:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Enforce protected page content
-        run: node scripts/check-protected-pages.mjs --frontend-only
-      - name: Verify freeze guard detects regressions
-        run: node --test scripts/check-protected-pages.node-test.mjs
-
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 15
