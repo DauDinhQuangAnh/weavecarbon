@@ -27,7 +27,7 @@ describe("new workspace user flows", () => {
   it("uses isolated activity demo rendering without calling unsupported real lineage APIs", async () => {
     render(<ActivityDataClient demo />);
     await screen.findByText("DEMO-ELECTRICITY");
-    expect(screen.getByRole("link", { name: "Xem chuỗi bằng chứng minh họa →" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Xem chuỗi bằng chứng minh họa →" })).toHaveLength(5);
     expect(mocks.core.activities).not.toHaveBeenCalled();
     expect(mocks.core.activityLineage).not.toHaveBeenCalled();
   });

@@ -6,7 +6,7 @@ import { dataGovernanceApi } from "@/lib/dataGovernanceApi";
 import { listEvidenceV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { useAppRoutes } from "@/lib/demo/routes";
-import { WORKSPACE_DEMO, workspaceTasks } from "@/lib/dashboard/industrialWorkspace";
+import { workspaceTasks } from "@/lib/dashboard/industrialWorkspace";
 import { Input } from "@/components/ui/input";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
 
@@ -14,7 +14,10 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
   const routes = useAppRoutes();
   const [search, setSearch] = useState("");
   const load = useCallback(async () => {
-    if (demo) return workspaceTasks(WORKSPACE_DEMO.activities, [], []);
+    if (demo) {
+      const { INDUSTRIAL_DEMO, DEMO_EVIDENCE, DEMO_FACTORS } = await import("@/lib/dashboard/industrialDemoData");
+      return workspaceTasks(INDUSTRIAL_DEMO.activities, DEMO_EVIDENCE, DEMO_FACTORS);
+    }
     const [activities, evidence, factors] = await Promise.all([industrialCoreApi.activities(500), listEvidenceV2(), dataGovernanceApi.factorProposals()]);
     return workspaceTasks(activities, evidence.items, factors);
   }, [demo]);

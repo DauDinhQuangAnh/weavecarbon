@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { fetchCorporateGhgInventories } from "@/lib/weave-v2/corporateGhgInventoryApi";
-import { latestInventoryRevisions, inventoryHotspots, csvText } from "@/lib/dashboard/industrialWorkspace";
+import { latestInventoryRevisions, inventoryHotspots, csvText, type InventoryView } from "@/lib/dashboard/industrialWorkspace";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
 const fmt = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? "Chưa định lượng" : (value / 1000).toLocaleString("vi-VN", { maximumFractionDigits: 3 }) + " tCO₂e";
 export default function CarbonInsightsClient({ mode, demo = false }: { mode: "emissions" | "hotspots"; demo?: boolean }) {
   const routes = useAppRoutes();
-  const load = useCallback(() => demo ? Promise.resolve([]) : fetchCorporateGhgInventories(), [demo]);
+  const load = useCallback(async (): Promise<InventoryView[]> => demo ? (await import("@/lib/dashboard/industrialDemoData")).DEMO_INVENTORIES : fetchCorporateGhgInventories(), [demo]);
   const query = useIndustrialWorkspaceQuery(load, demo);
   const [selectedId, setSelectedId] = useState("");
   const [groupBy, setGroupBy] = useState<"facility" | "category">("facility");
@@ -70,7 +70,7 @@ export default function CarbonInsightsClient({ mode, demo = false }: { mode: "em
             <section className="rounded-xl border border-border bg-card p-4">
               <h3 className="text-xs font-semibold uppercase text-muted-foreground">Tổng phát thải phân tích</h3>
               <p className="mt-2 text-xl font-bold text-foreground">{fmt(hotspots?.totalKg || 0)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Theo kỳ báo cáo đã chốt</p>
+              <p className="mt-1 text-xs text-muted-foreground">{demo ? "Theo kỳ kiểm kê giả định · chưa duyệt" : "Theo kỳ báo cáo đã chốt"}</p>
             </section>
           </div>
           <section className="rounded-xl border border-border bg-card p-5">

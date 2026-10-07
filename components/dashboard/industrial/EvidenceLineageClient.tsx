@@ -5,7 +5,7 @@ import { industrialCoreApi, type IndustrialActivityLineage } from "@/lib/industr
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAppRoutes } from "@/lib/demo/routes";
-import { WORKSPACE_DEMO, workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
+import { workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
 import { Button } from "@/components/ui/button";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
 
@@ -17,13 +17,13 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const canWrite = workspaceCanWrite(usePermissions(), demo);
-  const loadActivities = useCallback(() => demo ? Promise.resolve(WORKSPACE_DEMO.activities) : industrialCoreApi.activities(500), [demo]);
+  const loadActivities = useCallback(async () => demo ? (await import("@/lib/dashboard/industrialDemoData")).INDUSTRIAL_DEMO.activities : industrialCoreApi.activities(500), [demo]);
   const activities = useIndustrialWorkspaceQuery(loadActivities, demo);
   const activityId = activities.data?.find(row => row.id === selected)?.id || activities.data?.[0]?.id || "";
   const loadLineage = useCallback(async (): Promise<IndustrialActivityLineage | null> => {
     if (!activityId) return null;
     if (!demo) return industrialCoreApi.activityLineage(activityId);
-    return { activity: WORKSPACE_DEMO.activities[0], facility: { id: WORKSPACE_DEMO.facilities[0].id, reference: "DEMO-FACTORY", name: "Cơ sở minh họa" }, process: { id: WORKSPACE_DEMO.processes[0].id, reference: "DEMO-LINE", name: "Dây chuyền minh họa" }, measurementPoint: null, evidence: [], latestReview: null };
+    return (await import("@/lib/dashboard/industrialDemoData")).demoActivityLineage(activityId);
   }, [activityId, demo]);
   const lineage = useIndustrialWorkspaceQuery(loadLineage, demo);
   // A pending selection must never show or approve the previous activity's lineage.
@@ -49,16 +49,16 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
         <section aria-label="Chuỗi truy xuất phả hệ dữ liệu" className="rounded-xl border border-border bg-card p-5 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Chuỗi phả hệ truy xuất nguồn gốc (Carbon Evidence Graph)</h2>
-            <span className="text-xs text-primary font-mono font-medium">Bảo đảm tính toàn vẹn ISO 14064 / GHG Protocol</span>
+            <span className="text-xs text-primary font-mono font-medium">{demo ? "Mô phỏng truy vết · checksum ví dụ, không có file thật" : "Bảo đảm tính toàn vẹn ISO 14064 / GHG Protocol"}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             {[
               { step: "1", title: "Chứng từ gốc", desc: data.evidence.length ? `${data.evidence.length} chứng từ có SHA-256` : "Chưa gắn chứng từ", active: Boolean(data.evidence.length) },
               { step: "2", title: "Dữ liệu hoạt động", desc: `${data.activity.quantity} ${data.activity.canonicalUnit}`, active: true },
-              { step: "3", title: "Hệ số phát thải", desc: "MoNRE / IPCC / EF Database", active: true },
+              { step: "3", title: "Hệ số phát thải", desc: demo ? "Chưa liên kết hệ số trong lineage demo" : "MoNRE / IPCC / EF Database", active: !demo },
               { step: "4", title: "Phân bổ quy trình", desc: data.process?.name || "Ranh giới cơ sở", active: Boolean(data.process) },
-              { step: "5", title: "Phép tính đã khóa", desc: "Thuật toán xác định", active: true },
-              { step: "6", title: "Kết quả báo cáo", desc: `Cấp độ ${data.activity.dataQualityLevel}`, active: true },
+              { step: "5", title: demo ? "Phép tính" : "Phép tính đã khóa", desc: demo ? "Chưa liên kết phép tính đã khóa" : "Thuật toán xác định", active: !demo },
+              { step: "6", title: "Kết quả báo cáo", desc: demo ? "Chưa liên kết báo cáo cho hoạt động" : `Cấp độ ${data.activity.dataQualityLevel}`, active: !demo },
             ].map(item => (
               <div key={item.step} className={`rounded-lg border p-3 transition-colors ${item.active ? "border-primary/40 bg-primary/5" : "border-border bg-muted/30"}`}>
                 <span className="text-[10px] font-bold text-primary">BƯỚC {item.step}</span>

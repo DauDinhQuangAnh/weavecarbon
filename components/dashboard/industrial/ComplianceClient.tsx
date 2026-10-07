@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { industrialCoreApi, INDUSTRIAL_CORE_DEMO_REGISTRY } from "@/lib/industrialCoreApi";
+import { industrialCoreApi } from "@/lib/industrialCoreApi";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { useAppRoutes } from "@/lib/demo/routes";
 import WorkspaceFrame from "./WorkspaceFrame";
@@ -15,7 +15,7 @@ const statusLabels = { implemented: "Có chức năng", partial: "Một phần",
 export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
   const routes = useAppRoutes();
   const [targetId, setTargetId] = useState("mrv");
-  const load = useCallback(() => demo ? Promise.resolve(INDUSTRIAL_CORE_DEMO_REGISTRY) : industrialCoreApi.capabilities(), [demo]);
+  const load = useCallback(async () => demo ? (await import("@/lib/dashboard/industrialDemoData")).DEMO_CAPABILITIES : industrialCoreApi.capabilities(), [demo]);
   const query = useIndustrialWorkspaceQuery(load, demo);
   const target = TARGETS.find(item => item.id === targetId)!;
   return <WorkspaceFrame title="Tuân thủ & mức sẵn sàng" description="Đối chiếu nhu cầu sử dụng với registry năng lực hiện có. Trạng thái triển khai phần mềm không phải xác nhận hồ sơ đủ điều kiện nộp, chứng nhận hoặc kết luận pháp lý." demo={demo} loading={query.loading} error={query.error} reload={query.reload}>
@@ -34,7 +34,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
             </div>
             <p className="text-sm font-semibold text-foreground">{item.name}</p>
             <p className="text-[11px] text-muted-foreground">{item.note}</p>
-            <span className="inline-block text-[10px] font-medium text-emerald-600 mt-1">● {item.status}</span>
+            <span className="inline-block text-[10px] font-medium text-emerald-600 mt-1">● {demo ? "Tình huống minh họa · chưa nghiệm thu" : item.status}</span>
           </div>
         ))}
       </div>

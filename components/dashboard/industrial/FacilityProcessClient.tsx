@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useState, type FormEvent } from "react";
 import { industrialCoreApi } from "@/lib/industrialCoreApi";
-import { WORKSPACE_DEMO, workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
+import { workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
 
 export default function FacilityProcessClient({ mode, demo = false }: { mode: "facilities" | "processes"; demo?: boolean }) {
-  const load = useCallback(async () => demo ? WORKSPACE_DEMO : {
+  const load = useCallback(async () => demo ? (await import("@/lib/dashboard/industrialDemoData")).INDUSTRIAL_DEMO : {
     facilities: await industrialCoreApi.facilities(), processes: mode === "processes" ? await industrialCoreApi.processes() : [], activities: [],
   }, [demo, mode]);
   const query = useIndustrialWorkspaceQuery(load, demo);

@@ -1,1 +1,2 @@
-export { default } from "../data-governance/page";
+import Client from "@/components/dashboard/industrial/DemoOperationalDataClient";
+export default function Page() { return <Client mode="quality" />; }
