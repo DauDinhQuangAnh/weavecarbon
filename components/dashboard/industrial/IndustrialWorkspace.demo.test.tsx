@@ -97,6 +97,7 @@ describe("new industrial demo pages", () => {
     expect(screen.getByText("Cần bổ sung checksum và kiểm soát chứng từ.")).toBeInTheDocument();
     view.unmount();
     render(<DemoOperationalDataClient mode="connected" />);
+    expect(screen.getByText("2026-09-30 · 10:00")).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Chọn điểm đo mô phỏng" }), { target: { value: INDUSTRIAL_DEMO.measurementPoints[1].id } });
     await waitFor(() => expect(screen.getByText(/Hết hạn · cần rà soát/)).toBeInTheDocument());
     expect(screen.getByText("Không có")).toBeInTheDocument();
