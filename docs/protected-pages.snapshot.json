@@ -137,7 +137,7 @@
     {
       "repo": "FE",
       "path": "app/demo/layout.tsx",
-      "sha256": "4bcda9e3382c7ef2f291bf48582535b3dcdde5ae06b4afd059224a6eb9f0b83f"
+      "sha256": "e13ef698352238c645da7363ce95b909c08a29f8494c9b799c50f3186e475807"
     },
     {
       "repo": "FE",
@@ -697,7 +697,7 @@
     {
       "repo": "FE",
       "path": "components/demo/DemoAutoTour.tsx",
-      "sha256": "54f0c70bc227dd654623ac9b836c302af338d260dd7739a0183583d93a69260e"
+      "sha256": "ff8a77c7463c976c0cfbd41e3e757d0e97f23cb79dd441cdc00682f910b8e7cc"
     },
     {
       "repo": "FE",

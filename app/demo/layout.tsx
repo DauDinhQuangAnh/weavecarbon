@@ -3,7 +3,6 @@ import DashboardSidebarShell from "@/components/dashboard/DashboardSidebarShell"
 import DashboardLayoutContent from "@/components/dashboard/DashboardLayoutContent";
 import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
 import DemoProvider from "@/components/demo/DemoProvider";
-import DemoAutoTour from "@/components/demo/DemoAutoTour";
 import { DashboardProvider } from "@/contexts/DashboardContext";
 import { DASHBOARD_BASE_NAMESPACES } from "@/lib/i18n/namespaces";
 import RouteWeaveyChat from "@/components/ui/RouteWeaveyChat";
@@ -19,7 +18,6 @@ const DemoLayout = ({ children }: { children: React.ReactNode }) => {
                 <DashboardLayoutContent>{children}</DashboardLayoutContent>
               </main>
               <RouteWeaveyChat />
-              <DemoAutoTour />
             </div>
         </DemoProvider>
       </DashboardProvider>
