@@ -55,7 +55,7 @@ jobs:
           check_workflow DauDinhQuangAnh/API_RAG 'RAG Deploy VPS'
           cat artifacts/release/ci-gates.tsv
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: m5-ci-gates-${{ github.run_id }}
           path: artifacts/release/ci-gates.tsv
@@ -219,7 +219,7 @@ jobs:
 
       - name: Publish M5 evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: m5-release-readiness-${{ github.run_id }}
           path: artifacts/release
@@ -249,7 +249,7 @@ jobs:
         run: node scripts/check-release-evidence.mjs artifacts/release artifacts/release/RELEASE_READINESS.md
 
       - name: Publish deferred M5 evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: m5-release-readiness-${{ github.run_id }}
           path: artifacts/release
