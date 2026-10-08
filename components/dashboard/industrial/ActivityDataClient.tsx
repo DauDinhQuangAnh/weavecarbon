@@ -7,13 +7,18 @@ import { listEvidenceV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import ActivityOperationsPanel from "@/components/dashboard/carbon-operations/ActivityOperationsPanel";
 import WorkspaceFrame from "./WorkspaceFrame";
 
 export default function ActivityDataClient({ demo = false }: { demo?: boolean }) {
   const routes = useAppRoutes();
   const load = useCallback(async () => {
-    if (demo) return (await import("@/lib/dashboard/industrialDemoData")).INDUSTRIAL_DEMO;
+    if (demo) {
+      const demoData = (await import("@/lib/dashboard/industrialDemoData")).INDUSTRIAL_DEMO;
+      const activities = demoSessionCache.getActivities();
+      return { ...demoData, activities };
+    }
     const [facilities, processes, activities, measurementPoints, evidence] = await Promise.all([industrialCoreApi.facilities(), industrialCoreApi.processes(), industrialCoreApi.activities(500), industrialCoreApi.measurementPoints(), listEvidenceV2()]);
     return { facilities, processes, activities, measurementPoints, evidence: evidence.items };
   }, [demo]);

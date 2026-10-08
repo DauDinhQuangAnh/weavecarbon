@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
 import { isApiError } from "@/lib/apiClient";
 import { dataGovernanceApi, type DqlAssessment, type FactorProposal } from "@/lib/dataGovernanceApi";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 
 const initialDql = { subjectType: "activity", subjectReference: "", temporalScore: 3, geographicScore: 3,
   technologicalScore: 3, completenessScore: 3, reliabilityScore: 3, completenessPercent: 100, rationale: "" };
@@ -45,23 +46,73 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [selectedDql, setSelectedDql] = useState<DqlAssessment | null>(null);
 
-  const load = useCallback(async () => { if (demo) return; setLoading(true); setError(null); try {
-    const [dqlRows, factorRows] = await Promise.all([dataGovernanceApi.dql(), dataGovernanceApi.factorProposals()]);
-    setDql(dqlRows); setFactors(factorRows);
-  } catch (cause) { setError(isApiError(cause) ? cause.message : t("loadError")); } finally { setLoading(false); } }, [demo, t]);
+  const load = useCallback(async () => {
+    if (demo) {
+      setDql(demoSessionCache.getDql());
+      setFactors(demoSessionCache.getFactors());
+      setLoading(false);
+      return;
+    }
+    setLoading(true); setError(null); try {
+      const [dqlRows, factorRows] = await Promise.all([dataGovernanceApi.dql(), dataGovernanceApi.factorProposals()]);
+      setDql(dqlRows); setFactors(factorRows);
+    } catch (cause) { setError(isApiError(cause) ? cause.message : t("loadError")); } finally { setLoading(false); }
+  }, [demo, t]);
   useEffect(() => { void load(); }, [load]);
 
-  const submitDql = async (event: FormEvent) => { event.preventDefault(); if (demo || saving) return; setSaving(true); setError(null); try {
-    const created = await dataGovernanceApi.createDql({ ...dqlForm, improvementActions: [], evidenceDocumentIds: [] });
-    setDql((rows) => [created, ...rows]); setDqlForm(initialDql);
-  } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); } };
-  const submitFactor = async (event: FormEvent) => { event.preventDefault(); if (demo || saving) return; setSaving(true); setError(null); try {
-    const evidenceDocumentIds = factorForm.evidenceDocumentIds.split(",").map((item) => item.trim()).filter(Boolean);
-    const created = await dataGovernanceApi.createFactorProposal({ ...factorForm, factorValue: Number(factorForm.factorValue),
-      uncertaintyCv: Number(factorForm.uncertaintyCv), sourceYear: factorForm.sourceYear ? Number(factorForm.sourceYear) : null,
-      evidenceDocumentIds, isProxy: false, validFrom: null, validTo: null });
-    setFactors((rows) => [created, ...rows]); setFactorForm(initialFactor);
-  } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); } };
+  const submitDql = async (event: FormEvent) => {
+    event.preventDefault();
+    if (demo) {
+      if (saving) return;
+      setSaving(true);
+      setError(null);
+      try {
+        const created = demoSessionCache.addDql({ ...dqlForm });
+        setDql((rows) => [created, ...rows]);
+        setDqlForm(initialDql);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    if (demo || saving) return;
+    setSaving(true); setError(null); try {
+      const created = await dataGovernanceApi.createDql({ ...dqlForm, improvementActions: [], evidenceDocumentIds: [] });
+      setDql((rows) => [created, ...rows]); setDqlForm(initialDql);
+    } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); }
+  };
+  const submitFactor = async (event: FormEvent) => {
+    event.preventDefault();
+    if (demo) {
+      if (saving) return;
+      setSaving(true);
+      setError(null);
+      try {
+        const created = demoSessionCache.addFactor({
+          proposalReference: factorForm.proposalReference,
+          factorId: factorForm.factorId,
+          label: factorForm.label,
+          factorValue: Number(factorForm.factorValue),
+          unit: factorForm.unit,
+          sourceName: factorForm.sourceName,
+          geography: factorForm.geography,
+        });
+        setFactors((rows) => [created, ...rows]);
+        setFactorForm(initialFactor);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    if (demo || saving) return;
+    setSaving(true); setError(null); try {
+      const evidenceDocumentIds = factorForm.evidenceDocumentIds.split(",").map((item) => item.trim()).filter(Boolean);
+      const created = await dataGovernanceApi.createFactorProposal({ ...factorForm, factorValue: Number(factorForm.factorValue),
+        uncertaintyCv: Number(factorForm.uncertaintyCv), sourceYear: factorForm.sourceYear ? Number(factorForm.sourceYear) : null,
+        evidenceDocumentIds, isProxy: false, validFrom: null, validTo: null });
+      setFactors((rows) => [created, ...rows]); setFactorForm(initialFactor);
+    } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); } finally { setSaving(false); }
+  };
 
   const handleOpenReview = (proposal: FactorProposal) => {
     setReviewingProposal(proposal);
@@ -73,6 +124,18 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
   const handleSubmitReview = async (e: FormEvent) => {
     e.preventDefault();
     if (!reviewingProposal || submittingReview) return;
+    if (demo) {
+      setSubmittingReview(true);
+      setReviewError(null);
+      try {
+        demoSessionCache.updateFactorStatus(reviewingProposal.id, reviewDecision);
+        setFactors(demoSessionCache.getFactors());
+        setReviewingProposal(null);
+      } finally {
+        setSubmittingReview(false);
+      }
+      return;
+    }
     setSubmittingReview(true);
     setReviewError(null);
     try {
@@ -136,8 +199,8 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
       )}
 
       {demo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {t("demoReadOnly")}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+          💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể nhập đánh giá DQL, đề xuất hệ số và thẩm tra/phê duyệt hệ số. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
         </div>
       )}
 
@@ -173,7 +236,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <Label className="text-xs font-semibold text-slate-700">{t("subjectReference")}</Label>
                   <Input
                     required
-                    disabled={demo || saving}
+                    disabled={(!demo && !isCompanyAdmin) || saving}
                     placeholder="Mã đối tượng..."
                     value={dqlForm.subjectReference}
                     onChange={(e) => setDqlForm({ ...dqlForm, subjectReference: e.target.value })}
@@ -193,7 +256,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                           type="number"
                           min={1}
                           max={5}
-                          disabled={demo || saving}
+                          disabled={(!demo && !isCompanyAdmin) || saving}
                           className="text-center font-bold"
                           value={String(dqlForm[field])}
                           onChange={(e) => setDqlForm({ ...dqlForm, [field]: Number(e.target.value) })}
@@ -211,7 +274,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   min={0}
                   max={100}
                   required
-                  disabled={demo || saving}
+                  disabled={(!demo && !isCompanyAdmin) || saving}
                   aria-label={t("completenessPercent")}
                   value={dqlForm.completenessPercent}
                   onChange={(e) => setDqlForm({ ...dqlForm, completenessPercent: Number(e.target.value) })}
@@ -222,7 +285,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 <Label className="text-xs font-semibold text-slate-700">Cơ sở lý luận & Bằng chứng</Label>
                 <Textarea
                   required
-                  disabled={demo || saving}
+                  disabled={(!demo && !isCompanyAdmin) || saving}
                   placeholder={t("rationale")}
                   value={dqlForm.rationale}
                   onChange={(e) => setDqlForm({ ...dqlForm, rationale: e.target.value })}
@@ -235,7 +298,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <span>Chỉ Quản trị viên (Company Admin) mới có quyền lưu đánh giá DQL.</span>
                 </div>
               )}
-              <Button disabled={demo || saving || !isCompanyAdmin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+              <Button disabled={(!demo && !isCompanyAdmin) || saving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("score")}
               </Button>
@@ -312,7 +375,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 <Label className="text-xs font-semibold text-slate-700">Tên nhãn hệ số</Label>
                 <Input
                   required
-                  disabled={demo || saving}
+                  disabled={(!demo && !isCompanyAdmin) || saving}
                   placeholder={t("factorLabel")}
                   value={factorForm.label}
                   onChange={(e) => setFactorForm({ ...factorForm, label: e.target.value })}
@@ -327,7 +390,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                     type="number"
                     min={0}
                     step="any"
-                    disabled={demo || saving}
+                    disabled={(!demo && !isCompanyAdmin) || saving}
                     placeholder={t("factorValue")}
                     value={factorForm.factorValue}
                     onChange={(e) => setFactorForm({ ...factorForm, factorValue: e.target.value })}
@@ -337,7 +400,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <Label className="text-xs font-semibold text-slate-700">Đơn vị đo</Label>
                   <Input
                     required
-                    disabled={demo || saving}
+                    disabled={(!demo && !isCompanyAdmin) || saving}
                     placeholder={t("unit")}
                     value={factorForm.unit}
                     onChange={(e) => setFactorForm({ ...factorForm, unit: e.target.value })}
@@ -350,7 +413,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <Label className="text-xs font-semibold text-slate-700">Nguồn dữ liệu</Label>
                   <Input
                     required
-                    disabled={demo || saving}
+                    disabled={(!demo && !isCompanyAdmin) || saving}
                     placeholder={t("sourceName")}
                     value={factorForm.sourceName}
                     onChange={(e) => setFactorForm({ ...factorForm, sourceName: e.target.value })}
@@ -359,7 +422,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-700">Đường dẫn nguồn (URL)</Label>
                   <Input
-                    disabled={demo || saving}
+                    disabled={(!demo && !isCompanyAdmin) || saving}
                     placeholder="https://..."
                     value={factorForm.sourceUrl}
                     onChange={(e) => setFactorForm({ ...factorForm, sourceUrl: e.target.value })}
@@ -371,7 +434,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 <Label className="text-xs font-semibold text-slate-700">Ranh giới tính toán</Label>
                 <Input
                   required
-                  disabled={demo || saving}
+                  disabled={(!demo && !isCompanyAdmin) || saving}
                   placeholder={t("boundary")}
                   value={factorForm.boundary}
                   onChange={(e) => setFactorForm({ ...factorForm, boundary: e.target.value })}
@@ -392,12 +455,12 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                     }));
                   }}
                   placeholder="Chọn chứng từ đã xác minh từ Evidence Vault..."
-                  disabled={demo || saving || !isCompanyAdmin}
+                  disabled={(!demo && !isCompanyAdmin) || saving}
                   required
                 />
                 <Input
                   required
-                  disabled={demo || saving || !isCompanyAdmin}
+                  disabled={(!demo && !isCompanyAdmin) || saving}
                   placeholder={t("evidenceIds")}
                   value={factorForm.evidenceDocumentIds}
                   onChange={(e) => setFactorForm({ ...factorForm, evidenceDocumentIds: e.target.value })}
@@ -411,7 +474,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <span>Chỉ Quản trị viên (Company Admin) mới có quyền tạo đề xuất hệ số.</span>
                 </div>
               )}
-              <Button disabled={demo || saving || !isCompanyAdmin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+              <Button disabled={(!demo && !isCompanyAdmin) || saving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("submitFactor")}
               </Button>
@@ -438,7 +501,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                         <span className="text-emerald-800 font-mono font-bold">{item.factorValue} {item.unit}</span>
                         <span className="text-slate-400 ml-2">· {item.sourceName} ({item.geography})</span>
                       </div>
-                      {isCompanyAdmin && !demo && (
+                      {(isCompanyAdmin || demo) && (
                         <Button
                           type="button"
                           size="sm"

@@ -73,7 +73,7 @@ describe("new industrial demo pages", () => {
     fireEvent.change(select, { target: { value: INDUSTRIAL_DEMO.activities[4].id } });
     await screen.findByText("Hoạt động này chưa gắn chứng từ.");
     expect(screen.getByRole("option", { name: "Duyệt bằng chứng đã kiểm soát" })).toBeDisabled();
-    expect(screen.getByLabelText("Lý do review")).toBeDisabled();
+    expect(screen.getByLabelText("Lý do review")).toBeEnabled();
     fireEvent.submit(screen.getByRole("button", { name: "Lưu review" }).closest("form")!);
   });
 

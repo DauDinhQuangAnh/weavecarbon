@@ -9,6 +9,8 @@ import { workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
 import { Button } from "@/components/ui/button";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
 
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+
 export default function EvidenceLineageClient({ review = false, demo = false }: { review?: boolean; demo?: boolean }) {
   const routes = useAppRoutes();
   const [selected, setSelected] = useState("");
@@ -16,14 +18,15 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const canWrite = workspaceCanWrite(usePermissions(), demo);
-  const loadActivities = useCallback(async () => demo ? (await import("@/lib/dashboard/industrialDemoData")).INDUSTRIAL_DEMO.activities : industrialCoreApi.activities(500), [demo]);
+  const permissions = usePermissions();
+  const canWrite = demo || workspaceCanWrite(permissions, demo);
+  const loadActivities = useCallback(async () => demo ? demoSessionCache.getActivities() : industrialCoreApi.activities(500), [demo]);
   const activities = useIndustrialWorkspaceQuery(loadActivities, demo);
   const activityId = activities.data?.find(row => row.id === selected)?.id || activities.data?.[0]?.id || "";
   const loadLineage = useCallback(async (): Promise<IndustrialActivityLineage | null> => {
     if (!activityId) return null;
     if (!demo) return industrialCoreApi.activityLineage(activityId);
-    return (await import("@/lib/dashboard/industrialDemoData")).demoActivityLineage(activityId);
+    return demoSessionCache.getLineage(activityId);
   }, [activityId, demo]);
   const lineage = useIndustrialWorkspaceQuery(loadLineage, demo);
   // A pending selection must never show or approve the previous activity's lineage.
@@ -35,6 +38,12 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
     if (!canWrite || busy || !data || (decision === "approved" && !canApprove)) return;
     setBusy(true); setMessage(null);
     try {
+      if (demo) {
+        demoSessionCache.saveActivityReview(data.activity.id, { decision, notes: notes.trim() });
+        setMessage("Đã lưu review demo vào bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).");
+        await lineage.reload();
+        return;
+      }
       await industrialCoreApi.reviewActivity(data.activity.id, { reviewerRole: "industrial_activity_reviewer", decision, notes: notes.trim() });
       setMessage("Đã lưu review có danh tính và snapshot bằng chứng. Review nội bộ không phải xác minh độc lập.");
       await lineage.reload();
@@ -95,7 +104,16 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
           <section className="rounded-xl border bg-card p-5"><h2 className="font-semibold">3 · Bằng chứng & review</h2><p className="mt-3 text-sm">{data.evidence.length} chứng từ liên kết · {canApprove ? "Bằng chứng đã kiểm soát" : "Chưa đủ bằng chứng kiểm soát để duyệt"}</p><p className="mt-2 text-sm">Review: {data.latestReview ? `${data.latestReview.decision} · ${data.latestReview.reviewerName}` : "Chưa có"}</p>{data.latestReview && <p className="mt-2 text-sm text-muted-foreground">{data.latestReview.notes}</p>}</section>
         </div>
         <section className="space-y-3"><h2 className="font-semibold">Chứng từ liên kết</h2>{!data.evidence.length ? <EmptyWorkspace>Hoạt động này chưa gắn chứng từ.</EmptyWorkspace> : data.evidence.map(row => <div key={row.id} className="rounded-xl border bg-card p-4"><p className="font-medium">{row.name} · {row.status}</p><p className="mt-2 break-all text-xs text-muted-foreground">{row.checksumSha256 || "Thiếu SHA-256"}</p></div>)}</section>
-        {review && <form onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-5"><h2 className="font-semibold">Review nội bộ có danh tính</h2><p className="text-sm text-muted-foreground">Chỉ quản trị viên có quyền ghi. Duyệt yêu cầu mọi chứng từ được khóa hoặc third_party_verified và có SHA-256 hợp lệ. DQL cao không tự chứng minh đã xác minh độc lập.</p><fieldset disabled={!canWrite || busy} className="space-y-4"><label className="block text-sm">Quyết định<select value={decision} className="mt-2 w-full rounded-md border bg-background p-2" onChange={event => setDecision(event.target.value as typeof decision)}><option value="needs_information">Yêu cầu bổ sung</option><option value="rejected">Từ chối</option><option value="approved" disabled={!canApprove}>Duyệt bằng chứng đã kiểm soát</option></select></label><label className="block text-sm">Lý do review<textarea required minLength={10} maxLength={4000} className="mt-2 min-h-24 w-full rounded-md border bg-background p-2" value={notes} onChange={event => setNotes(event.target.value)} /></label><Button type="submit" disabled={decision === "approved" && !canApprove}>{busy ? "Đang lưu…" : "Lưu review"}</Button></fieldset>{message && <p role="status" className="text-sm">{message}</p>}</form>}
+        {review && <form onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-5">
+          <h2 className="font-semibold">Review nội bộ có danh tính</h2>
+          {demo ? (
+            <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+              💡 <strong>Chế độ Demo</strong>: Bạn có thể chọn quyết định và nhập lý do review để trải nghiệm luồng thẩm tra (lưu tạm thời trên cache 1 giờ / tự xóa khi đăng xuất).
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Chỉ quản trị viên có quyền ghi. Duyệt yêu cầu mọi chứng từ được khóa hoặc third_party_verified và có SHA-256 hợp lệ. DQL cao không tự chứng minh đã xác minh độc lập.</p>
+          )}
+          <fieldset disabled={!canWrite || busy} className="space-y-4"><label className="block text-sm">Quyết định<select value={decision} className="mt-2 w-full rounded-md border bg-background p-2" onChange={event => setDecision(event.target.value as typeof decision)}><option value="needs_information">Yêu cầu bổ sung</option><option value="rejected">Từ chối</option><option value="approved" disabled={!canApprove}>Duyệt bằng chứng đã kiểm soát</option></select></label><label className="block text-sm">Lý do review<textarea required minLength={10} maxLength={4000} className="mt-2 min-h-24 w-full rounded-md border bg-background p-2" value={notes} onChange={event => setNotes(event.target.value)} /></label><Button type="submit" disabled={decision === "approved" && !canApprove}>{busy ? "Đang lưu…" : "Lưu review"}</Button></fieldset>{message && <p role="status" className="text-sm">{message}</p>}</form>}
         <div className="flex flex-wrap gap-4 text-sm text-primary"><Link prefetch={false} href={routes.toAppPath("/evidence")}>Mở chứng từ →</Link><Link prefetch={false} href={routes.toAppPath("/carbon-operations")}>Tính toán & phân bổ →</Link><Link prefetch={false} href={routes.toAppPath(review ? "/evidence-graph" : "/verification")}>{review ? "Xem đồ thị" : "Mở review"} →</Link></div>
       </>}
     </>}

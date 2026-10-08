@@ -41,7 +41,7 @@ describe("new workspace user flows", () => {
   it("demo never loads or writes enterprise APIs", async () => {
     render(<FacilityProcessClient mode="facilities" demo />);
     await screen.findByText("Cơ sở minh họa");
-    expect(screen.getByLabelText("Mã tham chiếu")).toBeDisabled();
+    expect(screen.getByLabelText("Mã tham chiếu")).toBeEnabled();
     expect(mocks.core.facilities).not.toHaveBeenCalled();
   });
   it("shows save errors and keeps the submitted form available to correct", async () => {

@@ -21,6 +21,8 @@ import { isApiError } from "@/lib/apiClient";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
 import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
 import { mitigationOperationsApi, type AllowanceAllocation, type AllowancePosition, type MitigationInitiative, type MitigationScenario, type InitiativeLifecycleStatus } from "@/lib/mitigationOperationsApi";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import { DEMO_INVENTORIES } from "@/lib/dashboard/industrialDemoData";
 const ids = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const select = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 
@@ -52,7 +54,74 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
   const [position, setPosition] = useState({ facilityRevisionId: "", corporateInventoryId: "", reportingYear: 2026, allocationIds: "", scenarioIds: "" });
 
   const load = useCallback(async () => {
-    if (demo) return;
+    if (demo) {
+      const demoFacs = demoSessionCache.getFacilities();
+      setFacilities(demoFacs);
+      setInventories((DEMO_INVENTORIES as unknown) as CorporateGhgInventory[]);
+      setInitiatives([
+        {
+          id: "demo-init-1",
+          initiativeReference: "INIT-EE-2026-01",
+          facilityRevisionId: demoFacs[0]?.id || "demo-fac-1",
+          facilityName: demoFacs[0]?.name || "Cơ sở demo",
+          revision: 1,
+          title: "Thay thế biến tần và tối ưu hóa hệ thống sấy",
+          lifecycleStatus: "in_progress",
+          ownerName: "Kỹ sư trưởng Nguyễn Văn B",
+          baselineYear: 2025,
+          targetReductionTco2e: 450,
+          initiativeSha256: "demo-sha256",
+        },
+      ]);
+      setScenarios([
+        {
+          id: "demo-scen-1",
+          initiativeId: "demo-init-1",
+          initiativeReference: "INIT-EE-2026-01",
+          scenarioReference: "SCEN-OPT-2026",
+          revision: 1,
+          scenarioType: "planned",
+          baselineEmissionsTco2e: 2050,
+          projectedEmissionsTco2e: 1600,
+          expectedReductionTco2e: 450,
+          scenarioSha256: "demo-sha256",
+        },
+      ]);
+      setAllocations([
+        {
+          id: "demo-alloc-1",
+          allocationReference: "ALLOC-VN-2026-01",
+          facilityRevisionId: demoFacs[0]?.id || "demo-fac-1",
+          facilityName: demoFacs[0]?.name || "Cơ sở demo",
+          revision: 1,
+          reportingYear: 2026,
+          instrumentType: "authority_quota",
+          recordStatus: "draft_reference",
+          quantityTco2e: 1800,
+          allocationSha256: "demo-sha256",
+        },
+      ]);
+      setPositions([
+        {
+          id: "demo-pos-1",
+          facilityRevisionId: demoFacs[0]?.id || "demo-fac-1",
+          corporateInventoryId: "demo-inv-1",
+          reportingYear: 2026,
+          grossEmissionsTco2e: 1600,
+          authorityQuotaTco2e: 1800,
+          internalBudgetTco2e: 0,
+          creditReferenceTco2e: 0,
+          plannedReductionTco2e: 450,
+          projectedPositionTco2e: 200,
+          readinessStatus: "surplus_projected",
+          blockers: [],
+          payloadSha256: "demo-sha256",
+          disclaimer: "Dữ liệu vị thế mang tính minh họa.",
+        },
+      ]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [f, i, m, s, a, p] = await Promise.all([
@@ -73,8 +142,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
 
   useEffect(() => { void load(); }, [load]);
 
-  const save = async (e: FormEvent, action: () => Promise<unknown>) => {
-    e.preventDefault();
+  const runAction = async (action: () => Promise<unknown>) => {
     if (demo || saving) return;
     setSaving(true);
     setError(null);
@@ -88,10 +156,179 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
     }
   };
 
-  const saveInitiative = (e: FormEvent) => save(e, () => mitigationOperationsApi.createInitiative({ ...initiative, methodology: { description: initiative.methodology }, assumptions: { description: initiative.assumptions }, evidenceDocumentIds: ids(initiative.evidenceDocumentIds) }));
-  const saveScenario = (e: FormEvent) => save(e, () => mitigationOperationsApi.createScenario({ ...scenario, annualProjection: [{ year: Number(scenario.periodEnd.slice(0, 4)), projectedTco2e: Number(scenario.projectedEmissionsTco2e) }], assumptions: { description: scenario.assumptions }, sensitivity: { description: scenario.sensitivity }, evidenceDocumentIds: ids(scenario.evidenceDocumentIds) }));
-  const saveAllocation = (e: FormEvent) => save(e, () => mitigationOperationsApi.createAllocation({ ...allocation, externalReference: allocation.externalReference || null, evidenceDocumentId: allocation.evidenceDocumentId || null }));
-  const savePosition = (e: FormEvent) => save(e, () => mitigationOperationsApi.createPosition({ ...position, allocationIds: ids(position.allocationIds), scenarioIds: ids(position.scenarioIds) }));
+  const save = (e: FormEvent, action: () => Promise<unknown>, demoHandler?: () => void) => {
+    e.preventDefault();
+    if (demo) {
+      demoHandler?.();
+      return;
+    }
+    void runAction(action);
+  };
+
+  const saveInitiative = (e: FormEvent) =>
+    save(
+      e,
+      () =>
+        mitigationOperationsApi.createInitiative({
+          ...initiative,
+          methodology: { description: initiative.methodology },
+          assumptions: { description: initiative.assumptions },
+          evidenceDocumentIds: ids(initiative.evidenceDocumentIds),
+        }),
+      () => {
+        const newInit: MitigationInitiative = {
+          id: `demo-init-${Date.now()}`,
+          initiativeReference: initiative.initiativeReference,
+          facilityRevisionId: initiative.facilityRevisionId,
+          revision: 1,
+          title: initiative.title,
+          lifecycleStatus: initiative.lifecycleStatus,
+          ownerName: initiative.ownerName,
+          baselineYear: initiative.baselineYear,
+          targetReductionTco2e: initiative.targetReductionTco2e,
+          initiativeSha256: "demo-sha256",
+        };
+        setInitiatives((prev) => [newInit, ...prev]);
+        setInitiative({
+          initiativeReference: "",
+          facilityRevisionId: "",
+          title: "",
+          lifecycleStatus: "proposed",
+          ownerName: "",
+          baselineYear: 2025,
+          targetReductionTco2e: 0,
+          plannedStart: "2026-01-01",
+          plannedEnd: "2027-12-31",
+          methodology: "",
+          assumptions: "",
+          evidenceDocumentIds: "",
+        });
+      }
+    );
+
+  const saveScenario = (e: FormEvent) =>
+    save(
+      e,
+      () =>
+        mitigationOperationsApi.createScenario({
+          ...scenario,
+          annualProjection: [{ year: Number(scenario.periodEnd.slice(0, 4)), projectedTco2e: Number(scenario.projectedEmissionsTco2e) }],
+          assumptions: { description: scenario.assumptions },
+          sensitivity: { description: scenario.sensitivity },
+          evidenceDocumentIds: ids(scenario.evidenceDocumentIds),
+        }),
+      () => {
+        const expected = Math.max(0, scenario.baselineEmissionsTco2e - scenario.projectedEmissionsTco2e);
+        const newScen: MitigationScenario = {
+          id: `demo-scen-${Date.now()}`,
+          initiativeId: scenario.initiativeId,
+          scenarioReference: scenario.scenarioReference,
+          revision: 1,
+          scenarioType: scenario.scenarioType,
+          baselineEmissionsTco2e: scenario.baselineEmissionsTco2e,
+          projectedEmissionsTco2e: scenario.projectedEmissionsTco2e,
+          expectedReductionTco2e: expected,
+          scenarioSha256: "demo-sha256",
+        };
+        setScenarios((prev) => [newScen, ...prev]);
+        setScenario({
+          initiativeId: "",
+          scenarioReference: "",
+          scenarioType: "planned",
+          periodStart: "2026-01-01",
+          periodEnd: "2026-12-31",
+          baselineEmissionsTco2e: 0,
+          projectedEmissionsTco2e: 0,
+          assumptions: "",
+          sensitivity: "",
+          evidenceDocumentIds: "",
+        });
+      }
+    );
+
+  const saveAllocation = (e: FormEvent) =>
+    save(
+      e,
+      () =>
+        mitigationOperationsApi.createAllocation({
+          ...allocation,
+          externalReference: allocation.externalReference || null,
+          evidenceDocumentId: allocation.evidenceDocumentId || null,
+        }),
+      () => {
+        const newAlloc: AllowanceAllocation = {
+          id: `demo-alloc-${Date.now()}`,
+          allocationReference: allocation.allocationReference,
+          facilityRevisionId: allocation.facilityRevisionId,
+          revision: 1,
+          reportingYear: allocation.reportingYear,
+          instrumentType: allocation.instrumentType,
+          recordStatus: allocation.recordStatus,
+          quantityTco2e: allocation.quantityTco2e,
+          allocationSha256: "demo-sha256",
+        };
+        setAllocations((prev) => [newAlloc, ...prev]);
+        setAllocation({
+          allocationReference: "",
+          facilityRevisionId: "",
+          reportingYear: 2026,
+          instrumentType: "authority_quota",
+          recordStatus: "draft_reference",
+          quantityTco2e: 0,
+          vintageYear: 2026,
+          externalReference: "",
+          evidenceDocumentId: "",
+          notes: "",
+        });
+      }
+    );
+
+  const savePosition = (e: FormEvent) =>
+    save(
+      e,
+      () =>
+        mitigationOperationsApi.createPosition({
+          ...position,
+          allocationIds: ids(position.allocationIds),
+          scenarioIds: ids(position.scenarioIds),
+        }),
+      () => {
+        const selectedAllocIds = ids(position.allocationIds);
+        const selectedScenIds = ids(position.scenarioIds);
+        const totalQuota = allocations
+          .filter((a) => selectedAllocIds.includes(a.id) || selectedAllocIds.includes(a.allocationReference))
+          .reduce((acc, a) => acc + a.quantityTco2e, 0) || 1800;
+        const totalReduction = scenarios
+          .filter((s) => selectedScenIds.includes(s.id) || selectedScenIds.includes(s.scenarioReference))
+          .reduce((acc, s) => acc + s.expectedReductionTco2e, 0) || 450;
+        const gross = 2050;
+        const projected = totalQuota - (gross - totalReduction);
+        const newPos: AllowancePosition = {
+          id: `demo-pos-${Date.now()}`,
+          facilityRevisionId: position.facilityRevisionId,
+          corporateInventoryId: position.corporateInventoryId,
+          reportingYear: position.reportingYear,
+          grossEmissionsTco2e: gross,
+          authorityQuotaTco2e: totalQuota,
+          internalBudgetTco2e: 0,
+          creditReferenceTco2e: 0,
+          plannedReductionTco2e: totalReduction,
+          projectedPositionTco2e: projected,
+          readinessStatus: projected >= 0 ? "surplus_projected" : "deficit_warning",
+          blockers: [],
+          payloadSha256: "demo-sha256",
+          disclaimer: "Vị thế demo",
+        };
+        setPositions((prev) => [newPos, ...prev]);
+        setPosition({
+          facilityRevisionId: "",
+          corporateInventoryId: "",
+          reportingYear: 2026,
+          allocationIds: "",
+          scenarioIds: "",
+        });
+      }
+    );
 
   const handleOpenTransition = (item: MitigationInitiative) => {
     setTransitioningInitiative(item);
@@ -112,6 +349,17 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
   const handleConfirmTransition = async (e: FormEvent) => {
     e.preventDefault();
     if (!transitioningInitiative || transitioning) return;
+    if (demo) {
+      setInitiatives((prev) =>
+        prev.map((item) =>
+          item.id === transitioningInitiative.id
+            ? { ...item, lifecycleStatus: targetStatus }
+            : item
+        )
+      );
+      setTransitioningInitiative(null);
+      return;
+    }
     setTransitioning(true);
     setTransitionError(null);
     try {
@@ -162,7 +410,13 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
 
       {demo && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {t("demoReadOnly")}
+          💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể tạo sáng kiến giảm thiểu, xây dựng kịch bản dự phóng, phân bổ hạn ngạch và tính vị thế phát thải. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
@@ -177,26 +431,26 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             <form className="grid gap-3 md:grid-cols-2" onSubmit={saveInitiative}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã sáng kiến</label>
-                <Input required disabled={demo} placeholder={t("initiativeReference")} value={initiative.initiativeReference} onChange={e => setInitiative({ ...initiative, initiativeReference: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("initiativeReference")} value={initiative.initiativeReference} onChange={e => setInitiative({ ...initiative, initiativeReference: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
-                <select required disabled={demo} className={select} value={initiative.facilityRevisionId} onChange={e => setInitiative({ ...initiative, facilityRevisionId: e.target.value })}>
+                <select required disabled={saving} className={select} value={initiative.facilityRevisionId} onChange={e => setInitiative({ ...initiative, facilityRevisionId: e.target.value })}>
                   <option value="">{t("selectFacility")}</option>
                   {facilities.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Tên sáng kiến</label>
-                <Input required disabled={demo} placeholder={t("initiativeName")} value={initiative.title} onChange={e => setInitiative({ ...initiative, title: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("initiativeName")} value={initiative.title} onChange={e => setInitiative({ ...initiative, title: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Người phụ trách</label>
-                <Input required disabled={demo} placeholder={t("owner")} value={initiative.ownerName} onChange={e => setInitiative({ ...initiative, ownerName: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("owner")} value={initiative.ownerName} onChange={e => setInitiative({ ...initiative, ownerName: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mục tiêu giảm (tCO₂e)</label>
-                <Input required disabled={demo} type="number" min="0.000001" step="any" placeholder={t("targetReduction")} value={initiative.targetReductionTco2e || ""} onChange={e => setInitiative({ ...initiative, targetReductionTco2e: Number(e.target.value) })} />
+                <Input required disabled={saving} type="number" min="0.000001" step="any" placeholder={t("targetReduction")} value={initiative.targetReductionTco2e || ""} onChange={e => setInitiative({ ...initiative, targetReductionTco2e: Number(e.target.value) })} />
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <div className="flex items-center justify-between">
@@ -212,12 +466,12 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                     }));
                   }}
                   placeholder="Chọn chứng từ đã xác minh từ Evidence Vault..."
-                  disabled={demo || !isCompanyAdmin}
+                  disabled={saving || (!demo && !isCompanyAdmin)}
                   required
                 />
                 <Input
                   required
-                  disabled={demo || !isCompanyAdmin}
+                  disabled={saving || (!demo && !isCompanyAdmin)}
                   placeholder={t("evidenceIds")}
                   value={initiative.evidenceDocumentIds}
                   onChange={e => setInitiative({ ...initiative, evidenceDocumentIds: e.target.value })}
@@ -226,11 +480,11 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Phương pháp tính</label>
-                <Textarea required disabled={demo || !isCompanyAdmin} placeholder={t("methodology")} value={initiative.methodology} onChange={e => setInitiative({ ...initiative, methodology: e.target.value })} />
+                <Textarea required disabled={saving || (!demo && !isCompanyAdmin)} placeholder={t("methodology")} value={initiative.methodology} onChange={e => setInitiative({ ...initiative, methodology: e.target.value })} />
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Giả định tính toán</label>
-                <Textarea required disabled={demo || !isCompanyAdmin} placeholder={t("assumptions")} value={initiative.assumptions} onChange={e => setInitiative({ ...initiative, assumptions: e.target.value })} />
+                <Textarea required disabled={saving || (!demo && !isCompanyAdmin)} placeholder={t("assumptions")} value={initiative.assumptions} onChange={e => setInitiative({ ...initiative, assumptions: e.target.value })} />
               </div>
 
               {!isCompanyAdmin && !demo && (
@@ -239,7 +493,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                   <span>Chỉ Quản trị viên (Company Admin) mới có quyền tạo sáng kiến và thay đổi vòng đời.</span>
                 </div>
               )}
-              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={demo || saving || !isCompanyAdmin}>
+              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={saving || (!demo && !isCompanyAdmin)}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createInitiative")}
               </Button>
@@ -262,7 +516,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                     </div>
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/50">
                       <span className="font-mono text-emerald-800 font-semibold">{x.targetReductionTco2e} tCO₂e</span>
-                      {isCompanyAdmin && !demo && (
+                      {(isCompanyAdmin || demo) && (
                         <Button
                           type="button"
                           size="sm"
@@ -292,36 +546,36 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             <form className="grid gap-3 md:grid-cols-2" onSubmit={saveScenario}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectInitiative")}</label>
-                <select required disabled={demo} className={select} value={scenario.initiativeId} onChange={e => setScenario({ ...scenario, initiativeId: e.target.value })}>
+                <select required disabled={saving} className={select} value={scenario.initiativeId} onChange={e => setScenario({ ...scenario, initiativeId: e.target.value })}>
                   <option value="">{t("selectInitiative")}</option>
                   {initiatives.map(x => <option key={x.id} value={x.id}>{x.initiativeReference}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã kịch bản</label>
-                <Input required disabled={demo} placeholder={t("scenarioReference")} value={scenario.scenarioReference} onChange={e => setScenario({ ...scenario, scenarioReference: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("scenarioReference")} value={scenario.scenarioReference} onChange={e => setScenario({ ...scenario, scenarioReference: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Phát thải cơ sở (tCO₂e)</label>
-                <Input required disabled={demo} type="number" min="0" step="any" placeholder={t("baselineEmissions")} value={scenario.baselineEmissionsTco2e || ""} onChange={e => setScenario({ ...scenario, baselineEmissionsTco2e: Number(e.target.value) })} />
+                <Input required disabled={saving} type="number" min="0" step="any" placeholder={t("baselineEmissions")} value={scenario.baselineEmissionsTco2e || ""} onChange={e => setScenario({ ...scenario, baselineEmissionsTco2e: Number(e.target.value) })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Phát thải dự phóng (tCO₂e)</label>
-                <Input required disabled={demo} type="number" min="0" step="any" placeholder={t("projectedEmissions")} value={scenario.projectedEmissionsTco2e || ""} onChange={e => setScenario({ ...scenario, projectedEmissionsTco2e: Number(e.target.value) })} />
+                <Input required disabled={saving} type="number" min="0" step="any" placeholder={t("projectedEmissions")} value={scenario.projectedEmissionsTco2e || ""} onChange={e => setScenario({ ...scenario, projectedEmissionsTco2e: Number(e.target.value) })} />
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Giả định kịch bản</label>
-                <Textarea required disabled={demo} placeholder={t("assumptions")} value={scenario.assumptions} onChange={e => setScenario({ ...scenario, assumptions: e.target.value })} />
+                <Textarea required disabled={saving} placeholder={t("assumptions")} value={scenario.assumptions} onChange={e => setScenario({ ...scenario, assumptions: e.target.value })} />
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Phân tích độ nhạy</label>
-                <Textarea required disabled={demo} placeholder={t("sensitivity")} value={scenario.sensitivity} onChange={e => setScenario({ ...scenario, sensitivity: e.target.value })} />
+                <Textarea required disabled={saving} placeholder={t("sensitivity")} value={scenario.sensitivity} onChange={e => setScenario({ ...scenario, sensitivity: e.target.value })} />
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block">Bằng chứng liên kết</label>
-                <Input required disabled={demo} placeholder={t("evidenceIds")} value={scenario.evidenceDocumentIds} onChange={e => setScenario({ ...scenario, evidenceDocumentIds: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("evidenceIds")} value={scenario.evidenceDocumentIds} onChange={e => setScenario({ ...scenario, evidenceDocumentIds: e.target.value })} />
               </div>
-              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={demo || saving}>
+              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={saving}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createScenario")}
               </Button>
@@ -348,18 +602,18 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             <form className="grid gap-3 md:grid-cols-2" onSubmit={saveAllocation}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã phân bổ</label>
-                <Input required disabled={demo} placeholder={t("allocationReference")} value={allocation.allocationReference} onChange={e => setAllocation({ ...allocation, allocationReference: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("allocationReference")} value={allocation.allocationReference} onChange={e => setAllocation({ ...allocation, allocationReference: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
-                <select required disabled={demo} className={select} value={allocation.facilityRevisionId} onChange={e => setAllocation({ ...allocation, facilityRevisionId: e.target.value })}>
+                <select required disabled={saving} className={select} value={allocation.facilityRevisionId} onChange={e => setAllocation({ ...allocation, facilityRevisionId: e.target.value })}>
                   <option value="">{t("selectFacility")}</option>
                   {facilities.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Loại công cụ</label>
-                <select disabled={demo} className={select} value={allocation.instrumentType} onChange={e => setAllocation({ ...allocation, instrumentType: e.target.value })}>
+                <select disabled={saving} className={select} value={allocation.instrumentType} onChange={e => setAllocation({ ...allocation, instrumentType: e.target.value })}>
                   <option value="authority_quota">authority quota</option>
                   <option value="internal_budget">internal budget</option>
                   <option value="transfer_reference">transfer reference</option>
@@ -368,28 +622,28 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Trạng thái hồ sơ</label>
-                <select disabled={demo} className={select} value={allocation.recordStatus} onChange={e => setAllocation({ ...allocation, recordStatus: e.target.value })}>
+                <select disabled={saving} className={select} value={allocation.recordStatus} onChange={e => setAllocation({ ...allocation, recordStatus: e.target.value })}>
                   <option value="draft_reference">draft reference</option>
                   <option value="evidence_confirmed">evidence confirmed</option>
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Khối lượng (tCO₂e)</label>
-                <Input required disabled={demo} type="number" min="0.000001" step="any" placeholder={t("quantity")} value={allocation.quantityTco2e || ""} onChange={e => setAllocation({ ...allocation, quantityTco2e: Number(e.target.value) })} />
+                <Input required disabled={saving} type="number" min="0.000001" step="any" placeholder={t("quantity")} value={allocation.quantityTco2e || ""} onChange={e => setAllocation({ ...allocation, quantityTco2e: Number(e.target.value) })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã tham chiếu bên ngoài</label>
-                <Input disabled={demo} placeholder={t("externalReference")} value={allocation.externalReference} onChange={e => setAllocation({ ...allocation, externalReference: e.target.value })} />
+                <Input disabled={saving} placeholder={t("externalReference")} value={allocation.externalReference} onChange={e => setAllocation({ ...allocation, externalReference: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">ID bằng chứng</label>
-                <Input disabled={demo} placeholder={t("evidenceId")} value={allocation.evidenceDocumentId} onChange={e => setAllocation({ ...allocation, evidenceDocumentId: e.target.value })} />
+                <Input disabled={saving} placeholder={t("evidenceId")} value={allocation.evidenceDocumentId} onChange={e => setAllocation({ ...allocation, evidenceDocumentId: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Ghi chú</label>
-                <Input required disabled={demo} placeholder={t("notes")} value={allocation.notes} onChange={e => setAllocation({ ...allocation, notes: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("notes")} value={allocation.notes} onChange={e => setAllocation({ ...allocation, notes: e.target.value })} />
               </div>
-              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={demo || saving}>
+              <Button className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={saving}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createAllocation")}
               </Button>
@@ -416,27 +670,27 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             <form className="space-y-3" onSubmit={savePosition}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
-                <select required disabled={demo} className={select} value={position.facilityRevisionId} onChange={e => setPosition({ ...position, facilityRevisionId: e.target.value })}>
+                <select required disabled={saving} className={select} value={position.facilityRevisionId} onChange={e => setPosition({ ...position, facilityRevisionId: e.target.value })}>
                   <option value="">{t("selectFacility")}</option>
                   {facilities.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectInventory")}</label>
-                <select required disabled={demo} className={select} value={position.corporateInventoryId} onChange={e => setPosition({ ...position, corporateInventoryId: e.target.value })}>
+                <select required disabled={saving} className={select} value={position.corporateInventoryId} onChange={e => setPosition({ ...position, corporateInventoryId: e.target.value })}>
                   <option value="">{t("selectInventory")}</option>
                   {inventories.map(x => <option key={x.id} value={x.id}>{x.inventoryReference} · rev {x.revision}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">ID hạn ngạch liên kết</label>
-                <Input required disabled={demo} placeholder={t("allocationIds")} value={position.allocationIds} onChange={e => setPosition({ ...position, allocationIds: e.target.value })} />
+                <Input required disabled={saving} placeholder={t("allocationIds")} value={position.allocationIds} onChange={e => setPosition({ ...position, allocationIds: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">ID kịch bản giảm phát thải</label>
-                <Input disabled={demo} placeholder={t("scenarioIds")} value={position.scenarioIds} onChange={e => setPosition({ ...position, scenarioIds: e.target.value })} />
+                <Input disabled={saving} placeholder={t("scenarioIds")} value={position.scenarioIds} onChange={e => setPosition({ ...position, scenarioIds: e.target.value })} />
               </div>
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={demo || saving}>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium" disabled={saving}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createPosition")}
               </Button>

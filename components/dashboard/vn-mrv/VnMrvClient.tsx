@@ -6,10 +6,8 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Download,
-  FileCheck2,
   FileLock2,
   FileText,
-  Info,
   Loader2,
   ShieldAlert,
   ShieldCheck,
@@ -27,6 +25,7 @@ import { dataGovernanceApi, type DqlAssessment } from "@/lib/dataGovernanceApi";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
 import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
 import { vnMrvApi, type VnMrvCase, type VnMrvFiling, type VnMrvPlan } from "@/lib/vnMrvApi";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 
 const today = "2026-09-15";
 
@@ -100,7 +99,12 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
   });
 
   const load = useCallback(async () => {
-    if (demo) return;
+    if (demo) {
+      setFacilities(demoSessionCache.getFacilities());
+      setCases(demoSessionCache.getMrvCases());
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [f, c, p, i, g, d] = await Promise.all([
@@ -130,6 +134,35 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
 
   const saveCase = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    if (demo) {
+      setSaving(true);
+      setError(null);
+      try {
+        const fac = facilities.find((f) => f.id === caseForm.facilityRevisionId) || facilities[0];
+        const x = demoSessionCache.addMrvCase({
+          facilityId: caseForm.facilityRevisionId || fac?.id || "demo-fac",
+          facilityName: fac?.name || "Cơ sở demo",
+          caseReference: caseForm.caseReference || `MRV-${Date.now()}`,
+          reportingYear: Number(caseForm.reportingYear) || 2026,
+        });
+        setCases((v) => [x, ...v]);
+        setCaseForm({
+          caseReference: "",
+          facilityRevisionId: "",
+          reportingYear: 2026,
+          sector: "industry_trade",
+          applicabilityStatus: "undetermined",
+          listingReference: "",
+          listingEvidenceDocumentId: "",
+          assessmentDate: today,
+          rationale: "",
+        });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (demo || saving) return;
     if (!isCompanyAdmin && !demo) {
       setError("Chỉ Company Admin / Quản trị viên mới có quyền tạo hồ sơ MRV.");
@@ -165,6 +198,34 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
 
   const savePlan = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    if (demo) {
+      setSaving(true);
+      setError(null);
+      try {
+        const x: VnMrvPlan = {
+          id: `demo-plan-${Date.now()}`,
+          caseId: planForm.caseId || cases[0]?.id || "demo-case-1",
+          planReference: planForm.planReference || `PLAN-${Date.now()}`,
+          revision: 1,
+          planSha256: "demo-sha256",
+        };
+        setPlans((v) => [x, ...v]);
+        setPlanForm({
+          caseId: "",
+          planReference: "",
+          sourceReference: "",
+          methodology: "",
+          qaqc: "",
+          uncertainty: "",
+          dqlIds: "",
+          evidenceIds: "",
+        });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (demo || saving) return;
     if (!isCompanyAdmin && !demo) {
       setError("Chỉ Company Admin / Quản trị viên mới có quyền tạo kế hoạch giám sát MRV.");
@@ -210,6 +271,27 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
 
   const prepare = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    if (demo) {
+      setSaving(true);
+      setError(null);
+      try {
+        const x: VnMrvFiling = {
+          id: `demo-filing-${Date.now()}`,
+          caseId: filingForm.caseId || cases[0]?.id || "demo-case-1",
+          measurementPlanId: filingForm.measurementPlanId || "demo-plan-1",
+          corporateInventoryId: filingForm.corporateInventoryId || "demo-inv-1",
+          readinessStatus: "ready_for_internal_review",
+          blockers: [],
+          payloadSha256: `demo-filing-sha-${Date.now()}`,
+          disclaimer: "Hồ sơ MRV mô phỏng thử nghiệm demo.",
+        };
+        setFilings((v) => [x, ...v]);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (demo || saving) return;
     if (!isCompanyAdmin && !demo) {
       setError("Chỉ Company Admin / Quản trị viên mới có quyền chuẩn bị hồ sơ nộp MRV.");
@@ -365,8 +447,8 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
       )}
 
       {demo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {t("demoReadOnly")}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+          💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể tạo hồ sơ MRV, lập kế hoạch đo đạc và tạo hồ sơ nộp báo cáo thử nghiệm. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
         </div>
       )}
 
@@ -383,7 +465,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Mã hồ sơ (Case Reference)</label>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("caseReference")}
                   value={caseForm.caseReference}
                   onChange={(e) => setCaseForm({ ...caseForm, caseReference: e.target.value })}
@@ -393,7 +475,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   className={select}
                   value={caseForm.facilityRevisionId}
                   onChange={(e) => setCaseForm({ ...caseForm, facilityRevisionId: e.target.value })}
@@ -409,7 +491,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Trạng thái danh mục bắt buộc</label>
                 <select
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   className={select}
                   value={caseForm.applicabilityStatus}
                   onChange={(e) => setCaseForm({ ...caseForm, applicabilityStatus: e.target.value })}
@@ -423,7 +505,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã quyết định / danh mục</label>
                 <Input
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("listingReference")}
                   value={caseForm.listingReference}
                   onChange={(e) => setCaseForm({ ...caseForm, listingReference: e.target.value })}
@@ -434,7 +516,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <EvidenceSelector
                   value={caseForm.listingEvidenceDocumentId}
                   onChange={(id) => setCaseForm({ ...caseForm, listingEvidenceDocumentId: id })}
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder="Chọn chứng từ pháp lý từ Vault..."
                 />
               </div>
@@ -442,7 +524,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Căn cứ pháp lý & giải trình</label>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("rationale")}
                   value={caseForm.rationale}
                   onChange={(e) => setCaseForm({ ...caseForm, rationale: e.target.value })}
@@ -450,7 +532,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
               </div>
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                disabled={demo || saving || isViewer}
+                disabled={(!demo && isViewer) || saving}
               >
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createCase")}
@@ -471,7 +553,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectCase")}</label>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   className={select}
                   value={planForm.caseId}
                   onChange={(e) => setPlanForm({ ...planForm, caseId: e.target.value })}
@@ -488,7 +570,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Mã kế hoạch giám sát</label>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("planReference")}
                   value={planForm.planReference}
                   onChange={(e) => setPlanForm({ ...planForm, planReference: e.target.value })}
@@ -498,7 +580,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Mã nguồn phát thải</label>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("sourceReference")}
                   value={planForm.sourceReference}
                   onChange={(e) => setPlanForm({ ...planForm, sourceReference: e.target.value })}
@@ -508,7 +590,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Phương pháp đo đạc</label>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("methodology")}
                   value={planForm.methodology}
                   onChange={(e) => setPlanForm({ ...planForm, methodology: e.target.value })}
@@ -518,7 +600,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Kế hoạch QA/QC</label>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder="Quy trình kiểm soát chất lượng QA/QC..."
                   value={planForm.qaqc}
                   onChange={(e) => setPlanForm({ ...planForm, qaqc: e.target.value })}
@@ -528,7 +610,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">Độ không đảm bảo đo (Uncertainty)</label>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder={t("uncertainty")}
                   value={planForm.uncertainty}
                   onChange={(e) => setPlanForm({ ...planForm, uncertainty: e.target.value })}
@@ -547,7 +629,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                       return (
                         <div
                           key={dql.id}
-                          onClick={() => !demo && !isViewer && toggleDqlSelection(dql.id)}
+                          onClick={() => (demo || !isViewer) && toggleDqlSelection(dql.id)}
                           className={`flex items-center justify-between p-1.5 rounded cursor-pointer transition-colors ${
                             selected ? "bg-emerald-100 border border-emerald-300" : "bg-white hover:bg-slate-100 border border-slate-100"
                           }`}
@@ -573,7 +655,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                   </div>
                 ) : (
                   <Input
-                    disabled={demo || isViewer}
+                    disabled={(!demo && isViewer) || saving}
                     placeholder={t("dqlIds")}
                     value={planForm.dqlIds}
                     onChange={(e) => setPlanForm({ ...planForm, dqlIds: e.target.value })}
@@ -599,7 +681,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                       setPlanForm({ ...planForm, evidenceIds: [...cur, id].join(", ") });
                     }
                   }}
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   placeholder="Thêm chứng từ vào kế hoạch..."
                 />
                 {planForm.evidenceIds && (
@@ -631,7 +713,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
               </div>
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                disabled={demo || saving || isViewer}
+                disabled={(!demo && isViewer) || saving}
               >
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("createPlan")}
@@ -652,7 +734,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectCase")}</label>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   className={select}
                   value={filingForm.caseId}
                   onChange={(e) =>
@@ -671,7 +753,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectPlan")}</label>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   className={select}
                   value={filingForm.measurementPlanId}
                   onChange={(e) => setFilingForm({ ...filingForm, measurementPlanId: e.target.value })}
@@ -690,7 +772,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectInventory")}</label>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(!demo && isViewer) || saving}
                   className={select}
                   value={filingForm.corporateInventoryId}
                   onChange={(e) => setFilingForm({ ...filingForm, corporateInventoryId: e.target.value })}
@@ -705,7 +787,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
               </div>
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                disabled={demo || saving || isViewer}
+                disabled={(!demo && isViewer) || saving}
               >
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {t("prepareFiling")}

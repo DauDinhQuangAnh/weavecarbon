@@ -20,6 +20,8 @@ import {
   type WeavenodeHealth,
   type WeavenodeUpdate
 } from "@/lib/weavenodeApi";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import { DEMO_MEASUREMENT_POINTS } from "@/lib/dashboard/industrialDemoData";
 
 const selectClass = "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
 
@@ -88,7 +90,28 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (demo) return;
+    if (demo) {
+      const devs: WeavenodeDevice[] = demoSessionCache.getWeavenodeDevices().map((d) => ({
+        id: d.id,
+        deviceReference: d.deviceReference,
+        measurementPointRevisionId: DEMO_MEASUREMENT_POINTS[0]?.id || "demo-point-1",
+        measurementPointReference: DEMO_MEASUREMENT_POINTS[0]?.measurementPointReference || "DEMO-POINT-01",
+        canonicalUnit: "kWh",
+        publicKeySha256: "demo-sha256",
+        protocolVersion: "weavenode-ed25519-v2",
+        revoked: false,
+        lastAcceptedSequence: 100,
+        bufferedCount: 0,
+        latestHealth: null,
+        latestUpdate: null,
+        createdAt: new Date().toISOString(),
+      }));
+      setDevices(devs);
+      setPoints(DEMO_MEASUREMENT_POINTS);
+      if (devs.length > 0 && !selectedDevice) setSelectedDevice(devs[0].id);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [deviceRows, pointRows, evidenceResponse, hierarchyRows, reconciliationRows, keyRows] = await Promise.all([
@@ -111,16 +134,54 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [demo, t]);
+  }, [demo, selectedDevice, t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   useEffect(() => {
-    if (!selectedDevice || demo) {
+    if (!selectedDevice) {
       setHealth([]);
       setUpdates([]);
+      return;
+    }
+    if (demo) {
+      setHealth([
+        {
+          id: `demo-health-${selectedDevice}`,
+          sequenceNumber: 1,
+          recordedAt: new Date().toISOString(),
+          gatewayReceivedAt: new Date().toISOString(),
+          serverReceivedAt: new Date().toISOString(),
+          clockDriftSeconds: 0,
+          firmwareVersion: "2.1.0",
+          configVersion: "1.0",
+          bufferDepth: 0,
+          storageFreeBytes: 1048576,
+          sensorStatus: "ok",
+          faultCodes: [],
+          payloadSha256: "demo-sha256",
+        },
+      ]);
+      setUpdates([
+        {
+          id: `demo-upd-1`,
+          deviceId: selectedDevice,
+          updateReference: "OTA-FW-v2.1.0",
+          revision: 1,
+          updateKind: "firmware",
+          targetVersion: "2.1.0",
+          rolloutStage: "production",
+          artifactSha256: "demo-sha256",
+          signingKeyId: "demo-key-1",
+          manifest: {},
+          manifestSha256: "demo-sha256",
+          rollbackOfUpdateId: null,
+          reason: "Bản cập nhật định kỳ minh họa",
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       return;
     }
     void Promise.all([
@@ -135,6 +196,19 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   }, [demo, selectedDevice, t]);
 
   const run = async (action: () => Promise<unknown>) => {
+    if (saving) return;
+    if (demo) {
+      setSaving(true);
+      setError(null);
+      try {
+        await action();
+      } catch (cause) {
+        setError(isApiError(cause) ? cause.message : "Có lỗi khi xử lý thao tác demo.");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (demo || saving) return;
     setSaving(true);
     setError(null);
@@ -151,6 +225,26 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   const saveHierarchy = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
+      if (demo) {
+        const item: MeterHierarchy = {
+          id: `demo-hier-${Date.now()}`,
+          facilityRevisionId: "demo-fac",
+          hierarchyReference: hierarchyForm.hierarchyReference || `HIER-${Date.now()}`,
+          revision: 1,
+          parentMeasurementPointRevisionId: hierarchyForm.parentMeasurementPointRevisionId || points[0]?.id || "pt-1",
+          childMeasurementPointRevisionId: hierarchyForm.childMeasurementPointRevisionId || points[1]?.id || "pt-2",
+          relationKind: hierarchyForm.relationKind as MeterHierarchy["relationKind"],
+          tolerancePercent: Number(hierarchyForm.tolerancePercent),
+          effectiveFrom: hierarchyForm.effectiveFrom || new Date().toISOString(),
+          effectiveTo: null,
+          evidenceDocumentId: hierarchyForm.evidenceDocumentId || "demo-evidence-1",
+          hierarchySha256: "demo-sha256",
+          createdAt: new Date().toISOString(),
+        };
+        setHierarchies((prev) => [item, ...prev]);
+        setHierarchyForm(initialHierarchy);
+        return;
+      }
       await weavenodeApi.createHierarchy({
         ...hierarchyForm,
         tolerancePercent: Number(hierarchyForm.tolerancePercent),
@@ -163,6 +257,27 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   const saveReconciliation = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
+      if (demo) {
+        const item: MeterReconciliation = {
+          id: `demo-recon-${Date.now()}`,
+          facilityRevisionId: "demo-fac",
+          parentMeasurementPointRevisionId: reconciliationForm.parentMeasurementPointRevisionId || points[0]?.id || "pt-1",
+          periodStart: reconciliationForm.periodStart || new Date().toISOString(),
+          periodEnd: reconciliationForm.periodEnd || new Date().toISOString(),
+          canonicalUnit: "kWh",
+          parentQuantity: 1000,
+          childQuantity: 992,
+          differenceQuantity: 8,
+          differencePercent: 0.8,
+          tolerancePercent: 2,
+          status: "reconciled",
+          payloadSha256: "demo-sha256",
+          createdAt: new Date().toISOString(),
+        };
+        setReconciliations((prev) => [item, ...prev]);
+        setReconciliationForm(initialReconciliation);
+        return;
+      }
       await weavenodeApi.reconcile({
         parentMeasurementPointRevisionId: reconciliationForm.parentMeasurementPointRevisionId,
         periodStart: new Date(reconciliationForm.periodStart).toISOString(),
@@ -175,6 +290,18 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   const saveKey = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
+      if (demo) {
+        const item: ReleaseKey = {
+          id: `demo-key-${Date.now()}`,
+          keyReference: keyForm.keyReference || `KEY-${Date.now()}`,
+          publicKeySha256: "demo-sha256",
+          revoked: false,
+          createdAt: new Date().toISOString(),
+        };
+        setReleaseKeys((prev) => [item, ...prev]);
+        setKeyForm({ keyReference: "", publicKeyPem: "" });
+        return;
+      }
       await weavenodeApi.createReleaseKey(keyForm);
       setKeyForm({ keyReference: "", publicKeyPem: "" });
     });
@@ -183,6 +310,27 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   const saveUpdate = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
+      if (demo) {
+        const item: WeavenodeUpdate = {
+          id: `demo-upd-${Date.now()}`,
+          deviceId: updateForm.deviceId || selectedDevice || "demo-dev-1",
+          updateReference: updateForm.updateReference || `UPD-${Date.now()}`,
+          revision: 1,
+          updateKind: updateForm.updateKind as WeavenodeUpdate["updateKind"],
+          targetVersion: updateForm.targetVersion || "1.0.0",
+          rolloutStage: updateForm.rolloutStage as WeavenodeUpdate["rolloutStage"],
+          artifactSha256: "demo-sha256",
+          signingKeyId: "demo-key-1",
+          manifest: {},
+          manifestSha256: "demo-sha256",
+          rollbackOfUpdateId: null,
+          reason: "Bản cập nhật thử nghiệm demo",
+          createdAt: new Date().toISOString(),
+        };
+        setUpdates((prev) => [item, ...prev]);
+        setUpdateForm(initialUpdate);
+        return;
+      }
       const manifest = JSON.parse(updateForm.manifest) as Record<string, unknown>;
       await weavenodeApi.createUpdate(updateForm.deviceId, {
         ...updateForm,
@@ -244,9 +392,9 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
       )}
 
       {demo && (
-        <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 shadow-sm">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-sky-600" />
-          <span>{t("demoReadOnly")}</span>
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 shadow-sm">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-600" />
+          <span>💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể phân cấp điểm đo, đối soát tiêu thụ, tạo khóa và ghi nhận bản cập nhật thiết bị thử nghiệm. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).</span>
         </div>
       )}
 
@@ -407,7 +555,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("reference")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={saving}
                   placeholder="VD: HIER-LINE-A-01"
                   value={hierarchyForm.hierarchyReference}
                   onChange={(e) => setHierarchyForm({ ...hierarchyForm, hierarchyReference: e.target.value })}
@@ -417,7 +565,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("relation")}>
                 <select
                   className={selectClass}
-                  disabled={demo}
+                  disabled={saving}
                   value={hierarchyForm.relationKind}
                   onChange={(e) => setHierarchyForm({ ...hierarchyForm, relationKind: e.target.value })}
                 >
@@ -431,7 +579,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 <select
                   required
                   className={selectClass}
-                  disabled={demo}
+                  disabled={saving}
                   value={hierarchyForm.parentMeasurementPointRevisionId}
                   onChange={(e) => {
                     const point = points.find((item) => item.id === e.target.value);
@@ -455,7 +603,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 <select
                   required
                   className={selectClass}
-                  disabled={demo}
+                  disabled={saving}
                   value={hierarchyForm.childMeasurementPointRevisionId}
                   onChange={(e) => setHierarchyForm({ ...hierarchyForm, childMeasurementPointRevisionId: e.target.value })}
                 >
@@ -477,7 +625,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("tolerance")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={saving}
                   type="number"
                   min="0"
                   max="100"
@@ -491,7 +639,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("effectiveFrom")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={saving}
                   type="datetime-local"
                   value={hierarchyForm.effectiveFrom}
                   onChange={(e) => setHierarchyForm({ ...hierarchyForm, effectiveFrom: e.target.value })}
@@ -503,7 +651,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                   <select
                     required
                     className={selectClass}
-                    disabled={demo}
+                    disabled={saving}
                     value={hierarchyForm.evidenceDocumentId}
                     onChange={(e) => setHierarchyForm({ ...hierarchyForm, evidenceDocumentId: e.target.value })}
                   >
@@ -517,7 +665,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 </Field>
               </div>
 
-              <Button disabled={demo || saving} className="md:col-span-2 bg-cyan-600 hover:bg-cyan-700 text-white mt-1">
+              <Button disabled={saving} className="md:col-span-2 bg-cyan-600 hover:bg-cyan-700 text-white mt-1">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Layers className="mr-2 h-4 w-4" />}
                 {t("saveHierarchy")}
               </Button>
@@ -557,7 +705,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 <select
                   required
                   className={selectClass}
-                  disabled={demo}
+                  disabled={saving}
                   value={reconciliationForm.parentMeasurementPointRevisionId}
                   onChange={(e) => setReconciliationForm({ ...reconciliationForm, parentMeasurementPointRevisionId: e.target.value })}
                 >
@@ -574,7 +722,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 <Field label={t("periodStart")}>
                   <Input
                     required
-                    disabled={demo}
+                    disabled={saving}
                     type="datetime-local"
                     value={reconciliationForm.periodStart}
                     onChange={(e) => setReconciliationForm({ ...reconciliationForm, periodStart: e.target.value })}
@@ -583,7 +731,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 <Field label={t("periodEnd")}>
                   <Input
                     required
-                    disabled={demo}
+                    disabled={saving}
                     type="datetime-local"
                     value={reconciliationForm.periodEnd}
                     onChange={(e) => setReconciliationForm({ ...reconciliationForm, periodEnd: e.target.value })}
@@ -591,7 +739,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                 </Field>
               </div>
 
-              <Button disabled={demo || saving} className="bg-teal-600 hover:bg-teal-700 text-white mt-1">
+              <Button disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white mt-1">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                 {t("runReconciliation")}
               </Button>
@@ -645,7 +793,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("keyReference")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={saving}
                   placeholder="VD: WEAVENODE-RELEASE-ED25519-2026"
                   value={keyForm.keyReference}
                   onChange={(e) => setKeyForm({ ...keyForm, keyReference: e.target.value })}
@@ -654,7 +802,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("publicKey")}>
                 <Textarea
                   required
-                  disabled={demo}
+                  disabled={saving}
                   rows={2}
                   className="font-mono text-xs"
                   placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
@@ -662,7 +810,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                   onChange={(e) => setKeyForm({ ...keyForm, publicKeyPem: e.target.value })}
                 />
               </Field>
-              <Button disabled={demo || saving} className="md:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button disabled={saving} className="md:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
                 {t("registerKey")}
               </Button>
@@ -693,7 +841,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label={t("device")}>
               <select
                 required
-                disabled={demo}
+                disabled={saving}
                 className={selectClass}
                 value={updateForm.deviceId}
                 onChange={(e) => setUpdateForm({ ...updateForm, deviceId: e.target.value })}
@@ -712,7 +860,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label={t("reference")}>
               <Input
                 required
-                disabled={demo}
+                disabled={saving}
                 placeholder="VD: OTA-2026-Q1-V2.1.0"
                 value={updateForm.updateReference}
                 onChange={(e) => setUpdateForm({ ...updateForm, updateReference: e.target.value })}
@@ -722,7 +870,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label={t("targetVersion")}>
               <Input
                 required
-                disabled={demo}
+                disabled={saving}
                 placeholder="VD: 2.1.0"
                 value={updateForm.targetVersion}
                 onChange={(e) => setUpdateForm({ ...updateForm, targetVersion: e.target.value })}
@@ -731,7 +879,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
 
             <Field label={t("updateKind")}>
               <select
-                disabled={demo}
+                disabled={saving}
                 className={selectClass}
                 value={updateForm.updateKind}
                 onChange={(e) => setUpdateForm({ ...updateForm, updateKind: e.target.value })}
@@ -743,7 +891,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
 
             <Field label={t("rolloutStage")}>
               <select
-                disabled={demo}
+                disabled={saving}
                 className={selectClass}
                 value={updateForm.rolloutStage}
                 onChange={(e) => setUpdateForm({ ...updateForm, rolloutStage: e.target.value })}
@@ -758,7 +906,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label={t("signingKey")}>
               <select
                 required
-                disabled={demo}
+                disabled={saving}
                 className={selectClass}
                 value={updateForm.signingKeyId}
                 onChange={(e) => setUpdateForm({ ...updateForm, signingKeyId: e.target.value })}
@@ -777,7 +925,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label="artifactSha256">
               <Input
                 required
-                disabled={demo}
+                disabled={saving}
                 pattern="[a-fA-F0-9]{64}"
                 placeholder="64 ký tự hex SHA256"
                 className="font-mono text-xs"
@@ -789,7 +937,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label={t("manifest")}>
               <Textarea
                 required
-                disabled={demo}
+                disabled={saving}
                 rows={2}
                 className="font-mono text-xs"
                 value={updateForm.manifest}
@@ -800,7 +948,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             <Field label={t("signature")}>
               <Textarea
                 required
-                disabled={demo}
+                disabled={saving}
                 rows={2}
                 className="font-mono text-xs"
                 value={updateForm.signatureBase64}
@@ -812,7 +960,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("rollbackOf")}>
                 <Input
                   required
-                  disabled={demo}
+                  disabled={saving}
                   value={updateForm.rollbackOfUpdateId}
                   onChange={(e) => setUpdateForm({ ...updateForm, rollbackOfUpdateId: e.target.value })}
                 />
@@ -823,7 +971,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               <Field label={t("reason")}>
                 <Textarea
                   required
-                  disabled={demo}
+                  disabled={saving}
                   rows={2}
                   placeholder="Lý do cập nhật firmware hoặc điều chỉnh cấu hình..."
                   value={updateForm.reason}
@@ -833,7 +981,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
             </div>
 
             <div className="md:col-span-3 pt-2">
-              <Button disabled={demo || saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
                 {t("recordUpdate")}
               </Button>

@@ -49,6 +49,8 @@ import {
   type IndustrialMeasurementPoint,
   type IndustrialProcess,
 } from "@/lib/industrialCoreApi";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import { DEMO_MEASUREMENT_POINTS, DEMO_EVIDENCE } from "@/lib/dashboard/industrialDemoData";
 
 type SaveAction = "facility" | "process" | "point" | "allocationRule" | "allocationRun";
 
@@ -158,13 +160,13 @@ export default function CarbonOperationsClient({
     setLoadWarnings([]);
     if (demo) {
       setRegistry(INDUSTRIAL_CORE_DEMO_REGISTRY);
-      setFacilities([]);
-      setProcesses([]);
-      setMeasurementPoints([]);
-      setActivities([]);
+      setFacilities(demoSessionCache.getFacilities());
+      setProcesses(demoSessionCache.getProcesses());
+      setMeasurementPoints(DEMO_MEASUREMENT_POINTS);
+      setActivities(demoSessionCache.getActivities());
       setAllocationRules([]);
       setAllocationRuns([]);
-      setEvidence([]);
+      setEvidence(DEMO_EVIDENCE);
       setLoading(false);
       return;
     }
