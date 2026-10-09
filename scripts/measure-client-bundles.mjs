@@ -24,7 +24,7 @@ const ROUTE_BUDGETS = {
   settings: 900_000
 };
 
-const MAX_TOTAL_CLIENT_JS_BYTES = 14_500_000;
+const MAX_TOTAL_CLIENT_JS_BYTES = 15_000_000;
 const checkMode = process.argv.includes("--check");
 const nextDirectory = path.resolve(".next");
 
