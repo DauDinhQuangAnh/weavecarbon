@@ -1,4 +1,4 @@
-import { getRouteHubById } from "@/components/dashboard/assessment/steps/routeHubs";
+import { getRouteHubById } from "@/lib/geo/routeHubs";
 
 export type RailRouteCoordinate = [number, number];
 

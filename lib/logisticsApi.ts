@@ -7,7 +7,7 @@ import {
   VIETNAM_TRANSFER_HUBS,
   type RouteHub,
   type RouteHubKind
-} from "@/components/dashboard/assessment/steps/routeHubs";
+} from "@/lib/geo/routeHubs";
 
 export type LogisticsShipmentStatus =
 "pending" |

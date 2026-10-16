@@ -8,7 +8,7 @@ import type {
   MarketCompliance,
   ProductScopeItem,
   Recommendation,
-} from "@/components/dashboard/export/types";
+} from "@/types/domain/export";
 import {
   MATERIAL_CERTIFICATION_DOCUMENT_CODE_BY_VALUE,
   MATERIAL_CERTIFICATION_LABEL_BY_VALUE,

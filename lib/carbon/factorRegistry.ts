@@ -1,7 +1,7 @@
 import {
   MATERIAL_CATALOG,
   type CatalogMaterial
-} from "@/components/dashboard/assessment/materialCatalog";
+} from "@/lib/carbon/materialCatalog";
 import type {
   CarbonFactorClass,
   CarbonFactorMetadata,

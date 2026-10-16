@@ -12,9 +12,9 @@ import type {
   MaterialInput,
   ProductAssessmentData,
   ProductCategory,
-  TransportLeg,
-  EvidenceDocument } from
-"@/components/dashboard/assessment/steps/types";
+  EvidenceDocument
+} from "@/types/domain/product";
+import type { TransportLeg } from "@/types/domain/transport";
 
 export type ProductStatus = "draft" | "published";
 

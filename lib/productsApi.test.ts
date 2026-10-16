@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
+import type { ProductAssessmentData } from "@/types/domain/product";
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),

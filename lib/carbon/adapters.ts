@@ -1,5 +1,4 @@
-import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
-import type { BulkProductRow } from "@/components/dashboard/products/types";
+import type { ProductAssessmentData, BulkProductRow } from "@/types/domain/product";
 import { calculateCarbonFootprint } from "@/lib/carbon/engine";
 import { resolveCategoryMethodology } from "@/lib/carbon/factorRegistry";
 import type {

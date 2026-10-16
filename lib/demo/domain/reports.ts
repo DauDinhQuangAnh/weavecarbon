@@ -9,7 +9,7 @@ import type {
 } from "@/lib/demo/schema";
 import type { ReportDatasetType, ReportWorkbookOptions } from "@/lib/reportsApi";
 import { downloadAsCsv, downloadAsXlsx } from "@/lib/reportsApi";
-import type { MarketCode } from "@/components/dashboard/export/types";
+import type { MarketCode } from "@/types/domain/export";
 
 const createId = () =>
   globalThis.crypto?.randomUUID?.() ||

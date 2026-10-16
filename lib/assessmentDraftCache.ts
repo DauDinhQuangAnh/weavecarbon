@@ -1,7 +1,7 @@
 import type {
   ProductAssessmentData,
   ProductAssessmentSessionDraft
-} from "@/components/dashboard/assessment/steps/types";
+} from "@/types/domain/product";
 
 const ASSESSMENT_DRAFT_SCHEMA_VERSION = 2;
 const ASSESSMENT_DRAFT_KEY_PREFIX = "assessment_draft_v2";

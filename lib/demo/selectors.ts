@@ -2,7 +2,7 @@
 
 import type { DemoDataset, DemoReportSnapshot } from "@/lib/demo/schema";
 import type { ProductRecord } from "@/lib/productsApi";
-import type { MarketCompliance } from "@/components/dashboard/export/types";
+import type { MarketCompliance } from "@/types/domain/export";
 import type { ReportDatasetType, ReportExportSourceCounts } from "@/lib/reportsApi";
 import {
   getDemoAuditTrail,

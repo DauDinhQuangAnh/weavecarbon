@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
-import type { BulkProductRow } from "@/components/dashboard/products/types";
+import type { ProductAssessmentData, BulkProductRow } from "@/types/domain/product";
 import {
   buildCarbonEngineInputFromAssessment,
   buildCarbonEngineInputFromBulkRow,

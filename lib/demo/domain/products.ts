@@ -21,7 +21,7 @@ import type {
   UpdateBatchItemPayload,
   UpdateBatchPayload,
 } from "@/lib/productsApi";
-import type { AddressInput, ProductAssessmentData } from "@/components/dashboard/assessment/steps/types";
+import type { AddressInput, ProductAssessmentData } from "@/types/domain/product";
 import { createDemoShipment, cascadeProductRemovalFromShipments } from "@/lib/demo/domain/logistics";
 import { syncDemoComplianceForPublishedProduct } from "@/lib/demo/domain/export";
 

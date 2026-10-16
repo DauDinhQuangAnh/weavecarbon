@@ -21,7 +21,7 @@ import {
   type Priority,
   type ProductScopeItem,
   type Recommendation
-} from "@/components/dashboard/export/types";
+} from "@/types/domain/export";
 import { isDemoPath } from "@/lib/demo/routes";
 
 const EXPORT_MARKETS_ENDPOINT = "/export/markets";
