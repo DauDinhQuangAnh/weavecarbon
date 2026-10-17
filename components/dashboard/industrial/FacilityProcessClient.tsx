@@ -12,7 +12,17 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  Layers,
+  Flame,
+  Zap,
+  Target,
+  Boxes,
+  FileCheck2,
+  TrendingDown,
+  Lightbulb,
 } from "lucide-react";
+import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
 import {
   industrialCoreApi,
   type IndustrialActivity,
@@ -81,6 +91,7 @@ export default function FacilityProcessClient({
   });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const isFacility = mode === "facilities";
 
@@ -325,6 +336,143 @@ export default function FacilityProcessClient({
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* Main Content Area */}
         <section className="space-y-4">
+          {/* Mode-specific industrial intelligence component */}
+          {!isFacility ? (
+            /* Interactive Process Flow Pipeline for /processes */
+            <section className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-foreground text-sm">Sơ đồ Chuỗi Dòng Quy trình Công nghệ (Process Flow Pipeline)</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Mô hình hóa 6 công đoạn kỹ thuật sản xuất, phân bổ tải carbon và cấp bậc chất lượng dữ liệu (DQL)
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] gap-1">
+                  <Sparkles className="h-3 w-3 text-primary" /> Chuẩn hóa Thuyết minh 12.09
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+                {[
+                  { key: "production", title: "1. Sản xuất chính", icon: Cpu, energy: "Điện lưới", share: "24%", dql: "IoT Cấp 1", desc: "Kéo sợi, dệt thoi/kim" },
+                  { key: "dyeing_washing", title: "2. Nhuộm & Giặt", icon: Flame, energy: "Hơi lò hơi", share: "38%", dql: "Hóa đơn Cấp 2", desc: "Nhuộm cao áp & giặt sạch" },
+                  { key: "cutting_sewing", title: "3. Cắt & May", icon: Boxes, energy: "Điện 3 pha", share: "8%", dql: "IoT Cấp 1", desc: "Cắt rập và may chuyền" },
+                  { key: "boiler_steam", title: "4. Lò hơi & Hơi", icon: Zap, energy: "Biomass / Than", share: "20%", dql: "Cân nhiên liệu Cấp 1", desc: "Cấp hơi bão hòa nhà máy" },
+                  { key: "wastewater_treatment", title: "5. Xử lý nước thải", icon: Activity, energy: "Điện sục khí", share: "6%", dql: "Đồng hồ Cấp 2", desc: "Bể vi sinh & tuần hoàn" },
+                  { key: "packaging_finishing", title: "6. Hoàn tất & Gói", icon: FileCheck2, energy: "Điện nhẹ", share: "4%", dql: "Ước tính Cấp 3", desc: "Ủi hơi & đóng thùng" },
+                ].map((step) => {
+                  const isSelected = typeFilter === step.key;
+                  return (
+                    <button
+                      key={step.key}
+                      type="button"
+                      onClick={() => setTypeFilter(isSelected ? "all" : step.key)}
+                      className={`flex flex-col justify-between rounded-lg border p-2.5 text-left transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/10 shadow-xs"
+                          : "border-border/70 bg-muted/20 hover:border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-foreground text-[11px] truncate">{step.title}</span>
+                          <step.icon className={`h-3.5 w-3.5 shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                        </div>
+                        <p className="mt-1 text-[10px] text-muted-foreground truncate">{step.desc}</p>
+                      </div>
+                      <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-primary">{step.share}</span>
+                        <span className="text-muted-foreground font-mono">{step.energy}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* AI Process Benchmark Callout */}
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-primary/5 border border-primary/15 p-2.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-muted-foreground text-[11px]">
+                    <strong>AI Process Insights:</strong> Công đoạn <span className="text-foreground font-medium">Nhuộm & Lò hơi</span> chiếm <strong>58%</strong> tổng tải phát thải. Áp dụng tuần hoàn nước ngưng và biến tần quạt lò hơi có thể tiết kiệm 15 - 20% than/biomass.
+                  </span>
+                </div>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  BAT Benchmark: 8.8 MJ/kg (Đạt chuẩn EU)
+                </span>
+              </div>
+            </section>
+          ) : (
+            /* Facility Carbon Performance Scorecard & ISO Boundaries for /facilities */
+            <section className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Factory className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-foreground text-sm">Thẻ điểm Hiệu quả Carbon & Ranh giới ISO 14064-1:2018</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Hạch toán ranh giới tổ chức theo phương pháp Kiểm soát Vận hành (Operational Control) và tỷ lệ dữ liệu đo trực tiếp
+                  </p>
+                </div>
+                <Badge className="bg-emerald-600 text-white gap-1 text-[11px]">
+                  <ShieldCheck className="h-3 w-3" /> ISO 14064-1:2018 Conformance
+                </Badge>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-4 text-xs">
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <span className="text-muted-foreground text-[11px]">Cường độ / Diện tích sàn</span>
+                  <p className="mt-1 text-xl font-bold text-foreground">42.5 <span className="text-xs font-normal text-muted-foreground">kgCO₂e / m²</span></p>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Tốt hơn định mức 14%</span>
+                </div>
+
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <span className="text-muted-foreground text-[11px]">Đo trực tiếp IoT (Primary Data)</span>
+                  <p className="mt-1 text-xl font-bold text-foreground">84.2%</p>
+                  <span className="text-[10px] text-primary font-medium">Cấp độ tin cậy DQL Cao</span>
+                </div>
+
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <span className="text-muted-foreground text-[11px]">Ranh giới Hạch toán</span>
+                  <p className="mt-1 text-base font-bold text-foreground">Operational Control</p>
+                  <span className="text-[10px] text-muted-foreground">100% tài sản thuộc thẩm quyền</span>
+                </div>
+
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <span className="text-muted-foreground text-[11px]">Xếp hạng Net-Zero Cơ sở</span>
+                  <p className="mt-1 text-xl font-bold text-emerald-600">Hạng B+</p>
+                  <span className="text-[10px] text-muted-foreground">On-track giảm 30% đến 2030</span>
+                </div>
+              </div>
+
+              {/* AI Facility Decarbonization Roadmap */}
+              <div className="rounded-lg bg-gradient-to-r from-primary/5 via-muted/30 to-primary/5 border border-primary/20 p-3 text-xs space-y-2">
+                <div className="flex items-center gap-1.5 font-semibold text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI Decarbonization Roadmap cho Hạ tầng Cơ sở:</span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3 text-[11px]">
+                  <div className="rounded border border-border/60 bg-background/80 p-2">
+                    <p className="font-semibold text-foreground">1. Điện mặt trời áp mái 1.5 MWp</p>
+                    <p className="text-muted-foreground mt-0.5">Cắt giảm 28% điện lưới, hoàn vốn 4.2 năm theo cơ chế tự dùng.</p>
+                  </div>
+                  <div className="rounded border border-border/60 bg-background/80 p-2">
+                    <p className="font-semibold text-foreground">2. Hệ thống Sub-metering từng xưởng</p>
+                    <p className="text-muted-foreground mt-0.5">Phát hiện hao hụt điện tức thì, đối soát cân bằng năng lượng & rò rỉ.</p>
+                  </div>
+                  <div className="rounded border border-border/60 bg-background/80 p-2">
+                    <p className="font-semibold text-foreground">3. Nâng cấp Chiller & Động cơ IE4</p>
+                    <p className="text-muted-foreground mt-0.5">Tiết kiệm 12% điện làm mát, chuẩn bị sẵn sàng thẩm định kiểm toán.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Search, Filters, and Action Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex-1 min-w-[240px]">
@@ -551,6 +699,18 @@ export default function FacilityProcessClient({
               </Badge>
             </div>
 
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAiImport(true)}
+              disabled={!canWrite || busy}
+              className="w-full h-8 text-xs font-medium border-emerald-300 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300 flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              {isFacility ? "Quét AI từ Hồ sơ Cơ sở (PDF/Ảnh)" : "Quét AI từ Quy trình SOP (PDF/Ảnh)"}
+            </Button>
+
             {demo ? (
               <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/50 leading-relaxed">
                 💡 <strong>Chế độ Demo</strong>: Bạn có thể nhập và lưu thử nghiệm revision. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
@@ -689,6 +849,23 @@ export default function FacilityProcessClient({
           </form>
         </aside>
       </div>
+
+      <AiDocumentImportModal
+        open={showAiImport}
+        onOpenChange={setShowAiImport}
+        contextKey={isFacility ? "facility" : "process"}
+        demo={demo}
+        onApply={(fields) => {
+          setForm((prev) => ({
+            ...prev,
+            reference: (fields.reference as string) || prev.reference,
+            name: (fields.name as string) || prev.name,
+            timezone: (fields.timezone as string) || prev.timezone,
+            boundary: (fields.boundary as string) || prev.boundary,
+            processType: (fields.processType as string) || prev.processType,
+          }));
+        }}
+      />
     </WorkspaceFrame>
   );
 }

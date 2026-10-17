@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2, Network, Plus, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Loader2, Network, Plus, ShieldCheck, Sparkles } from "lucide-react";
+import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +85,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
   const [openModelDialog, setOpenModelDialog] = useState(false);
   const [openCriticalityDialog, setOpenCriticalityDialog] = useState(false);
   const [openPortfolioDialog, setOpenPortfolioDialog] = useState(false);
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const [profileForm, setProfileForm] = useState(emptyProfile);
   const [siteForm, setSiteForm] = useState(emptySite);
@@ -198,6 +200,16 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             <CardDescription className="text-xs text-slate-500 mt-1">Mỗi thay đổi tạo một revision bất biến và yêu cầu bằng chứng đã khóa.</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 border-violet-300 bg-violet-50 text-xs font-medium text-violet-800 hover:bg-violet-100 flex items-center gap-1.5 transition-colors"
+              onClick={() => setShowAiImport(true)}
+              disabled={saving}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+              Quét AI Hồ sơ NCC
+            </Button>
             <Button size="sm" variant="outline" className="h-8 border-emerald-300 text-xs text-emerald-800 hover:bg-emerald-50" onClick={() => setOpenProfileDialog(true)} disabled={saving}>
               <Plus className="mr-1 h-3.5 w-3.5" /> Tạo hồ sơ
             </Button>
@@ -463,8 +475,23 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
     <Dialog open={openProfileDialog} onOpenChange={setOpenProfileDialog}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Tạo revision hồ sơ nhà cung ứng</DialogTitle>
-          <DialogDescription>Mỗi thay đổi tạo một revision bất biến và yêu cầu bằng chứng đã khóa.</DialogDescription>
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
+            <div>
+              <DialogTitle>Tạo revision hồ sơ nhà cung ứng</DialogTitle>
+              <DialogDescription>Mỗi thay đổi tạo một revision bất biến và yêu cầu bằng chứng đã khóa.</DialogDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAiImport(true)}
+              disabled={saving}
+              className="h-8 border-violet-300 bg-violet-50 text-xs font-medium text-violet-800 hover:bg-violet-100 flex items-center gap-1.5 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+              Quét AI từ Giấy ĐKKD / Hợp đồng
+            </Button>
+          </div>
         </DialogHeader>
         <form className="grid gap-3 md:grid-cols-2 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createProfile({ ...profileForm, supplierTier: Number(profileForm.supplierTier) }), () => { setProfileForm(emptyProfile); setOpenProfileDialog(false); }, () => {
           const newProfile: SupplierProfile = {
@@ -982,6 +1009,24 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           </div>
         )}
       </DialogContent>
+      <AiDocumentImportModal
+        open={showAiImport}
+        onOpenChange={setShowAiImport}
+        contextKey="supplier"
+        demo={demo}
+        onApply={(fields) => {
+          setProfileForm((prev) => ({
+            ...prev,
+            supplierReference: (fields.supplierReference as string) || prev.supplierReference,
+            legalName: (fields.legalName as string) || prev.legalName,
+            tradingName: (fields.tradingName as string) || prev.tradingName,
+            countryCode: (fields.countryCode as string) || prev.countryCode,
+            sector: (fields.sector as string) || prev.sector,
+            supplierTier: fields.supplierTier ? String(fields.supplierTier) : prev.supplierTier,
+          }));
+          setOpenProfileDialog(true);
+        }}
+      />
     </Dialog>
   </section>;
 }

@@ -1,7 +1,8 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AlertCircle, FileLock2, Leaf, Loader2, Scale, ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { AlertCircle, FileLock2, Leaf, Loader2, Scale, ShieldAlert, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
+import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
   const [transitionNotes, setTransitionNotes] = useState("");
   const [transitioning, setTransitioning] = useState(false);
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const [initiative, setInitiative] = useState({ initiativeReference: "", facilityRevisionId: "", title: "", lifecycleStatus: "proposed", ownerName: "", baselineYear: 2025, targetReductionTco2e: 0, plannedStart: "2026-01-01", plannedEnd: "2027-12-31", methodology: "", assumptions: "", evidenceDocumentIds: "" });
   const [scenario, setScenario] = useState({ initiativeId: "", scenarioReference: "", scenarioType: "planned", periodStart: "2026-01-01", periodEnd: "2026-12-31", baselineEmissionsTco2e: 0, projectedEmissionsTco2e: 0, assumptions: "", sensitivity: "", evidenceDocumentIds: "" });
@@ -424,8 +426,23 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         {/* Initiative Card */}
         <Card className="border border-slate-200/80 shadow-xs">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-            <CardTitle className="text-base font-bold text-slate-900">{t("initiativeTitle")}</CardTitle>
-            <CardDescription className="text-xs text-slate-600">{t("initiativeDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900">{t("initiativeTitle")}</CardTitle>
+                <CardDescription className="text-xs text-slate-600 mt-0.5">{t("initiativeDescription")}</CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAiImport(true)}
+                disabled={saving}
+                className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                Quét AI Đề án Giảm phát thải
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
             <form className="grid gap-3 md:grid-cols-2" onSubmit={saveInitiative}>
@@ -812,6 +829,21 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           </form>
         </DialogContent>
       </Dialog>
+      <AiDocumentImportModal
+        open={showAiImport}
+        onOpenChange={setShowAiImport}
+        contextKey="mitigation"
+        demo={demo}
+        onApply={(fields) => {
+          setInitiative((prev) => ({
+            ...prev,
+            initiativeReference: (fields.initiativeReference as string) || prev.initiativeReference,
+            title: (fields.title as string) || prev.title,
+            ownerName: (fields.ownerName as string) || prev.ownerName,
+            targetReductionTco2e: fields.targetReductionTco2e != null ? Number(fields.targetReductionTco2e) : prev.targetReductionTco2e,
+          }));
+        }}
+      />
     </main>
   );
 }

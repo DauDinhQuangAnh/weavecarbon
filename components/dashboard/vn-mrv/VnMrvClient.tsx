@@ -11,8 +11,10 @@ import {
   Loader2,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +70,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
   const [loading, setLoading] = useState(!demo);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const [caseForm, setCaseForm] = useState({
     caseReference: "",
@@ -456,8 +459,23 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
         {/* Case Card */}
         <Card className="border border-slate-200/80 shadow-xs">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-            <CardTitle className="text-base font-bold text-slate-900">{t("caseTitle")}</CardTitle>
-            <CardDescription className="text-xs text-slate-600">{t("caseDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900">{t("caseTitle")}</CardTitle>
+                <CardDescription className="text-xs text-slate-600 mt-0.5">{t("caseDescription")}</CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAiImport(true)}
+                disabled={(!demo && isViewer) || saving}
+                className="h-8 border-amber-300 bg-amber-50 text-xs font-medium text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                Quét AI Quyết định / Hồ sơ MRV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
             <form className="space-y-3" onSubmit={saveCase}>
@@ -894,6 +912,19 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
           <p className="text-xs text-muted-foreground leading-relaxed">{t("legalNotice")}</p>
         </CardContent>
       </Card>
+      <AiDocumentImportModal
+        open={showAiImport}
+        onOpenChange={setShowAiImport}
+        contextKey="vn_mrv"
+        demo={demo}
+        onApply={(fields) => {
+          setCaseForm((prev) => ({
+            ...prev,
+            caseReference: (fields.caseReference as string) || prev.caseReference,
+            applicabilityStatus: (fields.applicabilityStatus as string) || prev.applicabilityStatus,
+          }));
+        }}
+      />
     </main>
   );
 }

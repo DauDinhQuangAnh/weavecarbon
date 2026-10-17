@@ -7,7 +7,8 @@ import {
   Layers,
   Loader2,
   Package,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from '@e965/xlsx';
@@ -56,6 +57,8 @@ import {
 import { R_ITEMS } from './exportRegulatoryItems';
 import { CommercialInvoiceModalContent } from './modals/CommercialInvoiceModalContent';
 import { PackingListModalContent } from './modals/PackingListModalContent';
+import ExportAiImportModal from './ExportAiImportModal';
+import { applyAiDataToProfile, type ExportAiExtractedData } from '@/lib/export/exportAiService';
 
 const emptyPackageForm = () => ({
   packageNumber: '', packageType: 'carton', marksAndNumbers: '', quantity: '1',
@@ -90,11 +93,17 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
 
   // Active R popup modal state
   const [activeR, setActiveR] = useState<string | null>(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   // R01 & R02 sub-modals or helpers
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [newContainer, setNewContainer] = useState(emptyContainerForm);
   const [newPackage, setNewPackage] = useState(emptyPackageForm);
+
+  const handleApplyAiData = (aiData: ExportAiExtractedData) => {
+    setProfile((prev) => applyAiDataToProfile(aiData, prev));
+    toast.success('Đã tự động nạp toàn bộ thông số từ AI vào hồ sơ xuất khẩu!');
+  };
 
   useEffect(() => {
     void (async () => {
@@ -372,6 +381,16 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
 
           <div className="flex items-center gap-2">
             <Button
+              type="button"
+              size="sm"
+              onClick={() => setAiModalOpen(true)}
+              disabled={!shipmentId || Boolean(busy)}
+              className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-9 font-semibold shadow-xs"
+            >
+              <Sparkles className="mr-1.5 h-3.5 w-3.5 text-amber-300" />
+              Quét AI Chứng từ
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => void reload()}
@@ -521,6 +540,7 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
                 onGeneratePdf={() => void run('generate-commercial_invoice', () => generateShipmentExportDocument(shipmentId, 'commercial_invoice', 'pdf'), 'Đã đưa bản PDF Invoice vào hàng đợi tạo file.')}
                 onDownloadReport={(reportId) => void downloadReportFile(reportId, 'commercial_invoice.pdf')}
                 invoiceReportId={latestDocuments.get('commercial_invoice')?.reportId}
+                onOpenAiImport={() => setAiModalOpen(true)}
               />
             )}
 
@@ -664,6 +684,13 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ExportAiImportModal
+        open={aiModalOpen}
+        onOpenChange={setAiModalOpen}
+        onApply={handleApplyAiData}
+        isDemo={typeof window !== 'undefined' && window.location.pathname.startsWith('/demo')}
+      />
     </div>
   );
 }

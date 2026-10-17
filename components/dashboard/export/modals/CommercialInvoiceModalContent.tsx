@@ -20,6 +20,7 @@ export interface CommercialInvoiceModalContentProps {
   onGeneratePdf: () => void;
   onDownloadReport: (reportId: string) => void;
   invoiceReportId?: string | null;
+  onOpenAiImport?: () => void;
 }
 
 export const CommercialInvoiceModalContent: React.FC<CommercialInvoiceModalContentProps> = ({
@@ -34,7 +35,8 @@ export const CommercialInvoiceModalContent: React.FC<CommercialInvoiceModalConte
   onSave,
   onGeneratePdf,
   onDownloadReport,
-  invoiceReportId
+  invoiceReportId,
+  onOpenAiImport
 }) => {
   return (
     <div className="space-y-4">
@@ -46,10 +48,20 @@ export const CommercialInvoiceModalContent: React.FC<CommercialInvoiceModalConte
             Công cụ nạp tự động thông số Hóa đơn & Hợp đồng
           </b>
           <p className="text-xs text-emerald-800/80 mt-0.5">
-            Bạn có thể nạp mẫu 1-click hoặc tải file Excel/CSV từ ERP/kế toán để điền tự động.
+            Bạn có thể nạp mẫu 1-click, quét tự động từ chứng từ bằng AI hoặc tải file Excel/CSV.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {onOpenAiImport && (
+            <Button
+              size="sm"
+              type="button"
+              className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 font-semibold shadow-xs"
+              onClick={onOpenAiImport}
+            >
+              <Sparkles className="mr-1.5 h-3.5 w-3.5 text-amber-300" /> Quét AI (PDF/Ảnh)
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="text-xs bg-white h-8" onClick={() => handleDownloadTemplate('xlsx')}>
             <Download className="mr-1 h-3.5 w-3.5" /> Mẫu Excel
           </Button>
@@ -57,7 +69,7 @@ export const CommercialInvoiceModalContent: React.FC<CommercialInvoiceModalConte
           <Button size="sm" variant="outline" className="text-xs bg-white h-8" onClick={() => fileInputRef.current?.click()}>
             <Upload className="mr-1 h-3.5 w-3.5" /> Upload File
           </Button>
-          <Button size="sm" className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8" onClick={handleFillDemoPreset}>
+          <Button size="sm" variant="outline" className="text-xs bg-white h-8" onClick={handleFillDemoPreset}>
             Nạp mẫu 1-Click
           </Button>
         </div>

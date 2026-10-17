@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Activity, ChevronLeft, ChevronRight, Loader2, Search, ShieldCheck } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, Loader2, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
+import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,6 +65,7 @@ export default function ActivityOperationsPanel({
   const [review, setReview] = useState({ decision: "needs_information" as "approved" | "needs_information" | "rejected", notes: "" });
   const [busy, setBusy] = useState<"create" | "lineage" | "review" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const facilityProcesses = processes.filter((item) => item.facilityRevisionId === form.facilityRevisionId);
   const selectedFacility = facilities.find((item) => item.id === form.facilityRevisionId);
@@ -163,7 +165,23 @@ export default function ActivityOperationsPanel({
         {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">{error}</p>}
 
         <form className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4" onSubmit={submit}>
-          <div><p className="text-sm font-semibold text-slate-900">{t("activityFormTitle")}</p><p className="text-xs text-slate-500">{t("activityFormDescription")}</p></div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{t("activityFormTitle")}</p>
+              <p className="text-xs text-slate-500">{t("activityFormDescription")}</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAiImport(true)}
+              disabled={!canWrite || busy === "create"}
+              className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+              Quét Hóa đơn / Công tơ bằng AI (PDF/Ảnh)
+            </Button>
+          </div>
           <div className="grid gap-3 md:grid-cols-3">
             <select aria-label={t("fields.facility")} required disabled={!canWrite || busy === "create"} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs" value={form.facilityRevisionId} onChange={(event) => setForm({ ...form, facilityRevisionId: event.target.value, processRevisionId: "", measurementPointRevisionId: "" })}>
               <option value="">{t("selectFacility")}</option>{facilities.map((item) => <option key={item.id} value={item.id}>{item.name} · rev {item.revision}</option>)}
@@ -212,6 +230,30 @@ export default function ActivityOperationsPanel({
           </div>}
         </DialogContent>
       </Dialog>
+      <AiDocumentImportModal
+        open={showAiImport}
+        onOpenChange={setShowAiImport}
+        contextKey="activity"
+        onApply={(fields) => {
+          setForm((prev) => {
+            const formatDateTime = (val: unknown, defaultTime: string) => {
+              if (!val || typeof val !== "string") return "";
+              if (val.includes("T")) return val.slice(0, 16);
+              return `${val}T${defaultTime}`;
+            };
+            return {
+              ...prev,
+              activityReference: (fields.activityReference as string) || prev.activityReference,
+              activityType: (fields.activityType as string) || prev.activityType,
+              quantity: fields.quantity != null ? String(fields.quantity) : prev.quantity,
+              canonicalUnit: (fields.canonicalUnit as string) || prev.canonicalUnit,
+              sourceKind: (fields.sourceKind as typeof prev.sourceKind) || prev.sourceKind,
+              periodStart: formatDateTime(fields.periodStart, "00:00") || prev.periodStart,
+              periodEnd: formatDateTime(fields.periodEnd, "23:59") || prev.periodEnd,
+            };
+          });
+        }}
+      />
     </Card>
   );
 }
