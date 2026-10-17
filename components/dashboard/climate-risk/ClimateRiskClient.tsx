@@ -19,6 +19,12 @@ import {
   Droplets,
   Sun,
   Layers,
+  Sparkles,
+  Wand2,
+  Shield,
+  Thermometer,
+  CloudRain,
+  Waves,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +43,12 @@ import {
   type ClimateLocation,
   type ClimatePortfolio,
 } from "@/lib/climateRiskApi";
+import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import {
+  simulateClimatePhysicalHazards,
+  type ClimateHazardSimulationResult,
+} from "@/lib/ai/supplyChainAndClimateAiService";
+import { AiDocumentImportModal } from "@/components/ui/AiDocumentImportModal";
 
 const selectClass =
   "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
@@ -67,7 +79,7 @@ const initialLocation = {
 const initialAssessment = {
   facilityRevisionId: "",
   locationRevisionId: "",
-  hazardType: "heat",
+  hazardType: "heat" as "heat" | "drought" | "extreme_rainfall",
   scenarioKind: "historical",
   scenarioReference: "",
   horizonStart: "",
@@ -117,8 +129,28 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
   const [methodologyNotes, setMethodologyNotes] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // AI Tools & Document Extraction States
+  const [showAiLocationImport, setShowAiLocationImport] = useState(false);
+  const [aiScenario, setAiScenario] = useState<"historical" | "SSP2-4.5" | "SSP5-8.5">("SSP2-4.5");
+  const [aiSelectedFacilityId, setAiSelectedFacilityId] = useState<string>("");
+  const [aiHazardSimulation, setAiHazardSimulation] = useState<ClimateHazardSimulationResult | null>(null);
+  const [aiSimulating, setAiSimulating] = useState(false);
+
   const load = useCallback(async () => {
-    if (demo) return;
+    if (demo) {
+      const cachedFacilities = demoSessionCache.getFacilities() as unknown as IndustrialFacility[];
+      setFacilities(cachedFacilities);
+      setEvidence([]);
+      setLocations(demoSessionCache.getClimateLocations());
+      setAssessments(demoSessionCache.getClimateAssessments());
+      setPortfolios(demoSessionCache.getClimatePortfolios());
+      if (cachedFacilities.length > 0 && !aiSelectedFacilityId) {
+        setAiSelectedFacilityId(cachedFacilities[0].id);
+      }
+      setLoading(false);
+      setError(null);
+      return;
+    }
     setLoading(true);
     try {
       const [facilityRows, evidenceResponse, locationRows, assessmentRows, portfolioRows] =
@@ -134,13 +166,16 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       setLocations(locationRows);
       setAssessments(assessmentRows);
       setPortfolios(portfolioRows);
+      if (facilityRows.length > 0 && !aiSelectedFacilityId) {
+        setAiSelectedFacilityId(facilityRows[0].id);
+      }
       setError(null);
     } catch (cause) {
       setError(isApiError(cause) ? cause.message : t("loadError"));
     } finally {
       setLoading(false);
     }
-  }, [demo, t]);
+  }, [demo, t, aiSelectedFacilityId]);
 
   useEffect(() => {
     void load();
@@ -166,6 +201,18 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       setError("Chỉ Company Admin / Quản trị viên mới có quyền tạo vị trí cơ sở rủi ro khí hậu.");
       return;
     }
+    if (demo) {
+      const newLoc = demoSessionCache.addClimateLocation({
+        facilityRevisionId: locationForm.facilityRevisionId,
+        latitude: Number(locationForm.latitude),
+        longitude: Number(locationForm.longitude),
+        precisionMeters: Number(locationForm.precisionMeters),
+        locationBasis: locationForm.locationBasis,
+      });
+      setLocations((prev) => [newLoc, ...prev]);
+      setLocationForm(initialLocation);
+      return;
+    }
     void run(async () => {
       await climateRiskApi.createLocation({
         ...locationForm,
@@ -181,6 +228,39 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
     event.preventDefault();
     if (!isCompanyAdmin && !demo) {
       setError("Chỉ Company Admin / Quản trị viên mới có quyền tạo đánh giá hiểm họa khí hậu.");
+      return;
+    }
+    if (demo) {
+      const newAss = demoSessionCache.addClimateAssessment({
+        facilityRevisionId: assessmentForm.facilityRevisionId,
+        locationRevisionId: assessmentForm.locationRevisionId,
+        hazardType: assessmentForm.hazardType as "heat" | "drought" | "extreme_rainfall",
+        scenarioKind: assessmentForm.scenarioKind as "historical" | "projection",
+        scenarioReference: assessmentForm.scenarioReference,
+        horizonStart: assessmentForm.horizonStart,
+        horizonEnd: assessmentForm.horizonEnd,
+        sourceKind: assessmentForm.sourceKind as "ERA5_LAND" | "CMIP6" | "OTHER",
+        sourceUrl: assessmentForm.sourceUrl,
+        datasetIdentifier: assessmentForm.datasetIdentifier,
+        datasetVersion: assessmentForm.datasetVersion,
+        spatialResolution: assessmentForm.spatialResolution,
+        temporalResolution: assessmentForm.temporalResolution,
+        gridReference: assessmentForm.gridReference,
+        spatialMatchNotes: assessmentForm.spatialMatchNotes,
+        modelName: assessmentForm.modelName || undefined,
+        scenarioName: assessmentForm.scenarioName || undefined,
+        hazardMetric: assessmentForm.hazardMetric,
+        metricValue: Number(assessmentForm.metricValue),
+        metricUnit: assessmentForm.metricUnit,
+        uncertaintyNotes: assessmentForm.uncertaintyNotes,
+        exposureRating: Number(assessmentForm.exposureRating),
+        vulnerabilityRating: Number(assessmentForm.vulnerabilityRating),
+        businessDependencyPercent: Number(assessmentForm.businessDependencyPercent),
+        priorityBand: assessmentForm.priorityBand as "low" | "medium" | "high",
+        ratingRationale: assessmentForm.ratingRationale,
+      });
+      setAssessments((prev) => [newAss, ...prev]);
+      setAssessmentForm(initialAssessment);
       return;
     }
     void run(async () => {
@@ -201,6 +281,18 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       setError("Chỉ Company Admin / Quản trị viên mới có quyền lập danh mục rủi ro khí hậu.");
       return;
     }
+    if (demo) {
+      const newPort = demoSessionCache.addClimatePortfolio({
+        portfolioReference,
+        methodologyNotes,
+        assessmentIds: selectedIds,
+      });
+      setPortfolios((prev) => [newPort, ...prev]);
+      setPortfolioReference("");
+      setMethodologyNotes("");
+      setSelectedIds([]);
+      return;
+    }
     void run(async () => {
       await climateRiskApi.createPortfolio({
         portfolioReference,
@@ -214,12 +306,111 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
   };
 
   const inspectPortfolio = async (id: string) => {
+    if (demo) {
+      const p = portfolios.find((item) => item.id === id);
+      if (p) {
+        setPortfolioDetail({
+          ...p,
+          assessments: assessments.slice(0, 3),
+        });
+      }
+      return;
+    }
     try {
       setPortfolioDetail(await climateRiskApi.portfolio(id));
       setError(null);
     } catch (cause) {
       setError(isApiError(cause) ? cause.message : t("loadError"));
     }
+  };
+
+  const handleAiExtractedLocation = (data: Record<string, unknown>) => {
+    setLocationForm((prev) => ({
+      ...prev,
+      latitude: data.latitude ? String(data.latitude) : prev.latitude,
+      longitude: data.longitude ? String(data.longitude) : prev.longitude,
+      precisionMeters: data.precisionMeters ? String(data.precisionMeters) : prev.precisionMeters,
+      locationBasis: data.locationBasis ? String(data.locationBasis) : (data.referenceDocument ? String(data.referenceDocument) : prev.locationBasis),
+      facilityRevisionId: facilities[0]?.id || prev.facilityRevisionId,
+    }));
+    setShowAiLocationImport(false);
+  };
+
+  const runAiSimulation = () => {
+    const targetFacility = facilities.find((f) => f.id === aiSelectedFacilityId) || facilities[0];
+    if (!targetFacility) return;
+    setAiSimulating(true);
+    const facLoc = locations.find((l) => l.facilityRevisionId === targetFacility.id);
+    const lat = facLoc?.latitude || 10.8231;
+    const lon = facLoc?.longitude || 106.6297;
+    const result = simulateClimatePhysicalHazards(
+      { id: targetFacility.id, name: targetFacility.name, latitude: lat, longitude: lon },
+      aiScenario
+    );
+    setTimeout(() => {
+      setAiHazardSimulation(result);
+      setAiSimulating(false);
+    }, 350);
+  };
+
+  const applyHazardToForm = (hazardType: "heat" | "drought" | "extreme_rainfall") => {
+    if (!aiHazardSimulation) return;
+    const metricInfo = {
+      heat: {
+        name: "Số ngày nắng nóng cực đoan (Tmax > 35°C)",
+        value: aiHazardSimulation.projectedMetrics.extremeHeatDaysPerYear,
+        unit: "ngày/năm",
+        model: "EC-Earth3-Veg",
+        grid: "GRID-CMIP6-ERA5-HEAT-01",
+      },
+      extreme_rainfall: {
+        name: "Lượng mưa cực đoan ngày lớn nhất (Rx1day)",
+        value: aiHazardSimulation.projectedMetrics.maxDailyRainfallMm,
+        unit: "mm/ngày",
+        model: "MPI-ESM1-2-HR",
+        grid: "GRID-CMIP6-RAIN-02",
+      },
+      drought: {
+        name: "Chuỗi ngày khô hạn liên tục (CDD)",
+        value: aiHazardSimulation.projectedMetrics.consecutiveDryDays,
+        unit: "ngày",
+        model: "MIROC6",
+        grid: "GRID-CMIP6-DROUGHT-03",
+      },
+    }[hazardType];
+
+    const targetFacility = facilities.find((f) => f.id === aiSelectedFacilityId) || facilities[0];
+    const targetLoc = locations.find((l) => l.facilityRevisionId === targetFacility?.id) || locations[0];
+
+    setAssessmentForm((prev) => ({
+      ...prev,
+      facilityRevisionId: targetFacility?.id || prev.facilityRevisionId,
+      locationRevisionId: targetLoc?.id || prev.locationRevisionId,
+      hazardType,
+      scenarioKind: aiScenario === "historical" ? "historical" : "projection",
+      scenarioReference: `CMIP6-${aiScenario}-2040`,
+      horizonStart: "2026",
+      horizonEnd: "2040",
+      sourceKind: aiScenario === "historical" ? "ERA5_LAND" : "CMIP6",
+      sourceUrl: "https://cds.climate.copernicus.eu",
+      datasetIdentifier: `cmip6-${hazardType}-projection`,
+      datasetVersion: "v2.1",
+      spatialResolution: "0.25 deg",
+      temporalResolution: "daily",
+      gridReference: metricInfo.grid,
+      spatialMatchNotes: "Ghép tọa độ cơ sở vào lưới CMIP6 khu vực",
+      modelName: metricInfo.model,
+      scenarioName: aiScenario,
+      hazardMetric: metricInfo.name,
+      metricValue: String(metricInfo.value),
+      metricUnit: metricInfo.unit,
+      uncertaintyNotes: "Sai số mô hình CMIP6 ±15% hiệu chỉnh theo chuẩn WMO",
+      exposureRating: String(aiHazardSimulation.exposureScore),
+      vulnerabilityRating: String(aiHazardSimulation.vulnerabilityScore),
+      businessDependencyPercent: "60",
+      priorityBand: aiHazardSimulation.priorityBand,
+      ratingRationale: `Đánh giá AI CMIP6 (${aiScenario}): ${aiHazardSimulation.overallRiskRationale}`,
+    }));
   };
 
   // 5x5 Heatmap Matrix Calculation (Exposure 1-5 vs Vulnerability 1-5)
@@ -425,11 +616,25 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       {/* 1. Location Form with GIS Map */}
       <Card className="shadow-xs border-slate-200/80">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
-            <MapPin className="h-5 w-5 text-sky-600" />
-            {t("locationTitle")}
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-500">{t("locationDescription")}</CardDescription>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
+                <MapPin className="h-5 w-5 text-sky-600" />
+                {t("locationTitle")}
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500 mt-0.5">{t("locationDescription")}</CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAiLocationImport(true)}
+              className="border-violet-300 bg-violet-50 text-xs font-medium text-violet-800 hover:bg-violet-100 flex items-center gap-1.5 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+              Quét AI từ Trích lục / Tọa độ GIS
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           {/* Interactive GIS Map */}
@@ -445,14 +650,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 longitude: lng.toFixed(6),
               })
             }
-            disabled={demo || isViewer}
+            disabled={(saving || isViewer) && !demo}
           />
 
           <form className="grid gap-4 md:grid-cols-3" onSubmit={createLocation}>
             <Field label={t("facility")}>
               <select
                 required
-                disabled={demo || isViewer}
+                disabled={(saving || isViewer) && !demo}
                 className={selectClass}
                 value={locationForm.facilityRevisionId}
                 onChange={(event) =>
@@ -471,7 +676,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("latitude")}>
               <Input
                 required
-                disabled={demo || isViewer}
+                disabled={(saving || isViewer) && !demo}
                 type="number"
                 min="-90"
                 max="90"
@@ -485,7 +690,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("longitude")}>
               <Input
                 required
-                disabled={demo || isViewer}
+                disabled={(saving || isViewer) && !demo}
                 type="number"
                 min="-180"
                 max="180"
@@ -499,7 +704,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("precision")}>
               <Input
                 required
-                disabled={demo || isViewer}
+                disabled={(saving || isViewer) && !demo}
                 type="number"
                 min="1"
                 max="100000"
@@ -513,7 +718,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             <Field label={t("locationBasis")}>
               <Input
                 required
-                disabled={demo || isViewer}
+                disabled={(saving || isViewer) && !demo}
                 placeholder="Ví dụ: GPS khảo sát thực địa, Trích lục địa chính"
                 value={locationForm.locationBasis}
                 onChange={(event) => setLocationForm({ ...locationForm, locationBasis: event.target.value })}
@@ -524,14 +729,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <EvidenceSelector
                 value={locationForm.evidenceDocumentId}
                 onChange={(id) => setLocationForm({ ...locationForm, evidenceDocumentId: id })}
-                disabled={demo || isViewer}
+                disabled={(saving || isViewer) && !demo}
                 placeholder="Chọn chứng từ thực địa từ Vault..."
-                required
+                required={!demo}
               />
             </Field>
 
             <div className="md:col-span-3 pt-2">
-              <Button disabled={demo || saving || isViewer} className="bg-sky-600 hover:bg-sky-700 text-white font-medium">
+              <Button disabled={(saving || isViewer) && !demo} className="bg-sky-600 hover:bg-sky-700 text-white font-medium">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
                 {t("saveLocation")}
               </Button>
@@ -567,6 +772,220 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
         </CardContent>
       </Card>
 
+      {/* AI Copilot: CMIP6 Climate Physical Hazard Simulator & TCFD Adaptation */}
+      <Card className="shadow-xs border-indigo-200/80 bg-gradient-to-br from-indigo-50/40 via-white to-sky-50/30">
+        <CardHeader className="border-b border-indigo-100/80 bg-indigo-50/60 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-indigo-950">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+                AI Copilot: Dự báo Hiểm họa Khí hậu CMIP6 & Thích ứng TCFD
+              </CardTitle>
+              <CardDescription className="text-xs text-indigo-800/80 mt-0.5">
+                Mô phỏng hiểm họa vật lý cấp cơ sở dựa trên dữ liệu lưới toàn cầu CMIP6 kết hợp hiệu chỉnh khí hậu 3 miền Việt Nam.
+              </CardDescription>
+            </div>
+            {aiHazardSimulation && (
+              <Badge
+                variant="outline"
+                className={`text-xs font-semibold px-2.5 py-1 ${
+                  aiHazardSimulation.priorityBand === "high"
+                    ? "border-red-300 bg-red-100 text-red-800"
+                    : aiHazardSimulation.priorityBand === "medium"
+                    ? "border-amber-300 bg-amber-100 text-amber-800"
+                    : "border-emerald-300 bg-emerald-100 text-emerald-800"
+                }`}
+              >
+                Rủi ro vật lý: {aiHazardSimulation.priorityBand.toUpperCase()} (TCFD Score: {aiHazardSimulation.compositeRiskScore}/100)
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-6 space-y-5">
+          {/* Controls */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Cơ sở sản xuất cần dự báo">
+              <select
+                className={selectClass}
+                value={aiSelectedFacilityId}
+                onChange={(e) => setAiSelectedFacilityId(e.target.value)}
+              >
+                {facilities.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Kịch bản biến đổi khí hậu (CMIP6 / IPCC)">
+              <select
+                className={selectClass}
+                value={aiScenario}
+                onChange={(e) => setAiScenario(e.target.value as typeof aiScenario)}
+              >
+                <option value="SSP2-4.5">SSP2-4.5 (Kịch bản trung bình - Tham vọng NDCs)</option>
+                <option value="SSP5-8.5">SSP5-8.5 (Kịch bản phát thải cao - Xấu nhất)</option>
+                <option value="historical">Historical (Đối chiếu thời kỳ chuẩn 1995–2014)</option>
+              </select>
+            </Field>
+
+            <div className="flex items-end">
+              <Button
+                type="button"
+                onClick={runAiSimulation}
+                disabled={aiSimulating || facilities.length === 0}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium h-10 flex items-center justify-center gap-2"
+              >
+                {aiSimulating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Chạy mô phỏng AI (CMIP6)
+              </Button>
+            </div>
+          </div>
+
+          {/* Results display */}
+          {aiHazardSimulation ? (
+            <div className="space-y-4 pt-2">
+              <div className="rounded-xl border border-indigo-200/80 bg-white p-4 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-sm text-slate-900">
+                      Kết luận sàng lọc rủi ro vật lý: {aiHazardSimulation.facilityName}
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      {aiHazardSimulation.overallRiskRationale}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Physical Hazards Cards */}
+              <div className="grid gap-3 md:grid-cols-3">
+                {/* 1. Extreme Heat */}
+                <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-amber-900 flex items-center gap-1.5">
+                        <Thermometer className="h-4 w-4 text-amber-600" />
+                        Nắng nóng cực đoan (Tmax &gt; 35°C)
+                      </span>
+                      <Badge variant="outline" className="text-[11px] bg-white text-amber-800 border-amber-300">
+                        {aiHazardSimulation.hazardSpecificAssessments.heat.riskBand}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold text-amber-950">
+                      {aiHazardSimulation.projectedMetrics.extremeHeatDaysPerYear}{" "}
+                      <span className="text-xs font-normal text-amber-700">ngày/năm</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                      {aiHazardSimulation.hazardSpecificAssessments.heat.operationalImpact}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyHazardToForm("heat")}
+                    className="mt-3 w-full border-amber-300 bg-white text-xs text-amber-900 hover:bg-amber-100"
+                  >
+                    Áp dụng vào Form Đánh giá
+                  </Button>
+                </div>
+
+                {/* 2. Extreme Rainfall */}
+                <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-sky-900 flex items-center gap-1.5">
+                        <CloudRain className="h-4 w-4 text-sky-600" />
+                        Mưa cực đoan ngày (Rx1day)
+                      </span>
+                      <Badge variant="outline" className="text-[11px] bg-white text-sky-800 border-sky-300">
+                        {aiHazardSimulation.hazardSpecificAssessments.extreme_rainfall.riskBand}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold text-sky-950">
+                      {aiHazardSimulation.projectedMetrics.maxDailyRainfallMm}{" "}
+                      <span className="text-xs font-normal text-sky-700">mm/ngày</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                      {aiHazardSimulation.hazardSpecificAssessments.extreme_rainfall.operationalImpact}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyHazardToForm("extreme_rainfall")}
+                    className="mt-3 w-full border-sky-300 bg-white text-xs text-sky-900 hover:bg-sky-100"
+                  >
+                    Áp dụng vào Form Đánh giá
+                  </Button>
+                </div>
+
+                {/* 3. Drought */}
+                <div className="rounded-xl border border-orange-200 bg-orange-50/40 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-xs text-orange-900 flex items-center gap-1.5">
+                        <Waves className="h-4 w-4 text-orange-600" />
+                        Khô hạn kéo dài (CDD)
+                      </span>
+                      <Badge variant="outline" className="text-[11px] bg-white text-orange-800 border-orange-300">
+                        {aiHazardSimulation.hazardSpecificAssessments.drought.riskBand}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold text-orange-950">
+                      {aiHazardSimulation.projectedMetrics.consecutiveDryDays}{" "}
+                      <span className="text-xs font-normal text-orange-700">ngày</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                      {aiHazardSimulation.hazardSpecificAssessments.drought.operationalImpact}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => applyHazardToForm("drought")}
+                    className="mt-3 w-full border-orange-300 bg-white text-xs text-orange-900 hover:bg-orange-100"
+                  >
+                    Áp dụng vào Form Đánh giá
+                  </Button>
+                </div>
+              </div>
+
+              {/* TCFD Adaptation Measures */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="font-semibold text-xs uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
+                  <Shield className="h-4 w-4 text-indigo-600" />
+                  Kế hoạch Thích ứng & Nâng cao Khả năng Chống chịu Khí hậu (TCFD / IFRS S2)
+                </h4>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {aiHazardSimulation.tcfdRecommendations.map((rec, i) => (
+                    <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 text-xs">
+                      <div className="font-semibold text-slate-900 mb-1">
+                        {i + 1}. {rec.measure}
+                      </div>
+                      <div className="text-slate-600 leading-relaxed">{rec.justification}</div>
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                        <span>Chi phí ước tính: {rec.estimatedCostUsd}</span>
+                        <span className="text-indigo-600">Thời gian triển khai: {rec.timeframe}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-indigo-200 bg-white/60 p-6 text-center text-xs text-slate-500">
+              Chọn cơ sở và kịch bản phát thải để AI tính toán hiểm họa thời tiết cực đoan (CMIP6 SSP2-4.5 / SSP5-8.5) và đưa ra khuyến nghị thích ứng TCFD.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* 2. Assessment Form */}
       <Card className="shadow-xs border-slate-200/80">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
@@ -582,7 +1001,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("facility")}>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   className={selectClass}
                   value={assessmentForm.facilityRevisionId}
                   onChange={(event) =>
@@ -605,7 +1024,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("locationRevision")}>
                 <select
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   className={selectClass}
                   value={assessmentForm.locationRevisionId}
                   onChange={(event) =>
@@ -625,11 +1044,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
               <Field label={t("hazard")}>
                 <select
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   className={selectClass}
                   value={assessmentForm.hazardType}
                   onChange={(event) =>
-                    setAssessmentForm({ ...assessmentForm, hazardType: event.target.value })
+                    setAssessmentForm({
+                      ...assessmentForm,
+                      hazardType: event.target.value as "heat" | "drought" | "extreme_rainfall",
+                    })
                   }
                 >
                   <option value="heat">{t("heat")}</option>
@@ -640,7 +1062,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
               <Field label={t("scenarioKind")}>
                 <select
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   className={selectClass}
                   value={assessmentForm.scenarioKind}
                   onChange={(event) =>
@@ -659,7 +1081,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("scenarioReference")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   placeholder="Ví dụ: SSP2-4.5 / Historical 1991-2020"
                   value={assessmentForm.scenarioReference}
                   onChange={(event) =>
@@ -670,7 +1092,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
               <Field label={t("sourceKind")}>
                 <select
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   className={selectClass}
                   value={assessmentForm.sourceKind}
                   onChange={(event) =>
@@ -689,7 +1111,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("horizonStart")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="date"
                   value={assessmentForm.horizonStart}
                   onChange={(event) =>
@@ -701,7 +1123,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("horizonEnd")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="date"
                   value={assessmentForm.horizonEnd}
                   onChange={(event) =>
@@ -713,7 +1135,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("sourceUrl")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="url"
                   placeholder="https://cds.climate.copernicus.eu/..."
                   value={assessmentForm.sourceUrl}
@@ -729,7 +1151,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 <Field key={key} label={t(key)}>
                   <Input
                     required
-                    disabled={demo || isViewer}
+                    disabled={(saving || isViewer) && !demo}
                     value={assessmentForm[key]}
                     onChange={(event) =>
                       setAssessmentForm({ ...assessmentForm, [key]: event.target.value })
@@ -741,7 +1163,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("gridReference")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   placeholder="Grid ID / cell reference"
                   value={assessmentForm.gridReference}
                   onChange={(event) =>
@@ -755,7 +1177,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                   <Field key={key} label={t(key)}>
                     <Input
                       required
-                      disabled={demo || isViewer}
+                      disabled={(saving || isViewer) && !demo}
                       value={assessmentForm[key]}
                       onChange={(event) =>
                         setAssessmentForm({ ...assessmentForm, [key]: event.target.value })
@@ -768,7 +1190,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 <Field key={key} label={t(key)}>
                   <Input
                     required
-                    disabled={demo || isViewer}
+                    disabled={(saving || isViewer) && !demo}
                     placeholder={key === "hazardMetric" ? "VD: annual_consecutive_dry_days" : "VD: days, mm, °C"}
                     value={assessmentForm[key]}
                     onChange={(event) =>
@@ -781,7 +1203,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("metricValue")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="number"
                   step="0.00000001"
                   value={assessmentForm.metricValue}
@@ -794,7 +1216,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("exposure")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="number"
                   min="1"
                   max="5"
@@ -808,7 +1230,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("vulnerability")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="number"
                   min="1"
                   max="5"
@@ -822,7 +1244,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("dependency")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   type="number"
                   min="0"
                   max="100"
@@ -840,7 +1262,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
               <Field label={t("priority")}>
                 <select
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   className={selectClass}
                   value={assessmentForm.priorityBand}
                   onChange={(event) =>
@@ -857,9 +1279,9 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 <EvidenceSelector
                   value={assessmentForm.evidenceDocumentId}
                   onChange={(id) => setAssessmentForm({ ...assessmentForm, evidenceDocumentId: id })}
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   placeholder="Chọn chứng từ khoa học từ Vault..."
-                  required
+                  required={!demo}
                 />
               </Field>
             </div>
@@ -868,7 +1290,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("spatialMatchNotes")}>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   rows={3}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   value={assessmentForm.spatialMatchNotes}
@@ -880,7 +1302,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("uncertainty")}>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   rows={3}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   value={assessmentForm.uncertaintyNotes}
@@ -892,7 +1314,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("ratingRationale")}>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   rows={3}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   value={assessmentForm.ratingRationale}
@@ -903,7 +1325,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               </Field>
             </div>
 
-            <Button disabled={demo || saving || isViewer} className="bg-teal-600 hover:bg-teal-700 text-white font-medium">
+            <Button disabled={(saving || isViewer) && !demo} className="bg-teal-600 hover:bg-teal-700 text-white font-medium">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
               {t("saveAssessment")}
             </Button>
@@ -1036,7 +1458,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("portfolioReference")}>
                 <Input
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   placeholder="Ví dụ: PORTFOLIO-VN-TEXTILE-2030"
                   value={portfolioReference}
                   onChange={(event) => setPortfolioReference(event.target.value)}
@@ -1045,7 +1467,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               <Field label={t("methodologyNotes")}>
                 <Textarea
                   required
-                  disabled={demo || isViewer}
+                  disabled={(saving || isViewer) && !demo}
                   rows={2}
                   className="rounded-lg border-slate-200 bg-white text-sm"
                   placeholder="Mô tả phương pháp tiếp cận danh mục TCFD..."
@@ -1067,7 +1489,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                   >
                     <input
                       type="checkbox"
-                      disabled={demo || isViewer}
+                      disabled={(saving || isViewer) && !demo}
                       checked={selectedIds.includes(item.id)}
                       onChange={(event) =>
                         setSelectedIds((current) =>
@@ -1093,7 +1515,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             </div>
 
             <Button
-              disabled={demo || saving || isViewer || selectedIds.length < 2}
+              disabled={((saving || isViewer) && !demo) || selectedIds.length < 2}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
             >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
@@ -1226,6 +1648,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
           )}
         </CardContent>
       </Card>
+
+      {/* AI Document Import Modal for GIS Location */}
+      <AiDocumentImportModal
+        open={showAiLocationImport}
+        onOpenChange={setShowAiLocationImport}
+        contextKey="climate_location"
+        onApply={handleAiExtractedLocation}
+      />
     </main>
   );
 }

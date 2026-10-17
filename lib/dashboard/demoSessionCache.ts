@@ -15,6 +15,21 @@ import type {
 } from "@/lib/industrialCoreApi";
 import type { DqlAssessment, FactorProposal } from "@/lib/dataGovernanceApi";
 import type { VnMrvCase } from "@/lib/vnMrvApi";
+import type {
+  SupplierProfile,
+  SupplierSite,
+  SupplierRelationship,
+  SupplierClimateAssessment,
+  CarbonCriticalitySnapshot,
+  CriticalityModel,
+  CriticalitySnapshot,
+  CriticalityPortfolio,
+} from "@/lib/supplierNetworkApi";
+import type {
+  ClimateLocation,
+  ClimateAssessment,
+  ClimatePortfolio,
+} from "@/lib/climateRiskApi";
 
 const CACHE_PREFIX = "weavecarbon_demo_session_v1_";
 const TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -383,6 +398,767 @@ export const demoSessionCache = {
     const updated = [newSup, ...list];
     setCached("suppliers", updated);
     return newSup;
+  },
+
+  getSupplierRequests(): Array<{
+    id: string;
+    supplierName: string;
+    supplierEmail: string;
+    materialSupplied: string | null;
+    requiredData: string[];
+    deadline: string | null;
+    status: "draft" | "sent" | "waiting" | "received" | "overdue";
+  }> {
+    return getCached("supplier_requests", () => [
+      {
+        id: "demo-sreq-1",
+        supplierName: "Công ty Cổ phần Dệt Nam Định Eco",
+        supplierEmail: "contact@namdinheco-textile.vn",
+        materialSupplied: "Vải Organic Cotton dệt thoi",
+        requiredData: ["Hóa đơn điện EVN xưởng dệt", "Chứng nhận xuất xứ xơ bông GOTS", "Định mức tiêu hao năng lượng"],
+        deadline: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+        status: "waiting",
+      },
+      {
+        id: "demo-sreq-2",
+        supplierName: "Tập đoàn Hóa chất Nhuộm Vĩnh Thịnh",
+        supplierEmail: "esg@vinhthinhchem.com.vn",
+        materialSupplied: "Thuốc nhuộm hoạt tính Reactive Blue & Black",
+        requiredData: ["Báo cáo kiểm kê KNK nhà máy", "Dấu chân carbon sản phẩm PCF (kgCO2e/kg)", "Chứng chỉ an toàn ZDHC Level 3"],
+        deadline: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10),
+        status: "received",
+      },
+      {
+        id: "demo-sreq-3",
+        supplierName: "Công ty Bao bì Giấy Tân Á Châu",
+        supplierEmail: "sales@tanachau-pack.vn",
+        materialSupplied: "Thùng carton 5 lớp & nhãn mác tái chế",
+        requiredData: ["Tỷ lệ nguyên liệu tái chế (%)", "Chứng chỉ chuỗi hành trình FSC-CoC"],
+        deadline: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+        status: "overdue",
+      },
+      {
+        id: "demo-sreq-4",
+        supplierName: "Công ty TNHH Phụ liệu May Hưng Phát",
+        supplierEmail: "hungphat@garmentaccessories.vn",
+        materialSupplied: "Chỉ may Polyester tái chế & cúc áo sinh học",
+        requiredData: ["Chứng nhận OEKO-TEX Standard 100", "Công bố phát thải Scope 1/2"],
+        deadline: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
+        status: "draft",
+      },
+    ]);
+  },
+  addSupplierRequest(req: {
+    supplierName: string;
+    supplierEmail: string;
+    materialSupplied: string | null;
+    requiredData: string[];
+    deadline: string | null;
+    status?: "draft" | "sent" | "waiting" | "received" | "overdue";
+  }) {
+    const list = this.getSupplierRequests();
+    const newReq = {
+      id: `demo-sreq-${Date.now()}`,
+      supplierName: req.supplierName,
+      supplierEmail: req.supplierEmail,
+      materialSupplied: req.materialSupplied,
+      requiredData: req.requiredData,
+      deadline: req.deadline,
+      status: req.status || ("draft" as const),
+    };
+    const updated = [newReq, ...list];
+    setCached("supplier_requests", updated);
+    return newReq;
+  },
+  updateSupplierRequest(
+    id: string,
+    updates: Partial<{ status: "draft" | "sent" | "waiting" | "received" | "overdue"; deadline: string | null }>
+  ) {
+    const list = this.getSupplierRequests().map((r) => (r.id === id ? { ...r, ...updates } : r));
+    setCached("supplier_requests", list);
+    return list.find((r) => r.id === id);
+  },
+
+  getSupplierProfiles(): SupplierProfile[] {
+    return getCached("supplier_profiles", () => [
+      {
+        id: "demo-sup-1",
+        supplierReference: "SUP-SGN-YARN-01",
+        revision: 1,
+        legalName: "Công ty Cung ứng Sợi Việt",
+        tradingName: "Viet Yarn Supply Corp",
+        countryCode: "VN",
+        sector: "Nguyên phụ liệu sợi dệt",
+        supplierTier: 1,
+        lifecycleStatus: "active",
+        evidenceSnapshot: { id: "demo-ev-sup-1", checksumSha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
+        profileSha256: "c1".repeat(32),
+        createdAt: "2026-01-10T08:00:00Z",
+      },
+      {
+        id: "demo-sup-2",
+        supplierReference: "SUP-ND-ECO-02",
+        revision: 1,
+        legalName: "Dệt Nhuộm Nam Định Eco",
+        tradingName: "Nam Dinh Eco Dyeing JSC",
+        countryCode: "VN",
+        sector: "Gia công nhuộm hoàn tất",
+        supplierTier: 2,
+        lifecycleStatus: "active",
+        evidenceSnapshot: { id: "demo-ev-sup-2", checksumSha256: "a1".repeat(32) },
+        profileSha256: "c2".repeat(32),
+        createdAt: "2026-02-15T09:30:00Z",
+      },
+    ]);
+  },
+  addSupplierProfile(profile: Partial<SupplierProfile>): SupplierProfile {
+    const list = this.getSupplierProfiles();
+    const newProfile: SupplierProfile = {
+      id: `demo-sup-${Date.now()}`,
+      supplierReference: profile.supplierReference || `SUP-REF-${Date.now().toString().slice(-4)}`,
+      revision: 1,
+      legalName: profile.legalName || "Công ty Cung ứng Mới",
+      tradingName: profile.tradingName || profile.legalName,
+      countryCode: profile.countryCode || "VN",
+      sector: profile.sector || "Vật liệu",
+      supplierTier: Number(profile.supplierTier) || 1,
+      lifecycleStatus: profile.lifecycleStatus || "active",
+      evidenceSnapshot: { id: profile.evidenceSnapshot?.id || "demo-ev-auto", checksumSha256: "d1".repeat(32) },
+      profileSha256: "d2".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newProfile, ...list];
+    setCached("supplier_profiles", updated);
+    return newProfile;
+  },
+
+  getSupplierSites(): SupplierSite[] {
+    return getCached("supplier_sites", () => [
+      {
+        id: "demo-site-1",
+        supplierRevisionId: "demo-sup-1",
+        supplierReference: "SUP-SGN-YARN-01",
+        supplierName: "Công ty Cung ứng Sợi Việt",
+        siteReference: "SITE-BDG-01",
+        revision: 1,
+        siteName: "Nhà máy Kéo sợi Bến Cát (Bình Dương)",
+        countryCode: "VN",
+        latitude: 11.1356,
+        longitude: 106.6025,
+        precisionMeters: 50,
+        locationBasis: "Trích lục bản đồ địa chính KCN Mỹ Phước",
+        evidenceSnapshot: { id: "demo-ev-site-1", checksumSha256: "s1".repeat(32) },
+        siteSha256: "s2".repeat(32),
+        createdAt: "2026-01-12T00:00:00Z",
+      },
+    ]);
+  },
+  addSupplierSite(site: Partial<SupplierSite>): SupplierSite {
+    const list = this.getSupplierSites();
+    const newSite: SupplierSite = {
+      id: `demo-site-${Date.now()}`,
+      supplierRevisionId: site.supplierRevisionId || "demo-sup-1",
+      siteReference: site.siteReference || `SITE-${Date.now().toString().slice(-4)}`,
+      revision: 1,
+      siteName: site.siteName || "Cơ sở cung ứng mới",
+      countryCode: site.countryCode || "VN",
+      latitude: Number(site.latitude) || 10.823,
+      longitude: Number(site.longitude) || 106.629,
+      precisionMeters: Number(site.precisionMeters) || 100,
+      locationBasis: site.locationBasis || "Định vị GPS tại chỗ",
+      evidenceSnapshot: { id: "demo-ev-site", checksumSha256: "s3".repeat(32) },
+      siteSha256: "s4".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newSite, ...list];
+    setCached("supplier_sites", updated);
+    return newSite;
+  },
+
+  getSupplierRelationships(): SupplierRelationship[] {
+    return getCached("supplier_relationships", () => [
+      {
+        id: "demo-rel-1",
+        supplierRevisionId: "demo-sup-1",
+        supplierReference: "SUP-SGN-YARN-01",
+        supplierName: "Công ty Cung ứng Sợi Việt",
+        relationshipReference: "REL-YARN-CONTRACT-2026",
+        revision: 1,
+        materialOrService: "Sợi Organic Cotton chải kỹ Ne 30/1",
+        procurementCategory: "Raw Materials",
+        spendPercent: 42.5,
+        productionDependencyPercent: 65.0,
+        singleSource: false,
+        dependentSkuCount: 18,
+        dependentRouteCount: 4,
+        effectiveFrom: "2026-01-01",
+        effectiveTo: "2026-12-31",
+        relationshipSha256: "r1".repeat(32),
+        createdAt: "2026-01-15T00:00:00Z",
+      },
+    ]);
+  },
+  addSupplierRelationship(rel: Partial<SupplierRelationship>): SupplierRelationship {
+    const list = this.getSupplierRelationships();
+    const newRel: SupplierRelationship = {
+      id: `demo-rel-${Date.now()}`,
+      supplierRevisionId: rel.supplierRevisionId || "demo-sup-1",
+      relationshipReference: rel.relationshipReference || `REL-${Date.now().toString().slice(-4)}`,
+      revision: 1,
+      materialOrService: rel.materialOrService || "Vật tư phụ",
+      procurementCategory: rel.procurementCategory || "Nguyên vật liệu",
+      spendPercent: Number(rel.spendPercent) || 10,
+      productionDependencyPercent: Number(rel.productionDependencyPercent) || 15,
+      singleSource: Boolean(rel.singleSource),
+      dependentSkuCount: Number(rel.dependentSkuCount) || 1,
+      dependentRouteCount: Number(rel.dependentRouteCount) || 1,
+      effectiveFrom: rel.effectiveFrom || new Date().toISOString().slice(0, 10),
+      effectiveTo: rel.effectiveTo || null,
+      relationshipSha256: "r2".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newRel, ...list];
+    setCached("supplier_relationships", updated);
+    return newRel;
+  },
+
+  getSupplierClimate(): SupplierClimateAssessment[] {
+    return getCached("supplier_climate", () => [
+      {
+        id: "demo-scli-1",
+        supplierRevisionId: "demo-sup-1",
+        supplierReference: "SUP-SGN-YARN-01",
+        supplierName: "Công ty Cung ứng Sợi Việt",
+        siteRevisionId: "demo-site-1",
+        siteReference: "SITE-BDG-01",
+        siteName: "Nhà máy Kéo sợi Bến Cát",
+        hazardType: "heat",
+        scenarioKind: "projection",
+        scenarioReference: "CMIP6-SSP2-4.5-2030",
+        horizonStart: "2026",
+        horizonEnd: "2030",
+        sourceKind: "CMIP6",
+        sourceUrl: "https://cds.climate.copernicus.eu",
+        datasetIdentifier: "projections-cmip6-single-levels",
+        datasetVersion: "v1.0",
+        spatialResolution: "0.25 deg",
+        temporalResolution: "daily",
+        gridReference: "GRID-VN-BDG-11-106",
+        spatialMatchNotes: "Ghép ô lưới nội suy trung tâm KCN Mỹ Phước",
+        modelName: "EC-Earth3",
+        scenarioName: "SSP2-4.5",
+        hazardMetric: "Số ngày nắng nóng cực đoan (Tx > 35°C)",
+        metricValue: 62,
+        metricUnit: "ngày/năm",
+        uncertaintyNotes: "Độ tin cậy mô hình khí hậu 85%",
+        exposureRating: 4,
+        vulnerabilityRating: 3,
+        priorityBand: "medium",
+        ratingRationale: "Ảnh hưởng tải nhiệt xưởng kéo sợi và chi phí làm mát",
+        screeningStatus: "completed",
+        inputSha256: "sc1".repeat(32),
+        createdAt: "2026-02-01T00:00:00Z",
+      },
+    ]);
+  },
+  addSupplierClimate(cli: Partial<SupplierClimateAssessment>): SupplierClimateAssessment {
+    const list = this.getSupplierClimate();
+    const newCli: SupplierClimateAssessment = {
+      id: `demo-scli-${Date.now()}`,
+      supplierRevisionId: cli.supplierRevisionId || "demo-sup-1",
+      siteRevisionId: cli.siteRevisionId || "demo-site-1",
+      hazardType: cli.hazardType || "heat",
+      scenarioKind: cli.scenarioKind || "projection",
+      scenarioReference: cli.scenarioReference || "CMIP6-SSP2-4.5",
+      horizonStart: cli.horizonStart || "2026",
+      horizonEnd: cli.horizonEnd || "2030",
+      sourceKind: cli.sourceKind || "CMIP6",
+      sourceUrl: cli.sourceUrl || "https://cds.climate.copernicus.eu",
+      datasetIdentifier: cli.datasetIdentifier || "cmip6-data",
+      datasetVersion: cli.datasetVersion || "v1",
+      spatialResolution: cli.spatialResolution || "0.25 deg",
+      temporalResolution: cli.temporalResolution || "daily",
+      gridReference: cli.gridReference || "GRID-VN-DEFAULT",
+      spatialMatchNotes: cli.spatialMatchNotes || "Ghép ô lưới GPS",
+      hazardMetric: cli.hazardMetric || "Chỉ tiêu hazard",
+      metricValue: Number(cli.metricValue) || 50,
+      metricUnit: cli.metricUnit || "đơn vị",
+      uncertaintyNotes: cli.uncertaintyNotes || "Mô phỏng demo",
+      exposureRating: Number(cli.exposureRating) || 3,
+      vulnerabilityRating: Number(cli.vulnerabilityRating) || 3,
+      priorityBand: cli.priorityBand || "medium",
+      ratingRationale: cli.ratingRationale || "Đánh giá tự động",
+      screeningStatus: "completed",
+      inputSha256: "sc2".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newCli, ...list];
+    setCached("supplier_climate", updated);
+    return newCli;
+  },
+
+  getCarbonSnapshots(): CarbonCriticalitySnapshot[] {
+    return getCached("carbon_snapshots", () => [
+      {
+        id: "demo-csnap-1",
+        subjectKind: "supplier",
+        supplierRevisionId: "demo-sup-1",
+        supplierName: "Công ty Cung ứng Sợi Việt",
+        reportingPeriodStart: "2026-01-01",
+        reportingPeriodEnd: "2026-06-30",
+        grossKgCo2e: 450000,
+        activityQuantity: 100000,
+        activityUnit: "kg sợi",
+        intensityKgCo2e: 4.5,
+        boundary: "Cradle-to-Gate",
+        methodologyReference: "GHG Protocol Scope 3 Cat 1",
+        sourceKind: "supplier_specific",
+        dataQualityLevel: "L2",
+        carbonSha256: "cs1".repeat(32),
+        createdAt: "2026-07-05T00:00:00Z",
+      },
+    ]);
+  },
+  addCarbonSnapshot(snap: Partial<CarbonCriticalitySnapshot>): CarbonCriticalitySnapshot {
+    const list = this.getCarbonSnapshots();
+    const newSnap: CarbonCriticalitySnapshot = {
+      id: `demo-csnap-${Date.now()}`,
+      subjectKind: snap.subjectKind || "supplier",
+      supplierRevisionId: snap.supplierRevisionId || null,
+      facilityRevisionId: snap.facilityRevisionId || null,
+      reportingPeriodStart: snap.reportingPeriodStart || "2026-01-01",
+      reportingPeriodEnd: snap.reportingPeriodEnd || "2026-12-31",
+      grossKgCo2e: Number(snap.grossKgCo2e) || 100000,
+      activityQuantity: Number(snap.activityQuantity) || 20000,
+      activityUnit: snap.activityUnit || "kg",
+      intensityKgCo2e: Number(snap.intensityKgCo2e) || 5.0,
+      boundary: snap.boundary || "Cradle-to-Gate",
+      methodologyReference: snap.methodologyReference || "GHG Protocol Scope 3",
+      sourceKind: snap.sourceKind || "supplier_specific",
+      dataQualityLevel: snap.dataQualityLevel || "L2",
+      carbonSha256: "cs2".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newSnap, ...list];
+    setCached("carbon_snapshots", updated);
+    return newSnap;
+  },
+
+  getCriticalityModels(): CriticalityModel[] {
+    return getCached("criticality_models", () => [
+      {
+        id: "demo-model-1",
+        modelReference: "CRIT-MODEL-DEFAULT",
+        revision: 1,
+        carbonWeightPercent: 35,
+        climateWeightPercent: 35,
+        dependencyWeightPercent: 30,
+        mediumThreshold: 40,
+        highThreshold: 70,
+        normalizationPolicy: "min_max",
+        rationale: "Default multi-criteria criticality weighting model",
+        approvalStatus: "approved",
+        modelSha256: "m1".repeat(32),
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+    ]);
+  },
+  addCriticalityModel(model: Partial<CriticalityModel>): CriticalityModel {
+    const list = this.getCriticalityModels();
+    const newModel: CriticalityModel = {
+      id: `demo-model-${Date.now()}`,
+      modelReference: model.modelReference || `MODEL-${Date.now().toString().slice(-4)}`,
+      revision: 1,
+      carbonWeightPercent: Number(model.carbonWeightPercent) || 35,
+      climateWeightPercent: Number(model.climateWeightPercent) || 35,
+      dependencyWeightPercent: Number(model.dependencyWeightPercent) || 30,
+      mediumThreshold: Number(model.mediumThreshold) || 40,
+      highThreshold: Number(model.highThreshold) || 70,
+      normalizationPolicy: model.normalizationPolicy || "min_max",
+      rationale: model.rationale || "Mô hình trọng số demo",
+      approvalStatus: model.approvalStatus || "approved",
+      modelSha256: "m2".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newModel, ...list];
+    setCached("criticality_models", updated);
+    return newModel;
+  },
+
+  getCriticalitySnapshots(): CriticalitySnapshot[] {
+    return getCached("criticality_snapshots", () => [
+      {
+        id: "demo-crit-1",
+        subjectKind: "supplier",
+        supplierRevisionId: "demo-sup-1",
+        supplierName: "Công ty Cung ứng Sợi Việt",
+        relationshipRevisionId: "demo-rel-1",
+        carbonSnapshotId: "demo-csnap-1",
+        modelRevisionId: "demo-model-1",
+        modelReference: "CRIT-MODEL-DEFAULT",
+        assessmentPeriodStart: "2026-01-01",
+        assessmentPeriodEnd: "2026-12-31",
+        normalizedCarbonScore: 68,
+        normalizedClimateScore: 55,
+        normalizedDependencyScore: 72,
+        weightedScore: 64.6,
+        priorityBand: "medium",
+        reviewStatus: "approved",
+        inputSnapshot: {},
+        inputSha256: "cr1".repeat(32),
+        createdAt: "2026-02-10T00:00:00Z",
+      },
+    ]);
+  },
+  addCriticalitySnapshot(crit: Partial<CriticalitySnapshot>): CriticalitySnapshot {
+    const list = this.getCriticalitySnapshots();
+    const carb = Number(crit.normalizedCarbonScore) || 50;
+    const clim = Number(crit.normalizedClimateScore) || 50;
+    const dep = Number(crit.normalizedDependencyScore) || 50;
+    const weighted = Number((carb * 0.35 + clim * 0.35 + dep * 0.3).toFixed(1));
+    const newCrit: CriticalitySnapshot = {
+      id: `demo-crit-${Date.now()}`,
+      subjectKind: crit.subjectKind || "supplier",
+      supplierRevisionId: crit.supplierRevisionId || null,
+      facilityRevisionId: crit.facilityRevisionId || null,
+      relationshipRevisionId: crit.relationshipRevisionId || null,
+      carbonSnapshotId: crit.carbonSnapshotId || "demo-csnap-1",
+      modelRevisionId: crit.modelRevisionId || "demo-model-1",
+      assessmentPeriodStart: crit.assessmentPeriodStart || "2026-01-01",
+      assessmentPeriodEnd: crit.assessmentPeriodEnd || "2026-12-31",
+      normalizedCarbonScore: carb,
+      normalizedClimateScore: clim,
+      normalizedDependencyScore: dep,
+      weightedScore: weighted,
+      priorityBand: weighted >= 70 ? "high" : weighted >= 40 ? "medium" : "low",
+      reviewStatus: "approved",
+      inputSnapshot: {},
+      inputSha256: "cr2".repeat(32),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newCrit, ...list];
+    setCached("criticality_snapshots", updated);
+    return newCrit;
+  },
+
+  getCriticalityPortfolios(): CriticalityPortfolio[] {
+    return getCached("criticality_portfolios", () => [
+      {
+        id: "demo-port-1",
+        portfolioReference: "PORT-SUPPLY-CHAIN-2026",
+        modelRevisionId: "demo-model-1",
+        assessmentPeriodStart: "2026-01-01",
+        assessmentPeriodEnd: "2026-12-31",
+        subjectCount: 2,
+        prioritySummary: {
+          countByPriority: { low: 0, medium: 2, high: 0 },
+          averageWeightedScore: 64.6,
+          reviewStatus: "approved",
+        },
+        coverageSummary: {
+          method: "multi_criteria",
+          subjectCount: 2,
+          facilityCount: 1,
+          supplierCount: 2,
+          supplierSpecificCarbonCount: 1,
+          completeThreeHazardCount: 1,
+          supplierDependencyRecordCount: 1,
+          singleSourceSupplierCount: 0,
+          selectedSupplierSpendPercent: 78.5,
+        },
+        methodologyNotes: "Danh mục xếp hạng mức độ trọng yếu chuỗi cung ứng theo GHG Protocol Scope 3 và TCFD",
+        inputSha256: "p1".repeat(32),
+        createdAt: "2026-02-12T00:00:00Z",
+        members: this.getCriticalitySnapshots(),
+      },
+    ]);
+  },
+  addCriticalityPortfolio(port: {
+    portfolioReference: string;
+    methodologyNotes?: string;
+    criticalitySnapshotIds?: string[];
+    assessmentIds?: string[];
+  }): CriticalityPortfolio {
+    const list = this.getCriticalityPortfolios();
+    const ids = port.criticalitySnapshotIds || port.assessmentIds || [];
+    const snapshots = this.getCriticalitySnapshots();
+    const members = snapshots.filter((s) => ids.includes(s.id));
+    const avgScore = members.length > 0 ? members.reduce((acc, m) => acc + m.weightedScore, 0) / members.length : 60;
+    const newPort: CriticalityPortfolio = {
+      id: `demo-port-${Date.now()}`,
+      portfolioReference: port.portfolioReference || `PORT-${Date.now().toString().slice(-4)}`,
+      modelRevisionId: "demo-model-1",
+      assessmentPeriodStart: "2026-01-01",
+      assessmentPeriodEnd: "2026-12-31",
+      subjectCount: members.length || 1,
+      prioritySummary: {
+        countByPriority: {
+          low: members.filter((m) => m.priorityBand === "low").length,
+          medium: members.filter((m) => m.priorityBand === "medium").length,
+          high: members.filter((m) => m.priorityBand === "high").length,
+        },
+        averageWeightedScore: Number(avgScore.toFixed(1)),
+        reviewStatus: "approved",
+      },
+      coverageSummary: {
+        method: "multi_criteria",
+        subjectCount: members.length,
+        facilityCount: 1,
+        supplierCount: members.length,
+        supplierSpecificCarbonCount: members.length,
+        completeThreeHazardCount: 1,
+        supplierDependencyRecordCount: members.length,
+        singleSourceSupplierCount: 0,
+        selectedSupplierSpendPercent: 85,
+      },
+      methodologyNotes: port.methodologyNotes || "Phương pháp xếp hạng danh mục",
+      inputSha256: "p2".repeat(32),
+      createdAt: new Date().toISOString(),
+      members,
+    };
+    const updated = [newPort, ...list];
+    setCached("criticality_portfolios", updated);
+    return newPort;
+  },
+
+  // 10. Climate Risk (Locations, Assessments, Portfolios)
+  getClimateLocations(): ClimateLocation[] {
+    return getCached("climate_locations", () => [
+      {
+        id: "demo-loc-1",
+        facilityRevisionId: INDUSTRIAL_DEMO.facilities[0].id,
+        facilityName: INDUSTRIAL_DEMO.facilities[0].name,
+        latitude: 10.8231,
+        longitude: 106.6297,
+        precisionMeters: 50,
+        locationBasis: "Trích lục bản đồ địa chính KCN Tân Bình, TP.HCM",
+        evidenceSnapshot: { id: "demo-ev-loc-1", checksumSha256: "l1".repeat(32) },
+        createdAt: "2026-01-10T00:00:00Z",
+      },
+      {
+        id: "demo-loc-2",
+        facilityRevisionId: INDUSTRIAL_DEMO.facilities[1]?.id || "demo-fac-2",
+        facilityName: INDUSTRIAL_DEMO.facilities[1]?.name || "Xưởng Nhuộm & Hoàn tất Sóng Thần",
+        latitude: 10.9025,
+        longitude: 106.7456,
+        precisionMeters: 25,
+        locationBasis: "Tọa độ GPS ranh giới nhà máy KCN Sóng Thần 2, Bình Dương",
+        evidenceSnapshot: { id: "demo-ev-loc-2", checksumSha256: "l2".repeat(32) },
+        createdAt: "2026-01-15T00:00:00Z",
+      },
+    ]);
+  },
+  addClimateLocation(loc: Partial<ClimateLocation>): ClimateLocation {
+    const list = this.getClimateLocations();
+    const facilityName = INDUSTRIAL_DEMO.facilities.find((f) => f.id === loc.facilityRevisionId)?.name || "Cơ sở sản xuất";
+    const newLoc: ClimateLocation = {
+      id: `demo-loc-${Date.now()}`,
+      facilityRevisionId: loc.facilityRevisionId || INDUSTRIAL_DEMO.facilities[0].id,
+      facilityName,
+      latitude: Number(loc.latitude) || 10.823,
+      longitude: Number(loc.longitude) || 106.629,
+      precisionMeters: Number(loc.precisionMeters) || 50,
+      locationBasis: loc.locationBasis || "Đo đạc thực địa",
+      evidenceSnapshot: { id: "demo-ev-loc-auto", checksumSha256: "l3".repeat(32) },
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newLoc, ...list];
+    setCached("climate_locations", updated);
+    return newLoc;
+  },
+
+  getClimateAssessments(): ClimateAssessment[] {
+    return getCached("climate_assessments", () => [
+      {
+        id: "demo-cass-1",
+        facilityRevisionId: INDUSTRIAL_DEMO.facilities[0].id,
+        facilityName: INDUSTRIAL_DEMO.facilities[0].name,
+        locationRevisionId: "demo-loc-1",
+        hazardType: "heat",
+        scenarioKind: "historical",
+        scenarioReference: "ERA5-LAND-1991-2020",
+        horizonStart: "1991",
+        horizonEnd: "2020",
+        sourceKind: "ERA5_LAND",
+        sourceUrl: "https://cds.climate.copernicus.eu",
+        datasetIdentifier: "reanalysis-era5-land",
+        datasetVersion: "v1",
+        spatialResolution: "0.1 deg (~9km)",
+        temporalResolution: "hourly",
+        gridReference: "GRID-HCM-10.8-106.6",
+        spatialMatchNotes: "Nội suy song tuyến tính điểm tọa độ nhà máy",
+        hazardMetric: "Số ngày nắng nóng cực đoan (Tx > 35°C)",
+        metricValue: 48,
+        metricUnit: "ngày/năm",
+        uncertaintyNotes: "Độ tin cậy reanalysis ECMWF cao",
+        exposureRating: 4,
+        vulnerabilityRating: 3,
+        businessDependencyPercent: 60,
+        priorityBand: "medium",
+        ratingRationale: "Ảnh hưởng hiệu suất lao động xưởng may và điều hòa không khí",
+        screeningStatus: "completed",
+        evidenceSnapshot: { id: "demo-ev-c1", checksumSha256: "a1".repeat(32) },
+        createdAt: "2026-02-01T00:00:00Z",
+      },
+      {
+        id: "demo-cass-2",
+        facilityRevisionId: INDUSTRIAL_DEMO.facilities[0].id,
+        facilityName: INDUSTRIAL_DEMO.facilities[0].name,
+        locationRevisionId: "demo-loc-1",
+        hazardType: "extreme_rainfall",
+        scenarioKind: "projection",
+        scenarioReference: "CMIP6-SSP2-4.5-2040",
+        horizonStart: "2026",
+        horizonEnd: "2040",
+        sourceKind: "CMIP6",
+        sourceUrl: "https://esgf-node.llnl.gov",
+        datasetIdentifier: "cmip6-precipitation-projection",
+        datasetVersion: "v2.1",
+        spatialResolution: "0.25 deg",
+        temporalResolution: "daily",
+        gridReference: "GRID-SGN-RAINFALL-01",
+        spatialMatchNotes: "Ghép lưới lưu vực sông Sài Gòn - Đồng Nai",
+        modelName: "EC-Earth3",
+        scenarioName: "SSP2-4.5",
+        hazardMetric: "Lượng mưa cực đoan ngày lớn nhất (Rx1day)",
+        metricValue: 245,
+        metricUnit: "mm/ngày",
+        uncertaintyNotes: "Khoảng biến thiên mô hình CMIP6 ±15%",
+        exposureRating: 4,
+        vulnerabilityRating: 4,
+        businessDependencyPercent: 60,
+        priorityBand: "high",
+        ratingRationale: "Nguy cơ ngập cục bộ kho thành phẩm vải may mặc khi triều cường kết hợp mưa lớn",
+        screeningStatus: "completed",
+        evidenceSnapshot: { id: "demo-ev-c2", checksumSha256: "a2".repeat(32) },
+        createdAt: "2026-02-05T00:00:00Z",
+      },
+      {
+        id: "demo-cass-3",
+        facilityRevisionId: INDUSTRIAL_DEMO.facilities[0].id,
+        facilityName: INDUSTRIAL_DEMO.facilities[0].name,
+        locationRevisionId: "demo-loc-1",
+        hazardType: "drought",
+        scenarioKind: "projection",
+        scenarioReference: "CMIP6-SSP2-4.5-2040",
+        horizonStart: "2026",
+        horizonEnd: "2040",
+        sourceKind: "CMIP6",
+        sourceUrl: "https://esgf-node.llnl.gov",
+        datasetIdentifier: "cmip6-dry-days",
+        datasetVersion: "v1.2",
+        spatialResolution: "0.25 deg",
+        temporalResolution: "daily",
+        gridReference: "GRID-SGN-DROUGHT-01",
+        spatialMatchNotes: "Chuỗi ngày khô hạn liên tục (CDD)",
+        modelName: "MPI-ESM1-2-HR",
+        scenarioName: "SSP2-4.5",
+        hazardMetric: "Số ngày khô hạn liên tục lớn nhất (CDD)",
+        metricValue: 56,
+        metricUnit: "ngày",
+        uncertaintyNotes: "Mô hình thủy văn hạ lưu sông Đồng Nai",
+        exposureRating: 3,
+        vulnerabilityRating: 3,
+        businessDependencyPercent: 60,
+        priorityBand: "medium",
+        ratingRationale: "Nguy cơ áp lực cấp nước công nghiệp trong mùa khô",
+        screeningStatus: "completed",
+        evidenceSnapshot: { id: "demo-ev-c3", checksumSha256: "a3".repeat(32) },
+        createdAt: "2026-02-08T00:00:00Z",
+      },
+    ]);
+  },
+  addClimateAssessment(ass: Partial<ClimateAssessment>): ClimateAssessment {
+    const list = this.getClimateAssessments();
+    const facilityName = INDUSTRIAL_DEMO.facilities.find((f) => f.id === ass.facilityRevisionId)?.name || "Cơ sở sản xuất";
+    const exp = Number(ass.exposureRating) || 3;
+    const vuln = Number(ass.vulnerabilityRating) || 3;
+    const newAss: ClimateAssessment = {
+      id: `demo-cass-${Date.now()}`,
+      facilityRevisionId: ass.facilityRevisionId || INDUSTRIAL_DEMO.facilities[0].id,
+      facilityName,
+      locationRevisionId: ass.locationRevisionId || "demo-loc-1",
+      hazardType: ass.hazardType || "heat",
+      scenarioKind: ass.scenarioKind || "projection",
+      scenarioReference: ass.scenarioReference || "CMIP6-SSP2-4.5",
+      horizonStart: ass.horizonStart || "2026",
+      horizonEnd: ass.horizonEnd || "2035",
+      sourceKind: ass.sourceKind || "CMIP6",
+      sourceUrl: ass.sourceUrl || "https://cds.climate.copernicus.eu",
+      datasetIdentifier: ass.datasetIdentifier || "cmip6-data",
+      datasetVersion: ass.datasetVersion || "v1",
+      spatialResolution: ass.spatialResolution || "0.25 deg",
+      temporalResolution: ass.temporalResolution || "daily",
+      gridReference: ass.gridReference || "GRID-VN-AUTO",
+      spatialMatchNotes: ass.spatialMatchNotes || "Ghép tọa độ cơ sở",
+      hazardMetric: ass.hazardMetric || "Chỉ tiêu hiểm họa",
+      metricValue: Number(ass.metricValue) || 50,
+      metricUnit: ass.metricUnit || "đơn vị",
+      uncertaintyNotes: ass.uncertaintyNotes || "Dữ liệu mô phỏng demo",
+      exposureRating: exp,
+      vulnerabilityRating: vuln,
+      businessDependencyPercent: Number(ass.businessDependencyPercent) || 50,
+      priorityBand: ass.priorityBand || (exp >= 4 && vuln >= 4 ? "high" : exp >= 3 ? "medium" : "low"),
+      ratingRationale: ass.ratingRationale || "Đánh giá hiểm họa cơ sở",
+      screeningStatus: "completed",
+      evidenceSnapshot: { id: "demo-ev-cass-auto", checksumSha256: "a4".repeat(32) },
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newAss, ...list];
+    setCached("climate_assessments", updated);
+    return newAss;
+  },
+
+  getClimatePortfolios(): ClimatePortfolio[] {
+    return getCached("climate_portfolios", () => [
+      {
+        id: "demo-cport-1",
+        portfolioReference: "PORT-CLIMATE-RISK-2026",
+        scenarioKind: "projection",
+        scenarioReference: "CMIP6-SSP2-4.5-2040",
+        horizonStart: "2026",
+        horizonEnd: "2040",
+        facilityCount: 1,
+        assessmentCount: 3,
+        prioritySummary: {
+          reviewStatus: "approved",
+          facilityCountByPriority: { low: 0, medium: 1, high: 0 },
+          dependencyPercentByPriority: { low: 0, medium: 60, high: 0 },
+          incompleteHazardCoverageFacilities: 0,
+        },
+        methodologyNotes: "Sàng lọc rủi ro khí hậu vật lý tuân thủ khuyến nghị TCFD và chuẩn mực công bố IFRS S2",
+        createdAt: "2026-02-15T00:00:00Z",
+      },
+    ]);
+  },
+  addClimatePortfolio(port: { portfolioReference: string; methodologyNotes?: string; assessmentIds: string[] }): ClimatePortfolio {
+    const list = this.getClimatePortfolios();
+    const assessments = this.getClimateAssessments().filter((a) => port.assessmentIds.includes(a.id));
+    const newPort: ClimatePortfolio = {
+      id: `demo-cport-${Date.now()}`,
+      portfolioReference: port.portfolioReference || `PORT-CLIM-${Date.now().toString().slice(-4)}`,
+      scenarioKind: "projection",
+      scenarioReference: "CMIP6-SSP2-4.5",
+      horizonStart: "2026",
+      horizonEnd: "2040",
+      facilityCount: 1,
+      assessmentCount: assessments.length || 1,
+      prioritySummary: {
+        reviewStatus: "approved",
+        facilityCountByPriority: {
+          low: assessments.filter((a) => a.priorityBand === "low").length,
+          medium: assessments.filter((a) => a.priorityBand === "medium").length,
+          high: assessments.filter((a) => a.priorityBand === "high").length,
+        },
+        dependencyPercentByPriority: { low: 0, medium: 60, high: 0 },
+        incompleteHazardCoverageFacilities: 0,
+      },
+      methodologyNotes: port.methodologyNotes || "Sàng lọc danh mục khí hậu",
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newPort, ...list];
+    setCached("climate_portfolios", updated);
+    return newPort;
   },
 
   // 10. Data Gaps Checklist (Audit Readiness)

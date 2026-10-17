@@ -6,6 +6,7 @@ export type DomainContextKey =
   | 'mitigation'
   | 'vn_mrv'
   | 'data_gap'
+  | 'climate_location'
   | 'export_invoice'
   | 'export_packing_list'
   | 'export_bol'
@@ -564,4 +565,57 @@ export const DOCUMENT_CONTEXTS: Record<DomainContextKey, DocumentContextConfig> 
       },
     ],
   },
+
+  climate_location: {
+    key: 'climate_location',
+    title: 'Quét Tọa độ & Hồ sơ Địa chính Cơ sở (GIS Location AI)',
+    subtitle: 'Tải lên Trích lục bản đồ địa chính, Giấy chứng nhận quyền sử dụng đất, Báo cáo khảo sát GPS hoặc giấy phép xây dựng.',
+    hintKind: 'climate_location_evidence',
+    badgeLabel: 'Tọa độ GIS & Khí hậu',
+    badgeTone: 'border-sky-300 bg-sky-50 text-sky-800',
+    acceptedMimeTypes: ['.pdf', '.png', '.jpg', '.jpeg', '.webp'],
+    expectedFields: [
+      { key: 'latitude', label: 'Vĩ độ (Latitude)', type: 'number', description: 'Tọa độ thập phân (vd: 10.8231)' },
+      { key: 'longitude', label: 'Kinh độ (Longitude)', type: 'number', description: 'Tọa độ thập phân (vd: 106.6297)' },
+      { key: 'precisionMeters', label: 'Độ chính xác (mét)', type: 'number', description: 'Sai số định vị tọa độ' },
+      { key: 'locationBasis', label: 'Căn cứ xác định vị trí', type: 'string', description: 'Nguồn tài liệu chứng minh tọa độ' },
+    ],
+    systemInstruction: 'Hãy trích xuất tọa độ GPS (Vĩ độ Latitude, Kinh độ Longitude), độ chính xác định vị và cơ sở xác định vị trí từ trích lục bản đồ hoặc giấy chứng nhận quyền sử dụng đất.',
+    samplePresets: [
+      {
+        id: 'loc-tan-binh',
+        label: '📍 Trích lục bản đồ KCN Tân Bình (TP.HCM)',
+        description: 'Tọa độ trắc địa nhà máy may công nghiệp Tân Bình',
+        data: {
+          latitude: 10.8231,
+          longitude: 106.6297,
+          precisionMeters: 25,
+          locationBasis: 'Trích lục bản đồ địa chính Sở TN&MT TP.HCM tỷ lệ 1/2000',
+        },
+      },
+      {
+        id: 'loc-song-than',
+        label: '📍 Tọa độ GPS KCN Sóng Thần 2 (Bình Dương)',
+        description: 'Tọa độ trạm quan trắc xưởng nhuộm Sóng Thần',
+        data: {
+          latitude: 10.9025,
+          longitude: 106.7456,
+          precisionMeters: 15,
+          locationBasis: 'Biên bản định vị mốc ranh giới đất công nghiệp KCN Sóng Thần 2',
+        },
+      },
+      {
+        id: 'loc-nam-dinh',
+        label: '📍 Tọa độ KCN Dệt May Rạng Đông (Nam Định)',
+        description: 'Tọa độ nhà máy dệt ven biển Đồng bằng sông Hồng',
+        data: {
+          latitude: 20.0125,
+          longitude: 106.1852,
+          precisionMeters: 50,
+          locationBasis: 'Hồ sơ thiết kế kỹ thuật tổng mặt bằng nhà máy dệt Aurora IP',
+        },
+      },
+    ],
+  },
 };
+

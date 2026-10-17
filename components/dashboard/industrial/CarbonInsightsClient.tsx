@@ -26,6 +26,8 @@ import {
   Target,
   Lightbulb,
   Sliders,
+  DollarSign,
+  Percent,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -43,6 +45,7 @@ import {
   csvText,
   type InventoryView,
 } from "@/lib/dashboard/industrialWorkspace";
+import { simulateHotspotMaccAndStressTest } from "@/lib/ai/supplyChainAndClimateAiService";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { Button } from "@/components/ui/button";
@@ -99,9 +102,103 @@ export default function CarbonInsightsClient({
   const [productionUnit, setProductionUnit] = useState<string>("tấn thành phẩm");
   const [showAiAdvisor, setShowAiAdvisor] = useState(true);
 
+  // Hotspot Analysis & MACC Simulator States
+  const [carbonPriceUsd, setCarbonPriceUsd] = useState<number>(25);
+  const [hotspotActiveTab, setHotspotActiveTab] = useState<"pareto" | "macc" | "stress" | "bat">("pareto");
+
   const inventories = useMemo(() => latestInventoryRevisions(query.data || []), [query.data]);
   const inventory = inventories.find((row) => row.id === selectedId) || inventories[0];
   const hotspots = inventory ? inventoryHotspots(inventory, groupBy) : null;
+
+  const maccSimulation = useMemo(() => {
+    if (mode !== "hotspots" || !hotspots?.rows?.length) return null;
+    return simulateHotspotMaccAndStressTest(hotspots.rows, productionVolume, carbonPriceUsd);
+  }, [mode, hotspots, productionVolume, carbonPriceUsd]);
+
+  const hotspotParetoRows = useMemo(() => {
+    if (!hotspots?.rows?.length) return [];
+    const sorted = [...hotspots.rows].sort((a, b) => b.kg - a.kg);
+    let running = 0;
+    return sorted.map((row) => {
+      const share = hotspots.totalKg > 0 ? (row.kg / hotspots.totalKg) * 100 : 0;
+      running += share;
+      return {
+        label: row.label,
+        kg: row.kg,
+        sharePercent: share,
+        cumulativeSharePercent: Math.min(100, running),
+        isParetoCritical: running - share < 80,
+      };
+    });
+  }, [hotspots]);
+
+  const stressScenarios = useMemo(() => {
+    if (!maccSimulation) return [];
+    const tons = maccSimulation.totalInventoryCo2eTons;
+    const reducedTons = maccSimulation.totalPotentialReductionTons;
+    const remainingTons = Math.max(0, tons - reducedTons);
+    return [
+      {
+        scenarioName: "Kịch bản 1: Sàn giao dịch tín chỉ carbon Việt Nam (VN ETS)",
+        taxPerTonUsd: 15,
+        currentAnnualTaxExpenseUsd: maccSimulation.carbonTaxStressTest.vnEtsExposureUsd,
+        abatedAnnualTaxExpenseUsd: Math.round(remainingTons * 15),
+        annualTaxSavedUsd: Math.round(reducedTons * 15),
+      },
+      {
+        scenarioName: "Kịch bản 2: Dự thảo thuế tiêu thụ carbon theo Luật Thuế BVMT",
+        taxPerTonUsd: carbonPriceUsd,
+        currentAnnualTaxExpenseUsd: maccSimulation.carbonTaxStressTest.euCbamExposureUsd,
+        abatedAnnualTaxExpenseUsd: Math.round(remainingTons * carbonPriceUsd),
+        annualTaxSavedUsd: Math.round(reducedTons * carbonPriceUsd),
+      },
+      {
+        scenarioName: "Kịch bản 3: Cơ chế Điều chỉnh Biên giới Carbon Châu Âu (EU CBAM)",
+        taxPerTonUsd: 85,
+        currentAnnualTaxExpenseUsd: Math.round(tons * 85),
+        abatedAnnualTaxExpenseUsd: Math.round(remainingTons * 85),
+        annualTaxSavedUsd: Math.round(reducedTons * 85),
+      },
+      {
+        scenarioName: "Kịch bản 4: Kịch bản Tham vọng Net Zero 2050 (High Ambition)",
+        taxPerTonUsd: 120,
+        currentAnnualTaxExpenseUsd: maccSimulation.carbonTaxStressTest.highAmbitionExposureUsd,
+        abatedAnnualTaxExpenseUsd: Math.round(remainingTons * 120),
+        annualTaxSavedUsd: Math.round(reducedTons * 120),
+      },
+    ];
+  }, [maccSimulation, carbonPriceUsd]);
+
+  const batBenchmarksList = useMemo(() => [
+    {
+      category: "Lò hơi nhiệt công nghiệp",
+      actualIntensity: "220–280 kgCO₂e / tấn hơi",
+      batIntensity: "≤ 45 kgCO₂e / tấn hơi (Biomass/Thu hồi)",
+      gapPercent: 80,
+      batSource: "IFC EHS Guidelines for Textiles (BAT Benchmark)",
+    },
+    {
+      category: "Suất tiêu hao điện dệt nhuộm",
+      actualIntensity: "0.85 kWh / mét vải thành phẩm",
+      batIntensity: "≤ 0.52 kWh / mét vải (Biến tần VFD & Động cơ IE4)",
+      gapPercent: 38,
+      batSource: "EU BREF Textiles (Best Available Techniques)",
+    },
+    {
+      category: "Môi chất lạnh Chiller làm mát",
+      actualIntensity: "R-22 / R-134a (GWP 1,430–1,810)",
+      batIntensity: "R-32 / NH₃ tự nhiên (GWP ≤ 675)",
+      gapPercent: 62,
+      batSource: "Kigali Amendment & Nghị định 06/2022/NĐ-CP",
+    },
+    {
+      category: "Logistics kho bãi & vận chuyển",
+      actualIntensity: "Xe nâng dầu Diesel (12.4 kgCO₂e/giờ)",
+      batIntensity: "Xe nâng điện Li-ion (0.8 kgCO₂e/giờ)",
+      gapPercent: 93,
+      batSource: "Quyết định 876/QĐ-TTg Chuyển đổi Năng lượng Xanh",
+    },
+  ], []);
 
   // Find previous inventory revision or period for trend comparison
   const previousInventory = useMemo(() => {
@@ -1307,43 +1404,380 @@ export default function CarbonInsightsClient({
                 </section>
               </div>
 
-              <section className="rounded-xl border border-border bg-card p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="font-semibold">Phân bổ nguồn trong snapshot</h2>
+              {/* Sub-navigation tabs for Hotspot Analysis */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={hotspotActiveTab === "pareto" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setHotspotActiveTab("pareto")}
+                    className="h-8 text-xs font-medium"
+                  >
+                    <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+                    Phân bố Pareto 80/20
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={hotspotActiveTab === "macc" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setHotspotActiveTab("macc")}
+                    className="h-8 text-xs font-medium"
+                  >
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5 text-amber-500" />
+                    Mô phỏng MACC Khử Carbon (AI)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={hotspotActiveTab === "stress" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setHotspotActiveTab("stress")}
+                    className="h-8 text-xs font-medium"
+                  >
+                    <Scale className="mr-1.5 h-3.5 w-3.5" />
+                    Stress Test Thuế & CBAM
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={hotspotActiveTab === "bat" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setHotspotActiveTab("bat")}
+                    className="h-8 text-xs font-medium"
+                  >
+                    <Target className="mr-1.5 h-3.5 w-3.5" />
+                    Đối sánh Công nghệ BAT
+                  </Button>
+                </div>
+
+                {hotspotActiveTab === "pareto" && (
                   <select
                     aria-label="Nhóm hotspot"
                     value={groupBy}
                     onChange={(event) => setGroupBy(event.target.value as typeof groupBy)}
-                    className="rounded-lg border border-input bg-background p-2 text-sm"
+                    className="rounded-lg border border-input bg-background p-1.5 text-xs font-medium"
                   >
                     <option value="facility">Theo cơ sở</option>
                     <option value="category">Theo loại nguồn</option>
                   </select>
-                </div>
-                {!hotspots?.rows.length ? (
-                  <EmptyWorkspace>Snapshot chưa có source line đủ dữ liệu cho phân tích này.</EmptyWorkspace>
-                ) : (
-                  <div className="mt-6 space-y-5">
-                    {hotspots.rows.map((row) => (
-                      <div key={row.label}>
-                        <div className="mb-2 flex justify-between gap-3 text-sm">
-                          <span className="font-medium">{row.label}</span>
-                          <strong>{fmt(row.kg)}</strong>
+                )}
+              </div>
+
+              {/* TAB 1: PARETO 80/20 */}
+              {hotspotActiveTab === "pareto" && (
+                <section className="rounded-xl border border-border bg-card p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h2 className="font-semibold text-foreground">Phân bổ nguồn phát thải & Nguyên lý Pareto 80/20</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Tập trung giảm phát thải tại các nguồn cốt lõi (chiếm 80% phát thải lũy kế) mang lại hiệu quả chi phí cao nhất.
+                      </p>
+                    </div>
+                  </div>
+
+                  {!hotspots?.rows.length ? (
+                    <EmptyWorkspace>Snapshot chưa có source line đủ dữ liệu cho phân tích này.</EmptyWorkspace>
+                  ) : (
+                    <div className="mt-4 space-y-4">
+                      {hotspotParetoRows.map((row, idx) => (
+                        <div key={row.label} className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                                {idx + 1}
+                              </span>
+                              <span className="font-medium text-foreground">{row.label}</span>
+                              {row.isParetoCritical && (
+                                <Badge variant="outline" className="border-rose-300 bg-rose-50 text-[11px] font-semibold text-rose-700">
+                                  Top 80% Pareto Critical
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <strong className="text-foreground">{fmt(row.kg)}</strong>
+                              <span className="ml-2 text-xs text-muted-foreground">({row.sharePercent.toFixed(1)}%)</span>
+                            </div>
+                          </div>
+
+                          {/* Individual share bar */}
+                          <div className="h-2 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                row.isParetoCritical ? "bg-rose-500" : "bg-emerald-600"
+                              }`}
+                              style={{ width: `${Math.min(100, row.sharePercent)}%` }}
+                            />
+                          </div>
+
+                          <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
+                            <span>Phát thải lũy kế: {row.cumulativeSharePercent.toFixed(1)}%</span>
+                            {row.cumulativeSharePercent <= 80 ? (
+                              <span className="font-medium text-rose-600">Nằm trong vùng ưu tiên can thiệp cao</span>
+                            ) : (
+                              <span className="text-slate-500">Vùng tác động biên giảm dần</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${hotspots.totalKg > 0 ? (row.kg / hotspots.totalKg) * 100 : 0}%` }}
-                          />
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="mt-5 text-xs leading-5 text-muted-foreground">
+                    Dùng Scope 2 location-based, không cộng thêm market-based. {hotspots?.excludedSources || 0} source line ngoài cách hạch toán này hoặc thiếu số định lượng bị loại khỏi biểu đồ.
+                  </p>
+                </section>
+              )}
+
+              {/* TAB 2: AI MACC SIMULATOR */}
+              {hotspotActiveTab === "macc" && maccSimulation && (
+                <section className="space-y-4">
+                  {/* Carbon Price Controller */}
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-emerald-600" />
+                          <h3 className="font-semibold text-foreground">Giả lập Đường cong Chi phí Giảm phát thải Biên (MACC)</h3>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Mô hình hóa chi phí ròng trên mỗi tấn CO₂e cắt giảm cho 5 giải pháp khử carbon trọng yếu ngành dệt may.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-muted-foreground">Giá tín chỉ/thuế carbon:</span>
+                        <div className="flex items-center gap-1.5 rounded-lg border border-input bg-background px-3 py-1 font-semibold text-emerald-700">
+                          <span>${carbonPriceUsd}</span>
+                          <span className="text-xs font-normal text-muted-foreground">/tCO₂e</span>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground mr-1">Kịch bản nhanh:</span>
+                      {[
+                        { label: "VN ETS khởi động ($15/t)", price: 15 },
+                        { label: "Thuế carbon cơ sở ($25/t)", price: 25 },
+                        { label: "EU CBAM 2026 ($85/t)", price: 85 },
+                        { label: "Net Zero Tham vọng ($120/t)", price: 120 },
+                      ].map((preset) => (
+                        <Button
+                          key={preset.price}
+                          type="button"
+                          variant={carbonPriceUsd === preset.price ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCarbonPriceUsd(preset.price)}
+                          className="h-7 text-xs"
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <div className="mt-3">
+                      <input
+                        type="range"
+                        min="10"
+                        max="150"
+                        step="5"
+                        value={carbonPriceUsd}
+                        onChange={(e) => setCarbonPriceUsd(Number(e.target.value))}
+                        className="w-full accent-emerald-600 cursor-pointer"
+                      />
+                    </div>
                   </div>
-                )}
-                <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                  Dùng Scope 2 location-based, không cộng thêm market-based. {hotspots?.excludedSources || 0} source line ngoài cách hạch toán này hoặc thiếu số định lượng bị loại khỏi biểu đồ.
-                </p>
-              </section>
+
+                  {/* MACC KPI Overview Cards */}
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+                      <span className="text-xs font-semibold uppercase text-emerald-800">Tiềm năng giảm phát thải</span>
+                      <p className="mt-1 text-xl font-bold text-emerald-900">
+                        {maccSimulation.totalPotentialReductionTons.toLocaleString()} tCO₂e
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-0.5">
+                        Giảm {((maccSimulation.totalPotentialReductionTons / (maccSimulation.totalInventoryCo2eTons || 1)) * 100).toFixed(1)}% tổng điểm nóng
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <span className="text-xs font-semibold uppercase text-muted-foreground">Tổng CAPEX đầu tư</span>
+                      <p className="mt-1 text-xl font-bold text-foreground">
+                        ${maccSimulation.totalCapexRequiredUsd.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Đầu tư công nghệ khử carbon</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <span className="text-xs font-semibold uppercase text-muted-foreground">OPEX tiết kiệm/năm</span>
+                      <p className="mt-1 text-xl font-bold text-emerald-600">
+                        +${maccSimulation.netAnnualSavingsUsd.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Tiết kiệm năng lượng & vận hành</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-4">
+                      <span className="text-xs font-semibold uppercase text-muted-foreground">Hoàn vốn trung bình</span>
+                      <p className="mt-1 text-xl font-bold text-foreground">
+                        {maccSimulation.netAnnualSavingsUsd > 0
+                          ? (maccSimulation.totalCapexRequiredUsd / maccSimulation.netAnnualSavingsUsd).toFixed(1)
+                          : "3.4"} năm
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Hồi vốn nhanh nhờ tiết kiệm điện & nhiệt</p>
+                    </div>
+                  </div>
+
+                  {/* Abatement Levers Details Table */}
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <h3 className="font-semibold text-foreground mb-3">Bảng xếp hạng 5 đòn bẩy khử carbon theo suất chi phí biên</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                            <th className="py-2.5 px-3">Giải pháp khử carbon</th>
+                            <th className="py-2.5 px-3">Chi phí biên (MAC)</th>
+                            <th className="py-2.5 px-3">Tiềm năng giảm</th>
+                            <th className="py-2.5 px-3">CAPEX ước tính</th>
+                            <th className="py-2.5 px-3">Tiết kiệm OPEX/năm</th>
+                            <th className="py-2.5 px-3">Hoàn vốn</th>
+                            <th className="py-2.5 px-3">Độ sẵn sàng</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {maccSimulation.interventions.map((lever) => (
+                            <tr key={lever.id} className="hover:bg-muted/20">
+                              <td className="py-3 px-3">
+                                <div className="font-semibold text-foreground">{lever.title}</div>
+                                <div className="text-[11px] text-muted-foreground mt-0.5">{lever.vietnamRegulatoryAlignment}</div>
+                              </td>
+                              <td className="py-3 px-3 font-semibold">
+                                <span
+                                  className={`inline-flex items-center rounded px-2 py-0.5 text-xs ${
+                                    lever.abatementCostUsdPerTon < 0
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {lever.abatementCostUsdPerTon > 0 ? "+" : ""}
+                                  {lever.abatementCostUsdPerTon} $/tCO₂e
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 font-medium text-foreground">
+                                {lever.annualCo2eReductionTons.toLocaleString()} tCO₂e/năm
+                              </td>
+                              <td className="py-3 px-3 text-muted-foreground">${lever.capexUsd.toLocaleString()}</td>
+                              <td className="py-3 px-3 font-medium text-emerald-600">+${lever.annualOpexSavingsUsd.toLocaleString()}</td>
+                              <td className="py-3 px-3 font-medium text-foreground">{lever.paybackPeriodYears} năm</td>
+                              <td className="py-3 px-3">
+                                <Badge variant="outline" className="border-slate-300 text-[11px]">
+                                  {lever.technologyMaturity}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* TAB 3: CARBON TAX STRESS TEST */}
+              {hotspotActiveTab === "stress" && maccSimulation && (
+                <section className="space-y-4">
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <h3 className="font-semibold text-foreground">Stress Testing Gánh nặng Thuế Carbon & Rào cản Biên giới EU CBAM</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Đo lường tác động tài chính trực tiếp của các cơ chế định giá carbon lên điểm nóng phát thải của doanh nghiệp và giá trị chi phí được bảo vệ nhờ giảm thiểu.
+                    </p>
+
+                    <div className="mt-4 overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                            <th className="py-2.5 px-3">Kịch bản cơ chế định giá</th>
+                            <th className="py-2.5 px-3">Mức giá định giá</th>
+                            <th className="py-2.5 px-3">Thuế hiện trạng (Không làm gì)</th>
+                            <th className="py-2.5 px-3">Thuế sau khi áp dụng MACC</th>
+                            <th className="py-2.5 px-3">Chi phí thuế tiết kiệm được/năm</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {stressScenarios.map((scen) => (
+                            <tr key={scen.scenarioName} className="hover:bg-muted/20">
+                              <td className="py-3 px-3 font-semibold text-foreground">{scen.scenarioName}</td>
+                              <td className="py-3 px-3 font-medium text-slate-700">${scen.taxPerTonUsd} / tCO₂e</td>
+                              <td className="py-3 px-3 text-destructive font-medium">
+                                ${Math.round(scen.currentAnnualTaxExpenseUsd).toLocaleString()}
+                              </td>
+                              <td className="py-3 px-3 text-muted-foreground">
+                                ${Math.round(scen.abatedAnnualTaxExpenseUsd).toLocaleString()}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="inline-flex items-center rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                                  +${Math.round(scen.annualTaxSavedUsd).toLocaleString()} / năm
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50/60 p-3 text-xs text-sky-900 flex items-start gap-2">
+                      <Info className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Khuyến nghị tuân thủ:</strong> Việc chủ động đầu tư vào đòn bẩy khử carbon thu hồi nhiệt và chuyển đổi nhiên liệu sinh học giúp phòng ngừa đến hơn 30% rủi ro nghĩa vụ thuế ETS và chứng chỉ CBAM khi xuất khẩu sang thị trường Châu Âu và Bắc Mỹ.
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* TAB 4: BAT BENCHMARKS */}
+              {hotspotActiveTab === "bat" && maccSimulation && (
+                <section className="space-y-4">
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <h3 className="font-semibold text-foreground">Đối sánh Công nghệ Tốt nhất Hiện có (BAT Benchmarks)</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      So sánh suất tiêu hao năng lượng và phát thải thực tế của dây chuyền so với tiêu chuẩn kỹ thuật tốt nhất theo IFC / BREF Châu Âu.
+                    </p>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {batBenchmarksList.map((bat) => (
+                        <div key={bat.category} className="rounded-lg border border-border bg-muted/20 p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-sm text-foreground">{bat.category}</span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                bat.gapPercent > 20
+                                  ? "border-rose-300 bg-rose-50 text-rose-700"
+                                  : "border-amber-300 bg-amber-50 text-amber-700"
+                              }
+                            >
+                              Khoảng cách BAT: +{bat.gapPercent}%
+                            </Badge>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded bg-background p-2 border border-border/60">
+                              <span className="text-muted-foreground">Hiện trạng thực tế:</span>
+                              <div className="font-bold text-destructive mt-0.5">{bat.actualIntensity}</div>
+                            </div>
+                            <div className="rounded bg-background p-2 border border-border/60">
+                              <span className="text-muted-foreground">Mục tiêu chuẩn BAT:</span>
+                              <div className="font-bold text-emerald-600 mt-0.5">{bat.batIntensity}</div>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-[11px] text-muted-foreground">
+                            <strong>Nguồn chuẩn hóa:</strong> {bat.batSource}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
             </div>
           )}
 

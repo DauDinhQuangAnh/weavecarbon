@@ -48,6 +48,7 @@ function EvidenceSelect({ value, onChange, evidence, disabled = false }: {
 }) {
   return <select required disabled={disabled} className={selectClass} value={value} onChange={(event) => onChange(event.target.value)}>
     <option value="">Chọn bằng chứng đã khóa</option>
+    {evidence.length === 0 && <option value="demo-ev-default">Bằng chứng kiểm toán giả định (Demo SHA-256)</option>}
     {evidence.map((item) => <option key={item.id} value={item.id}>{item.documentName} · {item.status}</option>)}
   </select>;
 }
@@ -102,39 +103,16 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
 
   const load = useCallback(async () => {
     if (demo) {
-      const sups: SupplierProfile[] = demoSessionCache.getSuppliers().map((s) => ({
-        id: s.id,
-        supplierReference: s.id,
-        revision: 1,
-        legalName: s.name,
-        tradingName: s.name,
-        countryCode: s.country,
-        sector: s.category,
-        supplierTier: s.tier,
-        lifecycleStatus: (["prospective", "active", "inactive"].includes(s.status) ? s.status : "active") as SupplierProfile["lifecycleStatus"],
-        evidenceSnapshot: { id: "demo-evidence-1", checksumSha256: "demo-sha256" },
-        profileSha256: "demo-sha256",
-        createdAt: new Date().toISOString(),
-      }));
-      setProfiles(sups);
+      setProfiles(demoSessionCache.getSupplierProfiles());
+      setSites(demoSessionCache.getSupplierSites());
+      setRelationships(demoSessionCache.getSupplierRelationships());
+      setSupplierClimate(demoSessionCache.getSupplierClimate());
+      setFacilityClimate([]);
+      setCarbon(demoSessionCache.getCarbonSnapshots());
+      setModels(demoSessionCache.getCriticalityModels());
+      setCriticality(demoSessionCache.getCriticalitySnapshots());
+      setPortfolios(demoSessionCache.getCriticalityPortfolios());
       setFacilities(demoSessionCache.getFacilities());
-      setModels([
-        {
-          id: "demo-model-1",
-          modelReference: "CRIT-MODEL-DEFAULT",
-          revision: 1,
-          carbonWeightPercent: 35,
-          climateWeightPercent: 35,
-          dependencyWeightPercent: 30,
-          mediumThreshold: 40,
-          highThreshold: 70,
-          normalizationPolicy: "min_max",
-          rationale: "Default demo model",
-          approvalStatus: "approved",
-          modelSha256: "demo-sha256",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
       setLoading(false);
       return;
     }
@@ -494,20 +472,16 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           </div>
         </DialogHeader>
         <form className="grid gap-3 md:grid-cols-2 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createProfile({ ...profileForm, supplierTier: Number(profileForm.supplierTier) }), () => { setProfileForm(emptyProfile); setOpenProfileDialog(false); }, () => {
-          const newProfile: SupplierProfile = {
-            id: `demo-sup-${Date.now()}`,
+          const newProfile = demoSessionCache.addSupplierProfile({
             supplierReference: profileForm.supplierReference,
-            revision: 1,
             legalName: profileForm.legalName,
             tradingName: profileForm.tradingName || profileForm.legalName,
             countryCode: profileForm.countryCode,
             sector: profileForm.sector,
             supplierTier: Number(profileForm.supplierTier) as 1 | 2 | 3 | 4,
             lifecycleStatus: profileForm.lifecycleStatus as "prospective" | "active" | "inactive",
-            evidenceSnapshot: { id: profileForm.evidenceDocumentId, checksumSha256: "demo-sha256" },
-            profileSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-          };
+            evidenceSnapshot: { id: profileForm.evidenceDocumentId || "demo-ev-profile", checksumSha256: "demo-sha256" },
+          });
           demoSessionCache.addSupplier({ name: profileForm.legalName, country: profileForm.countryCode, tier: Number(profileForm.supplierTier), category: profileForm.sector });
           setProfiles((prev) => [newProfile, ...prev]);
         })}>
@@ -538,10 +512,8 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           <DialogDescription>Ghi nhận vị trí và tọa độ địa lý chính xác kèm chứng từ khóa.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-3 md:grid-cols-2 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createSite({ ...siteForm, latitude: Number(siteForm.latitude), longitude: Number(siteForm.longitude), precisionMeters: Number(siteForm.precisionMeters) }), () => { setSiteForm(emptySite); setOpenSiteDialog(false); }, () => {
-          const newSite: SupplierSite = {
-            id: `demo-site-${Date.now()}`,
+          const newSite = demoSessionCache.addSupplierSite({
             supplierRevisionId: siteForm.supplierRevisionId,
-            revision: 1,
             siteReference: siteForm.siteReference,
             siteName: siteForm.siteName,
             countryCode: siteForm.countryCode,
@@ -549,10 +521,8 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             longitude: Number(siteForm.longitude),
             precisionMeters: Number(siteForm.precisionMeters),
             locationBasis: siteForm.locationBasis,
-            evidenceSnapshot: { id: siteForm.evidenceDocumentId, checksumSha256: "demo-sha256" },
-            siteSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-          };
+            evidenceSnapshot: { id: siteForm.evidenceDocumentId || "demo-ev-site", checksumSha256: "demo-sha256" },
+          });
           setSites((prev) => [newSite, ...prev]);
         })}>
           <Field label="Nhà cung ứng"><select required disabled={saving} className={selectClass} value={siteForm.supplierRevisionId} onChange={(event) => setSiteForm({ ...siteForm, supplierRevisionId: event.target.value })}><option value="">Chọn revision</option>{profiles.map((item) => <option key={item.id} value={item.id}>{item.legalName} · rev {item.revision}</option>)}</select></Field>
@@ -585,10 +555,8 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           <DialogDescription>Mô hình hóa tỷ lệ chi tiêu, phụ thuộc sản xuất và số SKU bị ảnh hưởng.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-3 md:grid-cols-2 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createRelationship({ ...relationshipForm, spendPercent: Number(relationshipForm.spendPercent), productionDependencyPercent: Number(relationshipForm.productionDependencyPercent), dependentSkuCount: Number(relationshipForm.dependentSkuCount), dependentRouteCount: Number(relationshipForm.dependentRouteCount), effectiveTo: relationshipForm.effectiveTo || null }), () => { setRelationshipForm(emptyRelationship); setOpenRelationshipDialog(false); }, () => {
-          const newRel: SupplierRelationship = {
-            id: `demo-rel-${Date.now()}`,
+          const newRel = demoSessionCache.addSupplierRelationship({
             supplierRevisionId: relationshipForm.supplierRevisionId,
-            revision: 1,
             relationshipReference: relationshipForm.relationshipReference,
             materialOrService: relationshipForm.materialOrService,
             procurementCategory: relationshipForm.procurementCategory,
@@ -599,9 +567,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             dependentRouteCount: Number(relationshipForm.dependentRouteCount),
             effectiveFrom: relationshipForm.effectiveFrom,
             effectiveTo: relationshipForm.effectiveTo || null,
-            relationshipSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-          };
+          });
           setRelationships((prev) => [newRel, ...prev]);
         })}>
           <Field label="Nhà cung ứng"><select required disabled={saving} className={selectClass} value={relationshipForm.supplierRevisionId} onChange={(event) => setRelationshipForm({ ...relationshipForm, supplierRevisionId: event.target.value })}><option value="">Chọn revision</option>{profiles.map((item) => <option key={item.id} value={item.id}>{item.legalName} · rev {item.revision}</option>)}</select></Field>
@@ -640,8 +606,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           <DialogDescription>Ghi nhận hiểm họa vật lý, độ phơi nhiễm và tính dễ bị tổn thương theo kịch bản chuẩn hóa.</DialogDescription>
         </DialogHeader>
         <form className="space-y-4 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createClimateAssessment({ ...climateForm, metricValue: Number(climateForm.metricValue), exposureRating: Number(climateForm.exposureRating), vulnerabilityRating: Number(climateForm.vulnerabilityRating), modelName: climateForm.modelName || null, scenarioName: climateForm.scenarioName || null }), () => { setClimateForm(emptyClimate); setOpenClimateDialog(false); }, () => {
-          const newClimate: SupplierClimateAssessment = {
-            id: `demo-clim-${Date.now()}`,
+          const newClimate = demoSessionCache.addSupplierClimate({
             supplierRevisionId: climateForm.supplierRevisionId,
             siteRevisionId: climateForm.siteRevisionId,
             hazardType: climateForm.hazardType as SupplierClimateAssessment["hazardType"],
@@ -667,10 +632,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             spatialMatchNotes: climateForm.spatialMatchNotes,
             uncertaintyNotes: climateForm.uncertaintyNotes,
             ratingRationale: climateForm.ratingRationale,
-            screeningStatus: "completed",
-            inputSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-          };
+          });
           setSupplierClimate((prev) => [newClimate, ...prev]);
         })}>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -717,8 +679,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           <DialogDescription>Ghi nhận phát thải Scope 1/2 và chất lượng dữ liệu nguồn.</DialogDescription>
         </DialogHeader>
         <form className="space-y-4 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createCarbonSnapshot({ ...carbonForm, facilityRevisionId: carbonForm.subjectKind === "facility" ? carbonForm.facilityRevisionId : null, supplierRevisionId: carbonForm.subjectKind === "supplier" ? carbonForm.supplierRevisionId : null, grossKgCo2e: Number(carbonForm.grossKgCo2e), activityQuantity: carbonForm.activityQuantity ? Number(carbonForm.activityQuantity) : null, activityUnit: carbonForm.activityUnit || null, intensityKgCo2e: carbonForm.intensityKgCo2e ? Number(carbonForm.intensityKgCo2e) : null }), () => { setCarbonForm(emptyCarbon); setOpenCarbonDialog(false); }, () => {
-          const newCarbon: CarbonCriticalitySnapshot = {
-            id: `demo-carb-${Date.now()}`,
+          const newCarbon = demoSessionCache.addCarbonSnapshot({
             subjectKind: carbonForm.subjectKind as CarbonCriticalitySnapshot["subjectKind"],
             facilityRevisionId: carbonForm.subjectKind === "facility" ? carbonForm.facilityRevisionId : null,
             supplierRevisionId: carbonForm.subjectKind === "supplier" ? carbonForm.supplierRevisionId : null,
@@ -732,9 +693,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             sourceKind: carbonForm.sourceKind as CarbonCriticalitySnapshot["sourceKind"],
             dataQualityLevel: carbonForm.dataQualityLevel as CarbonCriticalitySnapshot["dataQualityLevel"],
             methodologyReference: carbonForm.methodologyReference,
-            carbonSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-          };
+          });
           setCarbon((prev) => [newCarbon, ...prev]);
         })}>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -776,10 +735,8 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           <DialogDescription>Trọng số Carbon + Climate + Dependency phải có tổng bằng 100%.</DialogDescription>
         </DialogHeader>
         <form className="space-y-4 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createModel({ ...modelForm, carbonWeightPercent: Number(modelForm.carbonWeightPercent), climateWeightPercent: Number(modelForm.climateWeightPercent), dependencyWeightPercent: Number(modelForm.dependencyWeightPercent), mediumThreshold: Number(modelForm.mediumThreshold), highThreshold: Number(modelForm.highThreshold) }), () => { setModelForm(emptyModel); setOpenModelDialog(false); }, () => {
-          const newModel: CriticalityModel = {
-            id: `demo-model-${Date.now()}`,
+          const newModel = demoSessionCache.addCriticalityModel({
             modelReference: modelForm.modelReference,
-            revision: 1,
             carbonWeightPercent: Number(modelForm.carbonWeightPercent),
             climateWeightPercent: Number(modelForm.climateWeightPercent),
             dependencyWeightPercent: Number(modelForm.dependencyWeightPercent),
@@ -788,9 +745,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             normalizationPolicy: modelForm.normalizationPolicy,
             rationale: modelForm.rationale,
             approvalStatus: modelForm.approvalStatus as CriticalityModel["approvalStatus"],
-            modelSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-          };
+          });
           setModels((prev) => [newModel, ...prev]);
         })}>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -837,8 +792,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           const priorityBand = weighted >= highThresh ? "high" : weighted >= mediumThresh ? "medium" : "low";
           const supObj = profiles.find((p) => p.id === criticalityForm.supplierRevisionId);
           const facObj = facilities.find((f) => f.id === criticalityForm.facilityRevisionId);
-          const newCrit: CriticalitySnapshot = {
-            id: `demo-crit-${Date.now()}`,
+          const newCrit = demoSessionCache.addCriticalitySnapshot({
             subjectKind: criticalityForm.subjectKind as CriticalitySnapshot["subjectKind"],
             facilityRevisionId: criticalityForm.subjectKind === "facility" ? criticalityForm.facilityRevisionId : null,
             supplierRevisionId: criticalityForm.subjectKind === "supplier" ? criticalityForm.supplierRevisionId : null,
@@ -852,18 +806,9 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
             normalizedDependencyScore: dScore,
             weightedScore: weighted,
             priorityBand,
-            reviewStatus: "demo_locked",
-            inputSnapshot: {
-              climateAssessmentIds: selectedClimateIds,
-              carbonScoreRationale: criticalityForm.carbonScoreRationale,
-              climateScoreRationale: criticalityForm.climateScoreRationale,
-              dependencyScoreRationale: criticalityForm.dependencyScoreRationale,
-            },
-            inputSha256: "demo-sha256",
             supplierName: supObj?.legalName,
             facilityName: facObj?.name,
-            createdAt: new Date().toISOString(),
-          };
+          });
           setCriticality((prev) => [newCrit, ...prev]);
         })}>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -917,42 +862,11 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           <DialogDescription>Chọn tối thiểu 2 snapshot để nhóm thành danh mục phân tích chuỗi cung ứng.</DialogDescription>
         </DialogHeader>
         <form className="space-y-4 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createPortfolio({ portfolioReference, criticalitySnapshotIds: selectedCriticalityIds, methodologyNotes: portfolioNotes }), () => { setPortfolioReference(""); setPortfolioNotes(""); setSelectedCriticalityIds([]); setOpenPortfolioDialog(false); }, () => {
-          const selectedMembers = criticality.filter((c) => selectedCriticalityIds.includes(c.id));
-          const avgScore = selectedMembers.length > 0 ? selectedMembers.reduce((acc, m) => acc + m.weightedScore, 0) / selectedMembers.length : 0;
-          const highCount = selectedMembers.filter((m) => m.priorityBand === "high").length;
-          const medCount = selectedMembers.filter((m) => m.priorityBand === "medium").length;
-          const lowCount = selectedMembers.filter((m) => m.priorityBand === "low").length;
-          const newPortfolio: CriticalityPortfolio = {
-            id: `demo-port-${Date.now()}`,
+          const newPortfolio = demoSessionCache.addCriticalityPortfolio({
             portfolioReference,
-            modelRevisionId: criticality[0]?.modelRevisionId || "demo-model-1",
-            assessmentPeriodStart: "2026-01-01",
-            assessmentPeriodEnd: "2026-12-31",
             methodologyNotes: portfolioNotes,
-            subjectCount: selectedMembers.length,
-            prioritySummary: {
-              averageWeightedScore: Number(avgScore.toFixed(2)),
-              reviewStatus: "demo_locked",
-              countByPriority: { high: highCount, medium: medCount, low: lowCount },
-            },
-            coverageSummary: {
-              method: "demo",
-              facilityCount: selectedMembers.filter((m) => m.subjectKind === "facility").length,
-              supplierCount: selectedMembers.filter((m) => m.subjectKind === "supplier").length,
-              supplierSpecificCarbonCount: selectedMembers.filter((m) => m.subjectKind === "supplier").length,
-              completeThreeHazardCount: selectedMembers.length,
-              supplierDependencyRecordCount: selectedMembers.length,
-              singleSourceSupplierCount: 0,
-              selectedSupplierSpendPercent: 85,
-              subjectCount: selectedMembers.length,
-            },
-            inputSha256: "demo-sha256",
-            createdAt: new Date().toISOString(),
-            members: selectedMembers.map((m) => ({
-              ...m,
-              reviewStatus: "approved",
-            })),
-          };
+            criticalitySnapshotIds: selectedCriticalityIds,
+          });
           setPortfolios((prev) => [newPortfolio, ...prev]);
         })}>
           <div className="grid gap-3 sm:grid-cols-2">
