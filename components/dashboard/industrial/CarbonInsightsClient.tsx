@@ -31,15 +31,10 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  Legend,
 } from "recharts";
 import { fetchCorporateGhgInventories } from "@/lib/weave-v2/corporateGhgInventoryApi";
 import {
