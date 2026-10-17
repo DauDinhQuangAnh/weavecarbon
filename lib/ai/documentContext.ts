@@ -5,6 +5,7 @@ export type DomainContextKey =
   | 'supplier'
   | 'mitigation'
   | 'vn_mrv'
+  | 'data_gap'
   | 'export_invoice'
   | 'export_packing_list'
   | 'export_bol'
@@ -473,6 +474,92 @@ export const DOCUMENT_CONTEXTS: Record<DomainContextKey, DocumentContextConfig> 
         data: {
           caseReference: 'MRV-VN-2026-FAC01',
           applicabilityStatus: 'listed_mandatory',
+        },
+      },
+    ],
+  },
+
+  data_gap: {
+    key: 'data_gap',
+    title: 'Quét Hồ sơ Kiểm toán & Khoảng trống Dữ liệu (Audit Gap AI)',
+    subtitle: 'Tải lên Biên bản kiểm kê năng lượng, Báo cáo rà soát nội bộ hoặc Checklist tuân thủ để AI tự động phát hiện khoảng trống dữ liệu.',
+    hintKind: 'audit_data_gap',
+    badgeLabel: 'Kiểm tra Khoảng trống',
+    badgeTone: 'border-amber-300 bg-amber-50 text-amber-800',
+    acceptedMimeTypes: ['.pdf', '.png', '.jpg', '.jpeg', '.webp'],
+    expectedFields: [
+      { key: 'dataGroup', label: 'Nhóm dữ liệu / Hạng mục', type: 'string', description: 'Tên nhóm dữ liệu carbon cần rà soát' },
+      {
+        key: 'riskLevel',
+        label: 'Mức rủi ro kiểm toán',
+        type: 'select',
+        description: 'Mức độ rủi ro loại trừ số liệu',
+        options: [
+          { label: 'Cao (High Risk)', value: 'high' },
+          { label: 'Trung bình (Medium Risk)', value: 'medium' },
+          { label: 'Thấp (Low Risk)', value: 'low' },
+        ],
+      },
+      {
+        key: 'currentStatus',
+        label: 'Trạng thái hiện tại',
+        type: 'select',
+        description: 'Mức độ sẵn sàng dữ liệu',
+        options: [
+          { label: 'Thiếu (Missing)', value: 'missing' },
+          { label: 'Proxy ước tính', value: 'proxy' },
+          { label: 'Tự khai báo', value: 'self_declared' },
+          { label: 'Đã tải lên', value: 'uploaded' },
+          { label: 'Đã xác minh', value: 'verified' },
+        ],
+      },
+      { key: 'requiredAction', label: 'Hành động yêu cầu', type: 'string', description: 'Biện pháp khắc phục cần triển khai' },
+      { key: 'owner', label: 'Người phụ trách', type: 'string', description: 'Cá nhân hoặc phòng ban phụ trách' },
+      { key: 'deadline', label: 'Hạn chót xử lý', type: 'date', description: 'Ngày hạn hoàn thành' },
+      { key: 'regulationTag', label: 'Quy chuẩn áp dụng', type: 'string', description: 'ISO 14064, QĐ 13/2024, CBAM' },
+    ],
+    systemInstruction: 'Hãy trích xuất nhóm dữ liệu kiểm kê phát thải, đánh giá mức độ rủi ro, trạng thái bằng chứng hiện tại và hành động khắc phục cụ thể từ tài liệu.',
+    samplePresets: [
+      {
+        id: 'gap-elec-q3',
+        label: '⚡ Hóa đơn tiền điện trạm biến áp xưởng may Q3',
+        description: 'Khoảng trống hóa đơn tiền điện tháng 8 chưa đối soát chỉ số công tơ phụ',
+        data: {
+          dataGroup: 'Hóa đơn tiền điện EVN trạm biến áp xưởng may Q3',
+          riskLevel: 'high',
+          currentStatus: 'missing',
+          requiredAction: 'Đối soát sản lượng điện 145.000 kWh với EVN portal và liên kết hóa đơn điện tử',
+          owner: 'Kế toán chi phí xưởng',
+          deadline: '2026-11-15',
+          regulationTag: 'ISO 14064-1:2018 Scope 2',
+        },
+      },
+      {
+        id: 'gap-boiler-biomass',
+        label: '🔥 Biên bản thử nghiệm khí thải & cân sinh khối lò hơi',
+        description: 'Chứng từ cân nhập dăm gỗ và kết quả đo nồng độ CO, SO2 ống khói',
+        data: {
+          dataGroup: 'Chứng từ cân sinh khối dăm gỗ và test khí thải lò hơi',
+          riskLevel: 'medium',
+          currentStatus: 'self_declared',
+          requiredAction: 'Yêu cầu đơn vị quan trắc Quatest cấp kết quả đo kiểm định kỳ',
+          owner: 'Kỹ sư trưởng lò hơi',
+          deadline: '2026-11-20',
+          regulationTag: 'Nghị định 06/2022/NĐ-CP',
+        },
+      },
+      {
+        id: 'gap-refrigerant-chiller',
+        label: '❄️ Nhật ký bảo dưỡng nạp ga làm lạnh Chiller R410A',
+        description: 'Kiểm tra phát thải rò rỉ môi chất lạnh từ hệ thống điều hòa trung tâm',
+        data: {
+          dataGroup: 'Nhật ký nạp môi chất lạnh Chiller R410A xưởng hoàn tất',
+          riskLevel: 'high',
+          currentStatus: 'proxy',
+          requiredAction: 'Thu thập biên bản nghiệm thu nạp 45kg gas R410A từ nhà thầu cơ điện lạnh',
+          owner: 'Quản lý cơ sở vật chất',
+          deadline: '2026-11-10',
+          regulationTag: 'Quyết định 13/2024/QĐ-TTg',
         },
       },
     ],

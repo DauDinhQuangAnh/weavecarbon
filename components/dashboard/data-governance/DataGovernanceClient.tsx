@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, DatabaseZap, Eye, Gauge, Info, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, DatabaseZap, Eye, Gauge, Info, Loader2, ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
 import { isApiError } from "@/lib/apiClient";
 import { dataGovernanceApi, type DqlAssessment, type FactorProposal } from "@/lib/dataGovernanceApi";
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import { assessDataQualityPedigree, type DqlPedigreeAssessment } from "@/lib/ai/carbonDataAiService";
 
 const initialDql = { subjectType: "activity", subjectReference: "", temporalScore: 3, geographicScore: 3,
   technologicalScore: 3, completenessScore: 3, reliabilityScore: 3, completenessPercent: 100, rationale: "" };
@@ -45,6 +46,35 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [selectedDql, setSelectedDql] = useState<DqlAssessment | null>(null);
+  const [aiScoring, setAiScoring] = useState(false);
+  const [aiAssessment, setAiAssessment] = useState<DqlPedigreeAssessment | null>(null);
+
+  const handleRunAiDqlScore = () => {
+    setAiScoring(true);
+    setTimeout(() => {
+      const result = assessDataQualityPedigree({
+        type: dqlForm.subjectType,
+        reference: dqlForm.subjectReference || "ACT-ELEC-DEFAULT",
+        sourceKind: "meter",
+        unit: "kWh",
+        description: dqlForm.rationale || "Dữ liệu vận hành công nghiệp tiêu chuẩn",
+      });
+      setAiAssessment(result);
+      setDqlForm((prev) => ({
+        ...prev,
+        temporalScore: result.dimensions.temporalScore,
+        geographicScore: result.dimensions.geographicScore,
+        technologicalScore: result.dimensions.technologicalScore,
+        completenessScore: result.dimensions.completenessScore,
+        reliabilityScore: result.dimensions.reliabilityScore,
+        completenessPercent: result.completenessPercent,
+        rationale: prev.rationale
+          ? prev.rationale
+          : `AI Pedigree: Đánh giá ${result.dqlLevel} (${result.overallScore}/5) theo GHG Protocol.`,
+      }));
+      setAiScoring(false);
+    }, 350);
+  };
 
   const load = useCallback(async () => {
     if (demo) {
@@ -208,14 +238,52 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
         {/* DQL Card */}
         <Card className="border border-slate-200/80 shadow-xs">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
-              <Gauge className="h-5 w-5 text-emerald-600" />
-              {t("dqlTitle")}
-            </CardTitle>
-            <CardDescription className="text-slate-600">{t("dqlDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                  <Gauge className="h-5 w-5 text-emerald-600" />
+                  {t("dqlTitle")}
+                </CardTitle>
+                <CardDescription className="text-slate-600">{t("dqlDescription")}</CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRunAiDqlScore}
+                disabled={aiScoring}
+                className="border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 shadow-xs"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                {aiScoring ? "Đang tính DQL…" : "AI Đánh giá Phả hệ Tự động"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-5">
             <form className="space-y-4" onSubmit={submitDql}>
+              {aiAssessment && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-emerald-600" />
+                      Kết quả AI Pedigree Matrix ({aiAssessment.dqlLevel} · {aiAssessment.overallScore}/5)
+                    </span>
+                    <Badge variant="outline" className="bg-white text-emerald-800 border-emerald-300 font-mono">
+                      Hoàn thiện: {aiAssessment.completenessPercent}%
+                    </Badge>
+                  </div>
+                  {aiAssessment.bottlenecks.length > 0 && (
+                    <div className="text-amber-800 bg-amber-50/80 p-2 rounded border border-amber-200">
+                      <strong>Điểm nghẽn chất lượng:</strong> {aiAssessment.bottlenecks[0]}
+                    </div>
+                  )}
+                  {aiAssessment.upgradeRoadmap.length > 0 && (
+                    <div className="text-emerald-900 bg-white/80 p-2 rounded border border-emerald-200">
+                      <strong>Lộ trình nâng hạng L5:</strong> {aiAssessment.upgradeRoadmap[0]}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-700">Đối tượng đánh giá</Label>

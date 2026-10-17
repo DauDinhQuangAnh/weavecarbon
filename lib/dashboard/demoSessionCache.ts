@@ -384,4 +384,228 @@ export const demoSessionCache = {
     setCached("suppliers", updated);
     return newSup;
   },
+
+  // 10. Data Gaps Checklist (Audit Readiness)
+  getDataGaps(): Array<{
+    id: string;
+    dataGroup: string;
+    requiredForAudit: boolean;
+    currentStatus: "missing" | "proxy" | "self_declared" | "uploaded" | "verified";
+    riskLevel: "low" | "medium" | "high";
+    requiredAction: string | null;
+    owner: string | null;
+    deadline: string | null;
+    regulationTag?: string;
+  }> {
+    return getCached("data_gaps", () => [
+      {
+        id: "demo-gap-1",
+        dataGroup: "Dyeing supplier energy data (Scope 3 Category 1)",
+        requiredForAudit: true,
+        currentStatus: "missing",
+        riskLevel: "high",
+        requiredAction: "Yêu cầu nhà máy nhuộm gửi dữ liệu tiêu thụ điện và hơi thực tế",
+        owner: "Trưởng phòng Mua hàng",
+        deadline: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "GHG Protocol Scope 3",
+      },
+      {
+        id: "demo-gap-2",
+        dataGroup: "Diesel & thermal boiler process evidence",
+        requiredForAudit: true,
+        currentStatus: "proxy",
+        riskLevel: "high",
+        requiredAction: "Gắn hóa đơn mua dầu diesel và chứng từ cân sinh khối Q3",
+        owner: "Kỹ sư vận hành lò hơi",
+        deadline: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "Quyết định 13/2024/QĐ-TTg",
+      },
+      {
+        id: "demo-gap-3",
+        dataGroup: "Sea freight document & Bill of Lading (LOT-EU-2026-001)",
+        requiredForAudit: true,
+        currentStatus: "uploaded",
+        riskLevel: "medium",
+        requiredAction: "Đã liên kết vận đơn đường biển MSC với mã SHA-256",
+        owner: "Bộ phận Logistics",
+        deadline: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "EU CBAM Clause 7",
+      },
+      {
+        id: "demo-gap-4",
+        dataGroup: "BOM and main electricity invoice (EVN)",
+        requiredForAudit: true,
+        currentStatus: "verified",
+        riskLevel: "low",
+        requiredAction: "Đã khóa chứng từ và đối soát chỉ số công tơ điện tử",
+        owner: "Kế toán chi phí",
+        deadline: new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "ISO 14064-1:2018",
+      },
+      {
+        id: "demo-gap-5",
+        dataGroup: "GOTS certification for organic cotton lot 2026",
+        requiredForAudit: true,
+        currentStatus: "uploaded",
+        riskLevel: "medium",
+        requiredAction: "Kiểm tra thời hạn chứng nhận GOTS trên cổng Control Union",
+        owner: "Phòng QA/QC",
+        deadline: new Date(Date.now() + 25 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "EU Textile Strategy",
+      },
+      {
+        id: "demo-gap-6",
+        dataGroup: "Scope 1 fuel emission factor verification (MoNRE)",
+        requiredForAudit: true,
+        currentStatus: "verified",
+        riskLevel: "low",
+        requiredAction: "Hệ số phát thải đã đối chiếu theo văn bản Cục Biến đổi khí hậu",
+        owner: "Chuyên viên ESG",
+        deadline: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "Nghị định 06/2022/NĐ-CP",
+      },
+    ]);
+  },
+  addDataGap(gap: {
+    dataGroup: string;
+    requiredForAudit?: boolean;
+    currentStatus?: "missing" | "proxy" | "self_declared" | "uploaded" | "verified";
+    riskLevel?: "low" | "medium" | "high";
+    requiredAction?: string | null;
+    owner?: string | null;
+    deadline?: string | null;
+    regulationTag?: string;
+  }) {
+    const list = this.getDataGaps();
+    const newGap = {
+      id: `demo-gap-${Date.now()}`,
+      dataGroup: gap.dataGroup,
+      requiredForAudit: gap.requiredForAudit ?? true,
+      currentStatus: gap.currentStatus || "missing",
+      riskLevel: gap.riskLevel || "high",
+      requiredAction: gap.requiredAction || null,
+      owner: gap.owner || null,
+      deadline: gap.deadline || null,
+      regulationTag: gap.regulationTag || "Kiểm toán nội bộ",
+    };
+    const updated = [newGap, ...list];
+    setCached("data_gaps", updated);
+    return newGap;
+  },
+  updateDataGap(
+    id: string,
+    updates: Partial<{
+      dataGroup: string;
+      currentStatus: "missing" | "proxy" | "self_declared" | "uploaded" | "verified";
+      riskLevel: "low" | "medium" | "high";
+      requiredAction: string | null;
+      owner: string | null;
+      deadline: string | null;
+      regulationTag?: string;
+    }>
+  ) {
+    const list = this.getDataGaps().map((g) => (g.id === id ? { ...g, ...updates } : g));
+    setCached("data_gaps", list);
+    return list.find((g) => g.id === id);
+  },
+  deleteDataGap(id: string) {
+    const list = this.getDataGaps().filter((g) => g.id !== id);
+    setCached("data_gaps", list);
+  },
+  seedDataGaps(groups: string[]) {
+    const list = this.getDataGaps();
+    const existing = new Set(list.map((g) => g.dataGroup));
+    const newItems = groups
+      .filter((g) => !existing.has(g))
+      .map((g, idx) => ({
+        id: `demo-gap-seed-${Date.now()}-${idx}`,
+        dataGroup: g,
+        requiredForAudit: true,
+        currentStatus: "missing" as const,
+        riskLevel: "high" as const,
+        requiredAction: "Thu thập chứng từ gốc hoặc biên bản đối soát",
+        owner: "Chuyên viên dữ liệu",
+        deadline: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+        regulationTag: "Checklist mặc định",
+      }));
+    const updated = [...newItems, ...list];
+    setCached("data_gaps", updated);
+    return updated;
+  },
+
+  // 11. Inbox Tasks & Statuses
+  getInboxTasks(): Array<{
+    id: string;
+    category: "evidence" | "factor" | "quality" | "calibration" | "compliance";
+    priority: "critical" | "high" | "medium" | "low";
+    title: string;
+    reason: string;
+    path: string;
+    status: "pending" | "in_progress" | "resolved";
+    deadline?: string;
+    aiRecommendation?: string;
+  }> {
+    return getCached("inbox_tasks", () => [
+      {
+        id: "task-demo-1",
+        category: "evidence",
+        priority: "critical",
+        title: "Bổ sung hóa đơn điện EVN tháng 06/2026",
+        reason: "Hoạt động ACT-ELEC-SGN01 sản lượng 145,200 kWh chưa có chứng từ hóa đơn khóa SHA-256.",
+        path: "/activity-data",
+        status: "pending",
+        deadline: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+        aiRecommendation: "Quét hóa đơn EVN định dạng PDF hoặc nhập số công tơ để tự động gán SHA-256.",
+      },
+      {
+        id: "task-demo-2",
+        category: "factor",
+        priority: "high",
+        title: "Phê duyệt hệ số phát thải Biomass trấu ép",
+        reason: "Đề xuất hệ số F-BIO-02 (0.015 kgCO2e/kg) đang chờ review của Trưởng nhóm ESG.",
+        path: "/data-quality",
+        status: "pending",
+        deadline: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+        aiRecommendation: "Đối chiếu tài liệu kiểm định nhiệt lượng than sinh khối và ban hành trạng thái Approved.",
+      },
+      {
+        id: "task-demo-3",
+        category: "calibration",
+        priority: "medium",
+        title: "Hiệu chuẩn đồng hồ đo lưu lượng khí lò hơi #2",
+        reason: "Cảm biến NODE-EM-02 đã đến hạn kiểm định định kỳ theo quy định của Trung tâm Đo lường.",
+        path: "/connected-data",
+        status: "pending",
+        deadline: new Date(Date.now() + 12 * 86400000).toISOString().slice(0, 10),
+        aiRecommendation: "Lên lịch với Quatest hoặc đơn vị được chỉ định; cập nhật chứng chỉ hiệu chuẩn mới.",
+      },
+      {
+        id: "task-demo-4",
+        category: "compliance",
+        priority: "critical",
+        title: "Nộp báo cáo kiểm kê KNK đợt 1 theo Quyết định 13/2024",
+        reason: "Thời hạn rà soát kế hoạch giảm nhẹ cấp cơ sở dệt may cho cơ quan quản lý địa phương.",
+        path: "/vietnam-carbon",
+        status: "in_progress",
+        deadline: new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10),
+        aiRecommendation: "Chạy chức năng rà soát tự động VN-MRV để xuất bảng tổng hợp mẫu số 01/KNK.",
+      },
+      {
+        id: "task-demo-5",
+        category: "quality",
+        priority: "medium",
+        title: "Nâng hạng DQL cho phát thải chuỗi cung ứng sợi bông",
+        reason: "75% dữ liệu Scope 3 đang dùng hệ số mặc định toàn cầu IPCC Tier 1 (DQL L1).",
+        path: "/data-quality",
+        status: "pending",
+        deadline: new Date(Date.now() + 25 * 86400000).toISOString().slice(0, 10),
+        aiRecommendation: "Gửi biểu mẫu thu thập dữ liệu sơ cấp cho nhà cung ứng cấp 1 để nâng lên Tier 2.",
+      },
+    ]);
+  },
+  updateInboxTaskStatus(id: string, status: "pending" | "in_progress" | "resolved") {
+    const list = this.getInboxTasks().map((t) => (t.id === id ? { ...t, status } : t));
+    setCached("inbox_tasks", list);
+    return list.find((t) => t.id === id);
+  },
 };

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DEMO_FACTORS, DEMO_INVENTORIES, DEMO_MEASUREMENT_POINTS, INDUSTRIAL_DEMO, demoActivityLineage } from "@/lib/dashboard/industrialDemoData";
 import { latestInventoryRevisions } from "@/lib/dashboard/industrialWorkspace";
+import { assessDataQualityPedigree } from "@/lib/ai/carbonDataAiService";
 import WorkspaceFrame from "./WorkspaceFrame";
 
 type Mode = "quality" | "vietnam" | "connected";
@@ -30,6 +31,47 @@ export default function DemoOperationalDataClient({ mode }: { mode: Mode }) {
         <Metric label="Hệ số chờ rà soát" value={String(DEMO_FACTORS.filter(row => row.governanceStatus !== "approved_for_release_candidate").length)} />
       </div>
       <label className="block text-sm font-medium">Chọn hoạt động đánh giá<select aria-label="Chọn hoạt động đánh giá" className="mt-2 w-full rounded-lg border bg-background p-3" value={activity.id} onChange={event => setSelected(event.target.value)}>{INDUSTRIAL_DEMO.activities.map(row => <option key={row.id} value={row.id}>{row.activityReference} · {row.dataQualityLevel}</option>)}</select></label>
+      
+      {/* AI Pedigree Matrix 5-Dimension Card */}
+      <section className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-primary font-bold">✨</span>
+            <h2 className="font-semibold text-foreground">AI Ma trận Phả hệ Dữ liệu (GHG Protocol Pedigree Matrix)</h2>
+          </div>
+          <span className="text-xs font-mono font-bold bg-white px-2.5 py-1 rounded border border-primary/30 text-primary">
+            DQI: {assessDataQualityPedigree({ type: "activity", reference: activity.activityReference, sourceKind: activity.sourceKind, unit: activity.canonicalUnit }).completenessPercent}% · Cấp {activity.dataQualityLevel}
+          </span>
+        </div>
+        
+        {(() => {
+          const ped = assessDataQualityPedigree({ type: "activity", reference: activity.activityReference, sourceKind: activity.sourceKind, unit: activity.canonicalUnit });
+          return (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 text-center">
+                {[
+                  { label: "Thời gian", score: ped.dimensions.temporalScore },
+                  { label: "Địa lý (VN)", score: ped.dimensions.geographicScore },
+                  { label: "Công nghệ", score: ped.dimensions.technologicalScore },
+                  { label: "Độ bao phủ", score: ped.dimensions.completenessScore },
+                  { label: "Độ tin cậy", score: ped.dimensions.reliabilityScore },
+                ].map(dim => (
+                  <div key={dim.label} className="rounded-lg border bg-card p-2.5 shadow-2xs">
+                    <span className="text-[10px] text-muted-foreground uppercase">{dim.label}</span>
+                    <p className="text-base font-bold text-primary mt-0.5">{dim.score}<span className="text-xs font-normal text-muted-foreground">/5</span></p>
+                  </div>
+                ))}
+              </div>
+              {ped.bottlenecks.length > 0 && (
+                <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded border border-amber-200">
+                  ⚠️ <strong>Điểm nghẽn DQL:</strong> {ped.bottlenecks[0]}
+                </p>
+              )}
+            </>
+          );
+        })()}
+      </section>
+
       <section className="space-y-3 rounded-xl border bg-card p-5">
         <h2 className="font-semibold">Đánh giá nguồn minh họa · {activity.activityReference}</h2>
         <p className="text-sm">Cấp nguồn: {activity.dataQualityLevel} · {format(activity.quantity)} {activity.canonicalUnit}</p>
