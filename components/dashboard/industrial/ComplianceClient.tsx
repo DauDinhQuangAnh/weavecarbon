@@ -4,15 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
-  Award,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   Download,
-  FileCheck2,
   FileLock2,
   FileText,
-  Filter,
   Layers,
   RefreshCw,
   Scale,
@@ -20,7 +17,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  Zap
 } from "lucide-react";
 import { industrialCoreApi } from "@/lib/industrialCoreApi";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
@@ -155,7 +151,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
     }, 700);
   };
 
-  const handleAiDocumentImported = (extractedData: Record<string, any>) => {
+  const handleAiDocumentImported = (_extractedData: Record<string, unknown>) => {
     setShowAiImport(false);
     toast.success("Đã phân tích văn bản pháp lý & chứng chỉ môi trường thành công!");
     // Boost readiness score when evidence document is ingested

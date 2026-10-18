@@ -7,7 +7,6 @@ import {
   CheckCheck,
   CheckCircle2,
   FileCheck2,
-  FileText,
   Fingerprint,
   GitBranch,
   ShieldAlert,
