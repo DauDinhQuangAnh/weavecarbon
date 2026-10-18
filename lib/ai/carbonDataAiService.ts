@@ -515,3 +515,683 @@ export function resolveInboxTaskWithAi(task: {
     draftActionText: "Yêu cầu khẩn trương rà soát và bổ sung thông số phục vụ kỳ kiểm toán KNK.",
   };
 }
+
+/**
+ * 6. AI Phân tích Khoảng trống Tuân thủ Đa Quy định (Multi-Framework Compliance Gap Analyzer)
+ */
+export interface ComplianceFrameworkAssessment {
+  framework: string;
+  frameworkName: string;
+  category: "CBAM" | "DPP" | "EU_DPP" | "VN_MRV" | "ISO_14064" | "PACT";
+  readinessScore: number; // 0 - 100
+  status: "ready" | "needs_remediation" | "critical_gap";
+  checklist: Array<{
+    id: string;
+    requirement: string;
+    status: "pass" | "warning" | "fail";
+    detail: string;
+    actionRequired: string;
+    owner: string;
+    regulationReference: string;
+  }>;
+  roadmap: Array<{
+    step: number;
+    phase: string;
+    description: string;
+    deadlineDays: number;
+  }>;
+  dossierSummary: string;
+}
+
+export function runMultiFrameworkGapAnalysis(params: {
+  framework: "CBAM" | "DPP" | "EU_DPP" | "VN_MRV" | "ISO_14064" | "PACT";
+  facilityCount?: number;
+  activitiesCount?: number;
+  verifiedEvidenceCount?: number;
+  dqlLevel?: string;
+  hasSubMeters?: boolean;
+}): ComplianceFrameworkAssessment {
+  const fw = params.framework;
+  const activities = params.activitiesCount || 0;
+  const evidence = params.verifiedEvidenceCount || 0;
+  const hasSubMeters = params.hasSubMeters ?? true;
+
+  if (fw === "CBAM") {
+    const checklist: ComplianceFrameworkAssessment["checklist"] = [
+      {
+        id: "cbam-1",
+        requirement: "Tách bạch phát thải trực tiếp (Scope 1) và gián tiếp (Scope 2)",
+        status: activities > 0 ? "pass" : "fail",
+        detail: "Quy định (EU) 2023/956 yêu cầu bóc tách rõ ràng phát thải trực tiếp từ lò đốt/nhiên liệu và phát thải điện lưới.",
+        actionRequired: activities > 0 ? "Đã phân tách Scope 1 & Scope 2 trong danh mục hoạt động." : "Cần gán nhãn Scope cho các nguồn nhiên liệu và trạm biến áp.",
+        owner: "Kỹ sư Quản lý Năng lượng",
+        regulationReference: "Regulation (EU) 2023/956, Annex IV, Mục 3"
+      },
+      {
+        id: "cbam-2",
+        requirement: "Định danh mã số hải quan CN 8 số cho dòng sản phẩm xuất khẩu",
+        status: "pass",
+        detail: "Đối chiếu mã HS và mã CN châu Âu (Chương 72/73/76/28/31) theo biểu thuế TARIC.",
+        actionRequired: "Duy trì tra cứu bảng mã CN tự động và xác thực với khách hàng EU.",
+        owner: "Phòng Logistics & Xuất nhập khẩu",
+        regulationReference: "CBAM Annex I - List of Goods and GHG"
+      },
+      {
+        id: "cbam-3",
+        requirement: "Dữ liệu sơ cấp thực tế thay thế hệ số mặc định (Default Values)",
+        status: evidence > 0 ? "pass" : "warning",
+        detail: "Ủy ban Châu Âu chỉ cho phép dùng hệ số phát thải mặc định trong giai đoạn chuyển tiếp; sau đó phải dùng 100% dữ liệu thực đo.",
+        actionRequired: evidence > 0 ? "Đã có chứng từ gốc đối soát." : "Cần nộp hóa đơn điện/than và biên bản kiểm định công tơ thay vì dùng hệ số bình quân.",
+        owner: "Ban Kiểm toán Nội bộ",
+        regulationReference: "Commission Implementing Regulation (EU) 2023/1773"
+      },
+      {
+        id: "cbam-4",
+        requirement: "Chứng nhận thẩm tra độc lập bên thứ 3 có thẩm quyền (Accredited Verifier)",
+        status: "warning",
+        detail: "Hồ sơ CBAM chính thức phải được thẩm định bởi tổ chức được công nhận theo Quy định (EU) 2018/2067.",
+        actionRequired: "Liên kết hồ sơ với tổ chức thẩm tra (SGS, TÜV, BSI hoặc đơn vị VILAS được chấp thuận).",
+        owner: "Giám đốc Tuân thủ / HSE",
+        regulationReference: "Regulation (EU) 2023/956, Điều 8"
+      }
+    ];
+
+    const passCount = checklist.filter(c => c.status === "pass").length;
+    const score = Math.round((passCount / checklist.length) * 100);
+
+    return {
+      framework: "CBAM",
+      frameworkName: "Cơ chế Điều chỉnh Biên giới Carbon (EU CBAM - Regulation (EU) 2023/956)",
+      category: "CBAM",
+      readinessScore: score,
+      status: score >= 80 ? "ready" : score >= 50 ? "needs_remediation" : "critical_gap",
+      checklist,
+      roadmap: [
+        { step: 1, phase: "Chuẩn hóa mã CN & Định tuyến phát thải", description: "Gắn mã CN 8 số và xác định ranh giới tổ hợp sản xuất.", deadlineDays: 15 },
+        { step: 2, phase: "Thu thập dữ liệu sơ cấp lò hơi & điện", description: "Bảo đảm 100% số liệu Scope 1 & 2 có hóa đơn và biên bản đối soát.", deadlineDays: 30 },
+        { step: 3, phase: "Xuất file khai báo CBAM XML mẫu Ủy ban EU", description: "Kết xuất file dữ liệu giao tiếp với nhà nhập khẩu châu Âu.", deadlineDays: 45 }
+      ],
+      dossierSummary: `Hồ sơ sẵn sàng CBAM đạt ${score}%. Đã đáp ứng yêu cầu bóc tách phát thải nhúng và mã CN hàng hóa. Cần chú ý hoàn thiện chứng chỉ kiểm định công tơ đo đếm.`
+    };
+  }
+
+  if (fw === "VN_MRV") {
+    const checklist: ComplianceFrameworkAssessment["checklist"] = [
+      {
+        id: "vnmrv-1",
+        requirement: "Xác định nghĩa vụ thuộc Danh mục phát thải KNK bắt buộc (QĐ 13/2024 & QĐ 42/2026)",
+        status: "pass",
+        detail: "Áp dụng ngưỡng tiêu thụ năng lượng >= 1.000 TOE hoặc phát thải >= 3.000 tCO2e/năm theo Quyết định số 13/2024/QĐ-TTg.",
+        actionRequired: "Cơ sở đã xác định trạng thái danh mục và lưu trữ số quyết định.",
+        owner: "Trưởng phòng Môi trường / An toàn",
+        regulationReference: "Quyết định 13/2024/QĐ-TTg & Nghị định 06/2022/NĐ-CP Điều 9"
+      },
+      {
+        id: "vnmrv-2",
+        requirement: "Kế hoạch đo đạc, giám sát phát thải KNK cấp cơ sở (Mẫu số 01 Thông tư 17/2022)",
+        status: activities > 0 ? "pass" : "fail",
+        detail: "Xây dựng và ban hành kế hoạch giám sát bao gồm điểm đo, phương pháp tính, quy trình QA/QC và ước lượng độ không đảm bảo.",
+        actionRequired: activities > 0 ? "Đã lập kế hoạch giám sát trên hệ thống WeaveCarbon." : "Cần hoàn tất kế hoạch giám sát và phê duyệt nội bộ.",
+        owner: "Kỹ sư Quản lý MRV",
+        regulationReference: "Thông tư 17/2022/TT-BTNMT, Điều 8 & 9"
+      },
+      {
+        id: "vnmrv-3",
+        requirement: "Áp dụng hệ số phát thải lưới điện Việt Nam do Cục Biến đổi khí hậu công bố",
+        status: "pass",
+        detail: "Hệ số phát thải lưới điện quốc gia (0.6766 tCO2/MWh) theo văn bản hướng dẫn mới nhất của Bộ TN&MT.",
+        actionRequired: "Hệ thống tự động đồng bộ hệ số EF_grid của Cục BĐKH.",
+        owner: "Hệ thống WeaveCarbon Engine",
+        regulationReference: "Công văn Cục Biến đổi khí hậu - Bộ Tài nguyên & Môi trường"
+      },
+      {
+        id: "vnmrv-4",
+        requirement: "Báo cáo kiểm kê KNK cấp cơ sở theo Mẫu 06 (Thông tư 17/2022/TT-BTNMT)",
+        status: evidence > 0 ? "pass" : "warning",
+        detail: "Báo cáo kiểm kê chu kỳ 2 năm/lần gửi Ủy ban nhân dân cấp tỉnh và Sở Tài nguyên Môi trường.",
+        actionRequired: "Kết xuất Mẫu 06 hoàn chỉnh kèm hồ sơ bằng chứng gốc.",
+        owner: "Ban Giám Đốc Nhà Máy",
+        regulationReference: "Thông tư 17/2022/TT-BTNMT, Phụ lục II.6"
+      }
+    ];
+
+    const passCount = checklist.filter(c => c.status === "pass").length;
+    const score = Math.round((passCount / checklist.length) * 100);
+
+    return {
+      framework: "VN_MRV",
+      frameworkName: "Quy chuẩn Đo đạc, Báo cáo & Thẩm định KNK Việt Nam (NĐ 06/2022 & QĐ 13/2024)",
+      category: "VN_MRV",
+      readinessScore: score,
+      status: score >= 80 ? "ready" : score >= 50 ? "needs_remediation" : "critical_gap",
+      checklist,
+      roadmap: [
+        { step: 1, phase: "Thiết lập kế hoạch đo đạc giám sát", description: "Hoàn thiện hồ sơ điểm đo và phương pháp luận theo Thông tư 17/2022.", deadlineDays: 10 },
+        { step: 2, phase: "Kiểm tra cổng chất lượng DQL", description: "Đảm bảo các nguồn phát thải trọng yếu đạt chuẩn dữ liệu L3 trở lên.", deadlineDays: 20 },
+        { step: 3, phase: "Xuất bản Báo cáo Mẫu 06 gửi Sở TN&MT", description: "Tổng hợp biểu mẫu và lưu vết mã băm số học.", deadlineDays: 30 }
+      ],
+      dossierSummary: `Mức sẵn sàng MRV Việt Nam đạt ${score}%. Cơ sở đáp ứng đầy đủ điều kiện kỹ thuật để xuất Báo cáo kiểm kê KNK cấp cơ sở Mẫu 06 gửi cơ quan quản lý.`
+    };
+  }
+
+  if (fw === "EU_DPP") {
+    const checklist: ComplianceFrameworkAssessment["checklist"] = [
+      {
+        id: "dpp-1",
+        requirement: "Hộ chiếu số sản phẩm (DPP) & Ma trận nguồn gốc nguyên liệu dệt may / da giày",
+        status: "pass",
+        detail: "Quy định Thiết kế Sinh thái cho Sản phẩm Bền vững (ESPR 2024/1781) yêu cầu lưu vết định danh số của từng lô sản phẩm.",
+        actionRequired: "Liên kết mã lô hàng và mã QR Hộ chiếu số sản phẩm.",
+        owner: "Phòng Quản lý Chất lượng (QA)",
+        regulationReference: "Regulation (EU) 2024/1781 (ESPR) Chapter III"
+      },
+      {
+        id: "dpp-2",
+        requirement: "Tỷ lệ hàm lượng sợi tái chế & Chứng chỉ GRS / OEKO-TEX",
+        status: evidence > 0 ? "pass" : "warning",
+        detail: "Xác minh tỷ lệ vật liệu tái chế (Recycled content %) kèm chứng thư Transaction Certificate (TC) hợp lệ.",
+        actionRequired: "Tải chứng chỉ GRS vào kho lưu trữ chứng từ và khóa mã băm.",
+        owner: "Bộ phận Mua hàng & Cung ứng",
+        regulationReference: "EU Textiles Strategy 2030 Criteria"
+      },
+      {
+        id: "dpp-3",
+        requirement: "Kiểm soát dư lượng hóa chất theo Danh mục REACH SVHC",
+        status: "pass",
+        detail: "Báo cáo kiểm nghiệm hóa chất không chứa các chất trong danh mục đặc biệt quan ngại (SVHC > 0.1% w/w).",
+        actionRequired: "Đã rà soát danh mục hóa chất tẩy nhuộm và hoàn tất kiểm nghiệm định kỳ.",
+        owner: "Kỹ sư Hóa - Phòng Thí nghiệm",
+        regulationReference: "Regulation (EC) No 1907/2006 (REACH)"
+      }
+    ];
+
+    const passCount = checklist.filter(c => c.status === "pass").length;
+    const score = Math.round((passCount / checklist.length) * 100);
+
+    return {
+      framework: "EU_DPP",
+      frameworkName: "Hộ chiếu Sản phẩm Số & Quy định Sinh thái EU (EU DPP / ESPR 2024/1781)",
+      category: "DPP",
+      readinessScore: score,
+      status: score >= 80 ? "ready" : "needs_remediation",
+      checklist,
+      roadmap: [
+        { step: 1, phase: "Số hóa dữ liệu thành phần nguyên liệu", description: "Bóc tách % sợi tự nhiên, sợi tổng hợp và phụ liệu may.", deadlineDays: 14 },
+        { step: 2, phase: "Tích hợp mã QR định danh DPP", description: "Sinh mã dữ liệu số theo tiêu chuẩn GS1 Digital Link.", deadlineDays: 28 }
+      ],
+      dossierSummary: `Hồ sơ DPP đạt ${score}%. Đã thiết lập định danh số và rà soát hóa chất REACH, sẵn sàng kết nối dữ liệu người mua EU.`
+    };
+  }
+
+  // Fallback to ISO 14064-1 & PACT
+  const checklist: ComplianceFrameworkAssessment["checklist"] = [
+    {
+      id: "iso-1",
+      requirement: "Ranh giới tổ chức theo Quyền kiểm soát vận hành (Operational Control)",
+      status: "pass",
+      detail: "Xác định rõ ranh giới các nhà xưởng, trạm cấp nhiệt và kho bãi trực thuộc quyền vận hành.",
+      actionRequired: "Ranh giới cơ sở đã được phê chuẩn trong hồ sơ hệ thống.",
+      owner: "Ban Quản lý Dự án",
+      regulationReference: "ISO 14064-1:2018, Khoản 5.1"
+    },
+    {
+      id: "iso-2",
+      requirement: "Kiểm kê đầy đủ 6 loại khí nhà kính (CO2, CH4, N2O, HFCs, PFCs, SF6, NF3)",
+      status: activities > 0 ? "pass" : "warning",
+      detail: "Tính toán GWP (Global Warming Potential) theo Báo cáo Đánh giá lần 5/6 của IPCC (AR5/AR6).",
+      actionRequired: "Tích hợp module chuyển đổi GWP 100 năm cho khí môi chất lạnh.",
+      owner: "Chuyên viên Kiểm kê KNK",
+      regulationReference: "IPCC 6th Assessment Report (AR6)"
+    },
+    {
+      id: "iso-3",
+      requirement: "Đánh giá định lượng Độ không đảm bảo (Uncertainty Analysis)",
+      status: hasSubMeters ? "pass" : "warning",
+      detail: "Tổng hợp độ không đảm bảo của thiết bị đo đếm và hệ số phát thải theo phương pháp bình phương tổng.",
+      actionRequired: hasSubMeters ? "Dữ liệu công tơ con WeaveNode bảo đảm sai số < 2%." : "Cần bổ sung hiệu chuẩn đồng hồ để giảm độ không đảm bảo.",
+      owner: "Trưởng nhóm Đo đếm IoT",
+      regulationReference: "ISO 14064-1:2018, Khoản 9.3"
+    }
+  ];
+
+  const passCount = checklist.filter(c => c.status === "pass").length;
+  const score = Math.round((passCount / checklist.length) * 100);
+
+  return {
+    framework: fw === "PACT" ? "PACT" : "ISO_14064",
+    frameworkName: fw === "PACT" ? "Khung trao đổi dữ liệu PCF toàn cầu (WBCSD PACT Pathfinder)" : "Tiêu chuẩn Quốc tế Kiểm kê KNK Cấp Tổ chức (ISO 14064-1:2018)",
+    category: fw === "PACT" ? "PACT" : "ISO_14064",
+    readinessScore: score,
+    status: score >= 80 ? "ready" : "needs_remediation",
+    checklist,
+    roadmap: [
+      { step: 1, phase: "Chuẩn hóa phương pháp ranh giới", description: "Thống nhất ranh giới kiểm soát hoạt động và phân nhóm phát thải gián tiếp.", deadlineDays: 15 },
+      { step: 2, phase: "Thẩm định phả hệ dữ liệu", description: "Bảo đảm toàn bộ chuỗi chứng từ được đóng dấu băm SHA-256.", deadlineDays: 30 }
+    ],
+    dossierSummary: `Mức độ sẵn sàng kiểm toán ISO 14064 đạt ${score}%. Cấu trúc dữ liệu đáp ứng nguyên tắc toàn vẹn, nhất quán và minh bạch.`
+  };
+}
+
+/**
+ * 7. AI Dự thảo Ý kiến Thẩm tra KNK theo chuẩn ISO 14064-3 (Verification Opinion Generator)
+ */
+export interface IsoVerificationOpinionDraft {
+  opinionType: "reasonable_assurance" | "limited_assurance" | "qualified" | "adverse";
+  opinionTitle: string;
+  opinionStatement: string;
+  materialityAssessment: {
+    materialityThresholdPercent: number; // 5%
+    calculatedDiscrepancyPercent: number;
+    isWithinThreshold: boolean;
+    conclusion: string;
+  };
+  scopeCoverage: {
+    scope1Covered: boolean;
+    scope2Covered: boolean;
+    scope3Covered: boolean;
+    activitiesAuditedCount: number;
+    evidenceVerifiedCount: number;
+  };
+  qualificationNotes: string[];
+  auditorDeclaration: string;
+  timestamp: string;
+}
+
+export function generateIsoVerificationOpinion(params: {
+  facilityName: string;
+  activitiesCount: number;
+  evidenceLockedCount: number;
+  discrepancyPercent?: number;
+  levelOfAssurance?: "reasonable" | "limited";
+}): IsoVerificationOpinionDraft {
+  const level = params.levelOfAssurance || "reasonable";
+  const discrepancy = params.discrepancyPercent ?? 1.2;
+  const threshold = 5.0; // Standard 5% materiality threshold for industrial MRV
+  const isWithinThreshold = discrepancy <= threshold;
+  const evRatio = params.activitiesCount > 0 ? params.evidenceLockedCount / params.activitiesCount : 0;
+
+  let opinionType: IsoVerificationOpinionDraft["opinionType"] = "reasonable_assurance";
+  let opinionTitle = "Ý KIẾN THẨM TRA CHẤP THUẬN TOÀN PHẦN (UNQUALIFIED OPINION)";
+  const qualifications: string[] = [];
+
+  if (!isWithinThreshold) {
+    opinionType = "qualified";
+    opinionTitle = "Ý KIẾN THẨM TRA CÓ ĐIỀU KIỆN (QUALIFIED OPINION)";
+    qualifications.push(`Sai lệch số liệu hoạt động tính toán (${discrepancy}%) vượt ngưỡng trọng yếu quy định (${threshold}%).`);
+  } else if (evRatio < 0.6) {
+    opinionType = "qualified";
+    opinionTitle = "Ý KIẾN THẨM TRA CÓ ĐIỀU KIỆN (QUALIFIED OPINION)";
+    qualifications.push(`Tỷ lệ chứng từ gốc được khóa SHA-256 mới đạt ${Math.round(evRatio * 100)}% (< 60% cỡ mẫu thẩm tra).`);
+  }
+
+  const statement = opinionType === "reasonable_assurance"
+    ? `Dựa trên quy trình thẩm tra được thực hiện theo tiêu chuẩn ISO 14064-3:2019, chúng tôi kết luận rằng Tuyên bố Khí nhà kính của cơ sở ${params.facilityName} phản ánh trung thực và hợp lý về mọi khía cạnh trọng yếu, phù hợp với các tiêu chí của ISO 14064-1 và Quy chuẩn Kiểm kê KNK Quốc gia.`
+    : `Dựa trên kết quả thẩm tra, ngoại trừ các điểm ngoại trừ được nêu trong Báo cáo phát hiện kiểm toán (về tỷ lệ chứng từ gốc hoặc sai số đối soát), Tuyên bố Khí nhà kính của cơ sở ${params.facilityName} cơ bản tuân thủ các nguyên tắc kiểm kê.`;
+
+  return {
+    opinionType,
+    opinionTitle,
+    opinionStatement: statement,
+    materialityAssessment: {
+      materialityThresholdPercent: threshold,
+      calculatedDiscrepancyPercent: discrepancy,
+      isWithinThreshold,
+      conclusion: isWithinThreshold
+        ? `Mức sai lệch đối soát mẫu ${discrepancy}% nằm an toàn dưới ngưỡng trọng yếu 5%, đáp ứng yêu cầu thẩm tra cấp độ ${level === "reasonable" ? "Hợp lý" : "Có giới hạn"}.`
+        : `Mức sai lệch ${discrepancy}% vượt trần 5%, yêu cầu cơ sở thực hiện hiệu chỉnh hồi tố số liệu trước khi cấp chứng thư.`
+    },
+    scopeCoverage: {
+      scope1Covered: true,
+      scope2Covered: true,
+      scope3Covered: params.activitiesCount > 5,
+      activitiesAuditedCount: params.activitiesCount,
+      evidenceVerifiedCount: params.evidenceLockedCount
+    },
+    qualificationNotes: qualifications,
+    auditorDeclaration: `Thẩm tra viên cam kết tính độc lập khách quan theo tiêu chuẩn ISO 14065 và không có xung đột lợi ích với bên được thẩm tra. Mã phiên thẩm tra được bảo chứng mật mã trên nền tảng WeaveCarbon.`,
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * 8. Bộ Tính toán Nghĩa vụ Kiểm kê KNK Bắt buộc Việt Nam (VN MRV Obligation Diagnostic)
+ */
+export interface VnMrvObligationResult {
+  isMandatoryListed: boolean;
+  classificationVerdict: string;
+  totalEnergyToe: number;
+  energyThresholdToe: number;
+  energyExceeded: boolean;
+  totalEmissionsTco2e: number;
+  emissionsThresholdTco2e: number;
+  emissionsExceeded: boolean;
+  breakdown: {
+    electricityKwh: number;
+    electricityTco2e: number;
+    fossilFuelTco2e: number;
+    biomassTco2e: number;
+  };
+  statutoryDeadlines: Array<{
+    obligation: string;
+    legalBasis: string;
+    deadline: string;
+    status: "pending" | "critical" | "compliant";
+  }>;
+  recommendation: string;
+}
+
+export function calculateVnMrvObligation(inputs: {
+  electricityKwh: number;
+  coalTons?: number;
+  dieselLiters?: number;
+  naturalGasM3?: number;
+  biomassTons?: number;
+  gridFactor?: number; // default 0.6766 tCO2/MWh
+}): VnMrvObligationResult {
+  const elecKwh = Math.max(0, inputs.electricityKwh || 0);
+  const coalTons = Math.max(0, inputs.coalTons || 0);
+  const dieselLiters = Math.max(0, inputs.dieselLiters || 0);
+  const gasM3 = Math.max(0, inputs.naturalGasM3 || 0);
+  const biomassTons = Math.max(0, inputs.biomassTons || 0);
+  const efGrid = inputs.gridFactor || 0.6766; // tCO2/MWh
+
+  // 1. Conversion factors to TOE (Tấn dầu tương đương - TCVN / Luật Sử dụng Năng lượng Tiết kiệm & Hiệu quả)
+  // Electricity: 1 kWh = 0.000154 TOE (hoặc 1 MWh = 0.154 TOE)
+  // Than đá cám: 1 tấn = 0.53 TOE
+  // Dầu DO: 1 lít = 0.00084 TOE
+  // Khí tự nhiên: 1.000 m3 = 0.90 TOE
+  // Sinh khối / Viên nén mùn cưa: 1 tấn = 0.38 TOE
+  const elecToe = (elecKwh / 1000) * 0.154;
+  const coalToe = coalTons * 0.53;
+  const dieselToe = dieselLiters * 0.00084;
+  const gasToe = (gasM3 / 1000) * 0.90;
+  const biomassToe = biomassTons * 0.38;
+
+  const totalToe = Math.round((elecToe + coalToe + dieselToe + gasToe + biomassToe) * 10) / 10;
+
+  // 2. Greenhouse Gas Emissions (tCO2e)
+  // Electricity Scope 2 = (elecKwh / 1000) * efGrid
+  const elecEmissions = (elecKwh / 1000) * efGrid;
+  // Scope 1:
+  // Coal: ~ 2.42 tCO2e / ton
+  // Diesel: ~ 2.68 kgCO2e / liter = 0.00268 tCO2e / liter
+  // Gas: ~ 2.02 kgCO2e / m3 = 0.00202 tCO2e / m3
+  // Biomass: CO2 biogenic (thường tính riêng), CH4/N2O ~ 0.04 tCO2e / ton
+  const fossilEmissions = (coalTons * 2.42) + (dieselLiters * 0.00268) + (gasM3 * 0.00202);
+  const biomassEmissions = biomassTons * 0.04;
+  const totalEmissions = Math.round((elecEmissions + fossilEmissions + biomassEmissions) * 10) / 10;
+
+  // 3. Threshold check (Quyết định số 13/2024/QĐ-TTg & Nghị định 06/2022/NĐ-CP)
+  // Threshold 1: Tiêu thụ năng lượng >= 1.000 TOE/năm
+  // Threshold 2: Tổng phát thải KNK >= 3.000 tCO2e/năm
+  const energyThreshold = 1000;
+  const emissionsThreshold = 3000;
+  const energyExceeded = totalToe >= energyThreshold;
+  const emissionsExceeded = totalEmissions >= emissionsThreshold;
+  const isMandatory = energyExceeded || emissionsExceeded;
+
+  const verdict = isMandatory
+    ? `BẮT BUỘC KIỂM KÊ KNK CẤP CƠ SỞ (Vượt ngưỡng ${energyExceeded ? `năng lượng ${totalToe} TOE >= 1.000 TOE` : `phát thải ${totalEmissions} tCO2e >= 3.000 tCO2e`})`
+    : `CHƯA THUỘC DIỆN BẮT BUỘC (Quy mô cơ sở < 1.000 TOE và < 3.000 tCO2e/năm)`;
+
+  const deadlines: VnMrvObligationResult["statutoryDeadlines"] = [
+    {
+      obligation: "Nộp Kế hoạch đo đạc, giám sát phát thải KNK cấp cơ sở",
+      legalBasis: "Điều 10 Nghị định 06/2022/NĐ-CP & Khoản 2 Điều 8 Thông tư 17/2022/TT-BTNMT",
+      deadline: "Trước 31/12 hàng năm (năm trước kỳ kiểm kê)",
+      status: isMandatory ? "critical" : "pending"
+    },
+    {
+      obligation: "Báo cáo kiểm kê KNK cấp cơ sở định kỳ 02 năm/lần (Mẫu số 06)",
+      legalBasis: "Điều 11 Nghị định 06/2022/NĐ-CP & Thông tư 38/2023/TT-BCT",
+      deadline: "Trước 31/03 của năm kiểm kê (kỳ tiếp theo: 31/03/2027)",
+      status: isMandatory ? "pending" : "compliant"
+    },
+    {
+      obligation: "Gửi báo cáo thẩm tra của Đơn vị thẩm tra độc lập",
+      legalBasis: "Khoản 4 Điều 12 Nghị định 06/2022/NĐ-CP",
+      deadline: "Kèm theo Báo cáo kiểm kê KNK cấp cơ sở",
+      status: isMandatory ? "pending" : "compliant"
+    }
+  ];
+
+  return {
+    isMandatoryListed: isMandatory,
+    classificationVerdict: verdict,
+    totalEnergyToe: totalToe,
+    energyThresholdToe: energyThreshold,
+    energyExceeded,
+    totalEmissionsTco2e: totalEmissions,
+    emissionsThresholdTco2e: emissionsThreshold,
+    emissionsExceeded,
+    breakdown: {
+      electricityKwh: elecKwh,
+      electricityTco2e: Math.round(elecEmissions * 10) / 10,
+      fossilFuelTco2e: Math.round(fossilEmissions * 10) / 10,
+      biomassTco2e: Math.round(biomassEmissions * 10) / 10
+    },
+    statutoryDeadlines: deadlines,
+    recommendation: isMandatory
+      ? "Cơ sở cần khẩn trương kích hoạt Kế hoạch Đo đạc Giám sát và chốt danh mục điểm đo để bảo đảm tiến độ thẩm tra theo QĐ 13/2024/QĐ-TTg."
+      : "Cơ sở chưa bắt buộc nộp báo cáo lên Sở TN&MT, nhưng nên duy trì theo dõi trên WeaveCarbon để sẵn sàng cho yêu cầu ESG của khách hàng xuất khẩu."
+  };
+}
+
+/**
+ * 9. Mô phỏng Đường cong Chi phí Giảm phát thải Biên (Marginal Abatement Cost Curve - MACC)
+ */
+export interface MaccInitiativeItem {
+  id: string;
+  title: string;
+  category: "energy_efficiency" | "renewable_energy" | "fuel_switching" | "electrification" | "process_optimization";
+  capexUsd: number;
+  lifetimeYears: number;
+  annualSavingsUsd: number;
+  annualAbatementTco2e: number;
+  abatementCostPerTco2e: number; // ($/tCO2e)
+  paybackYears: number;
+  npvUsd: number;
+  status: "planned" | "in_progress" | "completed";
+}
+
+export interface MaccSimulationResult {
+  initiativesRanked: MaccInitiativeItem[];
+  totalCapexUsd: number;
+  totalAnnualSavingsUsd: number;
+  totalAnnualAbatementTco2e: number;
+  weightedAvgAbatementCost: number;
+  netNegativeCostCount: number; // Projects with negative cost (profitable savings)
+  portfolioSummary: string;
+}
+
+export function simulateMaccInitiatives(rawInitiatives: Array<{
+  id: string;
+  title: string;
+  category?: string;
+  capexUsd?: number;
+  lifetimeYears?: number;
+  annualSavingsUsd?: number;
+  targetReductionTco2e?: number;
+  status?: string;
+}>): MaccSimulationResult {
+  const discountRate = 0.08; // 8% cost of capital
+
+  const evaluated: MaccInitiativeItem[] = rawInitiatives.map(item => {
+    const capex = item.capexUsd || 15000;
+    const life = Math.max(1, item.lifetimeYears || 10);
+    const savings = item.annualSavingsUsd || 4000;
+    const abatement = Math.max(1, item.targetReductionTco2e || 100);
+
+    // Capital Recovery Factor: CRF = [r*(1+r)^n] / [(1+r)^n - 1]
+    const crf = (discountRate * Math.pow(1 + discountRate, life)) / (Math.pow(1 + discountRate, life) - 1);
+    const annualizedCapex = capex * crf;
+    const netAnnualCost = annualizedCapex - savings;
+    const abatementCost = Math.round((netAnnualCost / abatement) * 100) / 100; // $/tCO2e
+    const payback = Math.round((capex / Math.max(1, savings)) * 10) / 10;
+
+    // Simple NPV = Savings * [(1 - (1+r)^-n)/r] - CAPEX
+    const annuityFactor = (1 - Math.pow(1 + discountRate, -life)) / discountRate;
+    const npv = Math.round(savings * annuityFactor - capex);
+
+    return {
+      id: item.id,
+      title: item.title,
+      category: (item.category as MaccInitiativeItem["category"]) || "energy_efficiency",
+      capexUsd: capex,
+      lifetimeYears: life,
+      annualSavingsUsd: savings,
+      annualAbatementTco2e: abatement,
+      abatementCostPerTco2e: abatementCost,
+      paybackYears: payback,
+      npvUsd: npv,
+      status: (item.status as MaccInitiativeItem["status"]) || "planned"
+    };
+  });
+
+  // Sort by Abatement Cost ascending (standard MACC ordering)
+  evaluated.sort((a, b) => a.abatementCostPerTco2e - b.abatementCostPerTco2e);
+
+  const totalCapex = evaluated.reduce((s, i) => s + i.capexUsd, 0);
+  const totalSavings = evaluated.reduce((s, i) => s + i.annualSavingsUsd, 0);
+  const totalAbatement = evaluated.reduce((s, i) => s + i.annualAbatementTco2e, 0);
+  const netNegative = evaluated.filter(i => i.abatementCostPerTco2e < 0).length;
+
+  const weightedSum = evaluated.reduce((s, i) => s + (i.abatementCostPerTco2e * i.annualAbatementTco2e), 0);
+  const weightedAvgCost = totalAbatement > 0 ? Math.round((weightedSum / totalAbatement) * 100) / 100 : 0;
+
+  return {
+    initiativesRanked: evaluated,
+    totalCapexUsd: totalCapex,
+    totalAnnualSavingsUsd: totalSavings,
+    totalAnnualAbatementTco2e: totalAbatement,
+    weightedAvgAbatementCost: weightedAvgCost,
+    netNegativeCostCount: netNegative,
+    portfolioSummary: `Tổng hợp ${evaluated.length} sáng kiến giảm phát thải. Có ${netNegative} dự án chi phí âm (tiết kiệm chi phí vận hành ròng). Tổng tiềm năng giảm phát thải ${totalAbatement.toLocaleString("vi-VN")} tCO2e/năm với chi phí bình quân trọng số $${weightedAvgCost}/tCO2e.`
+  };
+}
+
+/**
+ * 10. AI Chẩn đoán Dị thường Dữ liệu Cảm biến & Công tơ IoT WeaveNode
+ */
+export interface IotAnomalyItem {
+  id: string;
+  deviceId: string;
+  deviceReference: string;
+  parameter: "power_kw" | "energy_kwh" | "power_factor" | "voltage" | "drift" | "calibration";
+  severity: "critical" | "warning" | "info";
+  observedValue: string;
+  expectedRange: string;
+  anomalyTitle: string;
+  diagnosticExplanation: string;
+  actionProtocol: string;
+  detectedAt: string;
+}
+
+export interface IotAnomalyScanResult {
+  totalDevicesScanned: number;
+  healthyCount: number;
+  anomalyCount: number;
+  anomalies: IotAnomalyItem[];
+  systemHealthScore: number;
+  summary: string;
+}
+
+export function detectIotSensorAnomalies(devices: Array<{
+  id: string;
+  deviceReference: string;
+  measurementPointReference?: string;
+  currentPowerKw?: number;
+  powerFactor?: number;
+  voltageV?: number;
+  lastHeartbeatMinutesAgo?: number;
+  calibrationExpired?: boolean;
+}>): IotAnomalyScanResult {
+  const anomalies: IotAnomalyItem[] = [];
+
+  devices.forEach((dev) => {
+    const pf = dev.powerFactor ?? 0.92;
+    const kw = dev.currentPowerKw ?? 45;
+    const volt = dev.voltageV ?? 382;
+    const heartbeat = dev.lastHeartbeatMinutesAgo ?? 2;
+
+    // Check 1: Low Power Factor (< 0.85 incurs EVN reactive power tariff penalty)
+    if (pf < 0.85 && kw > 5) {
+      anomalies.push({
+        id: `anom-${dev.id}-pf`,
+        deviceId: dev.id,
+        deviceReference: dev.deviceReference,
+        parameter: "power_factor",
+        severity: "warning",
+        observedValue: `cos φ = ${pf.toFixed(2)}`,
+        expectedRange: "cos φ >= 0.90",
+        anomalyTitle: "Hệ số công suất cos φ thấp (Rủi ro phạt tiền công suất phản kháng EVN)",
+        diagnosticExplanation: `Hệ số công suất tụt xuống ${pf.toFixed(2)} khi tải đạt ${kw} kW. Dấu hiệu tủ tụ bù điện hạ thế bị hỏng khởi động từ hoặc tụ quá nhiệt.`,
+        actionProtocol: "Kiểm tra tủ tụ bù tự động APFC tại trạm biến áp, thay thế tụ khô suy giảm dung lượng.",
+        detectedAt: new Date().toISOString()
+      });
+    }
+
+    // Check 2: Voltage Unbalance or Drop
+    if (volt < 360 || volt > 415) {
+      anomalies.push({
+        id: `anom-${dev.id}-volt`,
+        deviceId: dev.id,
+        deviceReference: dev.deviceReference,
+        parameter: "voltage",
+        severity: "critical",
+        observedValue: `${volt} V`,
+        expectedRange: "380 V ± 5% (361 - 399 V)",
+        anomalyTitle: "Điện áp dây lệch chuẩn kỹ thuật trạm biến áp",
+        diagnosticExplanation: `Điện áp vận hành lệch quá ngưỡng cho phép, có nguy cơ gây phát nhiệt động cơ máy dệt và tăng tổn thất điện vô công.`,
+        actionProtocol: "Báo điều độ điện lực và kiểm tra nấc phân áp của máy biến áp phân phối.",
+        detectedAt: new Date().toISOString()
+      });
+    }
+
+    // Check 3: Sensor Timeout / Heartbeat Loss
+    if (heartbeat > 15) {
+      anomalies.push({
+        id: `anom-${dev.id}-timeout`,
+        deviceId: dev.id,
+        deviceReference: dev.deviceReference,
+        parameter: "drift",
+        severity: "critical",
+        observedValue: `Mất tín hiệu ${heartbeat} phút`,
+        expectedRange: "< 5 phút",
+        anomalyTitle: "Đứt quãng truyền tin cảm biến WeaveNode Edge",
+        diagnosticExplanation: `Cổng kết nối Modbus RTU / MQTT không nhận được gói tin dữ liệu telemetry trong hơn 15 phút.`,
+        actionProtocol: "Kiểm tra nguồn cấp 24VDC WeaveNode Edge Gateway và đường cáp RS-485 chống nhiễu.",
+        detectedAt: new Date().toISOString()
+      });
+    }
+
+    // Check 4: Calibration
+    if (dev.calibrationExpired) {
+      anomalies.push({
+        id: `anom-${dev.id}-calib`,
+        deviceId: dev.id,
+        deviceReference: dev.deviceReference,
+        parameter: "calibration",
+        severity: "warning",
+        observedValue: "Quá hạn kiểm định",
+        expectedRange: "Hiệu lực trong hạn",
+        anomalyTitle: "Công tơ đo đếm quá hạn kiểm định định kỳ",
+        diagnosticExplanation: "Đồng hồ đo đếm năng lượng đã quá chu kỳ kiểm định 24 tháng theo quy định đo lường của Bộ KH&CN.",
+        actionProtocol: "Liên hệ Trung tâm Kỹ thuật Tiêu chuẩn Đo lường Chất lượng (Quatest) để thực hiện kiểm định lại.",
+        detectedAt: new Date().toISOString()
+      });
+    }
+  });
+
+  const healthy = devices.length - new Set(anomalies.map(a => a.deviceId)).size;
+  const healthScore = devices.length > 0 ? Math.round((Math.max(0, healthy) / devices.length) * 100) : 100;
+
+  return {
+    totalDevicesScanned: devices.length,
+    healthyCount: healthy,
+    anomalyCount: anomalies.length,
+    anomalies,
+    systemHealthScore: healthScore,
+    summary: `Quét ${devices.length} điểm đo & thiết bị WeaveNode. Phát hiện ${anomalies.length} cảnh báo dị thường kỹ thuật. Điểm sức khỏe mạng lưới cảm biến đạt ${healthScore}/100.`
+  };
+}

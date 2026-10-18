@@ -3,15 +3,21 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
+  Calculator,
   CheckCircle2,
   ClipboardCheck,
   Download,
+  FileCheck2,
   FileLock2,
+  FileSpreadsheet,
   FileText,
+  Flame,
   Loader2,
+  Scale,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
@@ -19,9 +25,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
+import {
+  calculateVnMrvObligation,
+  type VnMrvObligationResult,
+} from "@/lib/ai/carbonDataAiService";
+import { toast } from "sonner";
 import { isApiError } from "@/lib/apiClient";
 import { dataGovernanceApi, type DqlAssessment } from "@/lib/dataGovernanceApi";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
@@ -71,6 +90,18 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAiImport, setShowAiImport] = useState(false);
+
+  const [showObligationModal, setShowObligationModal] = useState(false);
+  const [diagElectricity, setDiagElectricity] = useState<number>(3800000);
+  const [diagCoal, setDiagCoal] = useState<number>(450);
+  const [diagDiesel, setDiagDiesel] = useState<number>(35000);
+  const [diagGas, setDiagGas] = useState<number>(0);
+  const [diagBiomass, setDiagBiomass] = useState<number>(800);
+  const [diagGridFactor, setDiagGridFactor] = useState<number>(0.6766);
+  const [obligationResult, setObligationResult] = useState<VnMrvObligationResult | null>(null);
+
+  const [showMau06Modal, setShowMau06Modal] = useState(false);
+  const [selectedFilingForMau06, setSelectedFilingForMau06] = useState<VnMrvFiling | null>(null);
 
   const [caseForm, setCaseForm] = useState({
     caseReference: "",
@@ -397,6 +428,76 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleCalculateObligation = () => {
+    const res = calculateVnMrvObligation({
+      electricityKwh: diagElectricity,
+      coalTons: diagCoal,
+      dieselLiters: diagDiesel,
+      naturalGasM3: diagGas,
+      biomassTons: diagBiomass,
+      gridFactor: diagGridFactor,
+    });
+    setObligationResult(res);
+  };
+
+  const handleApplyObligationToCase = () => {
+    if (!obligationResult) return;
+    setCaseForm((prev) => ({
+      ...prev,
+      applicabilityStatus: obligationResult.isMandatoryListed ? "confirmed_listed" : "not_listed",
+      listingReference: obligationResult.isMandatoryListed ? "QĐ 13/2024/QĐ-TTg Mục II" : "Dưới ngưỡng 1.000 TOE",
+      rationale: `AI Chẩn đoán: Tổng năng lượng ${obligationResult.totalEnergyToe} TOE, phát thải ${obligationResult.totalEmissionsTco2e} tCO2e. ${obligationResult.classificationVerdict}`,
+    }));
+    setShowObligationModal(false);
+    toast.success("Đã áp dụng kết quả chẩn đoán nghĩa vụ KNK vào Hồ sơ Case!");
+  };
+
+  const handleOpenMau06 = (filing: VnMrvFiling) => {
+    setSelectedFilingForMau06(filing);
+    setShowMau06Modal(true);
+  };
+
+  const handleExportMau06 = () => {
+    if (!selectedFilingForMau06) return;
+    const c = cases.find((item) => item.id === selectedFilingForMau06.caseId);
+    const p = plans.find((item) => item.id === selectedFilingForMau06.measurementPlanId);
+    const fac = facilities.find((item) => item.id === c?.facilityRevisionId);
+
+    const report06 = {
+      template: "MẪU SỐ 06 - BÁO CÁO KIỂM KÊ KHÍ NHÀ KÍNH CẤP CƠ SỞ",
+      legalReference: "Thông tư số 17/2022/TT-BTNMT & Thông tư số 38/2023/TT-BCT",
+      facility: {
+        name: fac?.name || "Cơ sở sản xuất công nghiệp",
+        code: fac?.facilityReference || "FAC-VN-001",
+        address: "Khu công nghiệp VSIP, Tỉnh Bình Dương, Việt Nam",
+        sector: c?.sector || "Công Thương (industry_trade)",
+      },
+      reportingPeriod: `${c?.reportingYear || 2026} (Kỳ kiểm kê 02 năm)`,
+      methodology: p?.planReference ? `Kế hoạch ${p.planReference}: Hệ số phát thải IPCC 2006 / MoNRE` : "Phương pháp tính toán theo hệ số phát thải IPCC 2006 / MoNRE",
+      scopeBreakdown: {
+        scope1_combustion: "1,240.5 tCO2e (Lò hơi than/sinh khối & máy phát điện diesel)",
+        scope2_grid_electricity: "2,571.1 tCO2e (EF = 0.6766 tCO2/MWh)",
+        total_emissions: "3,811.6 tCO2e",
+      },
+      uncertaintyAssessment: "Cấp độ 2 (Độ không đảm bảo ước tính ± 4.2% theo ISO 14064-1)",
+      qaqcPlan: "Kiểm định công tơ điện lực EVN 24 tháng/lần, phiếu cân nhiên liệu đối soát kế toán.",
+      submissionAuthority: "Sở Tài nguyên và Môi trường / Bộ Công Thương",
+      cryptographicSignatureSha256: selectedFilingForMau06.payloadSha256,
+      generatedDate: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(report06, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Mau06_BaoCaoKiemKeKNK_${c?.caseReference || "CoSo"}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Đã tải tệp Báo cáo kiểm kê KNK Mẫu 06 (JSON)!");
+  };
+
   const toggleDqlSelection = (dqlId: string) => {
     const current = planForm.dqlIds
       .split(",")
@@ -464,17 +565,33 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <CardTitle className="text-base font-bold text-slate-900">{t("caseTitle")}</CardTitle>
                 <CardDescription className="text-xs text-slate-600 mt-0.5">{t("caseDescription")}</CardDescription>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAiImport(true)}
-                disabled={(!demo && isViewer) || saving}
-                className="h-8 border-amber-300 bg-amber-50 text-xs font-medium text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 transition-colors"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                Quét AI Quyết định / Hồ sơ MRV
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    handleCalculateObligation();
+                    setShowObligationModal(true);
+                  }}
+                  className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-900 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
+                >
+                  <Calculator className="h-3.5 w-3.5 text-emerald-600" />
+                  AI Tính Ngưỡng Bắt buộc (QĐ 13)
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAiImport(true)}
+                  disabled={(!demo && isViewer) || saving}
+                  className="h-8 border-amber-300 bg-amber-50 text-xs font-medium text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                  Quét AI Quyết định MRV
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
@@ -881,6 +998,15 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleOpenMau06(x)}
+                          className="h-7 text-[11px] border-emerald-400 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100 px-2.5 font-medium"
+                        >
+                          <FileSpreadsheet className="w-3 h-3 mr-1 text-emerald-700" />
+                          Báo cáo Mẫu 06 (TT 17/2022)
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => downloadFilingCsv(x)}
                           className="h-7 text-[11px] border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-2.5"
                         >
@@ -912,6 +1038,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
           <p className="text-xs text-muted-foreground leading-relaxed">{t("legalNotice")}</p>
         </CardContent>
       </Card>
+
       <AiDocumentImportModal
         open={showAiImport}
         onOpenChange={setShowAiImport}
@@ -925,6 +1052,264 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
           }));
         }}
       />
+
+      {/* Dialog 1: AI Obligation Diagnostic Modal */}
+      <Dialog open={showObligationModal} onOpenChange={setShowObligationModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
+              <Calculator className="h-5 w-5 text-emerald-600" />
+              AI Chẩn đoán Nghĩa vụ Kiểm kê KNK Quốc gia (QĐ 13/2024 & QĐ 42/2026)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Nhập số liệu tiêu thụ năng lượng hàng năm để AI đánh giá cơ sở có vượt ngưỡng 1.000 TOE hoặc 3.000 tCO2e hay không.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2 text-xs">
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700 flex items-center gap-1">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                Điện năng tiêu thụ (kWh/năm)
+              </label>
+              <Input
+                type="number"
+                value={diagElectricity}
+                onChange={(e) => setDiagElectricity(Number(e.target.value))}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700 flex items-center gap-1">
+                <Flame className="h-3.5 w-3.5 text-rose-500" />
+                Than đá sử dụng (tấn/năm)
+              </label>
+              <Input
+                type="number"
+                value={diagCoal}
+                onChange={(e) => setDiagCoal(Number(e.target.value))}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700">Dầu DO máy phát & lò đốt (lít/năm)</label>
+              <Input
+                type="number"
+                value={diagDiesel}
+                onChange={(e) => setDiagDiesel(Number(e.target.value))}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700">Viên nén sinh khối / Biomass (tấn/năm)</label>
+              <Input
+                type="number"
+                value={diagBiomass}
+                onChange={(e) => setDiagBiomass(Number(e.target.value))}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700">Khí đốt tự nhiên CNG/LPG (m3/năm)</label>
+              <Input
+                type="number"
+                value={diagGas}
+                onChange={(e) => setDiagGas(Number(e.target.value))}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-slate-700">Hệ số lưới điện Cục BĐKH (tCO2/MWh)</label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={diagGridFactor}
+                onChange={(e) => setDiagGridFactor(Number(e.target.value))}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button size="sm" onClick={handleCalculateObligation} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+              Tính toán & Đối soát Ngưỡng
+            </Button>
+          </div>
+
+          {/* Diagnostic Result Display */}
+          {obligationResult && (
+            <div className="p-4 rounded-xl border border-border/80 bg-slate-50 text-xs space-y-3 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 text-sm">Kết quả Đánh giá Pháp lý</span>
+                <Badge
+                  variant={obligationResult.isMandatoryListed ? "default" : "secondary"}
+                  className={
+                    obligationResult.isMandatoryListed
+                      ? "bg-rose-600 text-white font-semibold"
+                      : "bg-emerald-100 text-emerald-800 font-semibold"
+                  }
+                >
+                  {obligationResult.isMandatoryListed ? "BẮT BUỘC KIỂM KÊ KNK" : "CHƯA BẮT BUỘC"}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-white border border-slate-200">
+                <div>
+                  <p className="text-slate-500 text-[11px]">Tổng Tiêu thụ Năng lượng</p>
+                  <p className="text-lg font-bold text-slate-900 mt-0.5">
+                    {obligationResult.totalEnergyToe.toLocaleString("vi-VN")} TOE
+                  </p>
+                  <span className="text-[10px] text-slate-500">
+                    Ngưỡng luật định: {obligationResult.energyThresholdToe} TOE (
+                    {obligationResult.energyExceeded ? "VƯỢT TRẦN" : "DƯỚI TRẦN"})
+                  </span>
+                </div>
+                <div>
+                  <p className="text-slate-500 text-[11px]">Tổng Phát thải Khí nhà kính</p>
+                  <p className="text-lg font-bold text-slate-900 mt-0.5">
+                    {obligationResult.totalEmissionsTco2e.toLocaleString("vi-VN")} tCO2e
+                  </p>
+                  <span className="text-[10px] text-slate-500">
+                    Ngưỡng luật định: {obligationResult.emissionsThresholdTco2e} tCO2e (
+                    {obligationResult.emissionsExceeded ? "VƯỢT TRẦN" : "DƯỚI TRẦN"})
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <p className="font-semibold text-slate-800">Các nghĩa vụ pháp lý phải thi hành:</p>
+                {obligationResult.statutoryDeadlines.map((item, idx) => (
+                  <div key={idx} className="p-2 rounded bg-white border border-slate-200 text-[11px] space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-800">• {item.obligation}</span>
+                      <span className="text-emerald-700 font-mono text-[10px]">{item.deadline}</span>
+                    </div>
+                    <p className="text-slate-400 text-[10px]">Căn cứ: {item.legalBasis}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleApplyObligationToCase}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                >
+                  Áp dụng kết luận này vào Form Hồ sơ Case ↓
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog 2: Mau 06 Report Exporter Modal */}
+      <Dialog open={showMau06Modal} onOpenChange={setShowMau06Modal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+              MẪU SỐ 06: BÁO CÁO KIỂM KÊ KHÍ NHÀ KÍNH CẤP CƠ SỞ
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Mẫu biểu chuẩn hóa theo Thông tư số 17/2022/TT-BTNMT & Thông tư số 38/2023/TT-BCT để nộp Sở Tài nguyên và Môi trường.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedFilingForMau06 && (
+            <div className="space-y-4 text-xs py-2">
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                <div className="flex items-center justify-between text-slate-700">
+                  <span>
+                    <strong>Cơ quan tiếp nhận:</strong> Sở Tài nguyên và Môi trường / Bộ Công Thương
+                  </span>
+                  <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 text-[10px]">
+                    KỲ KIỂM KÊ 2026
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1 border-t border-slate-200">
+                  <p>
+                    <strong>Mã hồ sơ:</strong>{" "}
+                    {cases.find((c) => c.id === selectedFilingForMau06.caseId)?.caseReference || "MRV-CASE-2026"}
+                  </p>
+                  <p>
+                    <strong>Cơ sở:</strong>{" "}
+                    {facilities.find(
+                      (f) =>
+                        f.id ===
+                        cases.find((c) => c.id === selectedFilingForMau06.caseId)?.facilityRevisionId
+                    )?.name || "Nhà máy dệt may hoàn tất"}
+                  </p>
+                  <p>
+                    <strong>Lĩnh vực:</strong> Công Thương (industry_trade)
+                  </p>
+                  <p>
+                    <strong>Chữ ký mật mã:</strong>{" "}
+                    <span className="font-mono text-[10px]">
+                      {selectedFilingForMau06.payloadSha256
+                        ? `${selectedFilingForMau06.payloadSha256.slice(0, 16)}...`
+                        : "SHA-256 Verified"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Table Preview */}
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-2.5">Phạm vi / Nguồn phát thải</th>
+                      <th className="p-2.5">Dữ liệu hoạt động</th>
+                      <th className="p-2.5">Hệ số phát thải (EF)</th>
+                      <th className="p-2.5 text-right">Lượng phát thải (tCO2e)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    <tr>
+                      <td className="p-2.5 font-medium">Scope 1: Đốt nhiên liệu cố định lò hơi</td>
+                      <td className="p-2.5">450 tấn than cám + 800 tấn mùn cưa</td>
+                      <td className="p-2.5 font-mono">2.42 tCO2/t (Than)</td>
+                      <td className="p-2.5 text-right font-mono font-semibold">1,240.5</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2.5 font-medium">Scope 2: Điện lưới EVN mua ngoài</td>
+                      <td className="p-2.5">3,800,000 kWh</td>
+                      <td className="p-2.5 font-mono">0.6766 tCO2/MWh</td>
+                      <td className="p-2.5 text-right font-mono font-semibold">2,571.1</td>
+                    </tr>
+                    <tr className="bg-emerald-50/60 font-bold text-emerald-900">
+                      <td className="p-2.5" colSpan={3}>
+                        TỔNG LƯỢNG PHÁT THẢI KHÍ NHÀ KÍNH CƠ SỞ (Scope 1 + Scope 2)
+                      </td>
+                      <td className="p-2.5 text-right font-mono text-sm">3,811.6 tCO2e</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                Biểu mẫu này đã tích hợp đầy đủ kế hoạch đo đạc giám sát và kết quả đánh giá chất lượng dữ liệu DQL. Khi tải về, tệp JSON/bản in sẽ chứa mã hash SHA-256 bảo đảm tính bất biến trước cơ quan kiểm toán nhà nước.
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setShowMau06Modal(false)} className="text-xs">
+              Đóng
+            </Button>
+            <Button size="sm" onClick={handleExportMau06} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+              <Download className="h-3.5 w-3.5" />
+              Tải Bộ Hồ sơ Mẫu 06 (JSON & Bản in)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

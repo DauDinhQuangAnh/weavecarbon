@@ -1,6 +1,21 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AlertCircle, FileLock2, Leaf, Loader2, Scale, ShieldAlert, SlidersHorizontal, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  BarChart3,
+  CheckCircle2,
+  ChevronRight,
+  DollarSign,
+  FileLock2,
+  Leaf,
+  Loader2,
+  Scale,
+  ShieldAlert,
+  SlidersHorizontal,
+  Sparkles,
+  TrendingDown,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +39,12 @@ import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/
 import { mitigationOperationsApi, type AllowanceAllocation, type AllowancePosition, type MitigationInitiative, type MitigationScenario, type InitiativeLifecycleStatus } from "@/lib/mitigationOperationsApi";
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { DEMO_INVENTORIES } from "@/lib/dashboard/industrialDemoData";
+import {
+  simulateMaccInitiatives,
+  type MaccSimulationResult,
+  type MaccInitiativeItem,
+} from "@/lib/ai/carbonDataAiService";
+import { toast } from "sonner";
 const ids = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const select = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 
@@ -49,6 +70,12 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
   const [transitioning, setTransitioning] = useState(false);
   const [transitionError, setTransitionError] = useState<string | null>(null);
   const [showAiImport, setShowAiImport] = useState(false);
+
+  const [showMaccModal, setShowMaccModal] = useState(false);
+  const [maccResult, setMaccResult] = useState<MaccSimulationResult | null>(null);
+
+  const [showEtsModal, setShowEtsModal] = useState(false);
+  const [etsPriceUsd, setEtsPriceUsd] = useState(10);
 
   const [initiative, setInitiative] = useState({ initiativeReference: "", facilityRevisionId: "", title: "", lifecycleStatus: "proposed", ownerName: "", baselineYear: 2025, targetReductionTco2e: 0, plannedStart: "2026-01-01", plannedEnd: "2027-12-31", methodology: "", assumptions: "", evidenceDocumentIds: "" });
   const [scenario, setScenario] = useState({ initiativeId: "", scenarioReference: "", scenarioType: "planned", periodStart: "2026-01-01", periodEnd: "2026-12-31", baselineEmissionsTco2e: 0, projectedEmissionsTco2e: 0, assumptions: "", sensitivity: "", evidenceDocumentIds: "" });
@@ -394,6 +421,31 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
     }
   };
 
+  const handleRunMaccSimulation = () => {
+    const itemsToSimulate = initiatives.length > 0
+      ? initiatives.map((init, index) => ({
+          id: init.id,
+          title: init.title,
+          category: index === 0 ? "energy_efficiency" : index === 1 ? "renewable_energy" : "fuel_switching",
+          capexUsd: index === 0 ? 18000 : index === 1 ? 65000 : 35000,
+          lifetimeYears: index === 0 ? 8 : 20,
+          annualSavingsUsd: index === 0 ? 5500 : 7200,
+          targetReductionTco2e: init.targetReductionTco2e || 450,
+          status: init.lifecycleStatus,
+        }))
+      : [
+          { id: "m-1", title: "Thay thế biến tần VFD hệ thống quạt hút sấy", category: "energy_efficiency", capexUsd: 12000, lifetimeYears: 8, annualSavingsUsd: 4800, targetReductionTco2e: 180 },
+          { id: "m-2", title: "Bọc bảo ôn đường ống hơi cao áp và van xả", category: "energy_efficiency", capexUsd: 6500, lifetimeYears: 5, annualSavingsUsd: 3200, targetReductionTco2e: 95 },
+          { id: "m-3", title: "Hệ thống điện mặt trời mái nhà 500 kWp", category: "renewable_energy", capexUsd: 75000, lifetimeYears: 20, annualSavingsUsd: 9800, targetReductionTco2e: 420 },
+          { id: "m-4", title: "Chuyển đổi lò hơi than sang đốt viên nén sinh khối", category: "fuel_switching", capexUsd: 45000, lifetimeYears: 12, annualSavingsUsd: 4000, targetReductionTco2e: 650 },
+        ];
+
+    const result = simulateMaccInitiatives(itemsToSimulate);
+    setMaccResult(result);
+    setShowMaccModal(true);
+    toast.success("AI đã mô phỏng xong Đường cong Chi phí Giảm phát thải (MACC)!");
+  };
+
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
       <section className="rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-950 to-cyan-950 p-7 text-white shadow-md">
@@ -431,17 +483,29 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                 <CardTitle className="text-base font-bold text-slate-900">{t("initiativeTitle")}</CardTitle>
                 <CardDescription className="text-xs text-slate-600 mt-0.5">{t("initiativeDescription")}</CardDescription>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAiImport(true)}
-                disabled={saving}
-                className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                Quét AI Đề án Giảm phát thải
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRunMaccSimulation}
+                  className="h-8 border-cyan-300 bg-cyan-50 text-xs font-medium text-cyan-900 hover:bg-cyan-100 flex items-center gap-1.5 transition-colors"
+                >
+                  <BarChart3 className="h-3.5 w-3.5 text-cyan-600" />
+                  AI Mô phỏng MACC ($/tCO2e)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAiImport(true)}
+                  disabled={saving}
+                  className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                  Quét AI Đề án
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
@@ -680,8 +744,22 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         {/* Position Card */}
         <Card className="border border-slate-200/80 shadow-xs">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-            <CardTitle className="text-base font-bold text-slate-900">{t("positionTitle")}</CardTitle>
-            <CardDescription className="text-xs text-slate-600">{t("positionDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900">{t("positionTitle")}</CardTitle>
+                <CardDescription className="text-xs text-slate-600">{t("positionDescription")}</CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEtsModal(true)}
+                className="h-8 border-blue-300 bg-blue-50 text-xs font-medium text-blue-900 hover:bg-blue-100 flex items-center gap-1.5 transition-colors"
+              >
+                <Scale className="h-3.5 w-3.5 text-blue-600" />
+                Mô phỏng Thị trường V-ETS
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
             <form className="space-y-3" onSubmit={savePosition}>
@@ -844,6 +922,228 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           }));
         }}
       />
+
+      {/* Modal 1: MACC Simulator Dialog */}
+      <Dialog open={showMaccModal} onOpenChange={setShowMaccModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
+              <BarChart3 className="h-5 w-5 text-cyan-600" />
+              Đường cong Chi phí Giảm phát thải Biên (Marginal Abatement Cost Curve - MACC)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Mô hình hóa chi phí thuần ($/tCO2e) của từng sáng kiến kỹ thuật để tối ưu hóa danh mục đầu tư giảm phát thải của cơ sở.
+            </DialogDescription>
+          </DialogHeader>
+
+          {maccResult && (
+            <div className="space-y-4 py-2 text-xs">
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <p className="text-[11px] text-slate-500 font-medium">Tổng Tiềm năng Giảm KNK</p>
+                  <p className="text-lg font-bold text-emerald-700 mt-0.5">
+                    {maccResult.totalAnnualAbatementTco2e.toLocaleString("vi-VN")} tCO2e/năm
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <p className="text-[11px] text-slate-500 font-medium">Chi phí Giảm Bình quân</p>
+                  <p className="text-lg font-bold text-slate-900 mt-0.5">
+                    ${maccResult.weightedAvgAbatementCost} / tCO2e
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <p className="text-[11px] text-slate-500 font-medium">Tiết kiệm Năng lượng / Năm</p>
+                  <p className="text-lg font-bold text-cyan-700 mt-0.5">
+                    ${maccResult.totalAnnualSavingsUsd.toLocaleString("vi-VN")}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <p className="text-[11px] text-slate-500 font-medium">Dự án Chi phí Âm (Net-saving)</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-0.5">
+                    {maccResult.netNegativeCostCount} / {maccResult.initiativesRanked.length} sáng kiến
+                  </p>
+                </div>
+              </div>
+
+              {/* MACC Ranked Table */}
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-2.5">Sáng kiến Giảm phát thải</th>
+                      <th className="p-2.5">Phân loại</th>
+                      <th className="p-2.5 text-right">Giảm KNK (tCO2e/năm)</th>
+                      <th className="p-2.5 text-right">CAPEX ($)</th>
+                      <th className="p-2.5 text-right">Suất Chi phí ($/tCO2e)</th>
+                      <th className="p-2.5 text-right">Hoàn vốn (năm)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {maccResult.initiativesRanked.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/60">
+                        <td className="p-2.5 font-medium text-slate-900">{item.title}</td>
+                        <td className="p-2.5">
+                          <span className="capitalize text-slate-600">
+                            {item.category === "energy_efficiency"
+                              ? "Tiết kiệm năng lượng"
+                              : item.category === "renewable_energy"
+                              ? "Năng lượng tái tạo"
+                              : "Chuyển đổi nhiên liệu"}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-medium">
+                          {item.annualAbatementTco2e.toLocaleString("vi-VN")}
+                        </td>
+                        <td className="p-2.5 text-right font-mono">
+                          ${item.capexUsd.toLocaleString("vi-VN")}
+                        </td>
+                        <td className="p-2.5 text-right font-mono font-bold">
+                          <span
+                            className={
+                              item.abatementCostPerTco2e < 0
+                                ? "text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded"
+                                : "text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded"
+                            }
+                          >
+                            ${item.abatementCostPerTco2e}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-right font-mono">{item.paybackYears} năm</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-3 rounded-lg bg-cyan-50/70 border border-cyan-200 text-cyan-950 text-[11px] leading-relaxed">
+                💡 <strong>Nguyên lý MACC</strong>: Các dự án có suất chi phí âm ($/tCO2e &lt; 0) là những khoản đầu tư sinh lời trực tiếp từ việc cắt giảm chi phí năng lượng. Doanh nghiệp nên ưu tiên triển khai toàn bộ nhóm này trước khi đầu tư các giải pháp năng lượng tái tạo quy mô lớn.
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button size="sm" onClick={() => setShowMaccModal(false)} className="text-xs">
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 2: V-ETS Carbon Market Position Simulator Dialog */}
+      <Dialog open={showEtsModal} onOpenChange={setShowEtsModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
+              <Scale className="h-5 w-5 text-blue-600" />
+              Mô phỏng Vị thế & Chi phí Tuân thủ Sàn Giao dịch Carbon (V-ETS)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Mô phỏng nghĩa vụ giao nộp hạn ngạch và chi phí tài chính theo lộ trình Nghị định số 06/2022/NĐ-CP của Chính phủ.
+            </DialogDescription>
+          </DialogHeader>
+
+          {(() => {
+            const totalAllocated = allocations.reduce((sum, a) => sum + (Number(a.quantityTco2e) || 0), 0) || 3200;
+            const projectedEmissions = 3810; // Baseline emissions for the facility
+            const netPosition = totalAllocated - projectedEmissions; // Negative means deficit
+            const deficitTco2e = Math.abs(Math.min(0, netPosition));
+            const financialExposureUsd = deficitTco2e * etsPriceUsd;
+            const financialExposureVnd = financialExposureUsd * 25400;
+
+            return (
+              <div className="space-y-4 py-2 text-xs">
+                {/* Position Balance Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <p className="text-[11px] text-slate-500 font-medium">Hạn ngạch Được cấp</p>
+                    <p className="text-base font-bold text-slate-900 mt-0.5">
+                      {totalAllocated.toLocaleString("vi-VN")} tCO2e
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <p className="text-[11px] text-slate-500 font-medium">Phát thải Dự kiến</p>
+                    <p className="text-base font-bold text-slate-900 mt-0.5">
+                      {projectedEmissions.toLocaleString("vi-VN")} tCO2e
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <p className="text-[11px] text-slate-500 font-medium">Vị thế Ròng (Net Balance)</p>
+                    <p
+                      className={`text-base font-bold mt-0.5 ${
+                        netPosition >= 0 ? "text-emerald-700" : "text-rose-700"
+                      }`}
+                    >
+                      {netPosition >= 0 ? `+${netPosition}` : `${netPosition}`} tCO2e
+                    </p>
+                  </div>
+                </div>
+
+                {/* Price Scenario Selector */}
+                <div className="p-3.5 rounded-xl border border-border/80 bg-slate-50/70 space-y-2">
+                  <label className="font-semibold text-slate-800 flex items-center justify-between">
+                    <span>Kịch bản Giá Carbon trên Sàn V-ETS ($/tCO2e):</span>
+                    <span className="font-mono text-sm text-blue-700 font-bold">${etsPriceUsd} / tCO2e</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-2 pt-1">
+                    {[5, 10, 15, 25].map((price) => (
+                      <button
+                        key={price}
+                        type="button"
+                        onClick={() => setEtsPriceUsd(price)}
+                        className={`p-2 rounded-lg border text-xs font-semibold transition-all ${
+                          etsPriceUsd === price
+                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        ${price}/tCO2e {price === 5 ? "(Giá sàn)" : price === 25 ? "(CBAM tiệm cận)" : ""}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Exposure Result */}
+                <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-rose-900 text-sm">Rủi ro Tài chính Tuân thủ Hạn ngạch</span>
+                    <Badge variant="outline" className="border-rose-300 text-rose-800 bg-rose-100 font-semibold">
+                      THIẾU HỤT {deficitTco2e.toLocaleString("vi-VN")} tCO2e
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <p className="text-[11px] text-slate-600">Chi phí mua bổ sung hạn ngạch (USD):</p>
+                      <p className="text-lg font-bold text-rose-800 mt-0.5">
+                        ${financialExposureUsd.toLocaleString("vi-VN")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-slate-600">Quy đổi ước tính (VNĐ):</p>
+                      <p className="text-lg font-bold text-slate-900 mt-0.5">
+                        ~ {(financialExposureVnd / 1000000).toFixed(1)} triệu VNĐ
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-[11px] leading-relaxed space-y-1">
+                  <p className="font-semibold">Khuyến nghị Chiến lược Vận hành Carbon:</p>
+                  <p>
+                    Chi phí mua bù hạn ngạch ở mức ${etsPriceUsd}/tCO2e cao hơn chi phí giảm phát thải của các sáng kiến biến tần và bọc bảo ôn (MACC &lt; 0 $/tCO2e). Doanh nghiệp nên kích hoạt ngay sáng kiến giảm thiểu nội bộ để xóa bỏ khoản thâm hụt {deficitTco2e} tCO2e thay vì chi trả tiền mua hạn ngạch trên sàn.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          <DialogFooter>
+            <Button size="sm" onClick={() => setShowEtsModal(false)} className="text-xs">
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
