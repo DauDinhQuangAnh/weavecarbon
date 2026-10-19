@@ -6,6 +6,7 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  Download,
   Plus,
   Search,
   Sparkles,
@@ -15,7 +16,7 @@ import { industrialCoreApi } from "@/lib/industrialCoreApi";
 import { listEvidenceV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
-import { workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
+import { workspaceCanWrite, csvText } from "@/lib/dashboard/industrialWorkspace";
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { analyzeActivityAnomalies, type ActivityAnomalyResult } from "@/lib/ai/carbonDataAiService";
 import { sha256CanonicalJson } from "@/lib/industrialOperations";
@@ -255,6 +256,51 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
     return { s1, s2, primaryRatio };
   }, [activities]);
 
+  const downloadCsv = () => {
+    const csvRows = [
+      [
+        "Mã hoạt động",
+        "Loại phát thải",
+        "Sản lượng",
+        "Đơn vị",
+        "Cơ sở",
+        "Quy trình",
+        "Điểm đo",
+        "Chu kỳ bắt đầu",
+        "Chu kỳ kết thúc",
+        "Nguồn gốc",
+        "Cấp chất lượng (DQL)",
+        "Mã băm SHA-256",
+      ],
+      ...filteredActivities.map((act) => {
+        const fac = facilities.find((f) => f.id === act.facilityRevisionId);
+        const proc = query.data?.processes?.find((p) => p.id === act.processRevisionId);
+        const pt = query.data?.measurementPoints?.find((m) => m.id === act.measurementPointRevisionId);
+        return [
+          act.activityReference,
+          act.activityType,
+          String(act.quantity),
+          act.canonicalUnit,
+          fac ? `${fac.name} (${fac.facilityReference})` : act.facilityReference || act.facilityRevisionId || "—",
+          proc ? `${proc.name} (${proc.processReference})` : act.processRevisionId || "—",
+          pt ? `${pt.measurementPointReference} (${pt.measurementType})` : act.measurementPointRevisionId || "—",
+          act.periodStart,
+          act.periodEnd,
+          act.sourceKind,
+          act.dataQualityLevel,
+          act.sourceSha256 || "—",
+        ];
+      }),
+    ];
+    const url = URL.createObjectURL(new Blob([csvText(csvRows)], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `activity-data-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Đã xuất ${filteredActivities.length} dòng dữ liệu hoạt động (CSV).`);
+  };
+
   return (
     <WorkspaceFrame
       title="Dữ liệu hoạt động"
@@ -401,58 +447,71 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
       )}
 
       {/* 4. Filter Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm theo mã hoạt động, loại phát thải, cơ sở…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-xs"
-          />
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-1">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm theo mã hoạt động, loại phát thải, cơ sở…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9 text-xs"
+            />
+          </div>
 
-        <select
-          aria-label="Lọc theo Scope"
-          value={scopeFilter}
-          onChange={(e) => setScopeFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-xs"
-        >
-          <option value="all">Tất cả Scope</option>
-          <option value="scope1">Scope 1 · Nhiên liệu trực tiếp</option>
-          <option value="scope2">Scope 2 · Điện lưới / Hơi</option>
-          <option value="scope3">Scope 3 · Chuỗi giá trị</option>
-        </select>
-
-        <select
-          aria-label="Lọc theo DQL"
-          value={dqlFilter}
-          onChange={(e) => setDqlFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-xs"
-        >
-          <option value="all">Tất cả cấp DQL</option>
-          <option value="L1">L1 · Sơ cấp (Công tơ/IoT)</option>
-          <option value="L2">L2 · Hóa đơn đối soát</option>
-          <option value="L3">L3 · Tự khai báo NCC</option>
-          <option value="L4">L4 · Hệ số bình quân</option>
-          <option value="L5">L5 · Ước tính toàn cầu</option>
-        </select>
-
-        {facilities.length > 1 && (
           <select
-            aria-label="Lọc theo cơ sở"
-            value={facilityFilter}
-            onChange={(e) => setFacilityFilter(e.target.value)}
+            aria-label="Lọc theo Scope"
+            value={scopeFilter}
+            onChange={(e) => setScopeFilter(e.target.value)}
             className="h-9 rounded-md border border-input bg-background px-3 text-xs"
           >
-            <option value="all">Tất cả cơ sở</option>
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
+            <option value="all">Tất cả Scope</option>
+            <option value="scope1">Scope 1 · Nhiên liệu trực tiếp</option>
+            <option value="scope2">Scope 2 · Điện lưới / Hơi</option>
+            <option value="scope3">Scope 3 · Chuỗi giá trị</option>
           </select>
-        )}
+
+          <select
+            aria-label="Lọc theo DQL"
+            value={dqlFilter}
+            onChange={(e) => setDqlFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+          >
+            <option value="all">Tất cả cấp DQL</option>
+            <option value="L1">L1 · Sơ cấp (Công tơ/IoT)</option>
+            <option value="L2">L2 · Hóa đơn đối soát</option>
+            <option value="L3">L3 · Tự khai báo NCC</option>
+            <option value="L4">L4 · Hệ số bình quân</option>
+            <option value="L5">L5 · Ước tính toàn cầu</option>
+          </select>
+
+          {facilities.length > 1 && (
+            <select
+              aria-label="Lọc theo cơ sở"
+              value={facilityFilter}
+              onChange={(e) => setFacilityFilter(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 text-xs"
+            >
+              <option value="all">Tất cả cơ sở</option>
+              {facilities.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={downloadCsv}
+          disabled={!filteredActivities.length}
+          className="h-9 text-xs gap-1.5 shrink-0"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Xuất CSV ({filteredActivities.length})
+        </Button>
       </div>
 
       {/* 5. Activities Data Table */}
@@ -531,7 +590,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                           href={routes.toAppPath("/evidence-graph")}
                           className="text-primary hover:underline text-xs font-medium"
                         >
-                          {demo ? "Xem chuỗi bằng chứng minh họa →" : "Xem chuỗi bằng chứng minh họa →"}
+                          {demo ? "Xem chuỗi bằng chứng minh họa →" : "Xem phả hệ bằng chứng →"}
                         </Link>
                       </td>
                     </tr>

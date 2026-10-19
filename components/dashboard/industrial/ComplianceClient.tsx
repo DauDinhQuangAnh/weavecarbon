@@ -529,8 +529,8 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
 
       {/* 5. Capability Data Model Registry */}
       {query.data && (
-        <section className="rounded-xl border border-border/70 bg-card p-5 mb-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+        <section className="rounded-xl border border-border/70 bg-card p-5 mb-4 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Layers className="h-4 w-4 text-primary" />
@@ -541,26 +541,66 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
               </p>
             </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {query.data.entities.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-2.5 rounded-lg border border-border/40 bg-muted/30 text-xs"
-              >
-                <span className="font-medium text-foreground">{item.label || item.id}</span>
-                <span
-                  className={`text-[11px] font-semibold ${
-                    item.status === "implemented"
-                      ? "text-emerald-600"
-                      : item.status === "partial"
-                      ? "text-amber-600"
-                      : "text-muted-foreground"
-                  }`}
+
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Các thực thể nghiệp vụ (Entities)
+            </h3>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {query.data.entities.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg border border-border/40 bg-muted/30 text-xs"
                 >
-                  ● {statusLabels[item.status] || item.status}
-                </span>
-              </div>
-            ))}
+                  <span className="font-medium text-foreground">{item.label || item.id}</span>
+                  <span
+                    className={`text-[11px] font-semibold ${
+                      item.status === "implemented"
+                        ? "text-emerald-600"
+                        : item.status === "partial"
+                        ? "text-amber-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    ● {statusLabels[item.status] || item.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Các tầng năng lực & bằng chứng (Capability Layers)
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {query.data.layers.map((layer) => (
+                <div
+                  key={layer.id}
+                  className="p-3 rounded-lg border border-border/50 bg-muted/20 text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">{layer.label || layer.id}</span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                      {statusLabels[layer.status] || layer.status}
+                    </Badge>
+                  </div>
+                  {layer.nextGate && (
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{layer.nextGate}</p>
+                  )}
+                  {layer.evidence && layer.evidence.length > 0 && (
+                    <div className="pt-1 border-t border-border/30">
+                      <span className="text-[10px] font-semibold text-primary">Bằng chứng:</span>
+                      <ul className="list-disc list-inside text-[11px] text-muted-foreground mt-0.5 space-y-0.5">
+                        {layer.evidence.map((ev, i) => (
+                          <li key={i}>{ev}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}

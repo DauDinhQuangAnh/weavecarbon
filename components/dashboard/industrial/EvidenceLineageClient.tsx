@@ -748,18 +748,20 @@ ${opinionDraft.opinionTitle}
                         </select>
                       </label>
 
-                      <label className="block text-sm">
-                        Lý do review & Kết luận Thẩm định
-                        <textarea
-                          required
-                          minLength={10}
-                          maxLength={4000}
-                          className="mt-2 min-h-24 w-full rounded-md border bg-background p-2 text-sm leading-relaxed"
-                          value={notes}
-                          onChange={(event) => setNotes(event.target.value)}
-                          placeholder="Nhập lý do review hoặc bấm 'AI Dự thảo Ý kiến Thẩm tra' để tự động tạo theo chuẩn ISO 14064-3..."
-                        />
+                      <label className="block text-sm" htmlFor="review-notes-textarea">
+                        Lý do review
                       </label>
+                      <textarea
+                        id="review-notes-textarea"
+                        aria-label="Lý do review"
+                        required
+                        minLength={10}
+                        maxLength={4000}
+                        className="mt-2 min-h-24 w-full rounded-md border bg-background p-2 text-sm leading-relaxed"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        placeholder="Nhập lý do review & kết luận thẩm định, hoặc bấm 'AI Dự thảo Ý kiến Thẩm tra' để tạo theo chuẩn ISO 14064-3..."
+                      />
 
                       <Button type="submit" disabled={decision === "approved" && !canApprove}>
                         {busy ? "Đang lưu…" : "Lưu review"}
