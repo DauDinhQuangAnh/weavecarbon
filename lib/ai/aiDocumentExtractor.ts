@@ -89,7 +89,7 @@ export async function extractDocumentWithContext(
       if (field.key === 'intensityKgCo2e' && raw.carbon_intensity != null) mappedFields.intensityKgCo2e = raw.carbon_intensity;
       if (field.key === 'grossKgCo2e' && raw.total_emissions_kg != null) mappedFields.grossKgCo2e = raw.total_emissions_kg;
       if (field.key === 'batchSize' && raw.batch_quantity != null) mappedFields.batchSize = raw.batch_quantity;
-      if (field.key === 'quantityTco2e' && raw.allocated_quota_tco2e != null) mappedFields.quantityTco2e = raw.allocated_quota_tco2e;
+      if (field.key === 'allocatedQuota' && raw.allocated_quota_tco2e != null) mappedFields.allocatedQuota = raw.allocated_quota_tco2e;
       if (field.key === 'latitude' && (raw.lat != null || raw.vi_do != null || raw.coord_lat != null)) mappedFields.latitude = raw.lat ?? raw.vi_do ?? raw.coord_lat;
       if (field.key === 'longitude' && (raw.lng != null || raw.lon != null || raw.kinh_do != null || raw.coord_lng != null)) mappedFields.longitude = raw.lng ?? raw.lon ?? raw.kinh_do ?? raw.coord_lng;
       if (field.key === 'locationBasis' && (raw.location_name || raw.dia_chi || raw.address || raw.land_title_no)) mappedFields.locationBasis = raw.location_name || raw.dia_chi || raw.address || raw.land_title_no;

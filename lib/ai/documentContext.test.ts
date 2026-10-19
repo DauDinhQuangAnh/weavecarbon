@@ -119,9 +119,9 @@ describe('documentContext Schema & Quality Contracts', () => {
 
   it('verifies allowance_quota specific schema and presets', () => {
     const quotaConfig = DOCUMENT_CONTEXTS.allowance_quota;
-    expect(quotaConfig.expectedFields.some((f) => f.key === 'quantityTco2e')).toBe(true);
+    expect(quotaConfig.expectedFields.some((f) => f.key === 'allocatedQuota')).toBe(true);
     expect(quotaConfig.expectedFields.some((f) => f.key === 'vintageYear')).toBe(true);
-    expect(quotaConfig.samplePresets.some((p) => p.data.quantityTco2e === 45000)).toBe(true);
+    expect(quotaConfig.samplePresets.some((p) => p.data.allocatedQuota === 45000)).toBe(true);
   });
 });
 

@@ -699,7 +699,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                     ...prev,
                     allocationReference: String(data.allocationReference || prev.allocationReference),
                     reportingYear: data.reportingYear ? Number(data.reportingYear) : prev.reportingYear,
-                    quantityTco2e: data.quantityTco2e ? Number(data.quantityTco2e) : prev.quantityTco2e,
+                    quantityTco2e: data.allocatedQuota ? Number(data.allocatedQuota) : (data.quantityTco2e ? Number(data.quantityTco2e) : prev.quantityTco2e),
                     vintageYear: data.vintageYear ? Number(data.vintageYear) : prev.vintageYear,
                     instrumentType: (data.instrumentType as string) || prev.instrumentType,
                   }));

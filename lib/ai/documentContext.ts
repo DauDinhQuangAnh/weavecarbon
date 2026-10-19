@@ -871,7 +871,7 @@ export const DOCUMENT_CONTEXTS: Record<DomainContextKey, DocumentContextConfig> 
     expectedFields: [
       { key: 'allocationReference', label: 'Mã phân bổ hạn ngạch', type: 'string', description: 'Mã số văn bản giao hạn ngạch' },
       { key: 'reportingYear', label: 'Năm kiểm kê', type: 'number', description: 'Năm áp dụng hạn ngạch' },
-      { key: 'quantityTco2e', label: 'Lượng hạn ngạch giao (tCO₂e)', type: 'number', description: 'Số tấn CO2 tương đương' },
+      { key: 'allocatedQuota', label: 'Lượng hạn ngạch giao (tCO₂e)', type: 'number', description: 'Số tấn CO2 tương đương' },
       { key: 'vintageYear', label: 'Năm Vintage', type: 'number', description: 'Năm phát hành quyền phát thải' },
       {
         key: 'instrumentType',
@@ -894,7 +894,7 @@ export const DOCUMENT_CONTEXTS: Record<DomainContextKey, DocumentContextConfig> 
         data: {
           allocationReference: 'QD-BTNMT-HN-2026-88',
           reportingYear: 2026,
-          quantityTco2e: 45000,
+          allocatedQuota: 45000,
           vintageYear: 2026,
           instrumentType: 'authority_quota',
         },
