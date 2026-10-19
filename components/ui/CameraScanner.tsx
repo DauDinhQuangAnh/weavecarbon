@@ -79,13 +79,17 @@ export default function CameraScanner({
   }, []);
 
   useEffect(() => {
+    let active = true;
     if (isOpen && !capturedPreview) {
-      startCamera();
+      void Promise.resolve().then(() => {
+        if (active) void startCamera();
+      });
     } else {
       stopCamera();
     }
 
     return () => {
+      active = false;
       stopCamera();
     };
   }, [isOpen, capturedPreview, startCamera, stopCamera]);
