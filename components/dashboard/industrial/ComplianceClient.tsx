@@ -207,8 +207,8 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
       reload={query.reload}
     >
       {/* 1. Header KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card className="border-border/60 shadow-sm bg-gradient-to-br from-card to-card/50">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 motion-reveal">
+        <Card className="border-border shadow-sm glass-card interactive-surface">
           <CardHeader className="pb-2">
             <CardDescription className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
               Độ sẵn sàng tổng thể
@@ -283,7 +283,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* 2. Framework Selector Ribbon */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6 motion-reveal">
         {FRAMEWORK_DEFINITIONS.map((item) => {
           const isSelected = activeFw === item.id;
           const fwAssessment = customAssessments[item.id];
@@ -293,10 +293,10 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
             <button
               key={item.id}
               onClick={() => setActiveFw(item.id as FrameworkType)}
-              className={`text-left p-3.5 rounded-xl border transition-all duration-200 relative overflow-hidden ${
+              className={`text-left p-3.5 rounded-xl border transition-all duration-200 relative overflow-hidden interactive-surface ${
                 isSelected
-                  ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
-                  : "border-border/70 bg-card hover:border-primary/40 hover:bg-accent/40"
+                  ? "border-primary bg-secondary/80 shadow-sm ring-1 ring-primary font-medium"
+                  : "border-border/70 bg-card hover:border-primary/40 hover:bg-muted/40"
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
@@ -320,7 +320,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* 3. AI Copilot Action Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/[0.03] mb-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/[0.03] mb-6 glass-panel motion-reveal">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-primary/10 text-primary">
             <Sparkles className="h-5 w-5" />

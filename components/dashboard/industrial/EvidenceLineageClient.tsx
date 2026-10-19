@@ -336,7 +336,7 @@ ${opinionDraft.opinionTitle}
             data && (
               <>
                 {/* 1. Forensic AI Action Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 glass-panel motion-reveal">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Sparkles className="h-5 w-5" />
@@ -466,11 +466,11 @@ ${opinionDraft.opinionTitle}
                             meta: item.meta,
                           })
                         }
-                        className={`rounded-lg border p-3 text-left transition-all hover:scale-[1.02] cursor-pointer ${
+                        className={`rounded-lg border p-3 text-left transition-all interactive-surface cursor-pointer ${
                           selectedNode?.title === item.title
-                            ? "border-primary ring-2 ring-primary/20 bg-primary/10"
+                            ? "border-primary ring-2 ring-primary/20 bg-secondary"
                             : item.active
-                            ? "border-primary/40 bg-primary/5 hover:bg-primary/10"
+                            ? "border-primary/40 bg-secondary/40 hover:bg-secondary/70"
                             : "border-border bg-muted/30 opacity-70"
                         }`}
                       >

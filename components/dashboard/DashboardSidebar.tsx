@@ -43,6 +43,7 @@ import { Button } from "@/components/ui/button";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import { Company, Profile } from "@/types/app.type";
 import { PROTECTED_MENU_ITEMS, SIDEBAR_GROUPS, canShowNavigation } from "@/lib/dashboard/navigation";
+import ScrollExperience from "@/components/design-system/ScrollExperience";
 
 interface DashboardSidebarProps {
   company: Company | null;
@@ -133,14 +134,15 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       title={item.labelKey ? t(item.labelKey) : item.label}
       aria-current={active ? "page" : undefined}
       onClick={(event) => { if (active) { event.preventDefault(); return; } handleSidebarNavigate(); }}
-      className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${nested && sidebarOpen ? "pl-7" : ""} ${active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-      <Icon className="h-5 w-5 shrink-0" />
-      {sidebarOpen && <span className="text-sm font-medium">{item.labelKey ? t(item.labelKey) : item.label}</span>}
+      className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${nested && sidebarOpen ? "pl-7" : ""} ${active ? "bg-secondary text-secondary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+      <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+      {sidebarOpen && <span className="text-sm">{item.labelKey ? t(item.labelKey) : item.label}</span>}
     </Link>;
   };
 
   return (
     <>
+      <ScrollExperience />
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -155,8 +157,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       >
         <div className="border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-4">
           <Link prefetch={false} href={homeHref} className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-forest">
-              <Leaf className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#17260D]">
+              <Leaf className="h-5 w-5 text-[#8EB46E]" />
             </div>
             {sidebarOpen && (
               <span className="truncate font-display font-bold text-foreground">
@@ -173,7 +175,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             const Icon = icons[group.icon];
             return <div key={group.id} className="w-full max-w-[11.25rem] border-t border-border/60 pt-2">
               {sidebarOpen && <button type="button" aria-expanded={open} aria-controls={`navigation-${group.id}`}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:bg-muted"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted"
                 onClick={() => setExpandedGroups((previous) => open ? previous.filter((id) => id !== group.id) : [...previous, group.id])}>
                 <Icon className="h-4 w-4 shrink-0" /><span className="flex-1">{group.label}</span><ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
               </button>}
@@ -198,8 +200,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           {isDemoSession ? (
             <div className={sidebarOpen ? "space-y-3" : "flex justify-center"}>
               {sidebarOpen && (
-                <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">
                     Demo mode
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-900">
