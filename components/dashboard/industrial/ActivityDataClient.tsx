@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
+  Camera,
   CheckCircle2,
   Download,
   Plus,
@@ -21,6 +22,13 @@ import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { analyzeActivityAnomalies, type ActivityAnomalyResult } from "@/lib/ai/carbonDataAiService";
 import { sha256CanonicalJson } from "@/lib/industrialOperations";
 import { AiDocumentImportModal } from "@/components/ui/AiDocumentImportModal";
+import CameraScanner from "@/components/ui/CameraScanner";
+import {
+  DATA_QUALITY_LADDER,
+  normalizeDataQualityTier,
+  calculateDatasetDqi,
+  type DataQualityTier,
+} from "@/lib/design-system/dataQualityLadder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +68,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
   const [dqlFilter, setDqlFilter] = useState<string>("all");
   const [facilityFilter, setFacilityFilter] = useState<string>("all");
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [anomalyResult, setAnomalyResult] = useState<ActivityAnomalyResult | null>(null);
@@ -127,6 +136,19 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
     }));
     setShowAddModal(true);
     toast.success("Đã nạp dữ liệu trích xuất từ AI vào biểu mẫu.");
+  };
+
+  // Handle Camera Scanner capture
+  const handleCameraCaptured = (imageData: string) => {
+    setShowCamera(false);
+    toast.success("Đã chụp ảnh chứng từ thành công. Đang liên kết vào dữ liệu hoạt động...");
+    setForm((prev) => ({
+      ...prev,
+      activityReference: `ACT-CAM-${Date.now().toString().slice(-4)}`,
+      sourceKind: "meter",
+      dataQualityLevel: "L3",
+    }));
+    setShowAddModal(true);
   };
 
   // Submit manual/demo activity
@@ -228,7 +250,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
       }
 
       // DQL filter
-      if (dqlFilter !== "all" && act.dataQualityLevel !== dqlFilter) return false;
+      if (dqlFilter !== "all" && normalizeDataQualityTier(act.dataQualityLevel) !== dqlFilter) return false;
 
       // Facility filter
       if (facilityFilter !== "all" && act.facilityRevisionId !== facilityFilter) return false;
@@ -237,11 +259,13 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
     });
   }, [activities, search, scopeFilter, dqlFilter, facilityFilter, showAnomaliesOnly, anomalyResult]);
 
+  // Data Quality Index (DQI) according to Section 13 Data Quality Ladder
+  const dqiStats = useMemo(() => calculateDatasetDqi(activities), [activities]);
+
   // Aggregate stats
   const stats = useMemo(() => {
     let s1 = 0;
     let s2 = 0;
-    let highQuality = 0;
     activities.forEach((act) => {
       const q = Number(act.quantity) || 0;
       const type = act.activityType.toLowerCase();
@@ -250,10 +274,8 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
       } else if (type.includes("electricity") || type.includes("steam") || type.includes("grid")) {
         s2 += q;
       }
-      if (act.dataQualityLevel === "L1" || act.dataQualityLevel === "L2") highQuality++;
     });
-    const primaryRatio = activities.length ? Math.round((highQuality / activities.length) * 100) : 0;
-    return { s1, s2, primaryRatio };
+    return { s1, s2 };
   }, [activities]);
 
   const downloadCsv = () => {
@@ -335,11 +357,27 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         </Card>
 
         <Card className="border-border bg-card p-4">
-          <span className="text-xs font-medium text-muted-foreground">Tỷ lệ dữ liệu sơ cấp (L1-L2)</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Chỉ số chất lượng DQI</span>
+            <Badge
+              variant="outline"
+              className={`text-[10px] font-semibold ${
+                dqiStats.overallDqi >= 75
+                  ? "text-emerald-700 border-emerald-300 bg-emerald-50"
+                  : dqiStats.overallDqi >= 50
+                  ? "text-blue-700 border-blue-300 bg-blue-50"
+                  : "text-amber-700 border-amber-300 bg-amber-50"
+              }`}
+            >
+              {dqiStats.overallDqi >= 75 ? "Tin cậy cao" : dqiStats.overallDqi >= 50 ? "Khá (L2-L3)" : "Cần đối soát"}
+            </Badge>
+          </div>
           <p className="mt-1 text-2xl font-bold text-emerald-600">
-            {stats.primaryRatio}%
+            {dqiStats.overallDqi} <span className="text-xs font-normal text-muted-foreground">/ 100</span>
           </p>
-          <span className="text-[11px] text-muted-foreground">Độ tin cậy kiểm toán cao</span>
+          <span className="text-[11px] text-muted-foreground">
+            {dqiStats.tierDistribution.L3 + dqiStats.tierDistribution.L4 + dqiStats.tierDistribution.L5} / {activities.length || 0} bản ghi có chứng từ bảo chứng
+          </span>
         </Card>
       </div>
 
@@ -367,6 +405,16 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
           >
             <Activity className="h-3.5 w-3.5 mr-1.5" />
             {analyzingAi ? "Đang quét dị thường…" : "Phân tích dị thường bằng AI"}
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCamera(true)}
+            className="border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 text-xs font-medium"
+          >
+            <Camera className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+            Chụp chứng từ (Camera)
           </Button>
 
           <Button
@@ -478,11 +526,12 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
             className="h-9 rounded-md border border-input bg-background px-3 text-xs"
           >
             <option value="all">Tất cả cấp DQL</option>
-            <option value="L1">L1 · Sơ cấp (Công tơ/IoT)</option>
-            <option value="L2">L2 · Hóa đơn đối soát</option>
-            <option value="L3">L3 · Tự khai báo NCC</option>
-            <option value="L4">L4 · Hệ số bình quân</option>
-            <option value="L5">L5 · Ước tính toàn cầu</option>
+            <option value="L0">L0 · Thiếu dữ liệu (Missing)</option>
+            <option value="L1">L1 · Dữ liệu ước lượng / Proxy</option>
+            <option value="L2">L2 · Tự khai báo (Self-reported)</option>
+            <option value="L3">L3 · Có chứng từ bảo chứng (Evidence-backed)</option>
+            <option value="L4">L4 · Đã đối soát chéo (Reconciled)</option>
+            <option value="L5">L5 · Thẩm tra độc lập (Verified)</option>
           </select>
 
           {facilities.length > 1 && (
@@ -541,6 +590,8 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
               <tbody className="divide-y divide-border">
                 {filteredActivities.map((act) => {
                   const isSpike = anomalyResult?.outliers.some((o) => o.activityId === act.id);
+                  const tier = normalizeDataQualityTier(act.dataQualityLevel);
+                  const dqlDef = DATA_QUALITY_LADDER[tier];
                   return (
                     <tr
                       key={act.id}
@@ -572,17 +623,23 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                         </span>
                       </td>
                       <td className="p-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                            act.dataQualityLevel === "L1" || act.dataQualityLevel === "L2"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : act.dataQualityLevel === "L3"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {act.dataQualityLevel}
-                        </span>
+                        <div className="space-y-0.5">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border ${dqlDef.badgeClass}`}
+                            title={dqlDef.descriptionVi}
+                          >
+                            <span>{tier}</span>
+                            <span className="hidden sm:inline font-normal text-[9px] opacity-85">
+                              · {dqlDef.labelVi.replace(`${tier} `, "")}
+                            </span>
+                          </span>
+                          <div
+                            className="text-[10px] text-muted-foreground truncate max-w-[170px]"
+                            title={dqlDef.nextActionVi}
+                          >
+                            💡 {dqlDef.nextActionVi}
+                          </div>
+                        </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
                         <Link
@@ -612,6 +669,14 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         contextKey="activity"
         onApply={handleApplyAiData}
         demo={demo}
+      />
+
+      {/* 6.1 Camera Scanner Modal (Section 28 Mobile/Camera Spec) */}
+      <CameraScanner
+        isOpen={showCamera}
+        onClose={() => setShowCamera(false)}
+        onCapture={handleCameraCaptured}
+        language="vi"
       />
 
       {/* 7. Manual Add / Review Activity Modal */}
@@ -745,11 +810,11 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                   onChange={(e) => setForm({ ...form, dataQualityLevel: e.target.value as typeof form.dataQualityLevel })}
                   className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
                 >
-                  <option value="L1">L1 · Sơ cấp trực tiếp</option>
-                  <option value="L2">L2 · Có hóa đơn kiểm toán</option>
-                  <option value="L3">L3 · Tự khai báo</option>
-                  <option value="L4">L4 · Hệ số proxy</option>
-                  <option value="L5">L5 · Ước tính bình quân</option>
+                  <option value="L1">L1 · Dữ liệu ước lượng / Proxy</option>
+                  <option value="L2">L2 · Tự khai báo (Chưa chứng từ)</option>
+                  <option value="L3">L3 · Có chứng từ bảo chứng (Hóa đơn/Biên bản)</option>
+                  <option value="L4">L4 · Đã đối soát chéo (Công tơ/Sản lượng)</option>
+                  <option value="L5">L5 · Thẩm tra độc lập (Bên thứ ba)</option>
                 </select>
               </div>
             </div>

@@ -38,6 +38,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import {
+  DATA_QUALITY_LADDER,
+  normalizeDataQualityTier,
+} from "@/lib/design-system/dataQualityLadder";
 
 const PROCESS_TYPE_SUGGESTIONS = [
   { label: "Sản xuất chính", value: "production" },
@@ -645,35 +649,55 @@ export default function FacilityProcessClient({
                         {/* Linked Activities Expanded Box */}
                         {isExpanded && linkedActivities.length > 0 && (
                           <div className="mt-3 rounded-lg border border-border/70 bg-muted/20 p-3 text-xs space-y-2">
-                            <p className="font-semibold text-foreground">
-                              Danh sách hoạt động phát sinh tại quy trình này:
-                            </p>
-                            <div className="divide-y divide-border/60">
-                              {linkedActivities.map((act) => (
-                                <div key={act.id} className="py-1.5 flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono text-primary font-medium">
-                                      {act.activityReference}
-                                    </span>
-                                    <span className="text-muted-foreground">({act.activityType})</span>
-                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                                      {act.dataQualityLevel}
-                                    </Badge>
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="font-semibold text-foreground">
-                                      {act.quantity.toLocaleString("vi-VN")} {act.canonicalUnit}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-foreground">
+                                Trục dữ liệu: Quy trình → Hoạt động phát thải liên kết
+                              </p>
+                              <span className="text-[10px] text-muted-foreground">
+                                {linkedActivities.length} bản ghi
+                              </span>
                             </div>
-                            <div className="pt-2 flex justify-end">
+                            <div className="divide-y divide-border/60">
+                              {linkedActivities.map((act) => {
+                                const tier = normalizeDataQualityTier(act.dataQualityLevel);
+                                const dqlDef = DATA_QUALITY_LADDER[tier];
+                                return (
+                                  <div key={act.id} className="py-2 flex flex-wrap items-center justify-between gap-2">
+                                    <div className="space-y-0.5">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-primary font-medium">
+                                          {act.activityReference}
+                                        </span>
+                                        <span className="text-muted-foreground">({act.activityType})</span>
+                                        <span
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] border ${dqlDef.badgeClass}`}
+                                          title={dqlDef.descriptionVi}
+                                        >
+                                          {tier} · {dqlDef.labelVi.replace(`${tier} `, "")}
+                                        </span>
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground">
+                                        💡 {dqlDef.nextActionVi}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="font-semibold text-foreground">
+                                        {act.quantity.toLocaleString("vi-VN")} {act.canonicalUnit}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="pt-2 flex items-center justify-between border-t border-border/40">
+                              <span className="text-[10px] text-muted-foreground">
+                                Liên kết đầy đủ với Chứng từ & Bằng chứng kiểm toán
+                              </span>
                               <Link
                                 href={routes.toAppPath("/activity-data")}
-                                className="inline-flex items-center text-[11px] text-primary hover:underline"
+                                className="inline-flex items-center text-[11px] font-medium text-primary hover:underline"
                               >
-                                Mở trang Dữ liệu hoạt động <ArrowRight className="h-3 w-3 ml-1" />
+                                Mở Sổ cái Dữ liệu hoạt động <ArrowRight className="h-3 w-3 ml-1" />
                               </Link>
                             </div>
                           </div>

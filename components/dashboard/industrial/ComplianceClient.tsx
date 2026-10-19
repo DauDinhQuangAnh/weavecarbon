@@ -166,6 +166,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
   };
 
   const handleExportDossier = () => {
+    const hasUnresolvedGaps = currentAssessment.checklist.some((c) => c.status !== "pass");
     const dossier = {
       title: "WEAVECARBON COMPLIANCE READINESS DOSSIER",
       generatedAt: new Date().toISOString(),
@@ -174,7 +175,16 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
       frameworkAssessed: currentAssessment.frameworkName,
       readinessScorePercent: currentAssessment.readinessScore,
       status: currentAssessment.status,
+      documentClassification: hasUnresolvedGaps
+        ? "DRAFT_WITH_UNRESOLVED_GAPS"
+        : "AUDIT_READY_DOSSIER",
+      claimSafetyStatement: hasUnresolvedGaps
+        ? "BẢN THẢO NỘI BỘ (DRAFT) — CÒN KHOẢNG TRỐNG DỮ LIỆU CHƯA ĐỐI SOÁT. KHÔNG PHẢI CHỨNG THƯ THẨM TRA ĐỘC LẬP THEO ISO 14064-3 / NĐ 06/2022/NĐ-CP."
+        : "HỒ SƠ ĐÃ SẴN SÀNG CHO ĐOÀN THẨM TRA ĐỘC LẬP BÊN THỨ BA (THIRD-PARTY VERIFICATION BODY).",
+      claimSafetyWarning:
+        "Calculated ≠ Verified. Số liệu phát thải tính toán từ sổ cái hoạt động nội bộ của doanh nghiệp, không tự cấp quyền miễn trừ trách nhiệm pháp lý hoặc khẳng định đã đạt Net Zero.",
       checklistAuditSummary: currentAssessment.checklist,
+      unresolvedGaps: currentAssessment.checklist.filter((c) => c.status !== "pass"),
       remediationRoadmap: currentAssessment.roadmap,
       truthBoundaryDeclaration: query.data?.truthBoundary || "Operational boundary bound to verified tenant ledger."
     };
@@ -183,12 +193,16 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Compliance_Readiness_Dossier_${activeFw}_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `${hasUnresolvedGaps ? "DRAFT_GAPS_" : ""}Compliance_Dossier_${activeFw}_${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Đã xuất Hồ sơ Mức độ Sẵn sàng Tuân thủ (JSON)");
+    if (hasUnresolvedGaps) {
+      toast.warning("Đã xuất Dossier dạng BẢN THẢO (kèm cảnh báo còn khoảng trống kiểm toán).");
+    } else {
+      toast.success("Đã xuất Hồ sơ Mức độ Sẵn sàng Tuân thủ (JSON)");
+    }
   };
 
   const selectedDef = FRAMEWORK_DEFINITIONS.find((f) => f.id === activeFw)!;
@@ -280,6 +294,31 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Claim Safety & Disclosure Notice (Section 4 & 14) */}
+      <div className="rounded-xl border border-amber-300/80 bg-amber-50/60 dark:border-amber-700/60 dark:bg-amber-950/30 p-3.5 mb-6 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
+        <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold uppercase tracking-wider text-[11px] text-amber-900 dark:text-amber-300">
+              Quy chuẩn Claim Safety: Calculated ≠ Verified
+            </span>
+            <Badge
+              variant="outline"
+              className={`text-[10px] font-mono ${
+                currentAssessment.status === "ready"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                  : "bg-amber-100 text-amber-800 border-amber-300"
+              }`}
+            >
+              {currentAssessment.status === "ready" ? "Sẵn sàng Thẩm tra" : "Bản thảo · Còn khoảng trống dữ liệu"}
+            </Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Dữ liệu phát thải trong hệ thống phản ánh tính toán sơ bộ từ hồ sơ tự khai báo của doanh nghiệp. Để phục vụ công bố trung hòa carbon, CBAM hay dán nhãn xanh quốc tế, doanh nghiệp cần đối soát với chứng từ gốc (L3+) và tiến hành thẩm định độc lập bởi tổ chức được công nhận (L5).
+          </p>
+        </div>
       </div>
 
       {/* 2. Framework Selector Ribbon */}

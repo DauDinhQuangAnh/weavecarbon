@@ -30,6 +30,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
+import {
+  DATA_QUALITY_LADDER,
+  normalizeDataQualityTier,
+} from "@/lib/design-system/dataQualityLadder";
 
 type GraphNodeType = "evidence" | "point" | "activity" | "factor" | "process" | "report";
 
@@ -82,6 +86,9 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
   const lineage = useIndustrialWorkspaceQuery(loadLineage, demo);
   const data = lineage.data?.activity.id === activityId ? lineage.data : null;
 
+  const dqlTier = data ? normalizeDataQualityTier(data.activity.dataQualityLevel) : "L2";
+  const dqlDef = DATA_QUALITY_LADDER[dqlTier];
+
   const flowItems: FlowItem[] = data
     ? [
         {
@@ -115,9 +122,11 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
           type: "activity",
           meta: {
             "Mã hoạt động": data.activity.activityReference,
-            "Sản lượng": `${data.activity.quantity} ${data.activity.canonicalUnit}`,
+            "Sản lượng": `${Number(data.activity.quantity).toLocaleString("vi-VN")} ${data.activity.canonicalUnit}`,
             "Mã nguồn SHA-256": data.activity.sourceSha256 || "Chưa có",
-            "Cấp DQL": data.activity.dataQualityLevel,
+            "Cấp chất lượng DQL": `${dqlTier} · ${dqlDef.labelVi}`,
+            "Điểm tin cậy": `${dqlDef.trustScore} / 100`,
+            "Hành động nâng chuẩn": dqlDef.nextActionVi,
           },
         },
         {
@@ -145,12 +154,13 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
         {
           step: "6",
           title: demo ? "Phép tính" : "Báo cáo & Kiểm toán",
-          desc: demo ? "Chưa liên kết báo cáo cho hoạt động" : `Cấp độ ${data.activity.dataQualityLevel}`,
+          desc: demo ? "Chưa liên kết báo cáo cho hoạt động" : `Cấp độ ${dqlTier}`,
           active: !demo,
           type: "report",
           meta: {
-            "Mức chất lượng": data.activity.dataQualityLevel,
+            "Cấp chất lượng": `${dqlTier} · ${dqlDef.labelVi}`,
             "Trạng thái thẩm tra": data.latestReview ? data.latestReview.decision : "Chờ thẩm định",
+            "Nguyên tắc Claim Safety": dqlDef.isAudited ? "Đã thẩm định độc lập" : "Calculated ≠ Verified (Cần L5)",
           },
         },
       ]
