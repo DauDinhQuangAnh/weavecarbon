@@ -19,6 +19,7 @@ import {
   Sliders,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -421,8 +422,28 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
 
       <Card className="border border-slate-200/80 shadow-xs">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-lg font-bold text-slate-900">{t("pilotTitle")}</CardTitle>
-          <CardDescription className="text-slate-600">{t("pilotDescription")}</CardDescription>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-900">{t("pilotTitle")}</CardTitle>
+              <CardDescription className="text-slate-600 mt-0.5">{t("pilotDescription")}</CardDescription>
+            </div>
+            <DataEntryScanTrigger
+              contextKey="production_batch"
+              demo={demo}
+              disabled={demo}
+              variant="dialog_header"
+              fileButtonLabel="Quét Lô sản xuất / Báo cáo LCA"
+              cameraButtonLabel="Chụp nhãn lô"
+              onApply={(data) => {
+                setForm((prev) => ({
+                  ...prev,
+                  studyReference: (data.studyReference as string) || prev.studyReference,
+                  productReference: (data.productReference as string) || (data.batchReference as string) || prev.productReference,
+                  outputTonnes: data.outputTonnes != null ? Number(data.outputTonnes) : prev.outputTonnes,
+                }));
+              }}
+            />
+          </div>
         </CardHeader>
         <CardContent className="pt-5">
           <form className="space-y-5" onSubmit={submit}>

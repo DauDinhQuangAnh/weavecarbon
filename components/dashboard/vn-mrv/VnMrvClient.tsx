@@ -20,7 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,7 +89,17 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
   const [loading, setLoading] = useState(!demo);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAiImport, setShowAiImport] = useState(false);
+
+  const handleApplyVnMrvAi = (fields: Record<string, unknown>) => {
+    setCaseForm((prev) => ({
+      ...prev,
+      caseReference: (fields.caseReference as string) || prev.caseReference,
+      applicabilityStatus: (fields.applicabilityStatus as string) || prev.applicabilityStatus,
+      listingReference: (fields.listingReference as string) || prev.listingReference,
+      sector: (fields.sector as string) || prev.sector,
+      rationale: (fields.rationale as string) || prev.rationale,
+    }));
+  };
 
   const [showObligationModal, setShowObligationModal] = useState(false);
   const [diagElectricity, setDiagElectricity] = useState<number>(3800000);
@@ -580,17 +590,15 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                   AI Tính Ngưỡng Bắt buộc (QĐ 13)
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAiImport(true)}
+                <DataEntryScanTrigger
+                  contextKey="vn_mrv"
+                  demo={demo}
                   disabled={(!demo && isViewer) || saving}
-                  className="h-8 border-amber-300 bg-amber-50 text-xs font-medium text-amber-900 hover:bg-amber-100 flex items-center gap-1.5 transition-colors"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                  Quét AI Quyết định MRV
-                </Button>
+                  variant="dialog_header"
+                  fileButtonLabel="Quét Quyết định / MRV AI"
+                  cameraButtonLabel="Chụp văn bản"
+                  onApply={handleApplyVnMrvAi}
+                />
               </div>
             </div>
           </CardHeader>
@@ -1038,20 +1046,6 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
           <p className="text-xs text-muted-foreground leading-relaxed">{t("legalNotice")}</p>
         </CardContent>
       </Card>
-
-      <AiDocumentImportModal
-        open={showAiImport}
-        onOpenChange={setShowAiImport}
-        contextKey="vn_mrv"
-        demo={demo}
-        onApply={(fields) => {
-          setCaseForm((prev) => ({
-            ...prev,
-            caseReference: (fields.caseReference as string) || prev.caseReference,
-            applicabilityStatus: (fields.applicabilityStatus as string) || prev.applicabilityStatus,
-          }));
-        }}
-      />
 
       {/* Dialog 1: AI Obligation Diagnostic Modal */}
       <Dialog open={showObligationModal} onOpenChange={setShowObligationModal}>

@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import ActivityOperationsPanel from "@/components/dashboard/carbon-operations/ActivityOperationsPanel";
-import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "@/hooks/useToast";
 import { isApiError } from "@/lib/apiClient";
@@ -147,7 +147,6 @@ export default function CarbonOperationsClient({
   const [allocationDrivers, setAllocationDrivers] = useState<
     Record<string, string>
   >({});
-  const [aiModalContext, setAiModalContext] = useState<"facility" | "process" | null>(null);
 
   // Interactive What-If Simulation Sandbox State
   const [whatIfSolarPct, setWhatIfSolarPct] = useState(25);
@@ -857,17 +856,24 @@ export default function CarbonOperationsClient({
                       <Plus className="h-4 w-4 text-emerald-600" />
                       {t("facilityFormTitle")}
                     </CardTitle>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAiModalContext("facility")}
+                    <DataEntryScanTrigger
+                      contextKey="facility"
+                      demo={demo}
                       disabled={!canWrite}
-                      className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                      Quét AI Hồ sơ Cơ sở
-                    </Button>
+                      variant="dialog_header"
+                      fileButtonLabel="Quét AI Hồ sơ Cơ sở"
+                      cameraButtonLabel="Chụp cơ sở"
+                      onApply={(fields) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          facilityReference: (fields.facilityReference as string) || (fields.reference as string) || prev.facilityReference,
+                          name: (fields.name as string) || prev.name,
+                          countryCode: (fields.countryCode as string) || prev.countryCode,
+                          timezone: (fields.timezone as string) || prev.timezone,
+                          boundaryNotes: (fields.boundaryNotes as string) || (fields.boundary as string) || prev.boundaryNotes,
+                        }));
+                      }}
+                    />
                   </div>
                   <CardDescription className="text-xs text-slate-500">
                     {demo ? t("demoReadOnly") : t("facilityFormDescription")}
@@ -1035,17 +1041,22 @@ export default function CarbonOperationsClient({
                         {t("processFormTitle")}
                       </CardTitle>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAiModalContext("process")}
+                    <DataEntryScanTrigger
+                      contextKey="process"
+                      demo={demo}
                       disabled={!canWrite}
-                      className="h-8 border-teal-300 bg-teal-50 text-xs font-medium text-teal-800 hover:bg-teal-100 flex items-center gap-1.5 transition-colors"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-teal-600" />
-                      Quét AI Quy trình SOP
-                    </Button>
+                      variant="dialog_header"
+                      fileButtonLabel="Quét AI Quy trình SOP"
+                      cameraButtonLabel="Chụp quy trình"
+                      onApply={(fields) => {
+                        setProcessForm((prev) => ({
+                          ...prev,
+                          processReference: (fields.processReference as string) || (fields.reference as string) || prev.processReference,
+                          name: (fields.name as string) || prev.name,
+                          processType: (fields.processType as string) || prev.processType,
+                        }));
+                      }}
+                    />
                   </div>
                   <CardDescription className="text-xs text-slate-500">
                     {t("processFormDescription")}
@@ -1151,11 +1162,28 @@ export default function CarbonOperationsClient({
 
               <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Gauge className="h-4 w-4 text-emerald-600" />
-                    <CardTitle className="text-base font-bold text-slate-900">
-                      {t("pointFormTitle")}
-                    </CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-emerald-600" />
+                      <CardTitle className="text-base font-bold text-slate-900">
+                        {t("pointFormTitle")}
+                      </CardTitle>
+                    </div>
+                    <DataEntryScanTrigger
+                      contextKey="iot_meter"
+                      demo={demo}
+                      disabled={!canWrite}
+                      variant="dialog_header"
+                      fileButtonLabel="Quét tem đồng hồ AI"
+                      cameraButtonLabel="Chụp công tơ"
+                      onApply={(fields) => {
+                        setPointForm((prev) => ({
+                          ...prev,
+                          measurementPointReference: (fields.hierarchyReference as string) || (fields.meterModel as string) || prev.measurementPointReference,
+                          canonicalUnit: (fields.canonicalUnit as string) || (fields.ctRatio ? "kWh" : prev.canonicalUnit),
+                        }));
+                      }}
+                    />
                   </div>
                   <CardDescription className="text-xs text-slate-500">
                     {t("pointFormDescription")}
@@ -1667,33 +1695,6 @@ export default function CarbonOperationsClient({
           </>
         )
       )}
-      <AiDocumentImportModal
-        open={aiModalContext !== null}
-        onOpenChange={(open) => {
-          if (!open) setAiModalContext(null);
-        }}
-        contextKey={aiModalContext || "facility"}
-        demo={demo}
-        onApply={(fields) => {
-          if (aiModalContext === "facility") {
-            setForm((prev) => ({
-              ...prev,
-              facilityReference: (fields.reference as string) || prev.facilityReference,
-              name: (fields.name as string) || prev.name,
-              timezone: (fields.timezone as string) || prev.timezone,
-              boundaryNotes: (fields.boundary as string) || prev.boundaryNotes,
-            }));
-          } else if (aiModalContext === "process") {
-            setProcessForm((prev) => ({
-              ...prev,
-              processReference: (fields.reference as string) || prev.processReference,
-              name: (fields.name as string) || prev.name,
-              processType: (fields.processType as string) || prev.processType,
-            }));
-          }
-          setAiModalContext(null);
-        }}
-      />
     </main>
   );
 }

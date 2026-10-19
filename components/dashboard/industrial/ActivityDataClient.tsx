@@ -21,8 +21,7 @@ import { workspaceCanWrite, csvText } from "@/lib/dashboard/industrialWorkspace"
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { analyzeActivityAnomalies, type ActivityAnomalyResult } from "@/lib/ai/carbonDataAiService";
 import { sha256CanonicalJson } from "@/lib/industrialOperations";
-import { AiDocumentImportModal } from "@/components/ui/AiDocumentImportModal";
-import CameraScanner from "@/components/ui/CameraScanner";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import {
   DATA_QUALITY_LADDER,
   normalizeDataQualityTier,
@@ -67,8 +66,6 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
   const [scopeFilter, setScopeFilter] = useState<string>("all");
   const [dqlFilter, setDqlFilter] = useState<string>("all");
   const [facilityFilter, setFacilityFilter] = useState<string>("all");
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [anomalyResult, setAnomalyResult] = useState<ActivityAnomalyResult | null>(null);
@@ -136,19 +133,6 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
     }));
     setShowAddModal(true);
     toast.success("Đã nạp dữ liệu trích xuất từ AI vào biểu mẫu.");
-  };
-
-  // Handle Camera Scanner capture
-  const handleCameraCaptured = (imageData: string) => {
-    setShowCamera(false);
-    toast.success("Đã chụp ảnh chứng từ thành công. Đang liên kết vào dữ liệu hoạt động...");
-    setForm((prev) => ({
-      ...prev,
-      activityReference: `ACT-CAM-${Date.now().toString().slice(-4)}`,
-      sourceKind: "meter",
-      dataQualityLevel: "L3",
-    }));
-    setShowAddModal(true);
   };
 
   // Submit manual/demo activity
@@ -407,24 +391,14 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
             {analyzingAi ? "Đang quét dị thường…" : "Phân tích dị thường bằng AI"}
           </Button>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowCamera(true)}
-            className="border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 text-xs font-medium"
-          >
-            <Camera className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
-            Chụp chứng từ (Camera)
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setShowAiModal(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-xs"
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            Quét Hóa đơn / Công tơ AI
-          </Button>
+          <DataEntryScanTrigger
+            contextKey="activity"
+            demo={demo}
+            variant="inline"
+            fileButtonLabel="Quét Hóa đơn / Công tơ AI"
+            cameraButtonLabel="Chụp chứng từ (Camera)"
+            onApply={handleApplyAiData}
+          />
 
           {canWrite && (
             <Button
@@ -662,23 +636,6 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         </div>
       )}
 
-      {/* 6. AI Document Scanner Modal */}
-      <AiDocumentImportModal
-        open={showAiModal}
-        onOpenChange={setShowAiModal}
-        contextKey="activity"
-        onApply={handleApplyAiData}
-        demo={demo}
-      />
-
-      {/* 6.1 Camera Scanner Modal (Section 28 Mobile/Camera Spec) */}
-      <CameraScanner
-        isOpen={showCamera}
-        onClose={() => setShowCamera(false)}
-        onCapture={handleCameraCaptured}
-        language="vi"
-      />
-
       {/* 7. Manual Add / Review Activity Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-lg">
@@ -688,6 +645,18 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
               Ghi nhận số lượng tiêu thụ năng lượng/nhiên liệu vào sổ cái carbon nội bộ.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+            <span className="text-xs text-muted-foreground font-medium">Trợ lý AI Scan & Nhận diện:</span>
+            <DataEntryScanTrigger
+              contextKey="activity"
+              demo={demo}
+              variant="dialog_header"
+              fileButtonLabel="Tệp hóa đơn"
+              cameraButtonLabel="Camera"
+              onApply={handleApplyAiData}
+            />
+          </div>
 
           <form onSubmit={handleSaveActivity} className="space-y-3 pt-2">
             <div className="space-y-1">

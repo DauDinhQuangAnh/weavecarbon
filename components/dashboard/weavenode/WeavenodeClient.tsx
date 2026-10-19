@@ -25,6 +25,7 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import {
   Dialog,
   DialogContent,
@@ -288,6 +289,26 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleApplyHierarchyAi = (data: Record<string, unknown>) => {
+    setHierarchyForm((prev) => {
+      let parentId = prev.parentMeasurementPointRevisionId;
+      let facilityId = prev.facilityRevisionId;
+      if (points.length > 0 && !parentId) {
+        parentId = points[0].id;
+        facilityId = points[0].facilityRevisionId;
+      }
+      return {
+        ...prev,
+        hierarchyReference: String(data.hierarchyReference || prev.hierarchyReference || `HIER-${Date.now().toString().slice(-4)}`),
+        relationKind: String(data.relationKind || prev.relationKind),
+        tolerancePercent: data.tolerancePercent != null ? String(data.tolerancePercent) : prev.tolerancePercent,
+        effectiveFrom: data.effectiveFrom ? String(data.effectiveFrom).slice(0, 16) : (prev.effectiveFrom || new Date().toISOString().slice(0, 16)),
+        parentMeasurementPointRevisionId: parentId,
+        facilityRevisionId: facilityId,
+      };
+    });
   };
 
   const saveHierarchy = (event: FormEvent) => {
@@ -677,11 +698,23 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="shadow-sm border-slate-200">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Layers className="h-5 w-5 text-cyan-600" />
-              {t("hierarchy")}
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500">{t("hierarchyDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-cyan-600" />
+                  {t("hierarchy")}
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500 mt-0.5">{t("hierarchyDescription")}</CardDescription>
+              </div>
+              <DataEntryScanTrigger
+                contextKey="iot_meter"
+                demo={demo}
+                variant="dialog_header"
+                fileButtonLabel="Quét SLD / Tem đồng hồ AI"
+                cameraButtonLabel="Chụp công tơ"
+                onApply={handleApplyHierarchyAi}
+              />
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <form className="grid gap-3 md:grid-cols-2" onSubmit={saveHierarchy}>

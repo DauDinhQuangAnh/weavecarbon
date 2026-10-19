@@ -22,7 +22,7 @@ import {
   TrendingDown,
   Lightbulb,
 } from "lucide-react";
-import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import {
   industrialCoreApi,
   type IndustrialActivity,
@@ -723,17 +723,24 @@ export default function FacilityProcessClient({
               </Badge>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAiImport(true)}
+            <DataEntryScanTrigger
+              contextKey={isFacility ? "facility" : "process"}
               disabled={!canWrite || busy}
-              className="w-full h-8 text-xs font-medium border-emerald-300 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300 flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              {isFacility ? "Quét AI từ Hồ sơ Cơ sở (PDF/Ảnh)" : "Quét AI từ Quy trình SOP (PDF/Ảnh)"}
-            </Button>
+              demo={demo}
+              variant="bar"
+              fileButtonLabel={isFacility ? "Quét Hồ sơ Cơ sở" : "Quét Quy trình SOP"}
+              cameraButtonLabel="Chụp Camera AI"
+              onApply={(data) => {
+                setForm((prev) => ({
+                  ...prev,
+                  reference: String(data.reference || prev.reference),
+                  name: String(data.name || prev.name),
+                  timezone: String(data.timezone || prev.timezone),
+                  boundary: String(data.boundary || prev.boundary),
+                  processType: String(data.processType || prev.processType),
+                }));
+              }}
+            />
 
             {demo ? (
               <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/50 leading-relaxed">
@@ -873,23 +880,6 @@ export default function FacilityProcessClient({
           </form>
         </aside>
       </div>
-
-      <AiDocumentImportModal
-        open={showAiImport}
-        onOpenChange={setShowAiImport}
-        contextKey={isFacility ? "facility" : "process"}
-        demo={demo}
-        onApply={(fields) => {
-          setForm((prev) => ({
-            ...prev,
-            reference: (fields.reference as string) || prev.reference,
-            name: (fields.name as string) || prev.name,
-            timezone: (fields.timezone as string) || prev.timezone,
-            boundary: (fields.boundary as string) || prev.boundary,
-            processType: (fields.processType as string) || prev.processType,
-          }));
-        }}
-      />
     </WorkspaceFrame>
   );
 }

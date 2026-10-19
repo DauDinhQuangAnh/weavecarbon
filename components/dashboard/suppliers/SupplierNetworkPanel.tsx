@@ -2,7 +2,7 @@
 
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Loader2, Network, Plus, ShieldCheck, Sparkles } from "lucide-react";
-import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -458,17 +458,25 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
               <DialogTitle>Tạo revision hồ sơ nhà cung ứng</DialogTitle>
               <DialogDescription>Mỗi thay đổi tạo một revision bất biến và yêu cầu bằng chứng đã khóa.</DialogDescription>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAiImport(true)}
+            <DataEntryScanTrigger
+              contextKey="supplier"
               disabled={saving}
-              className="h-8 border-violet-300 bg-violet-50 text-xs font-medium text-violet-800 hover:bg-violet-100 flex items-center gap-1.5 transition-colors"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
-              Quét AI từ Giấy ĐKKD / Hợp đồng
-            </Button>
+              demo={demo}
+              variant="dialog_header"
+              fileButtonLabel="Quét ĐKKD / Hợp đồng"
+              cameraButtonLabel="Chụp Camera AI"
+              onApply={(data) => {
+                setProfileForm((prev) => ({
+                  ...prev,
+                  supplierReference: String(data.supplierReference || prev.supplierReference),
+                  legalName: String(data.legalName || prev.legalName),
+                  tradingName: String(data.tradingName || data.legalName || prev.tradingName),
+                  countryCode: String(data.countryCode || prev.countryCode).toUpperCase().slice(0, 2),
+                  sector: String(data.sector || prev.sector),
+                  supplierTier: data.supplierTier ? String(data.supplierTier) : prev.supplierTier,
+                }));
+              }}
+            />
           </div>
         </DialogHeader>
         <form className="grid gap-3 md:grid-cols-2 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createProfile({ ...profileForm, supplierTier: Number(profileForm.supplierTier) }), () => { setProfileForm(emptyProfile); setOpenProfileDialog(false); }, () => {
@@ -508,8 +516,29 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
     <Dialog open={openSiteDialog} onOpenChange={setOpenSiteDialog}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Thêm địa điểm nhà cung ứng</DialogTitle>
-          <DialogDescription>Ghi nhận vị trí và tọa độ địa lý chính xác kèm chứng từ khóa.</DialogDescription>
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
+            <div>
+              <DialogTitle>Thêm địa điểm nhà cung ứng</DialogTitle>
+              <DialogDescription>Ghi nhận vị trí và tọa độ địa lý chính xác kèm chứng từ khóa.</DialogDescription>
+            </div>
+            <DataEntryScanTrigger
+              contextKey="climate_location"
+              disabled={saving}
+              demo={demo}
+              variant="dialog_header"
+              fileButtonLabel="Quét Bản đồ / Địa chính"
+              cameraButtonLabel="Chụp Camera AI"
+              onApply={(data) => {
+                setSiteForm((prev) => ({
+                  ...prev,
+                  latitude: data.latitude ? String(data.latitude) : prev.latitude,
+                  longitude: data.longitude ? String(data.longitude) : prev.longitude,
+                  precisionMeters: data.precisionMeters ? String(data.precisionMeters) : prev.precisionMeters,
+                  locationBasis: String(data.locationBasis || prev.locationBasis),
+                }));
+              }}
+            />
+          </div>
         </DialogHeader>
         <form className="grid gap-3 md:grid-cols-2 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createSite({ ...siteForm, latitude: Number(siteForm.latitude), longitude: Number(siteForm.longitude), precisionMeters: Number(siteForm.precisionMeters) }), () => { setSiteForm(emptySite); setOpenSiteDialog(false); }, () => {
           const newSite = demoSessionCache.addSupplierSite({
@@ -675,8 +704,34 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
     <Dialog open={openCarbonDialog} onOpenChange={setOpenCarbonDialog}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Cơ sở carbon bất biến</DialogTitle>
-          <DialogDescription>Ghi nhận phát thải Scope 1/2 và chất lượng dữ liệu nguồn.</DialogDescription>
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
+            <div>
+              <DialogTitle>Cơ sở carbon bất biến</DialogTitle>
+              <DialogDescription>Ghi nhận phát thải Scope 1/2 và chất lượng dữ liệu nguồn.</DialogDescription>
+            </div>
+            <DataEntryScanTrigger
+              contextKey="supplier_carbon"
+              disabled={saving}
+              demo={demo}
+              variant="dialog_header"
+              fileButtonLabel="Quét Báo cáo KNK / PCF"
+              cameraButtonLabel="Chụp Camera AI"
+              onApply={(data) => {
+                setCarbonForm((prev) => ({
+                  ...prev,
+                  reportingPeriodStart: data.reportingPeriodStart ? String(data.reportingPeriodStart) : prev.reportingPeriodStart,
+                  reportingPeriodEnd: data.reportingPeriodEnd ? String(data.reportingPeriodEnd) : prev.reportingPeriodEnd,
+                  grossKgCo2e: data.grossKgCo2e ? String(data.grossKgCo2e) : prev.grossKgCo2e,
+                  activityQuantity: data.activityQuantity ? String(data.activityQuantity) : prev.activityQuantity,
+                  activityUnit: String(data.activityUnit || prev.activityUnit),
+                  intensityKgCo2e: data.intensityKgCo2e ? String(data.intensityKgCo2e) : prev.intensityKgCo2e,
+                  boundary: String(data.boundary || prev.boundary),
+                  methodologyReference: String(data.methodologyReference || prev.methodologyReference),
+                  dataQualityLevel: (data.dataQualityLevel as string) || prev.dataQualityLevel,
+                }));
+              }}
+            />
+          </div>
         </DialogHeader>
         <form className="space-y-4 pt-2" onSubmit={(event) => submit(event, () => supplierNetworkApi.createCarbonSnapshot({ ...carbonForm, facilityRevisionId: carbonForm.subjectKind === "facility" ? carbonForm.facilityRevisionId : null, supplierRevisionId: carbonForm.subjectKind === "supplier" ? carbonForm.supplierRevisionId : null, grossKgCo2e: Number(carbonForm.grossKgCo2e), activityQuantity: carbonForm.activityQuantity ? Number(carbonForm.activityQuantity) : null, activityUnit: carbonForm.activityUnit || null, intensityKgCo2e: carbonForm.intensityKgCo2e ? Number(carbonForm.intensityKgCo2e) : null }), () => { setCarbonForm(emptyCarbon); setOpenCarbonDialog(false); }, () => {
           const newCarbon = demoSessionCache.addCarbonSnapshot({
@@ -923,24 +978,6 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
           </div>
         )}
       </DialogContent>
-      <AiDocumentImportModal
-        open={showAiImport}
-        onOpenChange={setShowAiImport}
-        contextKey="supplier"
-        demo={demo}
-        onApply={(fields) => {
-          setProfileForm((prev) => ({
-            ...prev,
-            supplierReference: (fields.supplierReference as string) || prev.supplierReference,
-            legalName: (fields.legalName as string) || prev.legalName,
-            tradingName: (fields.tradingName as string) || prev.tradingName,
-            countryCode: (fields.countryCode as string) || prev.countryCode,
-            sector: (fields.sector as string) || prev.sector,
-            supplierTier: fields.supplierTier ? String(fields.supplierTier) : prev.supplierTier,
-          }));
-          setOpenProfileDialog(true);
-        }}
-      />
     </Dialog>
   </section>;
 }

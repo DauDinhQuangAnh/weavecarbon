@@ -83,7 +83,25 @@ export async function extractDocumentWithContext(
       if (field.key === 'portOfLoading' && raw.port_of_loading) mappedFields.portOfLoading = raw.port_of_loading;
       if (field.key === 'portOfDischarge' && raw.port_of_discharge) mappedFields.portOfDischarge = raw.port_of_discharge;
       if (field.key === 'legalName' && raw.supplier_name) mappedFields.legalName = raw.supplier_name;
-      if (field.key === 'name' && raw.facility_name) mappedFields.name = raw.facility_name;
+      if (field.key === 'name' && (raw.facility_name || raw.ten_co_so || raw.name)) mappedFields.name = raw.facility_name || raw.ten_co_so || raw.name;
+      if (field.key === 'factorValue' && raw.emission_factor != null) mappedFields.factorValue = raw.emission_factor;
+      if (field.key === 'unit' && raw.factor_unit) mappedFields.unit = raw.factor_unit;
+      if (field.key === 'intensityKgCo2e' && raw.carbon_intensity != null) mappedFields.intensityKgCo2e = raw.carbon_intensity;
+      if (field.key === 'grossKgCo2e' && raw.total_emissions_kg != null) mappedFields.grossKgCo2e = raw.total_emissions_kg;
+      if (field.key === 'batchSize' && raw.batch_quantity != null) mappedFields.batchSize = raw.batch_quantity;
+      if (field.key === 'quantityTco2e' && raw.allocated_quota_tco2e != null) mappedFields.quantityTco2e = raw.allocated_quota_tco2e;
+      if (field.key === 'latitude' && (raw.lat != null || raw.vi_do != null || raw.coord_lat != null)) mappedFields.latitude = raw.lat ?? raw.vi_do ?? raw.coord_lat;
+      if (field.key === 'longitude' && (raw.lng != null || raw.lon != null || raw.kinh_do != null || raw.coord_lng != null)) mappedFields.longitude = raw.lng ?? raw.lon ?? raw.kinh_do ?? raw.coord_lng;
+      if (field.key === 'locationBasis' && (raw.location_name || raw.dia_chi || raw.address || raw.land_title_no)) mappedFields.locationBasis = raw.location_name || raw.dia_chi || raw.address || raw.land_title_no;
+      if (field.key === 'hierarchyReference' && (raw.hierarchy_ref || raw.serial_number || raw.meter_serial)) mappedFields.hierarchyReference = raw.hierarchy_ref || raw.serial_number || raw.meter_serial;
+      if (field.key === 'tolerancePercent' && (raw.tolerance != null || raw.accuracy_class != null)) mappedFields.tolerancePercent = raw.tolerance ?? raw.accuracy_class;
+      if (field.key === 'effectiveFrom' && (raw.effective_date || raw.commissioning_date || raw.date)) mappedFields.effectiveFrom = raw.effective_date || raw.commissioning_date || raw.date;
+      if (field.key === 'caseReference' && (raw.case_id || raw.decision_number || raw.so_quyet_dinh || raw.so_van_ban)) mappedFields.caseReference = raw.case_id || raw.decision_number || raw.so_quyet_dinh || raw.so_van_ban;
+      if (field.key === 'sector' && (raw.sector_code || raw.nganh_nghe)) mappedFields.sector = raw.sector_code || raw.nganh_nghe;
+      if (field.key === 'outputTonnes' && (raw.output_tonnes != null || raw.san_luong_tan != null || raw.tonnes != null)) mappedFields.outputTonnes = raw.output_tonnes ?? raw.san_luong_tan ?? raw.tonnes;
+      if (field.key === 'productReference' && (raw.product_code || raw.ma_san_pham || raw.sku)) mappedFields.productReference = raw.product_code || raw.ma_san_pham || raw.sku;
+      if (field.key === 'studyReference' && (raw.study_code || raw.ma_de_tai || raw.ma_nghien_cuu)) mappedFields.studyReference = raw.study_code || raw.ma_de_tai || raw.ma_nghien_cuu;
+      if (field.key === 'activityReference' && (raw.activity_ref || raw.receipt_number || raw.bill_code)) mappedFields.activityReference = raw.activity_ref || raw.receipt_number || raw.bill_code;
     }
   }
 
@@ -99,3 +117,20 @@ export async function extractDocumentWithContext(
     fields: mappedFields,
   };
 }
+
+/**
+ * Convert base64 data URL (e.g. from CameraScanner) to browser File object for AI extraction
+ */
+export function base64DataUrlToFile(dataUrl: string, filename = 'camera-scan.jpg'): File {
+  const parts = dataUrl.split(',');
+  const mimeMatch = parts[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const bstr = atob(parts[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
+

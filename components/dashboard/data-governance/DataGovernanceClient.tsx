@@ -23,6 +23,7 @@ import { isApiError } from "@/lib/apiClient";
 import { dataGovernanceApi, type DqlAssessment, type FactorProposal } from "@/lib/dataGovernanceApi";
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { assessDataQualityPedigree, type DqlPedigreeAssessment } from "@/lib/ai/carbonDataAiService";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 
 const initialDql = { subjectType: "activity", subjectReference: "", temporalScore: 3, geographicScore: 3,
   technologicalScore: 3, completenessScore: 3, reliabilityScore: 3, completenessPercent: 100, rationale: "" };
@@ -408,11 +409,39 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
         {/* Factor Proposal Card */}
         <Card className="border border-slate-200/80 shadow-xs">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
-              <ShieldCheck className="h-5 w-5 text-emerald-600" />
-              {t("factorTitle")}
-            </CardTitle>
-            <CardDescription className="text-slate-600">{t("factorDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                  {t("factorTitle")}
+                </CardTitle>
+                <CardDescription className="text-slate-600">{t("factorDescription")}</CardDescription>
+              </div>
+              <DataEntryScanTrigger
+                contextKey="factor_proposal"
+                disabled={saving}
+                demo={demo}
+                variant="inline"
+                fileButtonLabel="Quét Quyết định / Phiếu KNK"
+                cameraButtonLabel="Chụp Phiếu KNK AI"
+                onApply={(data) => {
+                  setFactorForm((prev) => ({
+                    ...prev,
+                    proposalReference: String(data.proposalReference || prev.proposalReference),
+                    factorId: String(data.factorId || prev.factorId),
+                    label: String(data.label || prev.label),
+                    factorValue: data.factorValue != null ? String(data.factorValue) : prev.factorValue,
+                    unit: String(data.unit || prev.unit),
+                    sourceName: String(data.sourceName || prev.sourceName),
+                    sourceUrl: String(data.sourceUrl || prev.sourceUrl),
+                    sourceYear: String(data.sourceYear || prev.sourceYear),
+                    geography: String(data.geography || prev.geography),
+                    boundary: String(data.boundary || prev.boundary),
+                    gwpBasis: String(data.gwpBasis || prev.gwpBasis),
+                  }));
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="pt-5">
             <form className="space-y-4" onSubmit={submitFactor}>

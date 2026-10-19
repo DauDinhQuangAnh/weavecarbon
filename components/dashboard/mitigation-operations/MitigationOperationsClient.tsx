@@ -17,7 +17,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -494,17 +494,23 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                   <BarChart3 className="h-3.5 w-3.5 text-cyan-600" />
                   AI Mô phỏng MACC ($/tCO2e)
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAiImport(true)}
+                <DataEntryScanTrigger
+                  contextKey="mitigation"
                   disabled={saving}
-                  className="h-8 border-emerald-300 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 transition-colors"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                  Quét AI Đề án
-                </Button>
+                  demo={demo}
+                  variant="inline"
+                  fileButtonLabel="Quét AI Đề án"
+                  cameraButtonLabel="Chụp Đề án AI"
+                  onApply={(data) => {
+                    setInitiative((prev) => ({
+                      ...prev,
+                      initiativeReference: String(data.initiativeReference || prev.initiativeReference),
+                      title: String(data.title || prev.title),
+                      ownerName: String(data.ownerName || prev.ownerName),
+                      targetReductionTco2e: data.targetReductionTco2e ? Number(data.targetReductionTco2e) : prev.targetReductionTco2e,
+                    }));
+                  }}
+                />
               </div>
             </div>
           </CardHeader>
@@ -676,8 +682,30 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         {/* Allocation Card */}
         <Card className="border border-slate-200/80 shadow-xs">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-            <CardTitle className="text-base font-bold text-slate-900">{t("allocationTitle")}</CardTitle>
-            <CardDescription className="text-xs text-slate-600">{t("allocationDescription")}</CardDescription>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900">{t("allocationTitle")}</CardTitle>
+                <CardDescription className="text-xs text-slate-600">{t("allocationDescription")}</CardDescription>
+              </div>
+              <DataEntryScanTrigger
+                contextKey="allowance_quota"
+                disabled={saving}
+                demo={demo}
+                variant="inline"
+                fileButtonLabel="Quét Quyết định Hạn ngạch"
+                cameraButtonLabel="Chụp Quyết định AI"
+                onApply={(data) => {
+                  setAllocation((prev) => ({
+                    ...prev,
+                    allocationReference: String(data.allocationReference || prev.allocationReference),
+                    reportingYear: data.reportingYear ? Number(data.reportingYear) : prev.reportingYear,
+                    quantityTco2e: data.quantityTco2e ? Number(data.quantityTco2e) : prev.quantityTco2e,
+                    vintageYear: data.vintageYear ? Number(data.vintageYear) : prev.vintageYear,
+                    instrumentType: (data.instrumentType as string) || prev.instrumentType,
+                  }));
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
             <form className="grid gap-3 md:grid-cols-2" onSubmit={saveAllocation}>
@@ -907,21 +935,6 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           </form>
         </DialogContent>
       </Dialog>
-      <AiDocumentImportModal
-        open={showAiImport}
-        onOpenChange={setShowAiImport}
-        contextKey="mitigation"
-        demo={demo}
-        onApply={(fields) => {
-          setInitiative((prev) => ({
-            ...prev,
-            initiativeReference: (fields.initiativeReference as string) || prev.initiativeReference,
-            title: (fields.title as string) || prev.title,
-            ownerName: (fields.ownerName as string) || prev.ownerName,
-            targetReductionTco2e: fields.targetReductionTco2e != null ? Number(fields.targetReductionTco2e) : prev.targetReductionTco2e,
-          }));
-        }}
-      />
 
       {/* Modal 1: MACC Simulator Dialog */}
       <Dialog open={showMaccModal} onOpenChange={setShowMaccModal}>

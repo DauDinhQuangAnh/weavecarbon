@@ -48,7 +48,7 @@ import {
   simulateClimatePhysicalHazards,
   type ClimateHazardSimulationResult,
 } from "@/lib/ai/supplyChainAndClimateAiService";
-import { AiDocumentImportModal } from "@/components/ui/AiDocumentImportModal";
+import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 
 const selectClass =
   "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
@@ -130,7 +130,6 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // AI Tools & Document Extraction States
-  const [showAiLocationImport, setShowAiLocationImport] = useState(false);
   const [aiScenario, setAiScenario] = useState<"historical" | "SSP2-4.5" | "SSP5-8.5">("SSP2-4.5");
   const [aiSelectedFacilityId, setAiSelectedFacilityId] = useState<string>("");
   const [aiHazardSimulation, setAiHazardSimulation] = useState<ClimateHazardSimulationResult | null>(null);
@@ -333,7 +332,6 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       locationBasis: data.locationBasis ? String(data.locationBasis) : (data.referenceDocument ? String(data.referenceDocument) : prev.locationBasis),
       facilityRevisionId: facilities[0]?.id || prev.facilityRevisionId,
     }));
-    setShowAiLocationImport(false);
   };
 
   const runAiSimulation = () => {
@@ -624,16 +622,14 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
               </CardTitle>
               <CardDescription className="text-xs text-slate-500 mt-0.5">{t("locationDescription")}</CardDescription>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAiLocationImport(true)}
-              className="border-violet-300 bg-violet-50 text-xs font-medium text-violet-800 hover:bg-violet-100 flex items-center gap-1.5 transition-colors"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-violet-600" />
-              Quét AI từ Trích lục / Tọa độ GIS
-            </Button>
+            <DataEntryScanTrigger
+              contextKey="climate_location"
+              demo={demo}
+              variant="dialog_header"
+              fileButtonLabel="Quét trích lục GIS AI"
+              cameraButtonLabel="Chụp sơ đồ tọa độ"
+              onApply={handleAiExtractedLocation}
+            />
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -1648,14 +1644,6 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
           )}
         </CardContent>
       </Card>
-
-      {/* AI Document Import Modal for GIS Location */}
-      <AiDocumentImportModal
-        open={showAiLocationImport}
-        onOpenChange={setShowAiLocationImport}
-        contextKey="climate_location"
-        onApply={handleAiExtractedLocation}
-      />
     </main>
   );
 }
