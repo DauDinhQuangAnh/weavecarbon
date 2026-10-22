@@ -24,6 +24,7 @@ import { dataGovernanceApi, type DqlAssessment, type FactorProposal } from "@/li
 import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { assessDataQualityPedigree, type DqlPedigreeAssessment } from "@/lib/ai/carbonDataAiService";
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
+import { STANDARD_FACTORS } from "@/lib/ai/factorRecommendationAiService";
 
 const initialDql = { subjectType: "activity", subjectReference: "", temporalScore: 3, geographicScore: 3,
   technologicalScore: 3, completenessScore: 3, reliabilityScore: 3, completenessPercent: 100, rationale: "" };
@@ -445,6 +446,44 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
           </CardHeader>
           <CardContent className="pt-5">
             <form className="space-y-4" onSubmit={submitFactor}>
+              <div className="rounded-xl border border-emerald-200/90 bg-emerald-50/50 p-3 space-y-2 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-emerald-600" />
+                    AI Gợi Ý & Điền Thông Số Hệ Số Chuẩn (QĐ 13/2024 / IPCC / DEFRA)
+                  </span>
+                  <select
+                    aria-label="Chọn hệ số chuẩn AI"
+                    className="h-8 rounded-md border border-emerald-300 bg-white px-2.5 text-xs font-medium text-emerald-900 focus:outline-none"
+                    onChange={(e) => {
+                      const f = STANDARD_FACTORS[e.target.value];
+                      if (!f) return;
+                      setFactorForm((prev) => ({
+                        ...prev,
+                        proposalReference: prev.proposalReference || `PROP-${f.factorId.toUpperCase()}`,
+                        factorId: f.factorId,
+                        label: f.label,
+                        factorValue: String(f.factorValue),
+                        unit: f.unit,
+                        sourceName: f.sourceName,
+                        sourceUrl: f.sourceUrl || "",
+                        sourceYear: f.sourceYear ? String(f.sourceYear) : "2024",
+                        geography: f.geography,
+                        boundary: f.boundary,
+                        gwpBasis: f.gwpBasis,
+                      }));
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>-- Chọn hệ số chuẩn để AI điền tự động --</option>
+                    {Object.values(STANDARD_FACTORS).map((f) => (
+                      <option key={f.factorId} value={f.factorId}>
+                        [{f.scope}] {f.label} ({f.factorValue} {f.unit})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-700">Mã đề xuất</Label>

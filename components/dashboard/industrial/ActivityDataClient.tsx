@@ -22,6 +22,8 @@ import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { analyzeActivityAnomalies, type ActivityAnomalyResult } from "@/lib/ai/carbonDataAiService";
 import { sha256CanonicalJson } from "@/lib/industrialOperations";
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
+import SmartFactorSuggestionCard from "@/components/ui/SmartFactorSuggestionCard";
+import type { RecommendedFactorItem, InstantEmissionsEstimate } from "@/lib/ai/factorRecommendationAiService";
 import {
   DATA_QUALITY_LADDER,
   normalizeDataQualityTier,
@@ -71,6 +73,20 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
   const [anomalyResult, setAnomalyResult] = useState<ActivityAnomalyResult | null>(null);
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
+  const [selectedFactor, setSelectedFactor] = useState<RecommendedFactorItem | null>(null);
+
+  const handleApplyFactor = (factor: RecommendedFactorItem, estimate?: InstantEmissionsEstimate) => {
+    setSelectedFactor(factor);
+    setForm((prev) => {
+      const nextUnit = factor.unit.split("/")[1] || prev.canonicalUnit;
+      return {
+        ...prev,
+        canonicalUnit: nextUnit,
+        dataQualityLevel: prev.dataQualityLevel === "L1" ? factor.recommendedDql : prev.dataQualityLevel,
+      };
+    });
+    toast.success(`Đã áp dụng hệ số AI: ${factor.label} (${factor.factorValue} ${factor.unit})`);
+  };
 
   const load = useCallback(async () => {
     if (demo) {
@@ -179,6 +195,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         sourceKind: form.sourceKind,
         dataQualityLevel: form.dataQualityLevel,
         evidenceDocumentIds: [],
+
       };
       const sourceSha256 = await sha256CanonicalJson(provenance);
       await industrialCoreApi.createActivity({
@@ -196,6 +213,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         rawPayload: { entryMode: "activity_data_client", provenance },
         sourceSha256,
         evidenceDocumentIds: [],
+
       });
       setShowAddModal(false);
       setForm(emptyForm);
@@ -787,6 +805,17 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                 </select>
               </div>
             </div>
+
+            {/* AI Smart Factor Recommendation */}
+            <SmartFactorSuggestionCard
+              activityType={form.activityType}
+              quantity={form.quantity}
+              canonicalUnit={form.canonicalUnit}
+              reference={form.activityReference}
+              geography="VN"
+              onApplyFactor={handleApplyFactor}
+              className="mt-2"
+            />
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>

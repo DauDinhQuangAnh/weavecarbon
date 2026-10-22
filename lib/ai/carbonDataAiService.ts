@@ -1195,3 +1195,7 @@ export function detectIotSensorAnomalies(devices: Array<{
     summary: `Quét ${devices.length} điểm đo & thiết bị WeaveNode. Phát hiện ${anomalies.length} cảnh báo dị thường kỹ thuật. Điểm sức khỏe mạng lưới cảm biến đạt ${healthScore}/100.`
   };
 }
+
+// Re-export Smart Factor Recommendation Engine
+export * from "./factorRecommendationAiService";
+

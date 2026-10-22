@@ -4,6 +4,8 @@ import { FormEvent, useMemo, useState } from "react";
 import { Activity, ChevronLeft, ChevronRight, Loader2, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import AiDocumentImportModal from "@/components/ui/AiDocumentImportModal";
+import SmartFactorSuggestionCard from "@/components/ui/SmartFactorSuggestionCard";
+import type { RecommendedFactorItem } from "@/lib/ai/factorRecommendationAiService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +86,16 @@ export default function ActivityOperationsPanel({
   const canApprove = Boolean(lineage?.evidence.length) && lineage!.evidence.every((item) =>
     ["locked", "third_party_verified"].includes(item.status) && /^[a-f0-9]{64}$/i.test(item.checksumSha256 || "")
   );
+
+  const handleApplyFactor = (factor: RecommendedFactorItem) => {
+    const nextUnit = factor.unit.split("/")[1] || form.canonicalUnit;
+    setForm((prev) => ({
+      ...prev,
+      canonicalUnit: nextUnit,
+      dataQualityLevel: prev.dataQualityLevel === "L1" || prev.dataQualityLevel === "L2" ? factor.recommendedDql : prev.dataQualityLevel,
+    }));
+    toast({ title: `Đã áp dụng hệ số: ${factor.label}` });
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -206,6 +218,15 @@ export default function ActivityOperationsPanel({
           </div>
           {selectedFacility && <p className="text-xs text-slate-500">{t("activityPeriodTimezone", { timezone: selectedFacility.timezone })}</p>}
           <fieldset disabled={!canWrite || busy === "create"} className="rounded-lg border border-slate-200 bg-white p-3"><legend className="px-1 text-xs font-semibold text-slate-700">{t("activityEvidence")}</legend><div className="grid max-h-32 gap-2 overflow-y-auto sm:grid-cols-2">{evidence.length ? evidence.map((item) => <label key={item.id} className="flex items-start gap-2 text-xs text-slate-700"><input type="checkbox" className="mt-0.5" checked={form.evidenceDocumentIds.includes(item.id)} onChange={(event) => setForm({ ...form, evidenceDocumentIds: event.target.checked ? [...form.evidenceDocumentIds, item.id] : form.evidenceDocumentIds.filter((id) => id !== item.id) })} /><span>{item.documentName} <Badge variant="outline" className={isControlledEvidence(item) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"}>{item.status}</Badge></span></label>) : <span className="text-xs text-slate-500">{t("noEvidence")}</span>}</div></fieldset>
+          <SmartFactorSuggestionCard
+            activityType={form.activityType}
+            quantity={form.quantity}
+            canonicalUnit={form.canonicalUnit}
+            reference={form.activityReference}
+            geography="VN"
+            onApplyFactor={handleApplyFactor}
+            compact
+          />
           <Button disabled={!canWrite || busy === "create"} className="w-full bg-emerald-600 hover:bg-emerald-700">{busy === "create" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{t("createActivity")}</Button>
         </form>
 
