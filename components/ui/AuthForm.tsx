@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import AutoLocalizer from "@/components/i18n/AutoLocalizer";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -487,6 +488,7 @@ const AuthForm: React.FC = () => {
 
   return (
     <Card className="border-border/50 shadow-xl">
+      <AutoLocalizer />
       <CardContent className="space-y-5 pt-6 md:space-y-6">
         <SocialLogin
           onGoogleLogin={handleGoogleLogin}

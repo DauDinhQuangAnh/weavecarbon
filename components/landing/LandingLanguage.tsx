@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { setAppLanguage } from "@/lib/i18n/appLanguage";
 import { landingMessages, type LandingLanguage } from "./landingMessages";
 
 export type { LandingLanguage };
@@ -39,11 +40,7 @@ export function LandingLanguageProvider({ children }: { children: ReactNode }) {
   }, [language]);
 
   const setLanguage = useCallback((next: LandingLanguage) => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* storage unavailable */
-    }
+    setAppLanguage(next);
     setLanguageState(next);
   }, []);
 

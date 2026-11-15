@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AutoLocalizer from "@/components/i18n/AutoLocalizer";
 
 export default function NotFound() {
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#eef6f0_0%,#f7f5ec_100%)] px-6 py-10 text-slate-950">
+      <AutoLocalizer />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-6rem] top-[-4rem] h-64 w-64 rounded-full bg-emerald-300/20 blur-3xl" />
         <div className="absolute right-[-4rem] bottom-[-5rem] h-72 w-72 rounded-full bg-lime-200/30 blur-3xl" />

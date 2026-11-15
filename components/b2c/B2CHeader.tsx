@@ -1,5 +1,6 @@
 "use client";
 
+import AutoLocalizer from "@/components/i18n/AutoLocalizer";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -30,6 +31,7 @@ const B2CHeader: React.FC<B2CHeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md transition-colors">
+      <AutoLocalizer />
       <div className="container mx-auto px-4 lg:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo & Brand */}

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import AutoLocalizer from "@/components/i18n/AutoLocalizer";
+import AppLanguageToggle from "@/components/i18n/AppLanguageToggle";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -156,7 +158,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-4">
+        <AutoLocalizer />
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-4">
           <Link prefetch={false} href={homeHref} className="flex min-w-0 items-center gap-2" title="WeaveCarbon">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-navy">
               <Leaf className="h-4 w-4 text-accent" />
@@ -170,6 +173,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               </span>
             )}
           </Link>
+          {sidebarOpen && <AppLanguageToggle compact />}
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-3">
