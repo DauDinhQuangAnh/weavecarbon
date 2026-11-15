@@ -22,12 +22,12 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/audit-trail/page.tsx",
-      "sha256": "1072fc06a6ad6de4f7c6a405403306344e897d5d11f2ae98f87eafc3305a811b"
+      "sha256": "960d9f3adb42c758932c417830771b162f5f68590d46e34152a2c041a262b1f0"
     },
     {
       "repo": "FE",
       "path": "app/(dashboard)/billing/page.tsx",
-      "sha256": "e8f614ae567b08c97a3a02c061cb492eb13d08d6c5c68855b855f1b2279daf24"
+      "sha256": "55a5d3057aa7b595c464ddf9f308b6652dff619639bb0ed86d52891f2b4a1fa5"
     },
     {
       "repo": "FE",
@@ -57,7 +57,7 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/layout.tsx",
-      "sha256": "cd8829aa96566daff400d8abbe94d9e9354c3a5fd751a0c74d58c5ef3166a9a8"
+      "sha256": "b7bb73acdbc2464c6c67ba9db6996870dde493fa41ba0373315d0b0644eba2ff"
     },
     {
       "repo": "FE",
@@ -77,7 +77,7 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/reports/page.tsx",
-      "sha256": "87bb81c8c382caee7a9a18917342b5edf2d53bdbc296d95e0503969c1a980b75"
+      "sha256": "fcc13fa27ef0e5b25bfa4d19d7c683e5f0ee57551e526a53b765ccbf5d11ae86"
     },
     {
       "repo": "FE",
@@ -137,7 +137,7 @@
     {
       "repo": "FE",
       "path": "app/demo/layout.tsx",
-      "sha256": "e13ef698352238c645da7363ce95b909c08a29f8494c9b799c50f3186e475807"
+      "sha256": "d024f561312b07865197a8a633fc8d43172243b85ba02502663ca7ea25e83d33"
     },
     {
       "repo": "FE",
@@ -157,7 +157,7 @@
     {
       "repo": "FE",
       "path": "app/demo/reports/page.tsx",
-      "sha256": "c0b63158b6ec26dcbf9e782bdf2d98db80dd71f53e2b8e0fe5e7b68c8ae97266"
+      "sha256": "cf9b110615f77a61c63205244d01114046cb4b16cefe5098f4f06101f389e3ff"
     },
     {
       "repo": "FE",
@@ -177,17 +177,17 @@
     {
       "repo": "FE",
       "path": "app/globals.css",
-      "sha256": "8cad478328d07aae0619ec32125c7b6afc5de9b763b6d49d8ccfa64fe8f8fbf0"
+      "sha256": "03c81d3580a1fbf27fd80050b9133907232a0edcded11c9eb2101a2d31d58d5d"
     },
     {
       "repo": "FE",
       "path": "app/layout.tsx",
-      "sha256": "89c34dc47552d37365655a0058f1cf1734965998dccbe261af073d16149f1629"
+      "sha256": "734ef711538904d2b1530f28bca630906afe11938fbc2eb2cfd4329d75286235"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/CarbonCalculator.tsx",
-      "sha256": "59efd83b128a11e2c946769b754f87287763169964a9984097431e1d66d7be01"
+      "sha256": "db5084a84a466184cc334b0cede9250420fb27bd64781c6495e977fb2e47a38e"
     },
     {
       "repo": "FE",
@@ -197,7 +197,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/DashboardLayoutContent.tsx",
-      "sha256": "4273f1533aff0276e5a590bc25d09c8d1609f4ef138a9be13edd58b4cc42c847"
+      "sha256": "dbf4741fc21cc6a72c5c33abd9d55fc6649a05dd74744a99c79da609bec87304"
     },
     {
       "repo": "FE",
@@ -207,12 +207,12 @@
     {
       "repo": "FE",
       "path": "components/dashboard/LogisticsClient.tsx",
-      "sha256": "ea6b85947e00b97800ce4d255f05269244ac499f1d75076f935cc4f81198dc53"
+      "sha256": "5e4571d97532e94c0f58b592514a500b25b0ff4854bb90d0507e8b56a88ae739"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/OverviewCharts.tsx",
-      "sha256": "a2bde9a6331f56e742338777bc7afe46598d76a42ae519349600913133d418b7"
+      "sha256": "0ac90ca5ccb4d62099af90ffcf89fedf87069326caf0e4148d13adc0372cf995"
     },
     {
       "repo": "FE",
@@ -232,12 +232,12 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductsClient.tsx",
-      "sha256": "2848140c9e6c3601a0302295ef2bf069b1cab2584cafea0e3372b0ca0bf7950c"
+      "sha256": "cf3acb38ad0d32d0596f66f763813a27b93ba5c04e3a1ca808bb34ce94f8da64"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/SummaryClient.tsx",
-      "sha256": "90fcc716a7caebae2a41175706811949a148e37ec1dce6ede1b2c0d5dca4c7a4"
+      "sha256": "221629efb126a9fea6fcb2211cd2427477fd31eee23cfb904aae5dd7b466059b"
     },
     {
       "repo": "FE",
@@ -287,7 +287,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/steps/Step1Content.tsx",
-      "sha256": "20f81f79e0d840b56169cd9bcb028f72ff9d548757c13c292d2f97a177b46efe"
+      "sha256": "221c0309a641181f2a13cb811e6531952e375cf6c45a00852abc9cdeaf14e5ee"
     },
     {
       "repo": "FE",
@@ -347,7 +347,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/calculation-history/CalculationHistoryClient.tsx",
-      "sha256": "1e7e35c7d471e132d5b9521e1032a68ba41b42ca986ce65e3f13765e4aec5536"
+      "sha256": "02829fd0f3ec68cc76415d96fc18a29367b9a6c117c3e4bd394e40f143456d7e"
     },
     {
       "repo": "FE",
@@ -357,7 +357,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/calculation-history/HistorySummaryStats.tsx",
-      "sha256": "e804fed2aba621e66528d1d020e3f7f1c5b21db74ae27e73e777005ab59e7135"
+      "sha256": "d3b6babea8d6bc9b8befd25123e1e976642af09892303157e6993c38341794e2"
     },
     {
       "repo": "FE",
@@ -367,7 +367,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/cbam/CbamReportSection.tsx",
-      "sha256": "8150e62ab5bdee41b15de9967afd4aeb687e932667de9fd447ad72546ac4e290"
+      "sha256": "d6704ce96526ec644eeee1836825795848bc2c4f9ceb7a11515b24cc3a4fdc49"
     },
     {
       "repo": "FE",
@@ -377,7 +377,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/CompanyDataExportCardV2.tsx",
-      "sha256": "c94e22d02fcafde55d88940b810dfba35019bae729acd47c3430c79d56d5aab3"
+      "sha256": "3363740d03284b4164ac49f9efc92fef6336f85a74430a8b151a9bd0bdf63134"
     },
     {
       "repo": "FE",
@@ -392,7 +392,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ComplianceDetailModal.tsx",
-      "sha256": "f83b0ba801982ef24cda0f778f5e3710974b0a70c3716cffab036112f8fa6ff9"
+      "sha256": "d47bb0214f74be5ae8377f423c07df49775e083563575d68a8edd7c1c072851d"
     },
     {
       "repo": "FE",
@@ -402,17 +402,17 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ComplianceProductScope.tsx",
-      "sha256": "6560e87b8a8bb967f6dca57e18d628c155f5c87f2a0b7b7cb01fd800674874a4"
+      "sha256": "72276ba827b59331391192bc373761aafd54e64dfeb3c0ca1717d0af0bfad661"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/export/ComplianceRecommendations.tsx",
-      "sha256": "2daa00889e30da139240bf6439659c1857d559447d62b1312e3f7b3f1988897c"
+      "sha256": "113c91576f4d3ebd103a76cf4e018a80cbfe89b7b62f271636163f9b9a198032"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/export/DemoExportConfigurationPortalV2.tsx",
-      "sha256": "4d22431e72fda0c6249027587239187a693d2a0e7125a9518b9cee712d524edf"
+      "sha256": "f5ba433f92eef6b275ebd09a6dbe178a76ba4d53b8f0ee0f280cfc3ab86a55a9"
     },
     {
       "repo": "FE",
@@ -427,7 +427,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ExportClient.tsx",
-      "sha256": "122aad9e5a68790415910358612fda1bfc7a3e5c564f41e28572be14c75b941d"
+      "sha256": "f456ab1194f39468de43d437c310000560e26c63004d7f3b42080f02bdeb095e"
     },
     {
       "repo": "FE",
@@ -462,7 +462,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ShipmentExportPortal.tsx",
-      "sha256": "c92883e592f5c2bfb028362d09a878aa3a6a3f57a1fb0ac599b9a470311a502e"
+      "sha256": "5c16e448fb474a23f791d332bcceea5faedd1220ec3518d33b5c686716d16d17"
     },
     {
       "repo": "FE",
@@ -517,27 +517,27 @@
     {
       "repo": "FE",
       "path": "components/dashboard/overview/OverviewPageClient.tsx",
-      "sha256": "b96e08ad9e45d36faeb24a0b3cd7738546ef076235be41df6db12689b7ad6353"
+      "sha256": "110e14c1f75fab28601665d21262f9e53bbc41fd14d82ef25f57d148c87c2223"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/overview/overviewPageHelpers.tsx",
-      "sha256": "830469c2b749876c1ea2ce7cf7e63ef4503b604dd85492c976d6351c1edfcae5"
+      "sha256": "9c636888f03cbe5fb22356a2769bf91404c2941fa4dc79e7f6cf2291b55e60ff"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/CarbonBreakdownChart.tsx",
-      "sha256": "f19f2b6fb1d388185aafc72e00521b77b8637790bca8986fe4c44c854a8be93e"
+      "sha256": "c51ae83bf1d37b56f2fbb961c9e1e9ad33f77e29288bdba07ffdc4df0d9fb9e4"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/CarbonFootprintCard.tsx",
-      "sha256": "989603d871e80983bf72b168af4f9da8cb62dda0f602130f12fbc6ca6706f74f"
+      "sha256": "eff111efb1452805609521e3c9039190285dedb94277a0edd984443258a8eac5"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/ComplianceStatus.tsx",
-      "sha256": "dd2d79307c579edf1f1718d4951b8b2e7f3564b6c6d2bce2604164635ad33a5a"
+      "sha256": "a29561cda0dbf5ca16548aa128e3d96f9961ee4cbfd71686ed6eaa1ff92f11ec"
     },
     {
       "repo": "FE",
@@ -552,7 +552,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/MaterialImpactTable.tsx",
-      "sha256": "22ad9c16dbb22c6a235ef0133ce218ac1ce919a72a497d1de498562db384a82c"
+      "sha256": "c6da1ddcd6a74fbb3a1f11cfffd9520c8f9d00772006ed47cf7981d2e9da216d"
     },
     {
       "repo": "FE",
@@ -567,7 +567,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/ProductSuggestionsCard.tsx",
-      "sha256": "d03d854dabc0d277d21ad30275bd702611098812e5ee10ca8e4ea601afe75d55"
+      "sha256": "ae1b48f130006c4c15d46360c79a42b49059f694f2fb0007464d9994ea556a16"
     },
     {
       "repo": "FE",
@@ -577,7 +577,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/summaryTransportHelpers.ts",
-      "sha256": "555f043cc7ab7fa04641dcf84a5c3f19b25dab89bec8400992aa06b93313ee4b"
+      "sha256": "36b40e223a572edbca60d7ca3dffdc788db03532ea532b797a2388e506f76910"
     },
     {
       "repo": "FE",
@@ -617,7 +617,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/products/template.ts",
-      "sha256": "a1eb089c7203ac871513f6b33dec4709372474cd252134b62ef07a33e752d4d8"
+      "sha256": "fcf8aedfcf57322e0785a268356beb2f7656f29e690661b799829dc641328423"
     },
     {
       "repo": "FE",
@@ -632,22 +632,22 @@
     {
       "repo": "FE",
       "path": "components/dashboard/reports/CorporateGhgInventoryPanel.tsx",
-      "sha256": "38dc3e6ac9ba81757af0cc3a3704bf9df92149d2a2e15ea065a1f3ca9b40b7c5"
+      "sha256": "0c3b559819ce463e7331c6b034bfa0ff85d18050a13a97d2fb328563f4539527"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/reports/EuTextileEprPanel.tsx",
-      "sha256": "05a9f7c3b29e1756778de33ce2a2ea3e2969fa064a932ea797e8acf283b5f4ee"
+      "sha256": "04000ac845bfe248b31c9602650086a58a8815c3d7a051f62ed734da40fc2514"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/reports/ReportClient.tsx",
-      "sha256": "8ac125ff5cc9557c6a8085be7151bf0a541e9d60ab8d3708633d6cf989f92ab5"
+      "sha256": "873bab395fc1a64f85bfb9aa2e23fd377769da3cb563d3a52cd6509b995ce9b0"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/reports/ReportPreviewModal.tsx",
-      "sha256": "169e84dd478b188260740a9b297eb8db55e2e4a21e86af4c4fdf8b6cbb553bd1"
+      "sha256": "5bd076f62be26304c0373f85751f64f991bc8150768964bf5f02c5105394b5e7"
     },
     {
       "repo": "FE",
@@ -657,7 +657,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/track-shipment/ShipmentDetails.tsx",
-      "sha256": "e7ecd63d0e6e3d81dfcfd2de21cd0d49d5a2ef368c0f69572effac02e2db018d"
+      "sha256": "bc8476ff7cf2994aa90c70ed6b0c2ecc76043bf5f5219be7d1fe73ee05b26f99"
     },
     {
       "repo": "FE",
@@ -677,7 +677,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/transport/TransportClient.tsx",
-      "sha256": "29278e42f50d8e50c2b5578d5af0a7842e51ddaa58bc447e2ef4b90a60a47625"
+      "sha256": "7811b0335003fa0a9d12388477449238121aab1caebe087a0528eb68312e5ac1"
     },
     {
       "repo": "FE",
@@ -727,7 +727,7 @@
     {
       "repo": "FE",
       "path": "components/evidence/evidenceTemplates.ts",
-      "sha256": "ee0e1b8063671b4b6e2eb36fa76f9ce072c765acb3bc9d82dace4ae2da9773f7"
+      "sha256": "16d64c48fdfc4007ea43ab94b22ea82363a480a5c02f4ed25f9a6dbad12565cc"
     },
     {
       "repo": "FE",
@@ -787,12 +787,12 @@
     {
       "repo": "FE",
       "path": "components/ui/button.tsx",
-      "sha256": "25d29c9decab214bf57b2f136997e9b9beabc38d7c8326c72e16bc19e961f9a6"
+      "sha256": "810e03130c8e611bc24d2e2156d3e638e3aa64a7ccbf5285767792227a3cc7af"
     },
     {
       "repo": "FE",
       "path": "components/ui/card.tsx",
-      "sha256": "5007c2844cc959f5ca581654b1aba8ffe165fba38563b4ebe2e1d9e7ead33025"
+      "sha256": "234ad950860506c0b087526f2241d0389bc1ac0e5c921729679ce270d5408349"
     },
     {
       "repo": "FE",
@@ -812,7 +812,7 @@
     {
       "repo": "FE",
       "path": "components/ui/dialog.tsx",
-      "sha256": "857881c751d15bd2aa915820c615b373a4ed1aec1ab8a4ea3c646f0dfc03cd66"
+      "sha256": "19efee40f48ad07a7866bd2f8ceca4bf61a1e1351592c66053710f0b6f3c8426"
     },
     {
       "repo": "FE",
@@ -1092,12 +1092,12 @@
     {
       "repo": "FE",
       "path": "lib/dashboard/accessGuards.ts",
-      "sha256": "514210ea5c9e386621f49fcf234cdec4b87237951b1591ff2cb4a2c40f8e469c"
+      "sha256": "bede2ff519391c3bd82254ae1a864bf5ec0321f61aea0dc68d31f015fe5198d2"
     },
     {
       "repo": "FE",
       "path": "lib/demo/apiAdapter.ts",
-      "sha256": "941efa4b9fe7d124f108a82f2dc0b1fcd4130670022b442053453aeba2768ff5"
+      "sha256": "4294d9b0a6699014dc00a10a5c3bb32cbca39b2751c493908a0eb4fc659f391e"
     },
     {
       "repo": "FE",
@@ -1107,7 +1107,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/constants.ts",
-      "sha256": "2d71c114e9a2f016f2007df62736024c3d0eab07df46fc6db557a800c3c2db7f"
+      "sha256": "75b6081518eb3c31950d0268c63c9b70a78347a59fbf00d1d1800400b3ecfe63"
     },
     {
       "repo": "FE",
@@ -1132,17 +1132,17 @@
     {
       "repo": "FE",
       "path": "lib/demo/domain/operations.ts",
-      "sha256": "47785d4804adaa4a4b423d660cf7591dc9af17172cbcc7286e8002ef738f8391"
+      "sha256": "5fccb517d13523ccaaa5726d2b4b96e5799f3c3f04330598a2f0b16c1a1bcbaf"
     },
     {
       "repo": "FE",
       "path": "lib/demo/domain/overview.ts",
-      "sha256": "3b2f778a8945bc48c63c37efd7312fc2496a276255a6b9942727c7ae9c7c24cd"
+      "sha256": "b8b1b9b6c7278bf185950065e94a64f0f60fbcfefc0dfda2ee2db7800a108198"
     },
     {
       "repo": "FE",
       "path": "lib/demo/domain/products.ts",
-      "sha256": "286b49350802185b06ba532d5d48afc0eefb756fc3f98e76f9219061f725b643"
+      "sha256": "6815b0b9b1ec36b94a135314d94aafa602854061c464da6880b54eff031c6e78"
     },
     {
       "repo": "FE",
@@ -1157,7 +1157,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/enrich.ts",
-      "sha256": "85777f30557b32140d6c766dad84ac37558768ba0b4b1f6cc71a1375e53cff11"
+      "sha256": "ecbc4f8541f0340b361ccc1eff6e64a172e20c4631fe819a3ca4864e53e0ad1f"
     },
     {
       "repo": "FE",
@@ -1182,7 +1182,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/seed/demo-b2b-standard20.json",
-      "sha256": "7d035b349fab7df633734cf86e2c8b4226ae7c43388a5e39d6a0a9ab628b90de"
+      "sha256": "07f4bb2f16b651d0b2621be64894048f1503268ee1bab38ba7240e0388f67f84"
     },
     {
       "repo": "FE",
@@ -1352,7 +1352,7 @@
     {
       "repo": "FE",
       "path": "lib/reports/tradeDocumentsXlsx.ts",
-      "sha256": "9cbf7e442598b3bea67483269d366ded00b1a64ae6dd2fe86d7f51cd441c4b31"
+      "sha256": "5973bd8a94fb7e8a1435ca5034a05b23abdc9381efb01460b179e3bdf82fc3eb"
     },
     {
       "repo": "FE",
@@ -1442,7 +1442,7 @@
     {
       "repo": "FE",
       "path": "lib/weave-v2/demoPackV2.ts",
-      "sha256": "1d03ed695f7e32c8adb0d6746b2b6ced43fefe962599f70263fed5c9dfc0bc64"
+      "sha256": "c1ecd32c38dd268fa7e5d298c50d89ab45fa74e3f7818325b11c3256492206b6"
     },
     {
       "repo": "FE",
@@ -1457,7 +1457,7 @@
     {
       "repo": "FE",
       "path": "lib/weave-v2/exportLogisticsDocs.ts",
-      "sha256": "07070296bbe2a543b04773c164d2a74fb9c6452376e1d191d3508d97f6b66dde"
+      "sha256": "a2b0a12713a2e2f88c16dbe12959dc450a6258ad651a6cb0a4f8475552856025"
     },
     {
       "repo": "FE",
@@ -1497,7 +1497,7 @@
     {
       "repo": "FE",
       "path": "locales/vi/common.json",
-      "sha256": "908da378e94213f58216d572b6a7e4cd92a864269853aa4c6112ef410e4508cf"
+      "sha256": "782ebb6f70b16fc8d220012a47bc57fba98c8baee8511584988a3d5cdf2ee4a9"
     },
     {
       "repo": "FE",
@@ -1507,12 +1507,12 @@
     {
       "repo": "FE",
       "path": "package-lock.json",
-      "sha256": "5625d660a14926329b02cc84a5327780c7e31194c3e10c27b36b2700e7e01965"
+      "sha256": "668296c7b341acd5b53691e0dca0f2ea1776f55ba6b1412120ce8d65e44cafdf"
     },
     {
       "repo": "FE",
       "path": "package.json",
-      "sha256": "88b1307846e44b883b6409fe51968fbe6f244d3360ceaf8c0e9b4a82e31bdb80"
+      "sha256": "d1aef3655eb122b2f00c82bdefad593303d721e7f4037e5639122a2dd19f0d33"
     },
     {
       "repo": "FE",
@@ -3338,6 +3338,14 @@
       "repo": "BE",
       "path": "migrations/052_g2_controlled_ai_activity_promotion.sql",
       "sha256": "0f0bcb181c32b32e653f52fa14b4700cd22036d24681e6b4d7d8826f06455fa7"
+    }
+  ],
+  "approvedUpdates": [
+    {
+      "date": "2026-11-15",
+      "reason": "User approved industrial/agri demo data, Lovable UI sync and report registry update",
+      "filesUpdated": 58,
+      "filesRemoved": []
     }
   ]
 }
