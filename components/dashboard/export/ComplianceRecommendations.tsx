@@ -132,7 +132,7 @@ const ComplianceRecommendations: React.FC<ComplianceRecommendationsProps> = ({
 
   if (recommendationsToRender.length === 0) {
     return (
-      <Card className="border-slate-200 bg-white">
+      <Card className="">
         <CardContent className="p-6 text-center">
           <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-green-600" />
           <h3 className="font-semibold text-green-800">{t("allComplete")}</h3>
@@ -143,7 +143,7 @@ const ComplianceRecommendations: React.FC<ComplianceRecommendationsProps> = ({
   }
 
   return (
-    <Card className="border-slate-200">
+    <Card className="">
       <CardHeader className="pb-3">
         <CardTitle className="flex flex-col gap-2 text-lg md:flex-row md:items-center">
           <Badge variant="secondary" className="static md:hidden">

@@ -2,6 +2,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import IndustrialPortfolioSection from "@/components/dashboard/portfolio/IndustrialPortfolioSection";
+import { usePathname } from "next/navigation";
+import { isDemoPath } from "@/lib/demo/routes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
@@ -74,6 +77,7 @@ const ProductOverviewModal = dynamic(
 );
 
 const OverviewPage: React.FC = () => {
+  const isDemoOverview = isDemoPath(usePathname());
   const t = useTranslations("overview");
   const locale = "vi";
   const displayLocale = "vi-VN";
@@ -382,7 +386,8 @@ const OverviewPage: React.FC = () => {
             production: item.production || 0,
             transport: item.transport || 0,
             packaging: item.packaging || 0,
-            total: item.total || 0
+            total: item.total || 0,
+            ...(typeof item.batchTotal === "number" ? { batchTotal: item.batchTotal } : {})
           }))
         );
       } catch {
@@ -407,8 +412,24 @@ const OverviewPage: React.FC = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {isDemoOverview ? (
+        <>
+          <OverviewCharts
+            productEmissions={productEmissions}
+            emissionBreakdown={emissionBreakdown}
+            isLoading={insightsLoading}
+            hideBreakdown />
+          <IndustrialPortfolioSection />
+          <div className="border-t border-border/70 pt-6">
+            <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">Danh mục sản phẩm (SKU)</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Hồ sơ carbon cấp sản phẩm, mức sẵn sàng theo thị trường và gợi ý giảm phát thải.
+            </p>
+          </div>
+        </>
+      ) : null}
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+        <Card className="overflow-hidden border">
           <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
             <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
               <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
@@ -430,7 +451,7 @@ const OverviewPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+        <Card className="overflow-hidden border">
           <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
             <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
               <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
@@ -452,7 +473,7 @@ const OverviewPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+        <Card className="overflow-hidden border">
           <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
             <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
               <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
@@ -497,7 +518,7 @@ const OverviewPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+        <Card className="overflow-hidden border">
           <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
             <div className={OVERVIEW_STAT_HEADER_INNER_CLASS}>
               <CardDescription className={OVERVIEW_STAT_LABEL_CLASS}>
@@ -526,15 +547,18 @@ const OverviewPage: React.FC = () => {
         </Card>
       </div>
 
+      {isDemoOverview ? null : (
       <OverviewCharts
-        productEmissions={productEmissions}
-        emissionBreakdown={emissionBreakdown}
-        isLoading={insightsLoading} />
+          productEmissions={productEmissions}
+          emissionBreakdown={emissionBreakdown}
+          isLoading={insightsLoading}
+          hideBreakdown={isDemoOverview} />
+      )}
 
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-          <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100">
+        <Card className="overflow-hidden border">
+          <CardHeader className="rounded-t-[inherit] border-b">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2">
@@ -567,7 +591,7 @@ const OverviewPage: React.FC = () => {
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 bg-white pt-5">
+          <CardContent className="space-y-4 pt-5">
             {isTrialPlan ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <p className="text-sm font-semibold text-amber-900">
@@ -594,8 +618,8 @@ const OverviewPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-          <CardHeader className="rounded-t-[inherit] border-b border-slate-300 bg-slate-100">
+        <Card className="overflow-hidden border">
+          <CardHeader className="rounded-t-[inherit] border-b">
             <CardTitle className="flex items-center gap-2">
               <Lightbulb className="w-5 h-5" />
               {t("recommendations.title")}
@@ -604,7 +628,7 @@ const OverviewPage: React.FC = () => {
               {t("recommendations.subtitle")}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 bg-white pt-5">
+          <CardContent className="space-y-4 pt-5">
             {isTrialPlan ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <p className="text-sm font-semibold text-amber-900">
@@ -738,7 +762,7 @@ const OverviewPage: React.FC = () => {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Card
-          className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
+          className="w-full cursor-pointer overflow-hidden border transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
             if (!canMutate) {
               showNoPermissionToast();
@@ -772,7 +796,7 @@ const OverviewPage: React.FC = () => {
         </Card>
 
         <Card
-          className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
+          className="w-full cursor-pointer overflow-hidden border transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
             navigate.push(appRoutes.toAppPath("/logistics"));
           }}>
@@ -802,7 +826,7 @@ const OverviewPage: React.FC = () => {
         </Card>
 
         <Card
-          className="w-full cursor-pointer overflow-hidden border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all hover:border-primary/55 hover:shadow-md"
+          className="w-full cursor-pointer overflow-hidden border transition-all hover:border-primary/55 hover:shadow-md"
           onClick={() => {
             navigate.push(appRoutes.toAppPath("/reports"));
           }}>
@@ -871,10 +895,12 @@ const OverviewPage: React.FC = () => {
         </div>
       )}
 
+      {isDemoOverview ? null : <IndustrialPortfolioSection />}
+
       <Dialog
         open={showMarketReadinessDialog}
         onOpenChange={setShowMarketReadinessDialog}>
-        <DialogContent className="border border-slate-200 bg-white sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {t("marketReadiness.title")}

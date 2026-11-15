@@ -248,6 +248,7 @@ export const getDemoOverviewPayload = (dataset: DemoDataset) => {
           transport: round(transport, 2),
           packaging: round(packaging, 2),
           total: round(total, 2),
+          batchTotal: round(toNumber(p.carbonResults?.totalBatch?.total, 0), 1),
         };
       })
       .filter((item) => item.total > 0)

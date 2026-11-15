@@ -54,129 +54,139 @@ export interface DemoSkuV2 {
 }
 
 export const DEMO_FACILITY_V2 = {
-  name: "Weave Demo Garment Factory - Ha Noi",
-  address: "Khu CN Bac Thang Long, Dong Anh, Ha Noi, Viet Nam",
-  unLocode: "VNHAN",
-  naceCode: "14.13",
-  customsOffice: "VN HAN",
+  name: "Vietnam Industrial Group (Demo) - Phu My",
+  address: "KCN Phu My II, TX. Phu My, Ba Ria - Vung Tau, Viet Nam",
+  unLocode: "VNPHU",
+  naceCode: "24.10",
+  customsOffice: "VN CMT",
   verifier: "SGS Vietnam / TUV Rheinland"
 };
 
 const EVN_FACTOR = 0.6766;
 const DEFRA_TRUCK_40T = 0.0795;
 const DEFRA_SEA_CONTAINER = 0.01614;
+const DEFRA_SEA_BULK = 0.0035;
 const DEFRA_RAIL = 0.028;
-const DEFRA_AIR = 0.602;
 
+// Bộ SKU demo đa ngành (đơn vị = 1 tấn sản phẩm). Số liệu minh hoạ, không phải dữ liệu thật của doanh nghiệp.
 export const DEMO_PACK_V2: DemoSkuV2[] = [
   {
-    id: "demo-v2-pl-cot",
-    sku: "PL-COT-2026",
-    name: "Men's Cotton Shirt (woven)",
-    cnCode: "62052000",
-    routeCode: "TX-COT-01",
-    units: 1200,
-    weightKgPerUnit: 0.22,
-    factory: DEMO_FACILITY_V2.name,
-    factoryAddress: DEMO_FACILITY_V2.address,
-    unLocode: DEMO_FACILITY_V2.unLocode,
+    id: "demo-v2-agr-cph",
+    sku: "AGR-CPH-2026",
+    name: "Cà phê nhân Robusta (đơn vị: tấn)",
+    cnCode: "09011100",
+    routeCode: "AG-CPH-01",
+    units: 300,
+    weightKgPerUnit: 1000,
+    factory: "Nhà máy chế biến cà phê demo - Buon Ma Thuot",
+    factoryAddress: "KCN Hoa Phu, Buon Ma Thuot, Dak Lak, Viet Nam",
+    unLocode: "VNBMV",
     materials: [
-      { key: "cotton_conventional", name: "Cotton (conventional)", kgPerUnit: 0.132, co2ePerKg: 5.9, source: "Higg MSI; Ecoinvent v3.10", color: "#06C167" },
-      { key: "woven_cotton_gap", name: "Woven cotton (HS 5208) - supply gap", hsCode: "5208", kgPerUnit: 0.22, co2ePerKg: 8.55, source: "Ecoinvent v3.10 Default +10%", isDefault: true, color: "#EF4444" }
+      { key: "coffee_cherry", name: "Cà phê quả tươi (canh tác)", kgPerUnit: 1000, co2ePerKg: 1.42, source: "Demo agri factor; FAO/IPCC N2O proxy", color: "#7C4A1E" },
+      { key: "coffee_fertiliser_gap", name: "Phân bón vườn cây - supply gap", kgPerUnit: 180, co2ePerKg: 1.25, source: "Default factor +10% (chờ dữ liệu nông hộ)", isDefault: true, color: "#EF4444" }
     ],
-    energy: [{ source: "Vietnam national grid", kwhPerUnit: 0.973, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
+    energy: [{ source: "Vietnam national grid", kwhPerUnit: 95, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
     transport: [
-      { mode: "road", route: "Hanoi factory -> Hai Phong port", distanceKm: 120, weightTonnes: 0.264, defraKey: "freighting_goods_hgv_all_diesel_40t", defraFactor: DEFRA_TRUCK_40T },
-      { mode: "sea", route: "Hai Phong -> Rotterdam", distanceKm: 14720, weightTonnes: 0.264, defraKey: "sea_freight_container_ship_average", defraFactor: DEFRA_SEA_CONTAINER }
+      { mode: "road", route: "Buon Ma Thuot -> Cat Lai port", distanceKm: 350, weightTonnes: 1, defraKey: "freighting_goods_hgv_all_diesel_40t", defraFactor: DEFRA_TRUCK_40T },
+      { mode: "sea", route: "Cat Lai -> Hamburg", distanceKm: 18200, weightTonnes: 1, defraKey: "sea_freight_container_ship_average", defraFactor: DEFRA_SEA_CONTAINER }
     ],
-    scope1KgCo2eBatch: 12450.5,
-    cbamPenaltyEurPerUnit: 0.05,
+    scope1KgCo2eBatch: 9850,
+    cbamPenaltyEurPerUnit: 0,
     evidence: [
-      { kind: "EVN bill", fileName: "Hoa_don_dien_EVN_T4_2026.pdf", lookupCode: "EVN-HN-009412", sha256: "37c241d7f359e463f9f157b06851b379d0f3b91f4f17cf891b0b2cbb5fbc812d" },
-      { kind: "Water bill", fileName: "Hoa_don_nuoc_HAWACOM_T4.pdf", lookupCode: "HAW-2026-0009", sha256: "d1e6eb6f533cc7b119d0b90b9b9f964f319de2cf414f96f2baef31c1df34693b" },
-      { kind: "Warehouse receipt", fileName: "Phieu_nhap_kho_soi_cotton.pdf", lookupCode: "112455", sha256: "0ec6eb6f4a2b4319f70d81f2c9f978a8ac0898ef96723b5bfe9a5116b0af09f9" }
+      { kind: "EVN bill", fileName: "Hoa_don_dien_EVN_T4_2026.pdf", lookupCode: "EVN-DL-009412", sha256: "37c241d7f359e463f9f157b06851b379d0f3b91f4f17cf891b0b2cbb5fbc812d" },
+      { kind: "Geolocation (EUDR)", fileName: "EUDR_geolocation_lots_T4.geojson", lookupCode: "EUDR-CPH-0412", sha256: "d1e6eb6f533cc7b119d0b90b9b9f964f319de2cf414f96f2baef31c1df34693b" },
+      { kind: "Warehouse receipt", fileName: "Phieu_nhap_kho_ca_phe_qua.pdf", lookupCode: "112455", sha256: "0ec6eb6f4a2b4319f70d81f2c9f978a8ac0898ef96723b5bfe9a5116b0af09f9" }
     ],
     verifier: DEMO_FACILITY_V2.verifier,
-    confidence: 0.94
+    confidence: 0.86
   },
   {
-    id: "demo-v2-pl-pol",
-    sku: "PL-POL-2026",
-    name: "Recycled Polyester Polo",
-    cnCode: "61091000",
-    routeCode: "TX-POL-01",
-    units: 2400,
-    weightKgPerUnit: 0.18,
-    factory: DEMO_FACILITY_V2.name,
-    factoryAddress: DEMO_FACILITY_V2.address,
-    unLocode: DEMO_FACILITY_V2.unLocode,
-    materials: [{ key: "recycled_polyester", name: "Recycled polyester", kgPerUnit: 0.17, co2ePerKg: 2.5, source: "Higg MSI; Ecoinvent v3.10", color: "#0EA5E9" }],
-    energy: [{ source: "Vietnam national grid", kwhPerUnit: 0.8, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
-    transport: [{ mode: "sea", route: "Hai Phong -> Hamburg", distanceKm: 14300, weightTonnes: 0.432, defraKey: "sea_freight_container_ship_average", defraFactor: DEFRA_SEA_CONTAINER }],
-    scope1KgCo2eBatch: 8200,
-    cbamPenaltyEurPerUnit: 0.03,
-    evidence: [{ kind: "GRS certificate", fileName: "GRS_certificate_PL_POL.pdf", lookupCode: "GRS-2026-POL", sha256: "1e0e5e92828e038b04d59387a0cc12f0aa1178f5b0f8f3d8f311bdc01a275991" }],
+    id: "demo-v2-stl-hrc",
+    sku: "STL-HRC-2026",
+    name: "Thép cuộn cán nóng HRC (đơn vị: tấn)",
+    cnCode: "72083900",
+    routeCode: "ST-EAF-01",
+    units: 420,
+    weightKgPerUnit: 1000,
+    factory: "Nhà máy thép demo - Hai Phong",
+    factoryAddress: "KCN Dinh Vu, Hai Phong, Viet Nam",
+    unLocode: "VNHPH",
+    materials: [
+      { key: "steel_scrap", name: "Thép phế liệu", hsCode: "7204", kgPerUnit: 780, co2ePerKg: 0.42, source: "worldsteel LCI 2024 proxy", color: "#475569" },
+      { key: "iron_ore_pellet", name: "Quặng sắt viên", hsCode: "2601", kgPerUnit: 330, co2ePerKg: 1.98, source: "Ecoinvent v3.10", color: "#B45309" }
+    ],
+    energy: [{ source: "Vietnam national grid", kwhPerUnit: 530, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
+    transport: [
+      { mode: "road", route: "Dinh Vu plant -> Hai Phong port", distanceKm: 18, weightTonnes: 1, defraKey: "freighting_goods_hgv_all_diesel_40t", defraFactor: DEFRA_TRUCK_40T },
+      { mode: "sea", route: "Hai Phong -> Rotterdam (bulk)", distanceKm: 18900, weightTonnes: 1, defraKey: "sea_freight_bulk_carrier_average", defraFactor: DEFRA_SEA_BULK }
+    ],
+    scope1KgCo2eBatch: 176400,
+    cbamPenaltyEurPerUnit: 0,
+    evidence: [{ kind: "Meter reconciliation", fileName: "EAF_Electricity_Reconciliation_2026-04.pdf", lookupCode: "EAF-HP-0426", sha256: "1e0e5e92828e038b04d59387a0cc12f0aa1178f5b0f8f3d8f311bdc01a275991" }],
     verifier: DEMO_FACILITY_V2.verifier,
     confidence: 0.9
   },
   {
-    id: "demo-v2-pl-den",
-    sku: "PL-DEN-2026",
-    name: "Denim Work Jacket",
-    cnCode: "62034231",
-    routeCode: "TX-DEN-01",
-    units: 800,
-    weightKgPerUnit: 0.62,
-    factory: DEMO_FACILITY_V2.name,
-    factoryAddress: DEMO_FACILITY_V2.address,
-    unLocode: DEMO_FACILITY_V2.unLocode,
-    materials: [{ key: "denim_cotton", name: "Cotton denim", kgPerUnit: 0.52, co2ePerKg: 8.1, source: "Ecoinvent v3.10 textile proxy", color: "#1F4E79" }],
-    energy: [{ source: "Vietnam national grid", kwhPerUnit: 2.1, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
-    transport: [{ mode: "sea", route: "Hai Phong -> Rotterdam", distanceKm: 14720, weightTonnes: 0.496, defraKey: "sea_freight_container_ship_average", defraFactor: DEFRA_SEA_CONTAINER }],
-    scope1KgCo2eBatch: 3800,
-    cbamPenaltyEurPerUnit: 0.08,
-    evidence: [{ kind: "OEKO-TEX certificate", fileName: "OEKO_TEX_DEN_2026.pdf", lookupCode: "OEK-DEN-2026", sha256: "54243d411f2013d2e32ffb84de47ab1a0724b721a7a8a6c146afac38d0f8ef75" }],
+    id: "demo-v2-alu-ext",
+    sku: "ALU-EXT-2026",
+    name: "Thanh nhôm định hình 6063 (đơn vị: tấn)",
+    cnCode: "76042990",
+    routeCode: "AL-EXT-01",
+    units: 85,
+    weightKgPerUnit: 1000,
+    factory: "Nhà máy nhôm demo - Ba Ria",
+    factoryAddress: "KCN Phu My I, Ba Ria - Vung Tau, Viet Nam",
+    unLocode: "VNVUT",
+    materials: [
+      { key: "primary_aluminium", name: "Phôi nhôm nguyên sinh", hsCode: "7601", kgPerUnit: 680, co2ePerKg: 9.6, source: "IAI 2024 regional average proxy", color: "#64748B" },
+      { key: "recycled_aluminium", name: "Nhôm tái chế", hsCode: "7602", kgPerUnit: 370, co2ePerKg: 0.6, source: "Ecoinvent v3.10", color: "#0EA5E9" }
+    ],
+    energy: [{ source: "Vietnam national grid", kwhPerUnit: 1210, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
+    transport: [{ mode: "sea", route: "Cai Mep -> Hamburg", distanceKm: 18100, weightTonnes: 1, defraKey: "sea_freight_container_ship_average", defraFactor: DEFRA_SEA_CONTAINER }],
+    scope1KgCo2eBatch: 51000,
+    cbamPenaltyEurPerUnit: 0,
+    evidence: [{ kind: "Billet supplier declaration", fileName: "Billet_origin_declaration_2026.pdf", lookupCode: "ALU-BIL-26", sha256: "54243d411f2013d2e32ffb84de47ab1a0724b721a7a8a6c146afac38d0f8ef75" }],
     verifier: DEMO_FACILITY_V2.verifier,
-    confidence: 0.87
+    confidence: 0.84
   },
   {
-    id: "demo-v2-pl-lin",
-    sku: "PL-LIN-2026",
-    name: "Linen Resort Shirt",
-    cnCode: "62044300",
-    routeCode: "TX-LIN-01",
+    id: "demo-v2-frt-ure",
+    sku: "FRT-URE-2026",
+    name: "Phân urê hạt đục (đơn vị: tấn)",
+    cnCode: "31021010",
+    routeCode: "CH-URE-01",
     units: 600,
-    weightKgPerUnit: 0.24,
-    factory: DEMO_FACILITY_V2.name,
-    factoryAddress: DEMO_FACILITY_V2.address,
-    unLocode: DEMO_FACILITY_V2.unLocode,
-    materials: [{ key: "linen", name: "Linen flax", kgPerUnit: 0.22, co2ePerKg: 5.2, source: "Higg MSI; Ecoinvent v3.10", color: "#B08968" }],
-    energy: [{ source: "Vietnam national grid", kwhPerUnit: 1.05, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
-    transport: [{ mode: "rail", route: "Hanoi -> Shenzhen rail feeder", distanceKm: 980, weightTonnes: 0.144, defraKey: "rail_freight_average", defraFactor: DEFRA_RAIL }],
-    scope1KgCo2eBatch: 1300,
-    cbamPenaltyEurPerUnit: 0.04,
-    evidence: [{ kind: "FSC/linen origin", fileName: "Linen_origin_declaration.pdf", lookupCode: "LIN-ORIGIN-26", sha256: "a9e8745ce119559c7726f8e9058bb669ed67b11527661cb3c4b68fd6b4ce3ee0" }],
-    verifier: DEMO_FACILITY_V2.verifier,
-    confidence: 0.88
-  },
-  {
-    id: "demo-v2-pl-air",
-    sku: "PL-KID-2026",
-    name: "Kids Printed Tee",
-    cnCode: "61099020",
-    routeCode: "TX-KID-01",
-    units: 1500,
-    weightKgPerUnit: 0.11,
-    factory: DEMO_FACILITY_V2.name,
-    factoryAddress: DEMO_FACILITY_V2.address,
-    unLocode: DEMO_FACILITY_V2.unLocode,
-    materials: [{ key: "cotton_blend", name: "Cotton blend", kgPerUnit: 0.105, co2ePerKg: 4.6, source: "Ecoinvent v3.10 blend proxy", color: "#10B981" }],
-    energy: [{ source: "Vietnam national grid", kwhPerUnit: 0.45, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
-    transport: [{ mode: "air", route: "Noi Bai -> Frankfurt", distanceKm: 8940, weightTonnes: 0.165, defraKey: "air_freight_long_haul", defraFactor: DEFRA_AIR }],
-    scope1KgCo2eBatch: 600,
-    cbamPenaltyEurPerUnit: 0.02,
-    evidence: [{ kind: "Care label approval", fileName: "Care_label_PL_KID.pdf", lookupCode: "CARE-KID-26", sha256: "8275a107902cb6b72f2fb93ecffae9e478029b570b2a86541f0e5777d96af41d" }],
+    weightKgPerUnit: 1000,
+    factory: "Nhà máy đạm demo - Phu My",
+    factoryAddress: "KCN Phu My I, Ba Ria - Vung Tau, Viet Nam",
+    unLocode: "VNPHU",
+    materials: [{ key: "natural_gas_feedstock", name: "Khí tự nhiên (nguyên liệu)", kgPerUnit: 420, co2ePerKg: 2.74, source: "IPCC 2006 Vol.3 ammonia; demo allocation", color: "#16A34A" }],
+    energy: [{ source: "Vietnam national grid", kwhPerUnit: 160, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
+    transport: [{ mode: "sea", route: "Phu My -> Antwerp (bulk)", distanceKm: 17900, weightTonnes: 1, defraKey: "sea_freight_bulk_carrier_average", defraFactor: DEFRA_SEA_BULK }],
+    scope1KgCo2eBatch: 432000,
+    cbamPenaltyEurPerUnit: 0,
+    evidence: [{ kind: "Gas meter reading", fileName: "Gas_meter_Phu_My_T4_2026.xlsx", lookupCode: "GAS-PM-0426", sha256: "a9e8745ce119559c7726f8e9058bb669ed67b11527661cb3c4b68fd6b4ce3ee0" }],
     verifier: DEMO_FACILITY_V2.verifier,
     confidence: 0.82
+  },
+  {
+    id: "demo-v2-cem-pcb",
+    sku: "CEM-PCB-2026",
+    name: "Xi măng Portland PCB40 (đơn vị: tấn)",
+    cnCode: "25232900",
+    routeCode: "CM-PCB-01",
+    units: 3000,
+    weightKgPerUnit: 1000,
+    factory: "Nhà máy xi măng demo - Ninh Binh",
+    factoryAddress: "KCN Gian Khau, Ninh Binh, Viet Nam",
+    unLocode: "VNNBH",
+    materials: [{ key: "clinker", name: "Clinker", hsCode: "2523", kgPerUnit: 780, co2ePerKg: 0.12, source: "GCCA GNR 2022 proxy", color: "#A16207" }],
+    energy: [{ source: "Vietnam national grid", kwhPerUnit: 98, factor: EVN_FACTOR, citation: "Bo TN&MT VN 2024" }],
+    transport: [{ mode: "rail", route: "Ninh Binh -> Ho Chi Minh City rail", distanceKm: 1600, weightTonnes: 1, defraKey: "rail_freight_average", defraFactor: DEFRA_RAIL }],
+    scope1KgCo2eBatch: 1290000,
+    cbamPenaltyEurPerUnit: 0,
+    evidence: [{ kind: "Kiln fuel log", fileName: "Kiln_fuel_log_T4_2026.xlsx", lookupCode: "KILN-NB-0426", sha256: "8275a107902cb6b72f2fb93ecffae9e478029b570b2a86541f0e5777d96af41d" }],
+    verifier: DEMO_FACILITY_V2.verifier,
+    confidence: 0.83
   }
 ];

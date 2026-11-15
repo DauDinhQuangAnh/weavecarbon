@@ -679,7 +679,7 @@ const SystemSettings: React.FC = () => {
   return (
     <>
     <div className="space-y-4">
-      <Card className="overflow-hidden border border-indigo-200 border-l-4 border-l-indigo-500 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+      <Card className="overflow-hidden border border-indigo-200 border-l-4 border-l-indigo-500">
         <CardHeader className="rounded-t-[inherit] border-b border-indigo-200 bg-indigo-50 p-4 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -851,7 +851,7 @@ const SystemSettings: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Card className="overflow-hidden border border-emerald-200 border-l-4 border-l-emerald-500 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+      <Card className="overflow-hidden border border-emerald-200 border-l-4 border-l-emerald-500">
         <CardHeader className="rounded-t-[inherit] border-b border-emerald-200 bg-emerald-50 p-4 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -1073,7 +1073,7 @@ const SystemSettings: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border border-amber-200 border-l-4 border-l-amber-500 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+      <Card className="overflow-hidden border border-amber-200 border-l-4 border-l-amber-500">
         <CardHeader className="rounded-t-[inherit] border-b border-amber-200 bg-amber-50 p-4 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>

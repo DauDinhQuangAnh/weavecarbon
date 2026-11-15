@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import PageHeader from "@/components/app/PageHeader";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, DatabaseZap, Eye, Gauge, Info, Loader2, ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
@@ -215,14 +217,13 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
-      <section className="rounded-3xl bg-gradient-to-br from-slate-950 via-emerald-950 to-teal-950 p-7 text-white shadow-md">
-        <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-emerald-300">
-          <DatabaseZap className="h-4 w-4" /> G2-02 · Quản trị Dữ liệu & Hệ số
-        </p>
-        <h1 className="mt-3 text-3xl font-bold">{t("title")}</h1>
-        <p className="mt-3 max-w-3xl text-emerald-100/90 text-sm leading-relaxed">{t("description")}</p>
-      </section>
+    <div className="w-full space-y-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary"><DatabaseZap className="h-3.5 w-3.5" /> G2-02 · Quản trị dữ liệu &amp; hệ số</span></>}
+        actions={<Button asChild size="sm" variant="outline"><Link href={demo ? "/demo/data-gap" : "/data-gap"} prefetch={false}><AlertCircle className="h-4 w-4" />Khoảng trống dữ liệu</Link></Button>}
+      />
 
       {error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 text-sm">
@@ -238,8 +239,8 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
 
       <section className="grid gap-6 xl:grid-cols-2">
         {/* DQL Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
@@ -408,8 +409,8 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
         </Card>
 
         {/* Factor Proposal Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
@@ -476,7 +477,9 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                     defaultValue=""
                   >
                     <option value="" disabled>-- Chọn hệ số chuẩn để AI điền tự động --</option>
-                    {Object.values(STANDARD_FACTORS).map((f) => (
+                    {Object.values(STANDARD_FACTORS)
+                      .filter((f) => !(demo && /^cat-(cotton|polyester)/.test(f.factorId)))
+                      .map((f) => (
                       <option key={f.factorId} value={f.factorId}>
                         [{f.scope}] {f.label} ({f.factorValue} {f.unit})
                       </option>
@@ -784,6 +787,6 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }

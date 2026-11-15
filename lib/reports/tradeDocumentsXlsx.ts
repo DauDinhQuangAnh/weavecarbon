@@ -46,15 +46,15 @@ export async function exportBrandedTradeDocumentXlsx(
     let nextRow = addTitleBlock(
       sheet,
       "HÓA ĐƠN THƯƠNG MẠI NHÚNG DỮ LIỆU CARBON (COMMERCIAL INVOICE)",
-      `Được chứng nhận bởi WeaveCarbon · PO/Hợp đồng: ${cfg.poContractId || "PO-2026-0891"} · Nhà mua hàng: ${cfg.buyerBrand || "H&M Hennes & Mauritz GBC AB"}`,
+      `Được chứng nhận bởi WeaveCarbon · PO/Hợp đồng: ${cfg.poContractId || "PO-2026-0891"} · Nhà mua hàng: ${cfg.buyerBrand || "EuroSteel Trading GmbH (demo)"}`,
       9,
       `Số hóa đơn: INV-${cfg.poContractId || "2026-EU-01"} · Ngày phát hành: 26/09/2026 · Chuẩn khai báo: EU CBAM & ISO 14067:2018 (Phạm vi Scope 1+2+3)`
     );
 
     nextRow = addKpiStrip(sheet, nextRow, [
-      { label: "Tổng số lượng hàng", value: totalUnits.toLocaleString("vi-VN"), unit: "chiếc (pcs)" },
+      { label: "Tổng số lượng hàng", value: totalUnits.toLocaleString("vi-VN"), unit: "tấn (t)" },
       { label: "Tổng giá trị thương mại", value: `$${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, unit: "USD" },
-      { label: "Carbon nhúng TB", value: avgKgPerUnit.toFixed(3), unit: "kg CO₂e/chiếc" },
+      { label: "Carbon nhúng TB", value: avgKgPerUnit.toFixed(3), unit: "kg CO₂e/đơn vị" },
       { label: "Tổng phát thải hóa đơn", value: totals.toFixed(4), unit: "tCO₂e" }
     ]);
 

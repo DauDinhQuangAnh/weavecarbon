@@ -688,7 +688,7 @@ const LogisticsClient: React.FC = () => {
             <Card
               key={stat.label}
               onClick={stat.onClick}
-              className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer"
+              className="rounded-xl border p-3 shadow-xs hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.iconBg} shrink-0`}>
@@ -802,7 +802,7 @@ const LogisticsClient: React.FC = () => {
         <TabsContent value={activeTab} className="mt-4 space-y-4">
           {/* Shipment List */}
           {filteredShipments.length === 0 ? (
-            <Card className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 shadow-none">
+            <Card className="rounded-xl border border-dashed bg-slate-50/50 shadow-none">
               <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 mb-3">
                   <Package className="h-6 w-6" />
@@ -945,8 +945,8 @@ const LogisticsClient: React.FC = () => {
 
           {/* Map */}
           {mapNodes.length > 0 && (
-            <Card className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-              <CardHeader className="pb-2 bg-slate-50/50 border-b border-slate-100">
+            <Card className="rounded-xl border shadow-xs overflow-hidden">
+              <CardHeader className="pb-2 border-b border-slate-100">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-sm md:text-base font-semibold text-slate-800">
                     <Globe className="h-4 w-4 text-emerald-600" />

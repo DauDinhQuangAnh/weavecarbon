@@ -1,4 +1,5 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
 
 import { FormEvent, ReactNode, useCallback, useEffect, useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
@@ -527,39 +528,26 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
+    <div className="w-full space-y-6">
       {/* Top Hero Banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-sky-950 to-teal-950 p-6 md:p-8 text-white shadow-md border border-slate-800">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-300 ring-1 ring-inset ring-sky-500/30">
-                <CloudSun className="h-3.5 w-3.5" />
-                G2-07 · Climate Risk
-              </span>
-              <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-300 border border-emerald-500/20">
-                TCFD / IFRS S2 Aligned
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{t("title")}</h1>
-            <p className="max-w-3xl text-sm md:text-base text-slate-300 leading-relaxed">{t("description")}</p>
-          </div>
-
-          <div>
-            {isCompanyAdmin ? (
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 px-3 py-1 text-xs">
-                <ShieldCheck className="w-3.5 h-3.5 mr-1" />
-                Company Admin (Quyền quản trị rủi ro khí hậu)
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-amber-300 border-amber-500/30 px-3 py-1 text-xs">
-                <ShieldAlert className="w-3.5 h-3.5 mr-1" />
-                Chế độ xem ({user?.company_role || "member"})
-              </Badge>
-            )}
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary"><CloudSun className="h-3.5 w-3.5" /> G2-07 · Climate Risk</span><span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2.5 py-0.5 text-xs text-muted-foreground">TCFD / IFRS S2 Aligned</span></>}
+        actions={<>
+          {isCompanyAdmin ? (
+            <Badge variant="secondary" className="px-3 py-1 text-xs">
+              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+              Company Admin (quyền quản trị rủi ro khí hậu)
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-warning/40 px-3 py-1 text-xs text-warning">
+              <ShieldAlert className="mr-1 h-3.5 w-3.5" />
+              Chế độ xem ({user?.company_role || "member"})
+            </Badge>
+          )}
+        </>}
+      />
 
       {/* Caution & notices */}
       <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-xs">
@@ -612,8 +600,8 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       </div>
 
       {/* 1. Location Form with GIS Map */}
-      <Card className="shadow-xs border-slate-200/80">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="shadow-xs">
+        <CardHeader className="border-b border-slate-100">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
@@ -732,7 +720,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
             </Field>
 
             <div className="md:col-span-3 pt-2">
-              <Button disabled={(saving || isViewer) && !demo} className="bg-sky-600 hover:bg-sky-700 text-white font-medium">
+              <Button disabled={(saving || isViewer) && !demo} className="bg-primary hover:bg-primary/90 text-white font-medium">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
                 {t("saveLocation")}
               </Button>
@@ -831,7 +819,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 type="button"
                 onClick={runAiSimulation}
                 disabled={aiSimulating || facilities.length === 0}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium h-10 flex items-center justify-center gap-2"
+                className="w-full bg-primary hover:bg-primary/90 text-white font-medium h-10 flex items-center justify-center gap-2"
               >
                 {aiSimulating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                 Chạy mô phỏng AI (CMIP6)
@@ -983,8 +971,8 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       </Card>
 
       {/* 2. Assessment Form */}
-      <Card className="shadow-xs border-slate-200/80">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="shadow-xs">
+        <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <ShieldAlert className="h-5 w-5 text-teal-600" />
             {t("assessmentTitle")}
@@ -1372,8 +1360,8 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       </Card>
 
       {/* TCFD / IFRS S2 5x5 Heatmap Matrix */}
-      <Card className="shadow-xs border-slate-200/80">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+      <Card className="shadow-xs">
+        <CardHeader className="border-b border-slate-100 pb-4">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
@@ -1440,8 +1428,8 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       </Card>
 
       {/* 3. Portfolio Form */}
-      <Card className="shadow-xs border-slate-200/80">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="shadow-xs">
+        <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <BarChart3 className="h-5 w-5 text-indigo-600" />
             {t("portfolioTitle")}
@@ -1512,7 +1500,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
             <Button
               disabled={((saving || isViewer) && !demo) || selectedIds.length < 2}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+              className="bg-primary hover:bg-primary/90 text-white font-medium"
             >
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
               {t("createPortfolio")}
@@ -1644,6 +1632,6 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

@@ -200,7 +200,7 @@ export default function BillingPage() {
                 <h3 className="text-lg font-bold">Trial</h3>
                 <p className="text-sm text-muted-foreground">Miễn phí 14 ngày</p>
                 <div className="mt-1">
-                  <span className="text-3xl font-extrabold">0đ</span>
+                  <span className="text-3xl font-bold">0đ</span>
                   <span className="block text-sm text-muted-foreground">Kích hoạt tự động</span>
                 </div>
                 <p className="text-xs text-primary italic mt-1">
@@ -245,7 +245,7 @@ export default function BillingPage() {
                   Một gói Standard, chọn thêm mức SKU phù hợp
                 </p>
                 <div className="mt-1">
-                  <span className="text-2xl font-extrabold">899,000 – 1,499,000</span>
+                  <span className="text-2xl font-bold">899,000 – 1,499,000</span>
                   <span className="block text-sm text-muted-foreground">VND/tháng</span>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function BillingPage() {
                 <h3 className="text-lg font-bold">Export</h3>
                 <p className="text-sm text-muted-foreground">Doanh nghiệp</p>
                 <div className="mt-1">
-                  <span className="text-3xl font-extrabold">3M – 6M</span>
+                  <span className="text-3xl font-bold">3M – 6M</span>
                   <span className="block text-sm text-muted-foreground">VND/tháng</span>
                 </div>
               </div>

@@ -351,7 +351,7 @@ export default function SmartFactorSuggestionCard({
                   type="submit"
                   size="sm"
                   disabled={isSearchingRag || !ragQuery.trim()}
-                  className="h-7 px-2.5 text-xs bg-sky-600 hover:bg-sky-700 text-white shrink-0"
+                  className="h-7 px-2.5 text-xs bg-primary hover:bg-primary/90 text-white shrink-0"
                 >
                   {isSearchingRag ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -399,7 +399,7 @@ export default function SmartFactorSuggestionCard({
                         setSelectedFactorOverride(ragResult.factor);
                         if (onApplyFactor) handleApply(ragResult.factor);
                       }}
-                      className="h-6 px-2 text-[10px] bg-sky-600 hover:bg-sky-700 text-white"
+                      className="h-6 px-2 text-[10px] bg-primary hover:bg-primary/90 text-white"
                     >
                       <Check className="h-3 w-3 mr-1" />
                       Áp dụng hệ số RAG này

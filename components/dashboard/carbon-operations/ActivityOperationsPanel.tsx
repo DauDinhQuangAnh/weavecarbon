@@ -167,7 +167,7 @@ export default function ActivityOperationsPanel({
   };
 
   return (
-    <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+    <Card className="rounded-xl border shadow-xs">
       <CardHeader className="border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-600" /><CardTitle className="text-base font-bold text-slate-900">{t("activityLedgerTitle")}</CardTitle></div>
         <CardDescription className="text-xs text-slate-500">{t("activityLedgerDescription", { count: activities.length })}</CardDescription>

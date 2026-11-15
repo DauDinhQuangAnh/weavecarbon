@@ -251,8 +251,8 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
             appliedDate: "2026-06-07"
           },
           {
-            name: "Cotton Fiber - Organic",
-            source: "Ecoinvent v3.9",
+            name: "Steel scrap (EAF route)",
+            source: "worldsteel LCI 2024",
             version: "v3.9.1",
             appliedDate: "2026-06-07"
           }
@@ -534,7 +534,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
         return [
           `INV-${cfg.poContractId || "2026-EU-01"}`,
           "2026-09-26",
-          cfg.buyerBrand || "H&M Hennes & Mauritz GBC AB",
+          cfg.buyerBrand || "EuroSteel Trading GmbH (demo)",
           cfg.poContractId || "PO-2026-0891",
           item.sku.sku,
           item.sku.name,
@@ -683,7 +683,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     try {
       const result = await exportFullStandardReport("xlsx", {
         locale: "vi",
-        requestedBy: "Doanh nghiệp Dệt may WeaveCarbon",
+        requestedBy: "Vietnam Industrial Group (Demo)",
         planLabel: "Enterprise / Standard",
       });
       toast.success(
@@ -837,29 +837,29 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
 
       {/* Quick KPI Overview Cards */}
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-        <Card className="border border-slate-200 bg-white shadow-sm">
+        <Card className="border shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Lô hàng xuất khẩu</span>
               <Ship className="h-4 w-4 text-emerald-700" />
             </div>
-            <p className="mt-1 truncate text-sm sm:text-base font-bold text-slate-900">{cfg.poContractId || "PO-2026-TXT-099"}</p>
+            <p className="mt-1 truncate text-sm sm:text-base font-bold text-slate-900">{cfg.poContractId || "PO-2026-STL-099"}</p>
             <p className="mt-0.5 truncate text-[11px] text-slate-500">B/L: {cfg.billOfLadingNo || "ONEVNHAN260411"}</p>
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200 bg-white shadow-sm">
+        <Card className="border shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Phát thải lô hàng</span>
               <Package className="h-4 w-4 text-emerald-700" />
             </div>
             <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">{totals.toFixed(2)} <span className="text-xs font-normal text-slate-500">tCO₂e</span></p>
-            <p className="mt-0.5 truncate text-[11px] text-emerald-700 font-medium">~{selectedCarbon.total.toFixed(3)} kg CO₂e/chiếc</p>
+            <p className="mt-0.5 truncate text-[11px] text-emerald-700 font-medium">~{selectedCarbon.total.toFixed(3)} kg CO₂e/đơn vị</p>
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200 bg-white shadow-sm">
+        <Card className="border shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Hộ chiếu số DPP</span>
@@ -870,7 +870,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200 bg-white shadow-sm">
+        <Card className="border shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Mức sẵn sàng thị trường</span>
@@ -902,7 +902,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
         {/* TAB 1: Lô hàng & Chứng từ */}
         <TabsContent value="shipment" className="space-y-5">
           {/* Cổng Cấu hình Xuất khẩu */}
-          <Card className="border border-slate-200 bg-white shadow-sm">
+          <Card className="border shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
                 <FileSpreadsheet className="h-5 w-5 text-emerald-800" />
@@ -981,7 +981,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
 
           {/* Bộ chứng từ Vận tải & Thương mại */}
           <Card className="border border-emerald-200/80 bg-gradient-to-b from-emerald-50/30 via-white to-white shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="pb-3 border-b border-emerald-100/80 bg-white">
+            <CardHeader className="pb-3 border-b border-emerald-100/80">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -1016,7 +1016,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     badge: "Thương mại & CBAM",
                     kpiLabel: "Tổng giá trị & Thuế CBAM",
                     kpiValue: `$${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} · Scope 1+2+3`,
-                    copy: "Phục vụ thanh toán ngân hàng & Hải quan EU: Bổ sung đơn giá, thành tiền, chỉ số phát thải carbon (kg CO₂e/chiếc) và tổng phát thải để khai báo thuế CBAM."
+                    copy: "Phục vụ thanh toán ngân hàng & Hải quan EU: Bổ sung đơn giá, thành tiền, chỉ số phát thải carbon (kg CO₂e/đơn vị) và tổng phát thải để khai báo thuế CBAM."
                   },
                   {
                     title: "Packing List",
@@ -1177,7 +1177,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                       {selectedDocPreview === "bill-of-lading" && `Bill of Lading Maritime Annex (Vận đơn B/L: ${cfg.billOfLadingNo || "ONEVNHAN260411"})`}
                     </h4>
                     <p className="text-xs text-emerald-100/80">
-                      {selectedDocPreview === "commercial-invoice" && `Nhà mua hàng: ${cfg.buyerBrand || "H&M Hennes & Mauritz GBC AB"} · Hợp đồng/PO: ${cfg.poContractId || "PO-2026-0891"} · Ngày phát hành: 26/09/2026`}
+                      {selectedDocPreview === "commercial-invoice" && `Nhà mua hàng: ${cfg.buyerBrand || "EuroSteel Trading GmbH (demo)"} · Hợp đồng/PO: ${cfg.poContractId || "PO-2026-0891"} · Ngày phát hành: 26/09/2026`}
                       {selectedDocPreview === "packing-list" && `Số hiệu Container: ${cfg.containerNo || "MSKU9012445"} · Đóng gói: Thùng carton 5 lớp FSC · Trọng tải: ${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg`}
                       {selectedDocPreview === "bill-of-lading" && `Hải trình: Cảng Cát Lái (VNSGN) ➔ Cảng Rotterdam (NLRTM) · Tàu: ONE APUS / 012E · Khoảng cách: 10,450 Hải lý`}
                     </p>
@@ -1249,11 +1249,11 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                             <td className="px-3.5 py-3.5" colSpan={2}>Tổng giá trị thương mại & phát thải hóa đơn</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
                             <td className="px-3.5 py-3.5 text-right">-</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-extrabold">
+                            <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-bold">
                               ${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-3.5 py-3.5 text-right">-</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-extrabold text-sm">
+                            <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-bold text-sm">
                               {totals.toFixed(4)} tCO₂e
                             </td>
                           </tr>
@@ -1318,7 +1318,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                             <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.045).toFixed(2)} m³</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.42).toFixed(1)} kg</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-extrabold">{totals.toFixed(4)} tCO₂e</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-bold">{totals.toFixed(4)} tCO₂e</td>
                           </tr>
                         </tbody>
                       </table>
@@ -1340,11 +1340,11 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                           <p className="text-lg font-bold text-emerald-900 mt-0.5">
                             {totals.toFixed(4)} tCO₂e
                           </p>
-                          <p className="text-[11px] text-slate-600 mt-0.5">Tích lũy từ bông, kéo sợi, dệt may theo ISO 14067</p>
+                          <p className="text-[11px] text-slate-600 mt-0.5">Tích lũy từ nguyên liệu, sản xuất đến cổng nhà máy theo ISO 14067</p>
                         </div>
                         <div className="rounded-xl border border-emerald-400 bg-gradient-to-br from-emerald-100/90 to-teal-100/80 p-3 shadow-2xs">
                           <span className="text-emerald-950 font-bold block uppercase text-[10px] tracking-wider">Tổng phát thải giao nhận toàn diện</span>
-                          <p className="text-lg font-extrabold text-emerald-950 mt-0.5">
+                          <p className="text-lg font-bold text-emerald-950 mt-0.5">
                             {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
                           </p>
                           <p className="text-[11px] text-emerald-900 font-medium mt-0.5">Đầy đủ vòng đời vận chuyển quốc tế bàn giao tại cảng EU</p>
@@ -1389,7 +1389,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                               <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025).toFixed(3)} MT</td>
                               <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e</td>
                               <td className="px-3.5 py-3.5 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
-                              <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-extrabold">
+                              <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-bold">
                                 {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
                               </td>
                             </tr>
@@ -1450,7 +1450,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
         <TabsContent value="passport" className="space-y-5">
           <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
             {/* Cột Trái: Cấu hình và thông tin DPP */}
-            <Card className="border border-slate-200 bg-white shadow-sm">
+            <Card className="border shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
                   <QrCode className="h-5 w-5 text-emerald-800" />
@@ -1550,7 +1550,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
             </Card>
 
             {/* Cột Phải: Mockup Smartphone Hải quan EU */}
-            <Card className="border border-slate-200 bg-white shadow-sm">
+            <Card className="border shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                   <Smartphone className="h-4 w-4 text-emerald-800" />
@@ -1618,7 +1618,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
               {displayMarketCards.map((market) => (
                 <Card
                   key={market.code}
-                  className="cursor-pointer rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
+                  className="cursor-pointer rounded-xl border shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
                   onClick={() => handleOpenMarket(market.code)}
                 >
                   <CardContent className="p-3.5 sm:p-4">
@@ -1658,7 +1658,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
               <Shield className="h-5 w-5 text-emerald-800" />
               Pre-Audit Pack — Sẵn sàng kiểm toán SGS / BV / CBAM
             </h3>
-            <Card className="overflow-hidden rounded-xl border-2 border-slate-200 bg-white font-mono text-sm shadow-sm">
+            <Card className="overflow-hidden rounded-xl border-2 font-mono text-sm shadow-sm">
               <div className="border-b border-dashed border-slate-200 bg-slate-50 px-4 py-3">
                 <div className="text-center text-xs font-bold tracking-[0.22em] text-emerald-900">
                   WEAVE CARBON CORE ENGINE — AUDIT COMPLIANCE PANEL
@@ -1716,7 +1716,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     <tr className="border-t-2 border-slate-300 bg-emerald-50">
                       <td colSpan={5} className="px-3 py-3 font-bold">TỔNG DẤU CHÂN CARBON SẢN PHẨM (ISO 14067)</td>
                       <td className="px-3 py-3 text-right text-base font-bold tabular-nums">
-                        {selectedCarbon.total.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/chiếc</span>
+                        {selectedCarbon.total.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/đơn vị</span>
                       </td>
                     </tr>
                     <tr className="bg-red-50 text-red-600">

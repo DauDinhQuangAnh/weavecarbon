@@ -75,11 +75,11 @@ const RISK_COLOR: Record<Risk, string> = {
 };
 
 const SEED_GROUPS = [
-  'Dyeing supplier energy data',
+  'Scrap supplier energy data',
   'Diesel/thermal process evidence',
   'Sea freight document (LOT-EU-2026-001)',
   'BOM and electricity invoice',
-  'GOTS certification for cotton lot 2026',
+  'EUDR geolocation for coffee lots 2026',
   'Scope 1 fuel emission factor verification',
 ];
 
@@ -575,7 +575,7 @@ export default function DataGapPage() {
 
       {/* 2. Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border border-slate-200/80 bg-white shadow-xs">
+        <Card className="border shadow-xs">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-slate-600">Độ đầy đủ hồ sơ</div>
             <div className={`text-2xl font-bold tracking-tight mt-1 ${score >= 75 ? 'text-emerald-700' : 'text-amber-700'}`}>

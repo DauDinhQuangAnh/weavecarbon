@@ -15,7 +15,8 @@ export const isStarterRestrictedDashboardPath = (
     currentPath === "/export" ||
     currentPath.startsWith("/export/") ||
     currentPath === "/reports" ||
-    currentPath.startsWith("/reports/")
+    currentPath.startsWith("/reports/") ||
+    currentPath === "/report-builder"
   );
 };
 

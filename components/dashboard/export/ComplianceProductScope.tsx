@@ -37,7 +37,7 @@ const ComplianceProductScope: React.FC<ComplianceProductScopeProps> = ({
 
   if (products.length === 0) {
     return (
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card className="shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-yellow-100">
@@ -62,7 +62,7 @@ const ComplianceProductScope: React.FC<ComplianceProductScopeProps> = ({
   }
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">

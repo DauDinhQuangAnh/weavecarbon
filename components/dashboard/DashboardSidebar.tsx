@@ -10,6 +10,7 @@ import {
   CreditCard,
   Factory,
   DatabaseZap,
+  Sparkles,
   ClipboardCheck,
   CloudSun,
   Scale,
@@ -42,8 +43,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { getSubscriptionPlanFamily } from "@/lib/subscriptionPlans";
 import { Company, Profile } from "@/types/app.type";
-import { PROTECTED_MENU_ITEMS, SIDEBAR_GROUPS, canShowNavigation } from "@/lib/dashboard/navigation";
-import ScrollExperience from "@/components/design-system/ScrollExperience";
+import { ROOT_MENU_ITEMS, SIDEBAR_GROUPS, TAIL_MENU_ITEMS, canShowNavigation } from "@/lib/dashboard/navigation";
 
 interface DashboardSidebarProps {
   company: Company | null;
@@ -57,7 +57,7 @@ interface DashboardSidebarProps {
 
 const icons = { AlertCircle, BarChart3, CalculatorIcon, CreditCard, Factory, DatabaseZap,
   ClipboardCheck, CloudSun, Scale, Layers3, FileCheck, FileText, History, Package,
-  Settings, TrendingUp, Truck, Users, RadioTower, Activity, GitBranch, Inbox, Workflow, Flame, ShieldCheck };
+  Settings, TrendingUp, Truck, Users, RadioTower, Activity, GitBranch, Inbox, Workflow, Flame, ShieldCheck, Sparkles };
 type NavigationItem = { path: string; icon: keyof typeof icons; labelKey?: string; label?: string };
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
@@ -117,6 +117,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
   const isActive = (path: string) => {
     const targetPath = appRoutes.toAppPath(path);
+    if (path === "/reports" && pathname === appRoutes.toAppPath("/report-builder")) return true;
     return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
   };
 
@@ -126,69 +127,76 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     getSubscriptionPlanFamily(menuPlan) === "trial";
 
   const access = { isDemo: isDemoSession, isTrial: isTrialPlan, canAccessSettings };
-  const visibleMenuItems = PROTECTED_MENU_ITEMS.filter((item) => canShowNavigation(item.path, access));
+  const visibleRootItems = ROOT_MENU_ITEMS.filter((item) => canShowNavigation(item.path, access)) as NavigationItem[];
+  const visibleTailItems = TAIL_MENU_ITEMS.filter((item) => canShowNavigation(item.path, access)) as NavigationItem[];
   const renderMenuItem = (item: NavigationItem, nested = false) => {
     const active = isActive(item.path);
     const Icon = icons[item.icon];
     return <Link key={item.path} href={appRoutes.toAppPath(item.path)} prefetch={false}
-      title={item.labelKey ? t(item.labelKey) : item.label}
+      title={sidebarOpen ? undefined : item.labelKey ? t(item.labelKey) : item.label}
       aria-current={active ? "page" : undefined}
       onClick={(event) => { if (active) { event.preventDefault(); return; } handleSidebarNavigate(); }}
-      className={`flex w-full max-w-[11.25rem] items-center gap-3 rounded-lg px-3 py-2 transition-colors ${nested && sidebarOpen ? "pl-7" : ""} ${active ? "bg-secondary text-secondary-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-      <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
-      {sidebarOpen && <span className="text-sm">{item.labelKey ? t(item.labelKey) : item.label}</span>}
+      className={`group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 ${nested && sidebarOpen ? "pl-9" : ""} ${active ? "bg-secondary font-medium text-secondary-foreground shadow-[0_1px_0_hsl(0_0%_100%/0.8)_inset]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+      <Icon className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+      {sidebarOpen && <span className="flex-1 truncate">{item.labelKey ? t(item.labelKey) : item.label}</span>}
     </Link>;
   };
 
   return (
     <>
-      <ScrollExperience />
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm lg:hidden"
           onClick={onToggleSidebar}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex min-h-0 w-56 shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-transform duration-300 lg:z-20 lg:h-dvh lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar-background/85 backdrop-blur-xl transition-transform duration-300 lg:z-20 lg:h-dvh lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="border-b border-border px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] lg:p-4">
-          <Link prefetch={false} href={homeHref} className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#17260D]">
-              <Leaf className="h-5 w-5 text-[#8EB46E]" />
-            </div>
+          <Link prefetch={false} href={homeHref} className="flex min-w-0 items-center gap-2" title="WeaveCarbon">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-navy">
+              <Leaf className="h-4 w-4 text-accent" />
+            </span>
             {sidebarOpen && (
-              <span className="truncate font-display font-bold text-foreground">
-                WEAVE<span className="text-primary">CARBON</span>
+              <span className="min-w-0">
+                <span className="block font-display text-sm font-semibold leading-tight text-foreground">
+                  Weave<span className="text-primary">Carbon</span>
+                </span>
+                <span className="block truncate text-[10px] text-muted-foreground">Dữ liệu carbon công nghiệp</span>
               </span>
             )}
           </Link>
         </div>
 
-        <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-4 py-4">
-          {visibleMenuItems.map((item) => renderMenuItem(item))}
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 py-3">
+          {visibleRootItems.map((item) => renderMenuItem(item))}
           {SIDEBAR_GROUPS.map((group) => {
             const open = expandedGroups.includes(group.id);
             const Icon = icons[group.icon];
-            return <div key={group.id} className="w-full max-w-[11.25rem] border-t border-border/60 pt-2">
+            const groupActive = group.items.some((item) => isActive(item.path));
+            return <div key={group.id} className="w-full">
               {sidebarOpen && <button type="button" aria-expanded={open} aria-controls={`navigation-${group.id}`}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted"
+                className={`mt-2 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide transition-colors ${groupActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                 onClick={() => setExpandedGroups((previous) => open ? previous.filter((id) => id !== group.id) : [...previous, group.id])}>
-                <Icon className="h-4 w-4 shrink-0" /><span className="flex-1">{group.label}</span><ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+                <Icon className="h-4 w-4 shrink-0" /><span className="flex-1">{group.label}</span><ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
               </button>}
-              {(!sidebarOpen || open) && <div id={`navigation-${group.id}`} className="space-y-1">{group.items.map((item) => renderMenuItem(item, true))}</div>}
+              {(!sidebarOpen || open) && <div id={`navigation-${group.id}`} className="animate-fade-in space-y-0.5">{(group.items as readonly NavigationItem[]).filter((item) => canShowNavigation(item.path, access)).map((item) => renderMenuItem(item, true))}</div>}
             </div>;
           })}
-          {canShowNavigation("/settings", access) && <div className="w-full max-w-[11.25rem] border-t border-border pt-2">{renderMenuItem({ path: "/settings", icon: "Settings", labelKey: "settings" })}</div>}
+          <div className="mt-2 w-full space-y-0.5 border-t border-border pt-2">
+            {visibleTailItems.map((item) => renderMenuItem(item))}
+            {canShowNavigation("/settings", access) && renderMenuItem({ path: "/settings", icon: "Settings", labelKey: "settings" })}
+          </div>
         </nav>
 
-        <div className="border-t border-border px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 lg:p-4">
+        <div className="border-t border-border px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:p-3">
           {sidebarOpen && (
-            <div className="mb-3">
-              <p className="truncate text-sm font-medium">
+            <div className="mb-2 px-1">
+              <p className="truncate text-sm font-medium text-foreground">
                 {profile?.full_name || user?.email}
               </p>
               <p className="truncate text-xs text-muted-foreground">
@@ -200,11 +208,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           {isDemoSession ? (
             <div className={sidebarOpen ? "space-y-3" : "flex justify-center"}>
               {sidebarOpen && (
-                <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">
+                <div className="rounded-xl border border-warning/30 bg-warning/10 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-warning">
                     Demo mode
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">
+                  <p className="mt-1 text-sm font-medium text-foreground">
                     Thoát khỏi chế độ demo
                   </p>
                 </div>
@@ -216,8 +224,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 disabled={isLeavingDemo}
                 className={
                   sidebarOpen
-                    ? "mx-auto h-10 w-full max-w-[11.25rem] justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-100"
-                    : "h-10 w-10 rounded-full border-slate-300 bg-white p-0 text-slate-800 hover:border-slate-400 hover:bg-slate-50"
+                    ? "h-10 w-full justify-center gap-2 disabled:opacity-100"
+                    : "h-10 w-10 rounded-full p-0"
                 }
                 onClick={() => {
                   void handleExitDemo();
@@ -241,7 +249,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               size="sm"
               className={
                 sidebarOpen
-                  ? "mx-auto h-9 w-full max-w-[11.25rem] justify-start gap-2 border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                  ? "h-9 w-full justify-center gap-2"
                   : "h-9 w-9 p-0"
               }
               onClick={handleSignOut}

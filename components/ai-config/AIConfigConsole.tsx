@@ -590,7 +590,7 @@ const AIConfigConsole: React.FC = () => {
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
           <div className="space-y-6">
-            <Card className="rounded-[24px] border-slate-200 shadow-sm">
+            <Card className="rounded-[24px] shadow-sm">
               <CardHeader className="space-y-5">
                 <SectionHeader
                   icon={Shield}
@@ -689,7 +689,7 @@ const AIConfigConsole: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[24px] border-slate-200 shadow-sm">
+            <Card className="rounded-[24px] shadow-sm">
               <CardHeader className="space-y-5">
                 <SectionHeader
                   icon={Database}
@@ -903,7 +903,7 @@ const AIConfigConsole: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            <Card className="rounded-[24px] border-slate-200 shadow-sm">
+            <Card className="rounded-[24px] shadow-sm">
               <CardHeader className="space-y-5">
                 <SectionHeader
                   icon={Upload}
@@ -944,7 +944,7 @@ const AIConfigConsole: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[24px] border-slate-200 shadow-sm">
+            <Card className="rounded-[24px] shadow-sm">
               <CardHeader className="space-y-5">
                 <SectionHeader
                   icon={Search}
@@ -1003,7 +1003,7 @@ const AIConfigConsole: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[24px] border-slate-200 shadow-sm">
+            <Card className="rounded-[24px] shadow-sm">
               <CardHeader className="space-y-5">
                 <SectionHeader
                   icon={Wrench}

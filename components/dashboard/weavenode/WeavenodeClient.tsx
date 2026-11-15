@@ -1,4 +1,5 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
 
 import { FormEvent, ReactNode, useCallback, useEffect, useState } from "react";
 import {
@@ -446,23 +447,13 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
+    <div className="w-full space-y-6">
       {/* Top Banner */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950 p-6 md:p-8 text-white shadow-sm border border-slate-800">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300 ring-1 ring-inset ring-emerald-500/30">
-              <RadioTower className="h-3.5 w-3.5" />
-              G2-10 · WeaveNode
-            </span>
-            <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs text-cyan-300 border border-cyan-500/20">
-              Hardware Telemetry &amp; Signed OTA
-            </span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{t("title")}</h1>
-          <p className="max-w-3xl text-sm md:text-base text-slate-300 leading-relaxed">{t("description")}</p>
-        </div>
-      </section>
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary"><RadioTower className="h-3.5 w-3.5" /> G2-10 · WeaveNode</span><span className="inline-flex items-center rounded-full border border-border bg-background/60 px-2.5 py-0.5 text-xs text-muted-foreground">Hardware Telemetry &amp; Signed OTA</span></>}
+      />
 
       {/* Boundary Alert */}
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-sm">
@@ -512,8 +503,8 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* Fleet Overview Card */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="shadow-sm">
+        <CardHeader className="border-b border-slate-100">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -696,8 +687,8 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
 
       {/* Meter Hierarchy and Reconciliation Side-by-Side */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+        <Card className="shadow-sm">
+          <CardHeader className="border-b border-slate-100">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -857,8 +848,8 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
         </Card>
 
         {/* Reconciliation Form */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+        <Card className="shadow-sm">
+          <CardHeader className="border-b border-slate-100">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -950,8 +941,8 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* Signed Updates Card */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="shadow-sm">
+        <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Key className="h-5 w-5 text-indigo-600" />
             {t("signedUpdates")}
@@ -983,7 +974,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
                   onChange={(e) => setKeyForm({ ...keyForm, publicKeyPem: e.target.value })}
                 />
               </Field>
-              <Button disabled={saving} className="md:col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button disabled={saving} className="md:col-span-2 bg-primary hover:bg-primary/90 text-white">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
                 {t("registerKey")}
               </Button>
@@ -1247,6 +1238,6 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }

@@ -118,7 +118,7 @@ export default function EuTextileEprPanel() {
         || event.reportingPeriodStart !== latest?.reportingPeriodStart || event.reportingPeriodEnd !== latest?.reportingPeriodEnd));
 
   return (
-    <Card className="mt-4 rounded-xl border-blue-200 bg-white shadow-xs">
+    <Card className="mt-4 rounded-xl border-blue-200 shadow-xs">
       <CardHeader className="border-b border-blue-100/60 pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -133,7 +133,7 @@ export default function EuTextileEprPanel() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              className="h-8 bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium shadow-xs"
+              className="h-8 bg-primary hover:bg-primary/90 text-white text-xs font-medium shadow-xs"
               onClick={() => setOpenCreateDialog(true)}
             >
               <Plus className="mr-1 h-3.5 w-3.5" />
@@ -212,7 +212,7 @@ export default function EuTextileEprPanel() {
                 className="text-xs min-h-[60px]"
               />
               <div className="flex flex-wrap gap-2 pt-1">
-                <Button size="sm" className="h-8 text-xs bg-blue-700 hover:bg-blue-800 text-white" disabled={!reviewNotes || latest.automatedStatus !== 'specialist_review_required' || Boolean(busy)} onClick={() => void review('approved_for_internal_planning')}>
+                <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-white" disabled={!reviewNotes || latest.automatedStatus !== 'specialist_review_required' || Boolean(busy)} onClick={() => void review('approved_for_internal_planning')}>
                   Approve internal planning
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!reviewNotes || Boolean(busy)} onClick={() => void review('needs_information')}>
@@ -228,7 +228,7 @@ export default function EuTextileEprPanel() {
           <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center space-y-3">
             <ShieldCheck className="mx-auto h-8 w-8 text-slate-400" />
             <p className="text-sm text-slate-600">Chưa có bản đánh giá EU Textile EPR nào.</p>
-            <Button size="sm" className="bg-blue-700 hover:bg-blue-800 text-white text-xs" onClick={() => setOpenCreateDialog(true)}>
+            <Button size="sm" className="bg-primary hover:bg-primary/90 text-white text-xs" onClick={() => setOpenCreateDialog(true)}>
               <Plus className="mr-1 h-3.5 w-3.5" />
               Tạo bản đánh giá đầu tiên
             </Button>
@@ -381,7 +381,7 @@ export default function EuTextileEprPanel() {
             <Button
               disabled={!input.assessmentReference || Boolean(busy)}
               onClick={() => void create()}
-              className="bg-blue-700 hover:bg-blue-800 text-white font-medium"
+              className="bg-primary hover:bg-primary/90 text-white font-medium"
             >
               <LockKeyhole className="mr-2 h-4 w-4" />
               Create immutable EPR revision
@@ -439,7 +439,7 @@ export default function EuTextileEprPanel() {
               <Button
                 disabled={externalEventIncomplete || !latest || !['approved_for_internal_planning', 'external_evidence_recorded'].includes(latest.assessmentStatus) || Boolean(busy)}
                 onClick={() => void recordEvent()}
-                className="bg-blue-700 hover:bg-blue-800 text-white font-medium"
+                className="bg-primary hover:bg-primary/90 text-white font-medium"
               >
                 Record evidence-backed external event
               </Button>

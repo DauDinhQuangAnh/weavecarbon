@@ -11,7 +11,7 @@ interface CompanyDataExportCardV2Props {
 }
 
 const CompanyDataExportCardV2: React.FC<CompanyDataExportCardV2Props> = ({ productCount, onExportFull }) => (
-  <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+  <Card className="rounded-xl border border-emerald-100 shadow-sm">
     <CardHeader className="pb-3">
       <CardTitle className="flex items-center gap-2 text-base">
         <Download className="h-4 w-4 text-emerald-800" />

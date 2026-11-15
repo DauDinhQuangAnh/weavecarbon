@@ -41,41 +41,41 @@ export const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | numb
     sheet: 'BOM',
     rows: [
       ['SKU sản phẩm', 'Tên nguyên liệu', 'Thành phần / Mô tả', 'Tỷ lệ (%)', 'Khối lượng (kg/sản phẩm)', 'Nhà cung ứng', 'Xuất xứ', 'Chứng chỉ (nếu có)'],
-      ['SKU-SHIRT-001', 'Cotton 100%', 'Vải cotton chải kỹ', 60, 0.18, 'Công ty Bông Việt', 'VN', 'GOTS'],
-      ['SKU-SHIRT-001', 'Polyester tái chế', 'Sợi tái chế GRS', 30, 0.09, 'Toray VN', 'JP', 'GRS'],
-      ['SKU-SHIRT-001', 'Chỉ may + Phụ liệu', 'Nút, nhãn, bao bì', 10, 0.03, 'Nhiều NCC', 'VN', ''],
+      ['STL-HRC-002', 'Thép phế liệu HMS 1&2', 'Phế liệu nạp lò điện', 70, 780, 'Phế liệu Hoà Phát', 'VN', ''],
+      ['STL-HRC-002', 'Quặng sắt viên', 'Pellet Fe 65%', 25, 330, 'Vale (nhập khẩu)', 'BR', ''],
+      ['STL-HRC-002', 'Hợp kim fero + vôi', 'FeSi, FeMn, vôi luyện kim', 5, 45, 'Nhiều NCC', 'VN', ''],
     ],
   },
   material_invoice: {
     sheet: 'Hoa_don_nguyen_lieu',
     rows: [
       ['Số hóa đơn', 'Ngày', 'Nhà cung ứng', 'Mã hàng', 'Tên nguyên liệu', 'Số lượng', 'Đơn vị', 'Đơn giá (VNĐ)', 'Thành tiền (VNĐ)', 'Ghi chú'],
-      ['HD-2024-001', '2024-04-15', 'Bông Việt JSC', 'BV-COT-001', 'Vải cotton 32/1 OE', 500, 'kg', 85000, 42500000, ''],
-      ['HD-2024-002', '2024-04-20', 'Toray VN', 'TR-PET-002', 'Sợi Polyester DTY 150D', 300, 'kg', 62000, 18600000, 'GRS certified'],
+      ['HD-2024-001', '2024-04-15', 'Phế liệu Hoà Phát JSC', 'HP-SCR-001', 'Thép phế liệu HMS 1&2', 500, 'tấn', 9200000, 4600000000, ''],
+      ['HD-2024-002', '2024-04-20', 'HTX Cà phê Tây Nguyên', 'TN-CPH-002', 'Cà phê quả tươi Robusta', 300, 'tấn', 22000000, 6600000000, 'Kèm toạ độ vườn (EUDR)'],
     ],
   },
   warehouse_receipt: {
     sheet: 'Phieu_kho',
     rows: [
       ['Số phiếu', 'Ngày', 'Loại (Nhập/Xuất)', 'Mã hàng', 'Tên hàng', 'Số lượng', 'Đơn vị', 'Kho', 'Lô/Batch', 'Ghi chú'],
-      ['PNK-2024-001', '2024-04-15', 'Nhập', 'BV-COT-001', 'Vải cotton', 500, 'kg', 'Kho A - Nguyên liệu', 'LOT-240415', ''],
-      ['PXK-2024-010', '2024-04-25', 'Xuất', 'SKU-SHIRT-001', 'Áo thun SKU-SHIRT-001', 1000, 'cái', 'Kho B - Thành phẩm', 'LOT-240425', 'Xuất cho đơn ORD-001'],
+      ['PNK-2024-001', '2024-04-15', 'Nhập', 'HP-SCR-001', 'Thép phế liệu', 500, 'tấn', 'Bãi A - Nguyên liệu', 'LOT-240415', ''],
+      ['PXK-2024-010', '2024-04-25', 'Xuất', 'STL-HRC-002', 'Thép cuộn HRC', 420, 'tấn', 'Kho B - Thành phẩm', 'LOT-240425', 'Xuất cho đơn ORD-001'],
     ],
   },
   supplier_certificate: {
     sheet: 'Chung_chi_NCC',
     rows: [
       ['Tên nhà cung ứng', 'Loại chứng chỉ', 'Số chứng chỉ', 'Ngày cấp', 'Ngày hết hạn', 'Phạm vi / Sản phẩm', 'Cơ quan cấp', 'Link xác minh'],
-      ['Nhà cung ứng mẫu A', 'GOTS', 'SAMPLE-GOTS-001', '2024-01-15', '2025-01-14', 'Cotton yarn & fabric', 'Tổ chức chứng nhận mẫu', 'https://example.invalid/verify'],
-      ['Nhà cung ứng mẫu B', 'GRS', 'SAMPLE-GRS-002', '2024-03-01', '2025-02-28', 'Recycled polyester fiber', 'Tổ chức chứng nhận mẫu', 'https://example.invalid/verify'],
+      ['Nhà cung ứng mẫu A', 'ResponsibleSteel', 'SAMPLE-RS-001', '2024-01-15', '2025-01-14', 'Steel scrap & billet', 'Tổ chức chứng nhận mẫu', 'https://example.invalid/verify'],
+      ['Nhà cung ứng mẫu B', 'Rainforest Alliance', 'SAMPLE-RA-002', '2024-03-01', '2025-02-28', 'Robusta coffee cherries', 'Tổ chức chứng nhận mẫu', 'https://example.invalid/verify'],
     ],
   },
   supplier_declaration: {
     sheet: 'To_khai_NCC',
     rows: [
       ['Tên nhà cung ứng', 'Nguyên liệu / Sản phẩm', 'CO₂e (kg/đơn vị)', 'Đơn vị', 'Phương pháp tính', 'Kỳ tính', 'Người khai', 'Ngày khai', 'Ghi chú'],
-      ['Bông Việt JSC', 'Cotton yarn 32/1', 3.2, 'kg CO₂e/kg', 'Cradle-to-gate (LCA)', '2023', 'Nguyễn Văn A - GĐ KT', '2024-03-15', 'ISO 14067:2018'],
-      ['Toray VN', 'Recycled polyester DTY 150D', 1.8, 'kg CO₂e/kg', 'Mass balance, GRS', '2023', 'Tran Thi B - Env Manager', '2024-03-20', 'GRS certified'],
+      ['Phế liệu Hoà Phát JSC', 'Steel scrap HMS 1&2', 0.42, 'kg CO₂e/kg', 'Cradle-to-gate (LCA)', '2023', 'Nguyễn Văn A - GĐ KT', '2024-03-15', 'ISO 14067:2018'],
+      ['PV Gas South', 'Natural gas (feedstock)', 0.31, 'kg CO₂e/kg', 'Upstream (IPCC 2006)', '2023', 'Tran Thi B - Env Manager', '2024-03-20', ''],
     ],
   },
   logistics_invoice: {
@@ -91,16 +91,16 @@ export const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | numb
     sheet: 'Bill_of_Lading',
     rows: [
       ['Số B/L', 'Ngày phát hành', 'Hãng tàu', 'Tàu / Chuyến', 'Cảng xếp hàng', 'Cảng dỡ hàng', 'Hàng hóa (mô tả)', 'Số container', 'Loại cont', 'Trọng lượng (kg)', 'Số kiện'],
-      ['MAEU2024123456', '2024-05-15', 'Maersk', 'MSC MAYA / V.024W', 'Cat Lai, HCMC, VN', 'Hamburg, DE', 'Woven garments - 100% Cotton', 'MSKU1234567', '40HC', 18500, 850],
-      ['COSCO20240789', '2024-05-20', 'COSCO', 'COSCO GLORY / E.018', 'Hai Phong, VN', 'Rotterdam, NL', 'Knitted apparel - Mixed fabric', 'CSNU9876543', '20GP', 12000, 600],
+      ['MAEU2024123456', '2024-05-15', 'Maersk', 'MSC MAYA / V.024W', 'Cat Lai, HCMC, VN', 'Hamburg, DE', 'Hot-rolled steel coils (HS 7208)', 'MSKU1234567', '40HC', 18500, 850],
+      ['COSCO20240789', '2024-05-20', 'COSCO', 'COSCO GLORY / E.018', 'Hai Phong, VN', 'Rotterdam, NL', 'Urea fertiliser (HS 3102)', 'CSNU9876543', '20GP', 12000, 600],
     ],
   },
   air_waybill: {
     sheet: 'Air_Waybill',
     rows: [
       ['Số AWB', 'Ngày', 'Hãng bay', 'Sân bay xuất (IATA)', 'Sân bay đến (IATA)', 'Mô tả hàng hóa', 'Trọng lượng (kg)', 'Số kiện', 'Ghi chú'],
-      ['125-12345678', '2024-05-18', 'Vietnam Airlines', 'SGN', 'FRA', 'Garment samples - urgency', 250, 10, 'DDP Incoterms'],
-      ['618-98765432', '2024-05-22', 'Singapore Airlines Cargo', 'SGN', 'CDG', 'Fashion accessories - NVD', 180, 8, 'CIP Incoterms'],
+      ['125-12345678', '2024-05-18', 'Vietnam Airlines', 'SGN', 'FRA', 'Coffee samples - urgent', 250, 10, 'DDP Incoterms'],
+      ['618-98765432', '2024-05-22', 'Singapore Airlines Cargo', 'SGN', 'CDG', 'Cashew kernel samples W320', 180, 8, 'CIP Incoterms'],
       ['* EF hàng không ≈ 0.602 kg CO₂e / tấn.km (ICAO 2023). Cần tránh tối đa vận chuyển hàng không.', '', '', '', '', '', '', '', ''],
     ],
   },
@@ -108,18 +108,18 @@ export const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | numb
     sheet: 'Hoa_don_xuat_khau',
     rows: [
       ['Số hóa đơn', 'Ngày', 'Người bán', 'Người mua', 'Nước nhập khẩu', 'Điều kiện TM (Incoterms)', 'Mã HS', 'Mô tả hàng', 'Số lượng', 'Đơn vị', 'Đơn giá (USD)', 'Tổng (USD)', 'Trọng lượng (kg)'],
-      ['EXP-2024-001', '2024-05-20', 'WeaveCarbon Co., Ltd', 'Fashion GmbH', 'DE', 'FOB HCMC', '6109.10.90', "Men's T-shirt 100% Cotton", 5000, 'pcs', 4.5, 22500, 1250],
-      ['EXP-2024-002', '2024-05-22', 'WeaveCarbon Co., Ltd', 'Moda SRL', 'IT', 'CIF Genova', '6104.43.00', "Women's knitted dress Polyester", 2000, 'pcs', 12.8, 25600, 1400],
+      ['EXP-2024-001', '2024-05-20', 'WeaveCarbon Co., Ltd', 'EuroSteel Trading GmbH', 'DE', 'FOB Hai Phong', '7208.39.00', 'Hot-rolled steel coil HRC', 420, 't', 610, 256200, 420000],
+      ['EXP-2024-002', '2024-05-22', 'WeaveCarbon Co., Ltd', 'Caffè Italia SRL', 'IT', 'CIF Genova', '0901.11.10', 'Robusta green coffee', 300, 't', 4200, 1260000, 300000],
     ],
   },
   packing_list: {
     sheet: 'Packing_List',
     rows: [
       ['Số kiện', 'Loại kiện', 'Mã hàng (SKU)', 'Mô tả hàng', 'Số lượng/kiện', 'Đơn vị', 'Trọng lượng cả bì (kg)', 'Trọng lượng tịnh (kg)', 'Kích thước D×R×C (cm)', 'Ghi chú'],
-      [1, 'Carton', 'SKU-SHIRT-001', "Men's T-shirt S/M/L - Cotton", 120, 'pcs', 8.5, 7.8, '60×40×50', 'PO#2024-EU-001'],
-      [2, 'Carton', 'SKU-SHIRT-001', "Men's T-shirt S/M/L - Cotton", 120, 'pcs', 8.5, 7.8, '60×40×50', 'PO#2024-EU-001'],
+      [1, 'Cuộn', 'STL-HRC-002', 'Thép cuộn HRC 3.0×1250 mm', 1, 'cuộn', 10050, 10000, 'Ø1800×1250', 'PO#2024-EU-001'],
+      [2, 'Cuộn', 'STL-HRC-002', 'Thép cuộn HRC 3.0×1250 mm', 1, 'cuộn', 10050, 10000, 'Ø1800×1250', 'PO#2024-EU-001'],
       ['...', '', '', '', '', '', '', '', '', ''],
-      ['Tổng cộng', '', '', '', 10000, 'pcs', 710, 650, '', '850 cartons'],
+      ['Tổng cộng', '', '', '', 42, 'cuộn', 422100, 420000, '', '42 coils'],
     ],
   },
   other: {
@@ -127,7 +127,7 @@ export const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | numb
     rows: [
       ['Tên tài liệu', 'Ngày', 'Người phát hành', 'Mô tả nội dung', 'Số tham chiếu', 'Ghi chú'],
       ['Biên bản kiểm định lò hơi', '2024-03-10', 'Trung tâm Đo lường Chất lượng', 'Kiểm định an toàn lò hơi 2 tấn/h', 'KD-2024-BD-0021', 'Hiệu lực 12 tháng'],
-      ['Báo cáo LCA nội bộ', '2024-04-01', 'WeaveCarbon R&D', 'LCA tóm tắt SKU-SHIRT-001 theo ISO 14067', 'LCA-2024-001', 'Draft, chưa kiểm toán'],
+      ['Báo cáo LCA nội bộ', '2024-04-01', 'WeaveCarbon R&D', 'LCA tóm tắt STL-HRC-002 theo ISO 14067', 'LCA-2024-001', 'Draft, chưa kiểm toán'],
     ],
   },
 };

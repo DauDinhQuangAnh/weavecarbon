@@ -15,8 +15,8 @@
   },
   "company": {
     "id": "00000000-0000-4000-8000-000000000001",
-    "name": "WeaveCarbon Demo Factory",
-    "business_type": "brand",
+    "name": "Vietnam Industrial Group (Demo)",
+    "business_type": "factory",
     "domestic_market": "VN",
     "target_markets": [
       "EU",
@@ -24,33 +24,38 @@
     ],
     "current_plan": "standard",
     "standard_sku_limit": 20,
-    "address": "Lô C-3A, KCN Bình Dương, TP. Thủ Dầu Một, Bình Dương, Việt Nam",
+    "address": "KCN Phú Mỹ II, TX. Phú Mỹ, Bà Rịa - Vũng Tàu, Việt Nam",
     "tax_id": "3702123456",
     "phone": "0274 3822 999"
   },
   "products": [
     {
       "id": "00000000-0000-4000-8000-000000000100",
-      "productCode": "WC-TEE-001",
-      "productName": "Organic Cotton Tee",
-      "productType": "tshirt",
-      "weightPerUnit": 180,
-      "quantity": 1200,
+      "productCode": "CEM-PCB-001",
+      "productName": "Xi măng Portland PCB40",
+      "productType": "cement",
+      "weightPerUnit": 1000000,
+      "quantity": 3000,
       "materials": [
         {
-          "id": "mat-0-0",
-          "materialType": "organic_cotton",
-          "percentage": 100,
+          "id": "mat-0",
+          "materialType": "clinker",
+          "percentage": 78,
           "source": "domestic",
-          "certifications": [
-            "gots"
-          ]
+          "certifications": []
+        },
+        {
+          "id": "mat-1",
+          "materialType": "gypsum_additives",
+          "percentage": 22,
+          "source": "domestic",
+          "certifications": []
         }
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "clinker_kiln",
+        "cement_grinding"
       ],
       "energySources": [
         {
@@ -59,7 +64,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Bien Hoa",
+      "manufacturingLocation": "Ninh Binh",
       "wasteRecovery": "partial",
       "destinationMarket": "vietnam",
       "originAddress": {
@@ -92,73 +97,70 @@
           "mode": "road",
           "estimatedDistance": 45,
           "emissionFactor": 0.089,
-          "co2Kg": 0.72
+          "co2Kg": 4.0
         }
       ],
       "estimatedTotalDistance": 45,
       "carbonResults": {
         "perProduct": {
-          "materials": 1.62,
-          "production": 0.38,
-          "energy": 0.22,
-          "transport": 0.05,
-          "packaging": 0.04,
-          "total": 2.31
+          "materials": 90,
+          "production": 430,
+          "energy": 70,
+          "transport": 4.0,
+          "packaging": 5,
+          "total": 599.0
         },
         "totalBatch": {
-          "materials": 1944,
-          "production": 456,
-          "energy": 264,
-          "transport": 60,
-          "packaging": 48,
-          "total": 2772
+          "materials": 270000,
+          "production": 1290000,
+          "energy": 210000,
+          "transport": 12000.0,
+          "packaging": 15000,
+          "total": 1797000.0
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
+        "confidenceLevel": "medium",
+        "confidenceScore": 84,
         "proxyUsed": false,
         "proxyNotes": [],
-        "scope1": 0.48,
-        "scope2": 0.22,
-        "scope3": 1.67
+        "scope1": 430,
+        "scope2": 70,
+        "scope3": 99.0
       },
       "status": "published",
       "version": 2,
       "shipmentId": "00000000-0000-4000-8000-000000000331",
       "createdAt": "2026-02-10T03:00:00.000Z",
-      "updatedAt": "2026-03-01T08:00:00.000Z"
+      "updatedAt": "2026-03-01T08:00:00.000Z",
+      "productCategory": "cement",
+      "hsCode": "252329"
     },
     {
       "id": "00000000-0000-4000-8000-000000000101",
-      "productCode": "WC-DEN-002",
-      "productName": "Recycled Denim Jeans",
-      "productType": "pants",
-      "weightPerUnit": 420,
-      "quantity": 640,
+      "productCode": "STL-HRC-002",
+      "productName": "Thép cuộn cán nóng HRC",
+      "productType": "steel_coil",
+      "weightPerUnit": 1000000,
+      "quantity": 420,
       "materials": [
         {
-          "id": "mat-1-0",
-          "materialType": "recycled_polyester",
-          "percentage": 25,
-          "source": "imported",
-          "certifications": [
-            "grs",
-            "rcs"
-          ]
+          "id": "mat-0",
+          "materialType": "steel_scrap",
+          "percentage": 70,
+          "source": "domestic",
+          "certifications": []
         },
         {
-          "id": "mat-1-1",
-          "materialType": "cotton",
-          "percentage": 75,
-          "source": "domestic",
-          "certifications": [
-            "bci"
-          ]
+          "id": "mat-1",
+          "materialType": "iron_ore_pellet",
+          "percentage": 30,
+          "source": "imported",
+          "certifications": []
         }
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "eaf_melting",
+        "hot_rolling"
       ],
       "energySources": [
         {
@@ -167,7 +169,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Long An",
+      "manufacturingLocation": "Hai Phong",
       "wasteRecovery": "high",
       "destinationMarket": "eu",
       "originAddress": {
@@ -200,68 +202,68 @@
           "mode": "road",
           "estimatedDistance": 65,
           "emissionFactor": 0.089,
-          "co2Kg": 1.34
+          "co2Kg": 5.79
         },
         {
           "id": "leg-1-1",
           "mode": "sea",
           "estimatedDistance": 10840,
           "emissionFactor": 0.016,
-          "co2Kg": 5.94
+          "co2Kg": 173.44
         }
       ],
       "estimatedTotalDistance": 10905,
       "carbonResults": {
         "perProduct": {
-          "materials": 3.1,
-          "production": 0.62,
-          "energy": 0.41,
-          "transport": 0.28,
-          "packaging": 0.04,
-          "total": 4.45
+          "materials": 980,
+          "production": 420,
+          "energy": 360,
+          "transport": 179.2,
+          "packaging": 5,
+          "total": 1944.2
         },
         "totalBatch": {
-          "materials": 1984,
-          "production": 396.8,
-          "energy": 262.4,
-          "transport": 179.2,
-          "packaging": 25.6,
-          "total": 2848
+          "materials": 411600,
+          "production": 176400,
+          "energy": 151200,
+          "transport": 75264.0,
+          "packaging": 2100,
+          "total": 816564.0
         },
         "confidenceLevel": "high",
         "confidenceScore": 88,
         "proxyUsed": false,
         "proxyNotes": [],
-        "scope1": 0.72,
-        "scope2": 0.41,
-        "scope3": 3.38
+        "scope1": 420,
+        "scope2": 360,
+        "scope3": 1164.2
       },
       "status": "published",
       "version": 2,
       "shipmentId": "00000000-0000-4000-8000-000000000332",
       "createdAt": "2026-02-11T03:00:00.000Z",
-      "updatedAt": "2026-03-02T08:00:00.000Z"
+      "updatedAt": "2026-03-02T08:00:00.000Z",
+      "productCategory": "steel",
+      "hsCode": "720839"
     },
     {
       "id": "00000000-0000-4000-8000-000000000102",
-      "productCode": "WC-POL-003",
-      "productName": "Bamboo Polo",
-      "productType": "polo",
-      "weightPerUnit": 210,
-      "quantity": 900,
+      "productCode": "ALU-EXT-003",
+      "productName": "Thanh nhôm định hình 6063",
+      "productType": "aluminium_profile",
+      "weightPerUnit": 1000000,
+      "quantity": 85,
       "materials": [
         {
-          "id": "mat-2-0",
-          "materialType": "bamboo",
+          "id": "mat-0",
+          "materialType": "primary_aluminium",
           "percentage": 65,
-          "source": "domestic",
-          "certifications": [
-            "fsc"
-          ]
+          "source": "imported",
+          "certifications": []
         },
         {
-          "id": "mat-2-1",
-          "materialType": "cotton",
+          "id": "mat-1",
+          "materialType": "recycled_aluminium",
           "percentage": 35,
           "source": "domestic",
           "certifications": []
@@ -269,8 +271,9 @@
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "billet_casting",
+        "extrusion",
+        "anodizing"
       ],
       "energySources": [
         {
@@ -279,7 +282,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Ho Chi Minh City",
+      "manufacturingLocation": "Ba Ria - Vung Tau",
       "wasteRecovery": "partial",
       "destinationMarket": "vietnam",
       "originAddress": {
@@ -312,63 +315,65 @@
           "mode": "road",
           "estimatedDistance": 170,
           "emissionFactor": 0.089,
-          "co2Kg": 1.18
+          "co2Kg": 15.13
         }
       ],
       "estimatedTotalDistance": 170,
       "carbonResults": {
         "perProduct": {
-          "materials": 1.88,
-          "production": 0.34,
-          "energy": 0.27,
-          "transport": 0.08,
-          "packaging": 0.04,
-          "total": 2.57
+          "materials": 6900,
+          "production": 600,
+          "energy": 820,
+          "transport": 15.1,
+          "packaging": 20,
+          "total": 8355.1
         },
         "totalBatch": {
-          "materials": 1692,
-          "production": 306,
-          "energy": 243,
-          "transport": 72,
-          "packaging": 36,
-          "total": 2313
+          "materials": 586500,
+          "production": 51000,
+          "energy": 69700,
+          "transport": 1283.5,
+          "packaging": 1700,
+          "total": 710183.5
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.44,
-        "scope2": 0.27,
-        "scope3": 1.96
+        "confidenceLevel": "medium",
+        "confidenceScore": 79,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 600,
+        "scope2": 820,
+        "scope3": 6935.1
       },
       "status": "published",
       "version": 2,
       "createdAt": "2026-02-12T03:00:00.000Z",
       "updatedAt": "2026-03-03T08:00:00.000Z",
-      "shipmentId": "00000000-0000-4000-8000-000000000337"
+      "shipmentId": "00000000-0000-4000-8000-000000000337",
+      "productCategory": "aluminium",
+      "hsCode": "760429"
     },
     {
       "id": "00000000-0000-4000-8000-000000000103",
-      "productCode": "WC-BAG-004",
-      "productName": "Canvas Tote Bag",
-      "productType": "bag",
-      "weightPerUnit": 260,
-      "quantity": 450,
+      "productCode": "FRT-URE-004",
+      "productName": "Phân urê hạt đục",
+      "productType": "fertiliser",
+      "weightPerUnit": 1000000,
+      "quantity": 600,
       "materials": [
         {
-          "id": "mat-3-0",
-          "materialType": "cotton",
+          "id": "mat-0",
+          "materialType": "natural_gas_feedstock",
           "percentage": 100,
           "source": "domestic",
-          "certifications": [
-            "ocs"
-          ]
+          "certifications": []
         }
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "ammonia_synthesis",
+        "urea_granulation"
       ],
       "energySources": [
         {
@@ -377,7 +382,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Da Nang",
+      "manufacturingLocation": "Phu My",
       "wasteRecovery": "high",
       "destinationMarket": "eu",
       "originAddress": {
@@ -410,77 +415,73 @@
           "mode": "road",
           "estimatedDistance": 30,
           "emissionFactor": 0.089,
-          "co2Kg": 0.4
+          "co2Kg": 2.67
         },
         {
           "id": "leg-3-1",
           "mode": "sea",
           "estimatedDistance": 11120,
           "emissionFactor": 0.016,
-          "co2Kg": 4.7
+          "co2Kg": 177.92
         }
       ],
       "estimatedTotalDistance": 11150,
       "carbonResults": {
         "perProduct": {
-          "materials": 2.15,
-          "production": 0.4,
-          "energy": 0.25,
-          "transport": 0.22,
-          "packaging": 0.04,
-          "total": 3.06
+          "materials": 1150,
+          "production": 720,
+          "energy": 210,
+          "transport": 180.6,
+          "packaging": 15,
+          "total": 2275.6
         },
         "totalBatch": {
-          "materials": 967.5,
-          "production": 180,
-          "energy": 112.5,
-          "transport": 99,
-          "packaging": 18,
-          "total": 1377
+          "materials": 690000,
+          "production": 432000,
+          "energy": 126000,
+          "transport": 108360.0,
+          "packaging": 9000,
+          "total": 1365360.0
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.5,
-        "scope2": 0.25,
-        "scope3": 2.37
+        "confidenceLevel": "medium",
+        "confidenceScore": 76,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 720,
+        "scope2": 210,
+        "scope3": 1345.6
       },
       "status": "published",
       "version": 1,
       "createdAt": "2026-02-13T03:00:00.000Z",
       "updatedAt": "2026-03-03T08:00:00.000Z",
-      "shipmentId": "00000000-0000-4000-8000-000000000338"
+      "shipmentId": "00000000-0000-4000-8000-000000000338",
+      "productCategory": "fertiliser",
+      "hsCode": "310210"
     },
     {
       "id": "00000000-0000-4000-8000-000000000104",
-      "productCode": "WC-JKT-005",
-      "productName": "Performance Jacket",
-      "productType": "jacket",
-      "weightPerUnit": 540,
+      "productCode": "AGR-CPH-005",
+      "productName": "Cà phê nhân Robusta xuất khẩu",
+      "productType": "coffee",
+      "weightPerUnit": 1000000,
       "quantity": 300,
       "materials": [
         {
-          "id": "mat-4-0",
-          "materialType": "recycled_polyester",
-          "percentage": 60,
-          "source": "imported",
-          "certifications": [
-            "grs"
-          ]
-        },
-        {
-          "id": "mat-4-1",
-          "materialType": "nylon",
-          "percentage": 40,
+          "id": "mat-0",
+          "materialType": "coffee_cherry",
+          "percentage": 100,
           "source": "domestic",
           "certifications": []
         }
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "drying",
+        "hulling",
+        "sorting"
       ],
       "energySources": [
         {
@@ -489,7 +490,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Binh Duong",
+      "manufacturingLocation": "Dak Lak",
       "wasteRecovery": "partial",
       "destinationMarket": "usa",
       "originAddress": {
@@ -522,59 +523,63 @@
           "mode": "road",
           "estimatedDistance": 32,
           "emissionFactor": 0.089,
-          "co2Kg": 0.61
+          "co2Kg": 2.85
         },
         {
           "id": "leg-4-1",
-          "mode": "air",
+          "mode": "sea",
           "estimatedDistance": 13280,
-          "emissionFactor": 0.602,
-          "co2Kg": 9.8
+          "emissionFactor": 0.016,
+          "co2Kg": 212.48
         }
       ],
       "estimatedTotalDistance": 13312,
       "carbonResults": {
         "perProduct": {
-          "materials": 4.4,
-          "production": 0.73,
-          "energy": 0.36,
-          "transport": 0.92,
-          "packaging": 0.04,
-          "total": 6.45
+          "materials": 1650,
+          "production": 180,
+          "energy": 90,
+          "transport": 215.3,
+          "packaging": 25,
+          "total": 2160.3
         },
         "totalBatch": {
-          "materials": 1320,
-          "production": 219,
-          "energy": 108,
-          "transport": 276,
-          "packaging": 12,
-          "total": 1935
+          "materials": 495000,
+          "production": 54000,
+          "energy": 27000,
+          "transport": 64590.0,
+          "packaging": 7500,
+          "total": 648090.0
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.83,
-        "scope2": 0.36,
-        "scope3": 5.32
+        "confidenceLevel": "medium",
+        "confidenceScore": 72,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 180,
+        "scope2": 90,
+        "scope3": 1890.3
       },
       "status": "published",
       "version": 1,
       "shipmentId": "00000000-0000-4000-8000-000000000333",
       "createdAt": "2026-02-14T03:00:00.000Z",
-      "updatedAt": "2026-03-03T08:00:00.000Z"
+      "updatedAt": "2026-03-03T08:00:00.000Z",
+      "productCategory": "agriculture",
+      "hsCode": "090111"
     },
     {
       "id": "00000000-0000-4000-8000-000000000105",
-      "productCode": "WC-SHI-006",
-      "productName": "Linen Resort Shirt",
-      "productType": "shirt",
-      "weightPerUnit": 230,
-      "quantity": 520,
+      "productCode": "AGR-GAO-006",
+      "productName": "Gạo ST25 xuất khẩu",
+      "productType": "rice",
+      "weightPerUnit": 1000000,
+      "quantity": 500,
       "materials": [
         {
-          "id": "mat-5-0",
-          "materialType": "linen",
+          "id": "mat-0",
+          "materialType": "paddy_rice",
           "percentage": 100,
           "source": "domestic",
           "certifications": []
@@ -582,8 +587,9 @@
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "drying",
+        "milling",
+        "polishing"
       ],
       "energySources": [
         {
@@ -592,7 +598,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Hue",
+      "manufacturingLocation": "Soc Trang",
       "wasteRecovery": "high",
       "destinationMarket": "japan",
       "originAddress": {
@@ -625,70 +631,73 @@
           "mode": "road",
           "estimatedDistance": 70,
           "emissionFactor": 0.089,
-          "co2Kg": 0.55
+          "co2Kg": 6.23
         },
         {
           "id": "leg-5-1",
           "mode": "sea",
           "estimatedDistance": 3820,
           "emissionFactor": 0.016,
-          "co2Kg": 2.04
+          "co2Kg": 61.12
         }
       ],
       "estimatedTotalDistance": 3890,
       "carbonResults": {
         "perProduct": {
-          "materials": 1.94,
-          "production": 0.39,
-          "energy": 0.16,
-          "transport": 0.1,
-          "packaging": 0.04,
-          "total": 2.63
+          "materials": 1950,
+          "production": 120,
+          "energy": 85,
+          "transport": 67.3,
+          "packaging": 20,
+          "total": 2242.3
         },
         "totalBatch": {
-          "materials": 1008.8,
-          "production": 202.8,
-          "energy": 83.2,
-          "transport": 52,
-          "packaging": 20.8,
-          "total": 1367.6
+          "materials": 975000,
+          "production": 60000,
+          "energy": 42500,
+          "transport": 33650.0,
+          "packaging": 10000,
+          "total": 1121150.0
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.49,
-        "scope2": 0.16,
-        "scope3": 2.04
+        "confidenceLevel": "low",
+        "confidenceScore": 68,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 120,
+        "scope2": 85,
+        "scope3": 2037.3
       },
       "status": "published",
       "version": 1,
       "shipmentId": "00000000-0000-4000-8000-000000000335",
       "createdAt": "2026-02-15T03:00:00.000Z",
-      "updatedAt": "2026-03-03T08:00:00.000Z"
+      "updatedAt": "2026-03-03T08:00:00.000Z",
+      "productCategory": "agriculture",
+      "hsCode": "100630"
     },
     {
       "id": "00000000-0000-4000-8000-000000000106",
-      "productCode": "WC-DRS-007",
-      "productName": "Viscose Summer Dress",
-      "productType": "dress",
-      "weightPerUnit": 280,
-      "quantity": 410,
+      "productCode": "AGR-CSU-007",
+      "productName": "Cao su tự nhiên SVR 10",
+      "productType": "natural_rubber",
+      "weightPerUnit": 1000000,
+      "quantity": 250,
       "materials": [
         {
-          "id": "mat-6-0",
-          "materialType": "viscose",
+          "id": "mat-0",
+          "materialType": "field_latex",
           "percentage": 100,
           "source": "domestic",
-          "certifications": [
-            "fsc"
-          ]
+          "certifications": []
         }
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "coagulation",
+        "crumbing",
+        "drying"
       ],
       "energySources": [
         {
@@ -697,7 +706,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Ho Chi Minh City",
+      "manufacturingLocation": "Binh Phuoc",
       "wasteRecovery": "partial",
       "destinationMarket": "eu",
       "originAddress": {
@@ -730,70 +739,80 @@
           "mode": "road",
           "estimatedDistance": 28,
           "emissionFactor": 0.089,
-          "co2Kg": 0.32
+          "co2Kg": 2.49
         },
         {
           "id": "leg-6-1",
           "mode": "sea",
           "estimatedDistance": 10420,
           "emissionFactor": 0.016,
-          "co2Kg": 4.11
+          "co2Kg": 166.72
         }
       ],
       "estimatedTotalDistance": 10448,
       "carbonResults": {
         "perProduct": {
-          "materials": 2.48,
-          "production": 0.44,
-          "energy": 0.21,
-          "transport": 0.16,
-          "packaging": 0.04,
-          "total": 3.33
+          "materials": 820,
+          "production": 310,
+          "energy": 160,
+          "transport": 169.2,
+          "packaging": 10,
+          "total": 1469.2
         },
         "totalBatch": {
-          "materials": 1016.8,
-          "production": 180.4,
-          "energy": 86.1,
-          "transport": 65.6,
-          "packaging": 16.4,
-          "total": 1365.3
+          "materials": 205000,
+          "production": 77500,
+          "energy": 40000,
+          "transport": 42300.0,
+          "packaging": 2500,
+          "total": 367300.0
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.54,
-        "scope2": 0.21,
-        "scope3": 2.64
+        "confidenceLevel": "medium",
+        "confidenceScore": 74,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 310,
+        "scope2": 160,
+        "scope3": 999.2
       },
       "status": "published",
       "version": 1,
       "createdAt": "2026-02-16T03:00:00.000Z",
       "updatedAt": "2026-03-03T08:00:00.000Z",
-      "shipmentId": "00000000-0000-4000-8000-000000000334"
+      "shipmentId": "00000000-0000-4000-8000-000000000334",
+      "productCategory": "agriculture",
+      "hsCode": "400122"
     },
     {
       "id": "00000000-0000-4000-8000-000000000107",
-      "productCode": "WC-CAP-008",
-      "productName": "Recycled Cap",
-      "productType": "accessories",
-      "weightPerUnit": 95,
-      "quantity": 880,
+      "productCode": "VLX-GOM-008",
+      "productName": "Gạch ốp lát ceramic",
+      "productType": "ceramic_tile",
+      "weightPerUnit": 1000000,
+      "quantity": 900,
       "materials": [
         {
-          "id": "mat-7-0",
-          "materialType": "recycled_polyester",
-          "percentage": 100,
+          "id": "mat-0",
+          "materialType": "clay_feldspar",
+          "percentage": 85,
+          "source": "domestic",
+          "certifications": []
+        },
+        {
+          "id": "mat-1",
+          "materialType": "glaze_frit",
+          "percentage": 15,
           "source": "imported",
-          "certifications": [
-            "rcs"
-          ]
+          "certifications": []
         }
       ],
       "accessories": [],
       "productionProcesses": [
-        "cutting_sewing",
-        "finishing"
+        "pressing",
+        "kiln_firing",
+        "glazing"
       ],
       "energySources": [
         {
@@ -802,7 +821,7 @@
           "percentage": 100
         }
       ],
-      "manufacturingLocation": "Hai Phong",
+      "manufacturingLocation": "Binh Duong",
       "wasteRecovery": "high",
       "destinationMarket": "usa",
       "originAddress": {
@@ -835,70 +854,73 @@
           "mode": "sea",
           "estimatedDistance": 10890,
           "emissionFactor": 0.016,
-          "co2Kg": 2.48
+          "co2Kg": 174.24
         }
       ],
       "estimatedTotalDistance": 10890,
       "carbonResults": {
         "perProduct": {
-          "materials": 1.22,
-          "production": 0.16,
-          "energy": 0.03,
-          "transport": 0.05,
-          "packaging": 0.04,
-          "total": 1.46
+          "materials": 110,
+          "production": 230,
+          "energy": 120,
+          "transport": 174.2,
+          "packaging": 15,
+          "total": 649.2
         },
         "totalBatch": {
-          "materials": 1073.6,
-          "production": 140.8,
-          "energy": 26.4,
-          "transport": 44,
-          "packaging": 35.2,
-          "total": 1284.8
+          "materials": 99000,
+          "production": 207000,
+          "energy": 108000,
+          "transport": 156780.0,
+          "packaging": 13500,
+          "total": 584280.0
         },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
+        "confidenceLevel": "medium",
+        "confidenceScore": 81,
         "proxyUsed": false,
         "proxyNotes": [],
-        "scope1": 0.26,
-        "scope2": 0.03,
-        "scope3": 1.27
+        "scope1": 230,
+        "scope2": 120,
+        "scope3": 299.2
       },
       "status": "published",
       "version": 1,
       "shipmentId": "00000000-0000-4000-8000-000000000336",
       "createdAt": "2026-02-17T03:00:00.000Z",
-      "updatedAt": "2026-03-03T08:00:00.000Z"
+      "updatedAt": "2026-03-03T08:00:00.000Z",
+      "productCategory": "construction_materials",
+      "hsCode": "690721"
     },
     {
       "id": "00000000-0000-4000-8000-000000000112",
-      "productCode": "WC-SCF-013",
-      "productName": "Recycled Wool Scarf",
-      "productType": "accessories",
-      "weightPerUnit": 420,
-      "quantity": 640,
+      "productCode": "KKS-ILM-013",
+      "productName": "Tinh quặng ilmenite",
+      "productType": "mineral_concentrate",
+      "weightPerUnit": 1000000,
+      "quantity": 2500,
       "materials": [
         {
-          "id": "mat-12-0",
-          "materialType": "recycled_polyester",
-          "percentage": 25,
-          "source": "imported",
-          "certifications": ["grs", "rcs"]
-        },
-        {
-          "id": "mat-12-1",
-          "materialType": "cotton",
-          "percentage": 75,
+          "id": "mat-0",
+          "materialType": "heavy_mineral_sand",
+          "percentage": 100,
           "source": "domestic",
-          "certifications": ["bci"]
+          "certifications": []
         }
       ],
       "accessories": [],
-      "productionProcesses": ["cutting_sewing", "finishing"],
-      "energySources": [
-        { "id": "ene-12", "source": "grid", "percentage": 100 }
+      "productionProcesses": [
+        "mining",
+        "gravity_separation",
+        "magnetic_separation"
       ],
-      "manufacturingLocation": "Long An",
+      "energySources": [
+        {
+          "id": "ene-12",
+          "source": "grid",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Binh Thuan",
       "wasteRecovery": "high",
       "destinationMarket": "eu",
       "originAddress": {
@@ -926,62 +948,101 @@
         "lng": 9.99
       },
       "transportLegs": [
-        { "id": "leg-12-0", "mode": "road", "estimatedDistance": 65, "emissionFactor": 0.089, "co2Kg": 1.34 },
-        { "id": "leg-12-1", "mode": "sea", "estimatedDistance": 10840, "emissionFactor": 0.016, "co2Kg": 5.94 }
+        {
+          "id": "leg-12-0",
+          "mode": "road",
+          "estimatedDistance": 65,
+          "emissionFactor": 0.089,
+          "co2Kg": 5.79
+        },
+        {
+          "id": "leg-12-1",
+          "mode": "sea",
+          "estimatedDistance": 10840,
+          "emissionFactor": 0.016,
+          "co2Kg": 173.44
+        }
       ],
       "estimatedTotalDistance": 10905,
       "carbonResults": {
-        "perProduct": { "materials": 3.1, "production": 0.62, "energy": 0.41, "transport": 0.28, "packaging": 0.04, "total": 4.45 },
-        "totalBatch": { "materials": 1984, "production": 396.8, "energy": 262.4, "transport": 179.2, "packaging": 25.6, "total": 2848 },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.72,
-        "scope2": 0.41,
-        "scope3": 3.38
+        "perProduct": {
+          "materials": 40,
+          "production": 95,
+          "energy": 130,
+          "transport": 179.2,
+          "packaging": 3,
+          "total": 447.2
+        },
+        "totalBatch": {
+          "materials": 100000,
+          "production": 237500,
+          "energy": 325000,
+          "transport": 448000.0,
+          "packaging": 7500,
+          "total": 1118000.0
+        },
+        "confidenceLevel": "medium",
+        "confidenceScore": 70,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 95,
+        "scope2": 130,
+        "scope3": 222.2
       },
       "status": "draft",
       "version": 1,
       "shipmentId": null,
       "createdAt": "2026-02-27T09:00:00.000Z",
-      "updatedAt": "2026-02-27T09:00:00.000Z"
+      "updatedAt": "2026-02-27T09:00:00.000Z",
+      "productCategory": "mining",
+      "hsCode": "261400"
     },
     {
       "id": "00000000-0000-4000-8000-000000000113",
-      "productCode": "WC-GLV-014",
-      "productName": "Organic Cotton Glove Set",
-      "productType": "accessories",
-      "weightPerUnit": 260,
-      "quantity": 450,
+      "productCode": "AGR-TIE-014",
+      "productName": "Hạt tiêu đen xuất khẩu",
+      "productType": "spice",
+      "weightPerUnit": 1000000,
+      "quantity": 120,
       "materials": [
         {
-          "id": "mat-13-0",
-          "materialType": "cotton",
+          "id": "mat-0",
+          "materialType": "black_pepper",
           "percentage": 100,
           "source": "domestic",
-          "certifications": ["ocs"]
+          "certifications": [
+            "Rainforest Alliance"
+          ]
         }
       ],
       "accessories": [],
-      "productionProcesses": ["cutting_sewing", "finishing"],
-      "energySources": [
-        { "id": "ene-13", "source": "solar", "percentage": 100 }
+      "productionProcesses": [
+        "drying",
+        "sorting"
       ],
-      "manufacturingLocation": "Long An",
+      "energySources": [
+        {
+          "id": "ene-13",
+          "source": "solar",
+          "percentage": 100
+        }
+      ],
+      "manufacturingLocation": "Gia Lai",
       "wasteRecovery": "high",
       "destinationMarket": "eu",
       "originAddress": {
         "streetNumber": "",
-        "street": "Duc Hoa Hub",
+        "street": "Chu Se Hub",
         "ward": "",
         "district": "",
-        "city": "Long An",
-        "stateRegion": "Long An",
+        "city": "Gia Lai",
+        "stateRegion": "Gia Lai",
         "country": "Vietnam",
         "postalCode": "",
-        "lat": 10.87,
-        "lng": 106.42
+        "lat": 13.7,
+        "lng": 108.1
       },
       "destinationAddress": {
         "streetNumber": "",
@@ -996,33 +1057,63 @@
         "lng": 9.99
       },
       "transportLegs": [
-        { "id": "leg-13-0", "mode": "road", "estimatedDistance": 30, "emissionFactor": 0.089, "co2Kg": 0.4 },
-        { "id": "leg-13-1", "mode": "sea", "estimatedDistance": 10840, "emissionFactor": 0.016, "co2Kg": 4.7 }
+        {
+          "id": "leg-13-0",
+          "mode": "road",
+          "estimatedDistance": 30,
+          "emissionFactor": 0.089,
+          "co2Kg": 2.67
+        },
+        {
+          "id": "leg-13-1",
+          "mode": "sea",
+          "estimatedDistance": 10840,
+          "emissionFactor": 0.016,
+          "co2Kg": 173.44
+        }
       ],
       "estimatedTotalDistance": 10870,
       "carbonResults": {
-        "perProduct": { "materials": 2.15, "production": 0.4, "energy": 0.25, "transport": 0.22, "packaging": 0.04, "total": 3.06 },
-        "totalBatch": { "materials": 967.5, "production": 180, "energy": 112.5, "transport": 99, "packaging": 18, "total": 1377 },
-        "confidenceLevel": "high",
-        "confidenceScore": 88,
-        "proxyUsed": false,
-        "proxyNotes": [],
-        "scope1": 0.5,
-        "scope2": 0.25,
-        "scope3": 2.37
+        "perProduct": {
+          "materials": 950,
+          "production": 180,
+          "energy": 260,
+          "transport": 176.1,
+          "packaging": 20,
+          "total": 1586.1
+        },
+        "totalBatch": {
+          "materials": 114000,
+          "production": 21600,
+          "energy": 31200,
+          "transport": 21132.0,
+          "packaging": 2400,
+          "total": 190332.0
+        },
+        "confidenceLevel": "medium",
+        "confidenceScore": 77,
+        "proxyUsed": true,
+        "proxyNotes": [
+          "Đang chờ dữ liệu hoạt động sơ cấp từ nhà cung cấp (luồng demo)."
+        ],
+        "scope1": 180,
+        "scope2": 260,
+        "scope3": 1146.1
       },
       "status": "draft",
       "version": 1,
       "shipmentId": null,
       "createdAt": "2026-02-27T09:00:00.000Z",
-      "updatedAt": "2026-02-27T09:00:00.000Z"
+      "updatedAt": "2026-02-27T09:00:00.000Z",
+      "productCategory": "agriculture",
+      "hsCode": "090411"
     }
   ],
   "batches": [
     {
       "id": "00000000-0000-4000-8000-000000000441",
-      "name": "March Vietnam Retail Batch",
-      "description": "Domestic launch batch.",
+      "name": "Lô nội địa tháng 3 — vật liệu xây dựng & nhôm",
+      "description": "Lô giao nội địa cho dự án xây dựng và nhà phân phối.",
       "status": "published",
       "originAddress": {
         "streetNumber": "",
@@ -1054,9 +1145,9 @@
       ],
       "shipmentId": "00000000-0000-4000-8000-000000000331",
       "totalProducts": 2,
-      "totalQuantity": 2100,
-      "totalWeight": 405,
-      "totalCO2": 126,
+      "totalQuantity": 3085,
+      "totalWeight": 3085000,
+      "totalCO2": 2507183.5,
       "publishedAt": "2026-03-01T10:00:00.000Z",
       "createdAt": "2026-02-27T09:00:00.000Z",
       "updatedAt": "2026-03-01T10:00:00.000Z",
@@ -1064,29 +1155,29 @@
         {
           "id": "bi1",
           "productId": "00000000-0000-4000-8000-000000000100",
-          "productCode": "WC-TEE-001",
-          "productName": "Organic Cotton Tee",
-          "productType": "tshirt",
-          "quantity": 1200,
-          "weightKg": 0.18,
-          "co2PerUnit": 2.31
+          "productCode": "CEM-PCB-001",
+          "productName": "Xi măng Portland PCB40",
+          "productType": "cement",
+          "quantity": 3000,
+          "weightKg": 1000,
+          "co2PerUnit": 599.0
         },
         {
           "id": "bi2",
           "productId": "00000000-0000-4000-8000-000000000102",
-          "productCode": "WC-POL-003",
-          "productName": "Bamboo Polo",
-          "productType": "polo",
-          "quantity": 900,
-          "weightKg": 0.21,
-          "co2PerUnit": 2.57
+          "productCode": "ALU-EXT-003",
+          "productName": "Thanh nhôm định hình 6063",
+          "productType": "aluminium_profile",
+          "quantity": 85,
+          "weightKg": 1000,
+          "co2PerUnit": 8355.1
         }
       ]
     },
     {
       "id": "00000000-0000-4000-8000-000000000442",
-      "name": "EU Spring Export Batch",
-      "description": "EU assortment for buyers.",
+      "name": "Lô xuất khẩu EU — khoáng sản & nông sản",
+      "description": "Lô xuất khẩu sang EU, cần hồ sơ phát thải nhúng.",
       "status": "draft",
       "originAddress": {
         "streetNumber": "",
@@ -1119,31 +1210,31 @@
       ],
       "shipmentId": null,
       "totalProducts": 2,
-      "totalQuantity": 1090,
-      "totalWeight": 386,
-      "totalCO2": 980,
+      "totalQuantity": 2620,
+      "totalWeight": 2620000,
+      "totalCO2": 1308332.0,
       "createdAt": "2026-03-01T11:00:00.000Z",
       "updatedAt": "2026-03-01T11:00:00.000Z",
       "items": [
         {
           "id": "bi3",
           "productId": "00000000-0000-4000-8000-000000000112",
-          "productCode": "WC-SCF-013",
-          "productName": "Recycled Wool Scarf",
-          "productType": "accessories",
-          "quantity": 640,
-          "weightKg": 0.42,
-          "co2PerUnit": 4.45
+          "productCode": "KKS-ILM-013",
+          "productName": "Tinh quặng ilmenite",
+          "productType": "mineral_concentrate",
+          "quantity": 2500,
+          "weightKg": 1000,
+          "co2PerUnit": 447.2
         },
         {
           "id": "bi4",
           "productId": "00000000-0000-4000-8000-000000000113",
-          "productCode": "WC-GLV-014",
-          "productName": "Organic Cotton Glove Set",
-          "productType": "accessories",
-          "quantity": 450,
-          "weightKg": 0.26,
-          "co2PerUnit": 3.06
+          "productCode": "AGR-TIE-014",
+          "productName": "Hạt tiêu đen xuất khẩu",
+          "productType": "spice",
+          "quantity": 120,
+          "weightKg": 1000,
+          "co2PerUnit": 1586.1
         }
       ]
     }
@@ -1177,9 +1268,9 @@
         "lat": 10.72,
         "lng": 106.72
       },
-      "total_weight_kg": 216,
+      "total_weight_kg": 3000000,
       "total_distance_km": 45,
-      "total_co2e": 82,
+      "total_co2e": 12015.0,
       "estimated_arrival": "2026-03-18",
       "actual_arrival": "2026-03-02",
       "legs_count": 1,
@@ -1196,7 +1287,7 @@
           "destination_location": "Ho Chi Minh DC",
           "distance_km": 45,
           "duration_hours": 2.5,
-          "co2e": 82,
+          "co2e": 12015.0,
           "emission_factor_used": 0.089,
           "carrier_name": "GreenRoad",
           "vehicle_type": "Truck 2T"
@@ -1206,11 +1297,11 @@
         {
           "id": "sp1",
           "product_id": "00000000-0000-4000-8000-000000000100",
-          "quantity": 1200,
-          "weight_kg": 216,
-          "allocated_co2e": 82,
-          "sku": "WC-TEE-001",
-          "product_name": "Organic Cotton Tee"
+          "quantity": 3000,
+          "weight_kg": 3000000,
+          "allocated_co2e": 12015.0,
+          "sku": "CEM-PCB-001",
+          "product_name": "Xi măng Portland PCB40"
         }
       ]
     },
@@ -1242,9 +1333,9 @@
         "lat": 53.55,
         "lng": 9.99
       },
-      "total_weight_kg": 268.8,
+      "total_weight_kg": 420000,
       "total_distance_km": 10905,
-      "total_co2e": 720,
+      "total_co2e": 75274.5,
       "estimated_arrival": "2026-03-18",
       "actual_arrival": null,
       "legs_count": 2,
@@ -1261,7 +1352,7 @@
           "destination_location": "Cat Lai Port",
           "distance_km": 65,
           "duration_hours": 3.2,
-          "co2e": 132,
+          "co2e": 2429.7,
           "emission_factor_used": 0.089,
           "carrier_name": "Saigon Haulage",
           "vehicle_type": "Container Truck"
@@ -1274,7 +1365,7 @@
           "destination_location": "Hamburg Port",
           "distance_km": 10840,
           "duration_hours": 410,
-          "co2e": 588,
+          "co2e": 72844.8,
           "emission_factor_used": 0.016,
           "carrier_name": "OceanBridge",
           "vehicle_type": "Container Vessel"
@@ -1284,11 +1375,11 @@
         {
           "id": "sp3",
           "product_id": "00000000-0000-4000-8000-000000000101",
-          "quantity": 640,
-          "weight_kg": 268.8,
-          "allocated_co2e": 720,
-          "sku": "WC-DEN-002",
-          "product_name": "Recycled Denim Jeans"
+          "quantity": 420,
+          "weight_kg": 420000,
+          "allocated_co2e": 75274.5,
+          "sku": "STL-HRC-002",
+          "product_name": "Thép cuộn cán nóng HRC"
         }
       ]
     },
@@ -1320,9 +1411,9 @@
         "lat": 34.05,
         "lng": -118.24
       },
-      "total_weight_kg": 162,
+      "total_weight_kg": 300000,
       "total_distance_km": 13312,
-      "total_co2e": 1180,
+      "total_co2e": 64598.4,
       "estimated_arrival": "2026-03-18",
       "actual_arrival": null,
       "legs_count": 2,
@@ -1339,7 +1430,7 @@
           "destination_location": "Tan Son Nhat Airport",
           "distance_km": 32,
           "duration_hours": 1.4,
-          "co2e": 120,
+          "co2e": 854.4,
           "emission_factor_used": 0.089,
           "carrier_name": "GreenRoad",
           "vehicle_type": "Truck 1T"
@@ -1347,15 +1438,15 @@
         {
           "id": "sleg5",
           "leg_order": 2,
-          "transport_mode": "air",
+          "transport_mode": "sea",
           "origin_location": "Ho Chi Minh City",
           "destination_location": "Los Angeles",
           "distance_km": 13280,
           "duration_hours": 18,
-          "co2e": 1060,
-          "emission_factor_used": 0.602,
+          "co2e": 63744.0,
+          "emission_factor_used": 0.016,
           "carrier_name": "Pacific Air Cargo",
-          "vehicle_type": "Freighter"
+          "vehicle_type": "Container vessel"
         }
       ],
       "products": [
@@ -1363,10 +1454,10 @@
           "id": "sp5",
           "product_id": "00000000-0000-4000-8000-000000000104",
           "quantity": 300,
-          "weight_kg": 162,
-          "allocated_co2e": 1180,
-          "sku": "WC-JKT-005",
-          "product_name": "Performance Jacket"
+          "weight_kg": 300000,
+          "allocated_co2e": 64598.4,
+          "sku": "AGR-CPH-005",
+          "product_name": "Cà phê nhân Robusta xuất khẩu"
         }
       ]
     },
@@ -1398,9 +1489,9 @@
         "lat": 43.29,
         "lng": 5.36
       },
-      "total_weight_kg": 114.8,
+      "total_weight_kg": 250000,
       "total_distance_km": 10448,
-      "total_co2e": 65.6,
+      "total_co2e": 42303.0,
       "estimated_arrival": "2026-04-12",
       "actual_arrival": null,
       "legs_count": 2,
@@ -1417,7 +1508,7 @@
           "destination_location": "Cat Lai Port",
           "distance_km": 28,
           "duration_hours": 1.2,
-          "co2e": 1.4,
+          "co2e": 623.0,
           "emission_factor_used": 0.089,
           "carrier_name": "VN Logistics",
           "vehicle_type": "Truck 1T"
@@ -1430,7 +1521,7 @@
           "destination_location": "Marseille",
           "distance_km": 10420,
           "duration_hours": 480,
-          "co2e": 64.2,
+          "co2e": 41680.0,
           "emission_factor_used": 0.016,
           "carrier_name": "CMA CGM",
           "vehicle_type": "Container Ship"
@@ -1440,11 +1531,11 @@
         {
           "id": "sp6",
           "product_id": "00000000-0000-4000-8000-000000000106",
-          "quantity": 410,
-          "weight_kg": 114.8,
-          "allocated_co2e": 65.6,
-          "sku": "WC-DRS-007",
-          "product_name": "Viscose Summer Dress"
+          "quantity": 250,
+          "weight_kg": 250000,
+          "allocated_co2e": 42303.0,
+          "sku": "AGR-CSU-007",
+          "product_name": "Cao su tự nhiên SVR 10"
         }
       ]
     },
@@ -1454,7 +1545,7 @@
       "status": "delivered",
       "origin": {
         "streetNumber": "",
-        "street": "Tan Binh Garment Cluster",
+        "street": "KCN Tân Bình",
         "ward": "",
         "district": "",
         "city": "Ho Chi Minh City",
@@ -1476,9 +1567,9 @@
         "lat": 10.04,
         "lng": 105.74
       },
-      "total_weight_kg": 189,
+      "total_weight_kg": 85000,
       "total_distance_km": 100,
-      "total_co2e": 72,
+      "total_co2e": 756.5,
       "estimated_arrival": "2026-03-08",
       "actual_arrival": "2026-03-08",
       "legs_count": 1,
@@ -1495,7 +1586,7 @@
           "destination_location": "Can Tho DC",
           "distance_km": 100,
           "duration_hours": 3.5,
-          "co2e": 72,
+          "co2e": 756.5,
           "emission_factor_used": 0.089,
           "carrier_name": "Mekong Logistics",
           "vehicle_type": "Truck 2T"
@@ -1505,11 +1596,11 @@
         {
           "id": "sp7",
           "product_id": "00000000-0000-4000-8000-000000000102",
-          "quantity": 900,
-          "weight_kg": 189,
-          "allocated_co2e": 72,
-          "sku": "WC-POL-003",
-          "product_name": "Bamboo Polo"
+          "quantity": 85,
+          "weight_kg": 85000,
+          "allocated_co2e": 756.5,
+          "sku": "ALU-EXT-003",
+          "product_name": "Thanh nhôm định hình 6063"
         }
       ]
     },
@@ -1541,9 +1632,9 @@
         "lat": 51.92,
         "lng": 4.47
       },
-      "total_weight_kg": 117,
+      "total_weight_kg": 600000,
       "total_distance_km": 11080,
-      "total_co2e": 99,
+      "total_co2e": 107156.4,
       "estimated_arrival": "2026-04-22",
       "actual_arrival": null,
       "legs_count": 2,
@@ -1560,7 +1651,7 @@
           "destination_location": "Tien Sa Port",
           "distance_km": 18,
           "duration_hours": 0.8,
-          "co2e": 8,
+          "co2e": 961.2,
           "emission_factor_used": 0.089,
           "carrier_name": "Da Nang Trucking",
           "vehicle_type": "Truck 1T"
@@ -1573,7 +1664,7 @@
           "destination_location": "Rotterdam Port",
           "distance_km": 11062,
           "duration_hours": 370,
-          "co2e": 91,
+          "co2e": 106195.2,
           "emission_factor_used": 0.016,
           "carrier_name": "Maersk",
           "vehicle_type": "Container Vessel"
@@ -1583,11 +1674,11 @@
         {
           "id": "sp8",
           "product_id": "00000000-0000-4000-8000-000000000103",
-          "quantity": 450,
-          "weight_kg": 117,
-          "allocated_co2e": 99,
-          "sku": "WC-BAG-004",
-          "product_name": "Canvas Tote Bag"
+          "quantity": 600,
+          "weight_kg": 600000,
+          "allocated_co2e": 107156.4,
+          "sku": "FRT-URE-004",
+          "product_name": "Phân urê hạt đục"
         }
       ]
     },
@@ -1597,7 +1688,7 @@
       "status": "in_transit",
       "origin": {
         "streetNumber": "",
-        "street": "Hue Textile Zone",
+        "street": "KCN Phú Bài",
         "ward": "",
         "district": "",
         "city": "Hue",
@@ -1619,9 +1710,9 @@
         "lat": 34.69,
         "lng": 135.5
       },
-      "total_weight_kg": 119.6,
+      "total_weight_kg": 500000,
       "total_distance_km": 3890,
-      "total_co2e": 52,
+      "total_co2e": 33675.0,
       "estimated_arrival": "2026-04-08",
       "actual_arrival": null,
       "legs_count": 2,
@@ -1638,7 +1729,7 @@
           "destination_location": "Da Nang Port",
           "distance_km": 70,
           "duration_hours": 2,
-          "co2e": 1,
+          "co2e": 3115.0,
           "emission_factor_used": 0.089,
           "carrier_name": "Central VN Express",
           "vehicle_type": "Truck 2T"
@@ -1651,7 +1742,7 @@
           "destination_location": "Osaka Port",
           "distance_km": 3820,
           "duration_hours": 130,
-          "co2e": 51,
+          "co2e": 30560.0,
           "emission_factor_used": 0.016,
           "carrier_name": "MOL Liner",
           "vehicle_type": "Container Vessel"
@@ -1661,11 +1752,11 @@
         {
           "id": "sp9",
           "product_id": "00000000-0000-4000-8000-000000000105",
-          "quantity": 520,
-          "weight_kg": 119.6,
-          "allocated_co2e": 52,
-          "sku": "WC-SHI-006",
-          "product_name": "Linen Resort Shirt"
+          "quantity": 500,
+          "weight_kg": 500000,
+          "allocated_co2e": 33675.0,
+          "sku": "AGR-GAO-006",
+          "product_name": "Gạo ST25 xuất khẩu"
         }
       ]
     },
@@ -1697,9 +1788,9 @@
         "lat": 47.6,
         "lng": -122.33
       },
-      "total_weight_kg": 83.6,
+      "total_weight_kg": 900000,
       "total_distance_km": 10890,
-      "total_co2e": 44,
+      "total_co2e": 156816.0,
       "estimated_arrival": "2026-05-01",
       "actual_arrival": null,
       "legs_count": 1,
@@ -1716,7 +1807,7 @@
           "destination_location": "Seattle Port",
           "distance_km": 10890,
           "duration_hours": 360,
-          "co2e": 44,
+          "co2e": 156816.0,
           "emission_factor_used": 0.016,
           "carrier_name": "Pacific Container Lines",
           "vehicle_type": "Container Vessel"
@@ -1726,11 +1817,11 @@
         {
           "id": "sp10",
           "product_id": "00000000-0000-4000-8000-000000000107",
-          "quantity": 880,
-          "weight_kg": 83.6,
-          "allocated_co2e": 44,
-          "sku": "WC-CAP-008",
-          "product_name": "Recycled Cap"
+          "quantity": 900,
+          "weight_kg": 900000,
+          "allocated_co2e": 156816.0,
+          "sku": "VLX-GOM-008",
+          "product_name": "Gạch ốp lát ceramic"
         }
       ]
     }
@@ -1765,7 +1856,7 @@
       "documents": [
         {
           "id": "vn_labeling",
-          "name": "Domestic goods labeling (Vietnamese)",
+          "name": "Báo cáo kiểm kê KNK cấp cơ sở (NĐ 06/2022/NĐ-CP)",
           "type": "document",
           "required": true,
           "status": "approved",
@@ -1775,7 +1866,7 @@
         },
         {
           "id": "vn_import_dossier",
-          "name": "Basic import dossier",
+          "name": "Hồ sơ hải quan cơ bản",
           "type": "document",
           "required": true,
           "status": "uploaded",
@@ -1784,14 +1875,14 @@
         },
         {
           "id": "vn_co_fta",
-          "name": "Certificate of Origin / FTA document",
+          "name": "Giấy chứng nhận xuất xứ (C/O) / chứng từ FTA",
           "type": "document",
           "required": false,
           "status": "missing"
         },
         {
-          "id": "cert_gots",
-          "name": "GOTS 窶・Global Organic Textile Standard",
+          "id": "cert_iso_14001",
+          "name": "ISO 14001 — Hệ thống quản lý môi trường",
           "type": "material_certification",
           "required": false,
           "status": "approved",
@@ -1800,8 +1891,8 @@
           "uploadedDate": "2026-03-02T08:00:00.000Z"
         },
         {
-          "id": "cert_rcs",
-          "name": "RCS 窶・Recycled Claim Standard",
+          "id": "cert_meter_calibration",
+          "name": "Biên bản kiểm định đồng hồ điện/khí",
           "type": "material_certification",
           "required": false,
           "status": "uploaded",
@@ -1812,7 +1903,7 @@
       "carbonData": [
         {
           "scope": "scope1",
-          "value": 42.6,
+          "value": 4820,
           "unit": "tCO2e",
           "methodology": "GHG Protocol",
           "dataSource": "Fuel log",
@@ -1821,7 +1912,7 @@
         },
         {
           "scope": "scope2",
-          "value": 23.4,
+          "value": 2610,
           "unit": "tCO2e",
           "methodology": "GHG Protocol",
           "dataSource": "Electricity bills",
@@ -1830,7 +1921,7 @@
         },
         {
           "scope": "scope3",
-          "value": 88.2,
+          "value": 9850,
           "unit": "tCO2e",
           "methodology": "LCA",
           "dataSource": "Transport model",
@@ -1841,11 +1932,11 @@
       "productScope": [
         {
           "productId": "00000000-0000-4000-8000-000000000100",
-          "productName": "Organic Cotton Tee",
-          "hsCode": "610910",
-          "productionSite": "Bien Hoa",
-          "exportVolume": 1200,
-          "unit": "pcs"
+          "productName": "Xi măng Portland PCB40",
+          "hsCode": "252329",
+          "productionSite": "Ninh Binh",
+          "exportVolume": 3000,
+          "unit": "t"
         }
       ],
       "emissionFactors": [
@@ -1908,7 +1999,7 @@
       "documents": [
         {
           "id": "eu_label",
-          "name": "Textile fibre composition labeling",
+          "name": "CBAM — dữ liệu phát thải nhúng từ nhà máy (communication template)",
           "type": "document",
           "required": true,
           "status": "approved",
@@ -1918,7 +2009,7 @@
         },
         {
           "id": "eu_origin_marking",
-          "name": "Country-of-origin marking",
+          "name": "Mã CN & mô tả hàng hoá thuộc phạm vi CBAM",
           "type": "document",
           "required": true,
           "status": "uploaded",
@@ -1927,7 +2018,7 @@
         },
         {
           "id": "eu_reach",
-          "name": "REACH market-access compliance declaration",
+          "name": "Tuyên bố tuân thủ REACH (phân bón, hoá chất)",
           "type": "document",
           "required": true,
           "status": "approved",
@@ -1937,21 +2028,21 @@
         },
         {
           "id": "eu_origin_decl",
-          "name": "Origin declaration",
+          "name": "Tuyên bố xuất xứ (EVFTA)",
           "type": "document",
           "required": false,
           "status": "missing"
         },
         {
           "id": "eu_buyer_cert",
-          "name": "Buyer certifications (OEKO-TEX/GRS)",
+          "name": "Tuyên bố thẩm định EUDR (cao su tự nhiên)",
           "type": "document",
           "required": false,
           "status": "missing"
         },
         {
-          "id": "cert_grs",
-          "name": "GRS 窶・Global Recycled Standard",
+          "id": "cert_responsible_steel",
+          "name": "ResponsibleSteel™ — chứng nhận cơ sở",
           "type": "material_certification",
           "required": false,
           "status": "approved",
@@ -1960,8 +2051,8 @@
           "uploadedDate": "2026-03-02T08:00:00.000Z"
         },
         {
-          "id": "cert_oeko_tex",
-          "name": "OEKO-TEX STANDARD 100",
+          "id": "cert_iso_14064",
+          "name": "Tuyên bố thẩm tra ISO 14064-1",
           "type": "material_certification",
           "required": false,
           "status": "missing"
@@ -1970,7 +2061,7 @@
       "carbonData": [
         {
           "scope": "scope1",
-          "value": 36.8,
+          "value": 3680,
           "unit": "tCO2e",
           "methodology": "GHG Protocol",
           "dataSource": "Fuel records",
@@ -1979,7 +2070,7 @@
         },
         {
           "scope": "scope2",
-          "value": 28.4,
+          "value": 2140,
           "unit": "tCO2e",
           "methodology": "GHG Protocol",
           "dataSource": "Utility",
@@ -1988,7 +2079,7 @@
         },
         {
           "scope": "scope3",
-          "value": 140.2,
+          "value": 11020,
           "unit": "tCO2e",
           "methodology": "Product LCA",
           "dataSource": "Product + logistics",
@@ -1999,19 +2090,19 @@
       "productScope": [
         {
           "productId": "00000000-0000-4000-8000-000000000101",
-          "productName": "Recycled Denim Jeans",
-          "hsCode": "620342",
-          "productionSite": "Long An",
-          "exportVolume": 640,
-          "unit": "pcs"
+          "productName": "Thép cuộn cán nóng HRC",
+          "hsCode": "720839",
+          "productionSite": "Hai Phong",
+          "exportVolume": 420,
+          "unit": "t"
         },
         {
           "productId": "00000000-0000-4000-8000-000000000103",
-          "productName": "Canvas Tote Bag",
-          "hsCode": "420292",
-          "productionSite": "Da Nang",
-          "exportVolume": 450,
-          "unit": "pcs"
+          "productName": "Phân urê hạt đục",
+          "hsCode": "310210",
+          "productionSite": "Phu My",
+          "exportVolume": 600,
+          "unit": "t"
         }
       ],
       "emissionFactors": [
@@ -2073,7 +2164,7 @@
       "documents": [
         {
           "id": "us_ftc_label",
-          "name": "FTC textile labeling package",
+          "name": "Hồ sơ PCF sản phẩm theo ISO 14067",
           "type": "document",
           "required": true,
           "status": "uploaded",
@@ -2090,7 +2181,7 @@
         },
         {
           "id": "us_esg_audit",
-          "name": "ESG/social audit package",
+          "name": "Đăng ký cơ sở thực phẩm FDA (nông sản)",
           "type": "document",
           "required": false,
           "status": "uploaded",
@@ -2098,8 +2189,8 @@
           "uploadedDate": "2026-03-02T08:00:00.000Z"
         },
         {
-          "id": "cert_grs_us",
-          "name": "GRS 窶・Global Recycled Standard",
+          "id": "cert_rainforest",
+          "name": "Rainforest Alliance — cà phê",
           "type": "material_certification",
           "required": false,
           "status": "approved",
@@ -2108,8 +2199,8 @@
           "uploadedDate": "2026-03-02T08:00:00.000Z"
         },
         {
-          "id": "cert_bci_us",
-          "name": "Better Cotton (BCI)",
+          "id": "cert_iso_14001_us",
+          "name": "ISO 14001 — Hệ thống quản lý môi trường",
           "type": "material_certification",
           "required": false,
           "status": "missing"
@@ -2118,7 +2209,7 @@
       "carbonData": [
         {
           "scope": "scope1",
-          "value": 48.4,
+          "value": 910,
           "unit": "tCO2e",
           "methodology": "GHG Protocol",
           "dataSource": "Fuel records",
@@ -2127,7 +2218,7 @@
         },
         {
           "scope": "scope2",
-          "value": 31.1,
+          "value": 620,
           "unit": "tCO2e",
           "methodology": "GHG Protocol",
           "dataSource": "Electricity bills",
@@ -2136,7 +2227,7 @@
         },
         {
           "scope": "scope3",
-          "value": 166.9,
+          "value": 4380,
           "unit": "tCO2e",
           "methodology": "LCA",
           "dataSource": "Product and route model",
@@ -2147,11 +2238,11 @@
       "productScope": [
         {
           "productId": "00000000-0000-4000-8000-000000000104",
-          "productName": "Performance Jacket",
-          "hsCode": "620240",
-          "productionSite": "Binh Duong",
+          "productName": "Cà phê nhân Robusta xuất khẩu",
+          "hsCode": "090111",
+          "productionSite": "Dak Lak",
           "exportVolume": 300,
-          "unit": "pcs"
+          "unit": "t"
         }
       ],
       "emissionFactors": [
@@ -2168,7 +2259,7 @@
           "relatedDocumentId": "us_origin_marking",
           "type": "document",
           "missingItem": "Country-of-origin marking",
-          "regulatoryReason": "Required for textile labeling in the US.",
+          "regulatoryReason": "Bắt buộc ghi nhãn xuất xứ cho hàng nhập khẩu vào Hoa Kỳ.",
           "businessImpact": "Shipment cannot be marked ready.",
           "recommendedAction": [
             "Upload COO marking sheet PDF."
@@ -2188,7 +2279,7 @@
   "reports": [
     {
       "id": "00000000-0000-4000-8000-000000000551",
-      "title": "Carbon audit snapshot",
+      "title": "Snapshot kiểm toán carbon danh mục sản phẩm",
       "type": "carbon_audit",
       "format": "XLSX",
       "status": "completed",
@@ -2196,7 +2287,7 @@
       "date": "2026-03-03",
       "size": "24.0 KB",
       "records": 8,
-      "co2e": 14325,
+      "co2e": 7409927.5,
       "downloadUrl": "demo://report/00000000-0000-4000-8000-000000000551",
       "snapshot": {
         "datasetType": "products",
@@ -2209,60 +2300,60 @@
         ],
         "rows": [
           {
-            "productCode": "WC-TEE-001",
-            "productName": "Organic Cotton Tee",
+            "productCode": "CEM-PCB-001",
+            "productName": "Xi măng Portland PCB40",
             "status": "published",
             "destinationMarket": "vietnam",
-            "totalCo2e": 2772
+            "totalCo2e": 1797000.0
           },
           {
-            "productCode": "WC-DEN-002",
-            "productName": "Recycled Denim Jeans",
+            "productCode": "STL-HRC-002",
+            "productName": "Thép cuộn cán nóng HRC",
             "status": "published",
             "destinationMarket": "eu",
-            "totalCo2e": 2848
+            "totalCo2e": 816564.0
           },
           {
-            "productCode": "WC-POL-003",
-            "productName": "Bamboo Polo",
+            "productCode": "ALU-EXT-003",
+            "productName": "Thanh nhôm định hình 6063",
             "status": "draft",
             "destinationMarket": "vietnam",
-            "totalCo2e": 2313
+            "totalCo2e": 710183.5
           },
           {
-            "productCode": "WC-BAG-004",
-            "productName": "Canvas Tote Bag",
+            "productCode": "FRT-URE-004",
+            "productName": "Phân urê hạt đục",
             "status": "draft",
             "destinationMarket": "eu",
-            "totalCo2e": 1377
+            "totalCo2e": 1365360.0
           },
           {
-            "productCode": "WC-JKT-005",
-            "productName": "Performance Jacket",
+            "productCode": "AGR-CPH-005",
+            "productName": "Cà phê nhân Robusta xuất khẩu",
             "status": "published",
             "destinationMarket": "usa",
-            "totalCo2e": 1935
+            "totalCo2e": 648090.0
           },
           {
-            "productCode": "WC-SHI-006",
-            "productName": "Linen Resort Shirt",
+            "productCode": "AGR-GAO-006",
+            "productName": "Gạo ST25 xuất khẩu",
             "status": "draft",
             "destinationMarket": "japan",
-            "totalCo2e": 1367.6
+            "totalCo2e": 1121150.0
           },
           {
-            "productCode": "WC-DRS-007",
-            "productName": "Viscose Summer Dress",
+            "productCode": "AGR-CSU-007",
+            "productName": "Cao su tự nhiên SVR 10",
             "status": "published",
             "destinationMarket": "eu",
-            "totalCo2e": 1365.3
+            "totalCo2e": 367300.0
           },
           {
-            "productCode": "WC-CAP-008",
-            "productName": "Recycled Cap",
+            "productCode": "VLX-GOM-008",
+            "productName": "Gạch ốp lát ceramic",
             "status": "draft",
             "destinationMarket": "usa",
-            "totalCo2e": 1284.8
+            "totalCo2e": 584280.0
           }
         ]
       }
@@ -2277,7 +2368,7 @@
       "date": "2026-03-03",
       "size": "6.4 KB",
       "records": 3,
-      "co2e": null,
+      "co2e": 0,
       "downloadUrl": "demo://report/00000000-0000-4000-8000-000000000552",
       "snapshot": {
         "datasetType": "analytics",
@@ -2346,27 +2437,27 @@
     {
       "id": "hist-1",
       "product_id": "00000000-0000-4000-8000-000000000100",
-      "product_name": "Organic Cotton Tee",
+      "product_name": "Xi măng Portland PCB40",
       "calculated_at": "2026-03-01T10:00:00.000Z",
-      "total_co2e": 2772,
+      "total_co2e": 1797000.0,
       "confidence": 93,
       "version": 2
     },
     {
       "id": "hist-2",
       "product_id": "00000000-0000-4000-8000-000000000101",
-      "product_name": "Recycled Denim Jeans",
+      "product_name": "Thép cuộn cán nóng HRC",
       "calculated_at": "2026-03-01T10:05:00.000Z",
-      "total_co2e": 2848,
+      "total_co2e": 816564.0,
       "confidence": 90,
       "version": 2
     },
     {
       "id": "hist-3",
       "product_id": "00000000-0000-4000-8000-000000000104",
-      "product_name": "Performance Jacket",
+      "product_name": "Cà phê nhân Robusta xuất khẩu",
       "calculated_at": "2026-03-02T10:00:00.000Z",
-      "total_co2e": 1935,
+      "total_co2e": 648090.0,
       "confidence": 82,
       "version": 2
     }
@@ -2378,8 +2469,8 @@
         "period": "2026-01",
         "total_products": 5,
         "published_products": 2,
-        "total_co2e": 8420,
-        "avg_co2e_per_unit": 3.98,
+        "total_co2e": 5056590.5,
+        "avg_co2e_per_unit": 1004.99,
         "export_ready_markets": 1
       },
       {
@@ -2387,8 +2478,8 @@
         "period": "2026-02",
         "total_products": 8,
         "published_products": 4,
-        "total_co2e": 13925,
-        "avg_co2e_per_unit": 3.74,
+        "total_co2e": 7497703.2,
+        "avg_co2e_per_unit": 1004.99,
         "export_ready_markets": 1
       },
       {
@@ -2396,8 +2487,8 @@
         "period": "2026-03",
         "total_products": 8,
         "published_products": 4,
-        "total_co2e": 14325,
-        "avg_co2e_per_unit": 3.86,
+        "total_co2e": 8718259.5,
+        "avg_co2e_per_unit": 1004.99,
         "export_ready_markets": 2
       }
     ]

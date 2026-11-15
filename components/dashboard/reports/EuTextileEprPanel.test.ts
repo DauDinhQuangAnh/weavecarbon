@@ -8,7 +8,7 @@ const reportClient = fs.readFileSync(path.resolve(process.cwd(), 'components/das
 describe('R17 EU textile EPR UI contract', () => {
   it('mounts the EPR workflow on the ESG tab', () => {
     expect(reportClient).toContain('import("./EuTextileEprPanel")');
-    expect(reportClient).toContain('activeCategory === "esg" && <EuTextileEprPanel />');
+    expect(reportClient).toContain('activeCategory === "esg" && !isDemoRuntime && <EuTextileEprPanel />');
   });
 
   it('keeps national and external lifecycle claims explicit', () => {

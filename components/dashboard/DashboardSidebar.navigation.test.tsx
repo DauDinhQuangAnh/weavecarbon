@@ -20,15 +20,19 @@ import DashboardSidebar from "./DashboardSidebar";
 const props = { company: null, profile: null, currentPlan: "standard", sidebarOpen: true, onToggleSidebar: vi.fn() };
 beforeEach(() => { state.path = "/overview"; state.demo = false; state.trial = false; state.settings = true; });
 afterEach(cleanup);
-describe("sidebar rendering preserves old navigation", () => {
-  it("renders the nine protected links in their original relative order", () => {
+describe("sidebar rendering (Lovable grouping)", () => {
+  it("renders overview first and reports / billing / settings at the end, without duplicate links", () => {
+    state.path = "/overview";
     render(<DashboardSidebar {...props} />);
-    const links = screen.getByRole("navigation").querySelectorAll("a");
-    expect([...links].slice(0, 9).map(link => link.getAttribute("href"))).toEqual(["/overview", "/products", "/logistics", "/carbon-calculator", "/evidence", "/export", "/reports", "/audit-trail", "/billing"]);
+    const hrefs = [...screen.getByRole("navigation").querySelectorAll("a")].map(link => link.getAttribute("href"));
+    expect(hrefs[0]).toBe("/overview");
+    expect(hrefs.slice(-3)).toEqual(["/reports", "/billing", "/settings"]);
+    expect(new Set(hrefs).size).toBe(hrefs.length);
     expect(screen.getByRole("link", { name: "overview" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "overview" })).not.toHaveAttribute("title");
   });
   it("applies demo prefixes and existing trial visibility", () => {
-    state.demo = true; state.trial = true;
+    state.demo = true; state.trial = true; state.path = "/demo/products";
     render(<DashboardSidebar {...props} />);
     expect(screen.getByRole("link", { name: "product" })).toHaveAttribute("href", "/demo/products");
     expect(screen.queryByRole("link", { name: "export" })).toBeNull();

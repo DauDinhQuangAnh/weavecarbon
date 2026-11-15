@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -23,7 +23,6 @@ import CarbonInsightsClient from "./CarbonInsightsClient";
 import EvidenceLineageClient from "./EvidenceLineageClient";
 import InboxClient from "./InboxClient";
 import ComplianceClient from "./ComplianceClient";
-import DemoOperationalDataClient from "./DemoOperationalDataClient";
 import { DEMO_INVENTORIES, INDUSTRIAL_DEMO, demoActivityLineage } from "@/lib/dashboard/industrialDemoData";
 import { inventoryHotspots, latestInventoryRevisions } from "@/lib/dashboard/industrialWorkspace";
 
@@ -35,18 +34,15 @@ afterEach(() => {
 
 describe("new industrial demo pages", () => {
   it.each([
-    { page: <FacilityProcessClient mode="facilities" demo />, text: "Xưởng nhuộm minh họa" },
-    { page: <FacilityProcessClient mode="processes" demo />, text: "Nhuộm và giặt minh họa" },
-    { page: <ActivityDataClient demo />, text: "DEMO-DYE-FUEL" },
+    { page: <FacilityProcessClient mode="facilities" demo />, text: "Xưởng luyện thép lò điện minh họa" },
+    { page: <FacilityProcessClient mode="processes" demo />, text: "Luyện thép lò điện minh họa" },
+    { page: <ActivityDataClient demo />, text: "DEMO-EAF-FUEL" },
     { page: <CarbonInsightsClient mode="emissions" demo />, text: "Scope 1 · Phát thải trực tiếp" },
     { page: <CarbonInsightsClient mode="hotspots" demo />, text: "Độ bao phủ Top 5 Hotspots" },
     { page: <EvidenceLineageClient demo />, text: "DEMO · Hóa đơn điện tháng 9 · locked" },
     { page: <EvidenceLineageClient review demo />, text: "DEMO · Hóa đơn điện tháng 9 · locked" },
     { page: <InboxClient demo />, text: "DEMO · Hệ số nhiên liệu chờ rà soát" },
     { page: <ComplianceClient demo />, text: "Hai kỳ kiểm kê giả định" },
-    { page: <DemoOperationalDataClient mode="quality" />, text: "Danh mục hệ số minh họa" },
-    { page: <DemoOperationalDataClient mode="vietnam" />, text: "Kế hoạch đo minh họa" },
-    { page: <DemoOperationalDataClient mode="connected" />, text: "Bản đọc mô phỏng · mẫu hiển thị độc lập" },
   ])("renders populated, labelled demo: $text", async ({ page, text }) => {
     render(page);
     expect(await screen.findByText(text)).toBeInTheDocument();
@@ -58,7 +54,7 @@ describe("new industrial demo pages", () => {
     const select = await screen.findByRole("combobox", { name: "Chọn inventory" });
     expect(select.querySelectorAll("option")).toHaveLength(2);
     fireEvent.change(screen.getByRole("combobox", { name: "Nhóm hotspot" }), { target: { value: "category" } });
-    expect(screen.getByText("Nhiên liệu lò hơi")).toBeInTheDocument();
+    expect(screen.getByText("Khí thiên nhiên lò thùng")).toBeInTheDocument();
     fireEvent.change(select, { target: { value: DEMO_INVENTORIES[2].id } });
     expect(screen.getByText("7,15 tCO₂e")).toBeInTheDocument();
   });
@@ -79,28 +75,16 @@ describe("new industrial demo pages", () => {
 
   it("filters facilities and inbox entries and keeps links in /demo", async () => {
     const view = render(<FacilityProcessClient mode="facilities" demo />);
-    await screen.findByText("Xưởng nhuộm minh họa");
-    fireEvent.change(screen.getByLabelText("Tìm cơ sở hoặc quy trình"), { target: { value: "DEMO-SEWING" } });
-    expect(screen.getByText("Xưởng may minh họa")).toBeInTheDocument();
-    expect(screen.queryByText("Xưởng nhuộm minh họa")).not.toBeInTheDocument();
+    await screen.findByText("Xưởng luyện thép lò điện minh họa");
+    fireEvent.change(screen.getByLabelText("Tìm cơ sở hoặc quy trình"), { target: { value: "DEMO-COFFEE" } });
+    expect(screen.getByText("Xưởng sơ chế cà phê minh họa")).toBeInTheDocument();
+    expect(screen.queryByText("Xưởng luyện thép lò điện minh họa")).not.toBeInTheDocument();
     fireEvent.submit(screen.getByRole("button", { name: "Lưu revision" }).closest("form")!);
     view.unmount();
     render(<InboxClient demo />);
     await screen.findByText("DEMO · Hệ số nhiên liệu chờ rà soát");
     fireEvent.change(screen.getByLabelText("Tìm công việc"), { target: { value: "checksum" } });
     expect(screen.getByRole("link", { name: /Nhật ký sản xuất thiếu checksum/ })).toHaveAttribute("href", "/demo/evidence");
-  });
-
-  it("shows missing evidence and expired calibration scenarios", async () => {
-    const view = render(<DemoOperationalDataClient mode="quality" />);
-    fireEvent.change(screen.getByRole("combobox", { name: "Chọn hoạt động đánh giá" }), { target: { value: INDUSTRIAL_DEMO.activities[3].id } });
-    expect(screen.getByText("Cần bổ sung checksum và kiểm soát chứng từ.")).toBeInTheDocument();
-    view.unmount();
-    render(<DemoOperationalDataClient mode="connected" />);
-    expect(screen.getByText("2026-09-30 · 10:00")).toBeInTheDocument();
-    fireEvent.change(screen.getByRole("combobox", { name: "Chọn điểm đo mô phỏng" }), { target: { value: INDUSTRIAL_DEMO.measurementPoints[1].id } });
-    await waitFor(() => expect(screen.getByText(/Hết hạn · cần rà soát/)).toBeInTheDocument());
-    expect(screen.getByText("Không có")).toBeInTheDocument();
   });
 
   it("keeps facility/process/evidence links valid and reconciles inventory totals", () => {

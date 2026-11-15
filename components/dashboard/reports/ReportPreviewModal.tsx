@@ -316,12 +316,12 @@ const ReportPreviewModal: React.FC<ReportPreviewModalProps> = ({ open, onOpenCha
                     <div className="rounded-xl p-4 text-white" style={{ backgroundColor: WEAVE_V2_COLORS.secondary }}>
                       <p className="text-sm font-semibold">1. Tổng dấu chân carbon sản phẩm</p>
                       <p className="mt-3 text-4xl font-bold">{formatNumber(payload.totals.pcfKgPerUnit)}</p>
-                      <p className="text-sm">kg CO2e/chiếc</p>
+                      <p className="text-sm">kg CO2e/đơn vị</p>
                     </div>
                     <div className="rounded-xl bg-emerald-700 p-4 text-white">
                       <p className="text-sm font-semibold">2. Mức phát thải tối ưu có thể đạt</p>
                       <p className="mt-3 text-4xl font-bold">{formatNumber(payload.totals.optimalKgPerUnit)}</p>
-                      <p className="text-sm">kg CO2e/chiếc</p>
+                      <p className="text-sm">kg CO2e/đơn vị</p>
                     </div>
                     <div className="rounded-xl p-4 text-white" style={{ backgroundColor: WEAVE_V2_COLORS.red }}>
                       <p className="text-sm font-semibold">3. Kiểm tra phạm vi CBAM</p>

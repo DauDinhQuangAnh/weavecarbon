@@ -365,7 +365,7 @@ export function assessDataQualityPedigree(subject: {
     dimensionExplanations: {
       temporal: `Điểm ${temporal}/5: Dữ liệu đo đạc trong vòng 12 tháng của kỳ báo cáo hiện hành.`,
       geographic: `Điểm ${geographic}/5: Mức độ tương thích vùng lãnh thổ (Việt Nam vs Quốc tế).`,
-      technological: `Điểm ${technological}/5: Đặc tính công nghệ thiết bị (lò hơi, máy dệt, trạm biến áp).`,
+      technological: `Điểm ${technological}/5: Đặc tính công nghệ thiết bị (lò nung, lò hơi, máy sấy, trạm biến áp).`,
       completeness: `Điểm ${completeness}/5: Bao phủ trọn vẹn ranh giới 100% thời gian hoạt động.`,
       reliability: `Điểm ${reliability}/5: Tính xác thực của nguồn gốc (${kind.toUpperCase()}).`,
     },
@@ -486,7 +486,7 @@ export function resolveInboxTaskWithAi(task: {
         "Bước 3: Khóa chứng từ để sinh mã băm SHA-256 bất biến.",
       ],
       draftActionText: "Kính gửi Bộ phận Kế toán / Vận hành: Vui lòng cung cấp hóa đơn gốc định dạng PDF/XML của kỳ báo cáo để hoàn tất hồ sơ kiểm toán GHG.",
-      suggestedProxyOrFactor: "Trong thời gian chờ chứng từ, có thể áp dụng tạm thời hệ số bình quân ngành dệt may MoNRE.",
+      suggestedProxyOrFactor: "Trong thời gian chờ chứng từ, có thể áp dụng tạm thời hệ số bình quân ngành theo Bộ TN&MT.",
     };
   }
 
@@ -678,7 +678,7 @@ export function runMultiFrameworkGapAnalysis(params: {
     const checklist: ComplianceFrameworkAssessment["checklist"] = [
       {
         id: "dpp-1",
-        requirement: "Hộ chiếu số sản phẩm (DPP) & Ma trận nguồn gốc nguyên liệu dệt may / da giày",
+        requirement: "Hộ chiếu số sản phẩm (DPP) & ma trận nguồn gốc nguyên liệu",
         status: "pass",
         detail: "Quy định Thiết kế Sinh thái cho Sản phẩm Bền vững (ESPR 2024/1781) yêu cầu lưu vết định danh số của từng lô sản phẩm.",
         actionRequired: "Liên kết mã lô hàng và mã QR Hộ chiếu số sản phẩm.",
@@ -687,19 +687,19 @@ export function runMultiFrameworkGapAnalysis(params: {
       },
       {
         id: "dpp-2",
-        requirement: "Tỷ lệ hàm lượng sợi tái chế & Chứng chỉ GRS / OEKO-TEX",
+        requirement: "Tỷ lệ vật liệu tái chế & chứng chỉ chuỗi hành trình (ResponsibleSteel / ASI / GRS)",
         status: evidence > 0 ? "pass" : "warning",
         detail: "Xác minh tỷ lệ vật liệu tái chế (Recycled content %) kèm chứng thư Transaction Certificate (TC) hợp lệ.",
-        actionRequired: "Tải chứng chỉ GRS vào kho lưu trữ chứng từ và khóa mã băm.",
+        actionRequired: "Tải chứng chỉ chuỗi hành trình vào kho chứng từ và khóa mã băm.",
         owner: "Bộ phận Mua hàng & Cung ứng",
-        regulationReference: "EU Textiles Strategy 2030 Criteria"
+        regulationReference: "ESPR delegated acts (iron, steel, aluminium, textiles)"
       },
       {
         id: "dpp-3",
         requirement: "Kiểm soát dư lượng hóa chất theo Danh mục REACH SVHC",
         status: "pass",
         detail: "Báo cáo kiểm nghiệm hóa chất không chứa các chất trong danh mục đặc biệt quan ngại (SVHC > 0.1% w/w).",
-        actionRequired: "Đã rà soát danh mục hóa chất tẩy nhuộm và hoàn tất kiểm nghiệm định kỳ.",
+        actionRequired: "Đã rà soát danh mục hóa chất sử dụng và hoàn tất kiểm nghiệm định kỳ.",
         owner: "Kỹ sư Hóa - Phòng Thí nghiệm",
         regulationReference: "Regulation (EC) No 1907/2006 (REACH)"
       }
@@ -1142,7 +1142,7 @@ export function detectIotSensorAnomalies(devices: Array<{
         observedValue: `${volt} V`,
         expectedRange: "380 V ± 5% (361 - 399 V)",
         anomalyTitle: "Điện áp dây lệch chuẩn kỹ thuật trạm biến áp",
-        diagnosticExplanation: `Điện áp vận hành lệch quá ngưỡng cho phép, có nguy cơ gây phát nhiệt động cơ máy dệt và tăng tổn thất điện vô công.`,
+        diagnosticExplanation: `Điện áp vận hành lệch quá ngưỡng cho phép, có nguy cơ gây phát nhiệt động cơ và tăng tổn thất điện vô công.`,
         actionProtocol: "Báo điều độ điện lực và kiểm tra nấc phân áp của máy biến áp phân phối.",
         detectedAt: new Date().toISOString()
       });

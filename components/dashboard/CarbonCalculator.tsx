@@ -351,8 +351,8 @@ export default function CarbonCalculator() {
       {/* ── Main Grid ── */}
       <div className="grid lg:grid-cols-2 gap-5 md:gap-6 items-start">
         {/* Input Form Card */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-xs overflow-hidden">
-          <CardHeader className="pb-3.5 border-b border-slate-100 bg-slate-50/40">
+        <Card className="rounded-2xl border shadow-xs overflow-hidden">
+          <CardHeader className="pb-3.5 border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100/70 text-emerald-800">
                 <Calculator className="w-4 h-4" />
@@ -520,7 +520,7 @@ export default function CarbonCalculator() {
             emissions ? 'opacity-100' : 'opacity-85'
           }`}
         >
-          <CardHeader className="pb-3.5 border-b border-slate-100 bg-slate-50/40">
+          <CardHeader className="pb-3.5 border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100/70 text-emerald-800">
                 <Leaf className="w-4 h-4" />
@@ -540,7 +540,7 @@ export default function CarbonCalculator() {
                     Tổng phát thải ước tính (Proxy)
                   </p>
                   <div className="my-2 flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-extrabold tracking-tight">
+                    <span className="text-5xl font-bold tracking-tight">
                       {emissions.total.toFixed(2)}
                     </span>
                     <span className="text-base font-semibold text-emerald-200">
@@ -739,7 +739,7 @@ export default function CarbonCalculator() {
       </div>
 
       {/* ── Methodology Reference Card ── */}
-      <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-xs">
+      <Card className="rounded-2xl border shadow-xs">
         <CardContent className="p-5">
           <div className="grid md:grid-cols-3 gap-4 text-xs">
             <div className="space-y-1">

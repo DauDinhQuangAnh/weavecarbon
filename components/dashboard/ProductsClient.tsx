@@ -1,4 +1,7 @@
 ﻿"use client";
+import { DataStatusBadge, DATA_STATUS_META } from "@/components/products/ModeBadge";
+import { materialDisplayName } from "@/lib/industrialLabels";
+import { deriveAuditReadiness, type ProductDataStatus } from "@/lib/products/auditReadiness";
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
@@ -212,6 +215,17 @@ const ProductsClient: React.FC = () => {
     "all");
   const [currentPage, setCurrentPage] = useState(1);
   const [products, setProducts] = useState<ProductRecord[]>([]);
+  // Giai đoạn 2/3 (Lovable): lọc theo mức Estimate / Pre-audit / Audit-ready trên trang hiện tại.
+  const [dataStatusFilter, setDataStatusFilter] = useState<ProductDataStatus | "all">("all");
+  const dataStatusCounts = useMemo(() => {
+    const counts: Record<ProductDataStatus, number> = { draft: 0, estimate: 0, pre_audit: 0, audit_ready: 0 };
+    products.forEach((product) => { counts[deriveAuditReadiness(product).dataStatus] += 1; });
+    return counts;
+  }, [products]);
+  const visibleProducts = useMemo(
+    () => dataStatusFilter === "all" ? products : products.filter((product) => deriveAuditReadiness(product).dataStatus === dataStatusFilter),
+    [products, dataStatusFilter]
+  );
   const [pagination, setPagination] = useState({
     page: 1,
     page_size: ITEMS_PER_PAGE,
@@ -1114,6 +1128,21 @@ const ProductsClient: React.FC = () => {
                 onClick={() => setStatusFilter("published")}>
                 {t("publishedStatus")}
               </Button>
+              <span className="mx-1 hidden h-5 w-px bg-border sm:inline-block" aria-hidden />
+              {(["all", "audit_ready", "pre_audit", "estimate", "draft"] as const).map((key) => (
+                <Button
+                  key={key}
+                  type="button"
+                  variant="outline"
+                  aria-pressed={dataStatusFilter === key}
+                  className={`h-8 rounded-lg px-2.5 text-xs ${dataStatusFilter === key ? "border-primary/40 bg-primary/10 text-primary" : "text-muted-foreground"}`}
+                  onClick={() => setDataStatusFilter(key)}>
+                  {key === "all" ? "Mọi mức dữ liệu" : DATA_STATUS_META[key].label}
+                  <span className="ml-1 tabular-nums opacity-70">
+                    {key === "all" ? products.length : dataStatusCounts[key]}
+                  </span>
+                </Button>
+              ))}
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 lg:justify-end">
@@ -1163,7 +1192,7 @@ const ProductsClient: React.FC = () => {
         <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {loading ? (
             Array.from({ length: 6 }).map((_, index) => (
-              <Card key={index} className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs">
+              <Card key={index} className="rounded-xl border p-4 shadow-xs">
                 <div className="flex items-center justify-between mb-3">
                   <div className="h-4 w-20 rounded bg-slate-100 animate-pulse" />
                   <div className="h-5 w-16 rounded-full bg-slate-100 animate-pulse" />
@@ -1188,7 +1217,7 @@ const ProductsClient: React.FC = () => {
               </Card>
             ))
           ) : products.length === 0 ? (
-            <Card className="sm:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 shadow-none">
+            <Card className="sm:col-span-2 xl:col-span-3 rounded-xl border border-dashed bg-slate-50/50 shadow-none">
               <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 mb-3">
                   <Package className="h-6 w-6" />
@@ -1207,7 +1236,7 @@ const ProductsClient: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            products.map((product) => {
+            visibleProducts.map((product) => {
               const editBlockedByCancelledShipment = isShipmentCancelled(
                 product.shipmentId
               );
@@ -1224,7 +1253,7 @@ const ProductsClient: React.FC = () => {
               return (
                 <Card
                   key={product.id}
-                  className="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-0 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md cursor-pointer overflow-hidden"
+                  className="group relative flex flex-col justify-between rounded-xl border p-0 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md cursor-pointer overflow-hidden"
                   onClick={(event) => {
                     if (
                       event.target instanceof HTMLElement &&
@@ -1262,7 +1291,7 @@ const ProductsClient: React.FC = () => {
                                 key={material.id}
                                 variant="outline"
                                 className="border-slate-200 bg-slate-50/70 text-[11px] font-normal text-slate-600">
-                                {material.materialType} {material.percentage}%
+                                {materialDisplayName(material.materialType)} {material.percentage}%
                               </Badge>
                             ))}
                           </div>
@@ -1279,22 +1308,26 @@ const ProductsClient: React.FC = () => {
                             : "-"}
                         </p>
                         <p className="mt-1 text-[11px] text-slate-500 font-medium">{t("co2PerUnit")}</p>
+                        <div className="mt-1.5 flex items-center gap-1.5" title="Audit-ready score (chỉ báo nội bộ)">
+                          <span className="h-1 w-16 overflow-hidden rounded-full bg-muted">
+                            <span
+                              className="block h-full rounded-full bg-primary transition-[width] duration-700"
+                              style={{ width: `${deriveAuditReadiness(product).auditReadyScore}%` }}
+                            />
+                          </span>
+                          <span className="text-[10px] tabular-nums text-muted-foreground">
+                            {deriveAuditReadiness(product).auditReadyScore}/100
+                          </span>
+                        </div>
                         <div className="mt-1.5 flex flex-wrap gap-1">
-                          {product.carbonAuthority?.authoritative ? (
-                            <Badge
-                              variant="outline"
-                              title={t("carbonTruth.authoritativeDescription")}
-                              className="border-emerald-200 bg-emerald-50 text-[10px] font-medium text-emerald-700">
-                              {t("carbonTruth.authoritative")}
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              title={t("carbonTruth.unverifiedDescription")}
-                              className="border-amber-200 bg-amber-50 text-[10px] font-medium text-amber-700">
-                              {t("carbonTruth.unverified")}
-                            </Badge>
-                          )}
+                          <span
+                            title={
+                              product.carbonAuthority?.authoritative
+                                ? t("carbonTruth.authoritativeDescription")
+                                : t("carbonTruth.unverifiedDescription")
+                            }>
+                            <DataStatusBadge status={deriveAuditReadiness(product).dataStatus} />
+                          </span>
                           {product.carbonResults?.proxyUsed && (
                             <Badge
                               variant="outline"

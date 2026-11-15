@@ -1240,7 +1240,7 @@ const updateLeg = (
     <>
       <div className="space-y-6">
         {!canSave && (
-          <Card className="border-slate-200 bg-slate-50">
+          <Card className="bg-slate-50">
             <CardContent className="p-4 text-sm text-slate-700">
               Bạn đang ở chế độ chỉ xem. Có thể thử cấu hình tuyến, nhưng không thể lưu thay đổi vào sản phẩm.
             </CardContent>

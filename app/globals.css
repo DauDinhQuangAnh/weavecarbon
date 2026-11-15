@@ -8,84 +8,126 @@
 ========================================================= */
 
 @theme {
-  /* --- BASE COLORS --- */
-  /* Nền: Trắng pha chút xám xanh rất nhẹ (Màu giấy tái chế cao cấp) */
-  /* Giúp làm nổi bật màu xanh đậm của lá */
-  --color-background: hsl(100 10% 98%);
+  /* =========================================================
+     WEAVECARBON DESIGN TOKENS — đồng bộ với bản Lovable
+     (forest / ink / off-white / lime, glass surfaces)
+  ========================================================= */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-heading: "Manrope", system-ui, -apple-system, sans-serif;
 
-  /* Chữ: Gần như đen, nhưng thực chất là xanh rêu siêu tối để dịu mắt hơn */
-  --color-foreground: hsl(96 30% 10%);
-
-  /* --- CARDS & SURFACES --- */
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(96 25% 15%);
-
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(96 25% 15%);
-
-  /* --- PRIMARY (Màu chủ đạo - Chiếc lá) --- */
-  /* Gốc: #2d451d -> HSL(96, 41%, 19%) */
-  /* Đây là màu của nút bấm chính, logo, và các điểm nhấn quan trọng */
-  --color-primary: hsl(96 41% 19%);
-  --color-primary-foreground: hsl(
-    100 10% 98%
-  ); /* Chữ trắng ngà trên nền xanh */
-
-  /* --- SECONDARY (Raw Linen / Hemp) --- */
-  /* Màu vải lanh mộc, dùng cho nền phụ để tạo cảm giác "Weave" (dệt may) */
-  --color-secondary: hsl(40 20% 92%);
-  --color-secondary-foreground: hsl(96 40% 15%);
-
-  /* --- MUTED (Mist Green) --- */
-  /* Màu sương mù, dùng cho đường kẻ, viền, background phụ */
-  --color-muted: hsl(96 10% 90%);
-  --color-muted-foreground: hsl(96 10% 40%);
-
-  /* --- ACCENT (Burnt Clay / Terra) --- */
-  /* Màu đất nung trầm. Màu này tương phản nhẹ nhàng với xanh đậm, */
-  /* dùng cho các thông báo quan trọng hoặc số liệu cần chú ý */
-  --color-accent: hsl(25 45% 50%);
-  --color-accent-foreground: hsl(30 20% 96%);
-
-  /* --- UTILITY --- */
-  --color-destructive: hsl(0 70% 45%); /* Đỏ thẫm, không dùng đỏ tươi */
+  --color-background: hsl(80 30% 96%);
+  --color-foreground: hsl(103 37% 8%);
+  --color-card: hsl(75 33% 98%);
+  --color-card-foreground: hsl(103 37% 8%);
+  --color-popover: hsl(75 33% 98%);
+  --color-popover-foreground: hsl(103 37% 8%);
+  --color-primary: hsl(150 61% 20%);
+  --color-primary-foreground: hsl(80 30% 96%);
+  --color-secondary: hsl(90 28% 93%);
+  --color-secondary-foreground: hsl(97 40% 19%);
+  --color-muted: hsl(100 28% 88%);
+  --color-muted-foreground: hsl(101 15% 34%);
+  --color-accent: hsl(93 32% 57%);
+  --color-accent-foreground: hsl(96 49% 10%);
+  --color-destructive: hsl(0 52% 54%);
   --color-destructive-foreground: hsl(0 0% 98%);
+  --color-border: hsl(100 22% 84%);
+  --color-input: hsl(100 22% 80%);
+  --color-ring: hsl(150 61% 20%);
+  --color-radius: 0.85rem;
 
-  --color-border: hsl(96 10% 88%);      /* soft divider/card edges — kept subtle */
-  --color-input: hsl(96 16% 72%);       /* form-field border — darker so inputs pop on white */
+  --color-navy: hsl(96 49% 10%);
+  --color-ink: hsl(103 37% 8%);
+  --color-forest-dark: hsl(97 40% 19%);
+  --color-forest-light: hsl(150 35% 35%);
+  --color-earth-warm: hsl(98 43% 21%);
+  --color-earth-light: hsl(90 28% 93%);
+  --color-cream: hsl(80 30% 96%);
+  --color-charcoal: hsl(101 15% 34%);
+  --color-warning: hsl(38 70% 52%);
+  --color-info: hsl(150 35% 35%);
+  --color-lime: hsl(93 62% 56%);
 
-  /* Ring focus khi bấm tab: dùng chính màu primary */
-  --color-ring: hsl(96 41% 19%);
+  --shadow-sm: 0 2px 8px -5px hsl(103 37% 8% / 0.18);
+  --shadow-md: 0 16px 40px -24px hsl(103 37% 8% / 0.36), 0 1px 0 hsl(0 0% 100% / 0.82) inset;
+  --shadow-lg: 0 26px 70px -30px hsl(103 37% 8% / 0.42), 0 1px 0 hsl(0 0% 100% / 0.92) inset;
+  --shadow-glow: 0 20px 70px -22px hsl(150 61% 20% / 0.42);
 
-  --color-radius: 0.75rem;
+  --color-sidebar-background: hsl(75 33% 98%);
+  --color-sidebar-foreground: hsl(101 15% 34%);
+  --color-sidebar-primary: hsl(150 61% 20%);
+  --color-sidebar-primary-foreground: hsl(80 30% 96%);
+  --color-sidebar-accent: hsl(90 28% 93%);
+  --color-sidebar-accent-foreground: hsl(97 40% 19%);
+  --color-sidebar-border: hsl(100 22% 84%);
+  --color-sidebar-ring: hsl(150 61% 20%);
 
-  /* --- EXTENDED PALETTE (Dùng cho Chart & Visuals) --- */
-  --color-forest-dark: hsl(96 50% 10%); /* Rừng đêm */
-  --color-forest-light: hsl(96 30% 40%); /* Rừng chiều */
-  --color-earth-warm: hsl(25 45% 50%); /* Đất ấm */
-  --color-earth-light: hsl(30 30% 80%); /* Cát khô */
-  --color-cream: hsl(45 20% 96%); /* Sợi bông */
-  --color-charcoal: hsl(96 15% 20%); /* Than gỗ */
 
-  /* --- SHADOWS (Bóng đổ có sắc xanh) --- */
-  /* Bóng đổ màu đen thuần sẽ làm đục màu xanh này. */
-  /* Ta dùng bóng đổ có pha màu xanh của lá (hsl 96) để tạo độ sâu trong trẻo */
-  --shadow-sm: 0 2px 8px -2px hsl(96 30% 10% / 0.1);
-  --shadow-md: 0 8px 24px -4px hsl(96 30% 10% / 0.15);
-  --shadow-lg: 0 16px 48px -8px hsl(96 30% 10% / 0.2);
+  /* Neutral (slate/gray) được ánh xạ sang thang trung tính ngả xanh lá của Lovable */
+  --color-slate-50: hsl(80 30% 97%);
+  --color-slate-100: hsl(90 28% 93%);
+  --color-slate-200: hsl(100 22% 86%);
+  --color-slate-300: hsl(100 18% 76%);
+  --color-slate-400: hsl(101 12% 56%);
+  --color-slate-500: hsl(101 14% 40%);
+  --color-slate-600: hsl(101 15% 33%);
+  --color-slate-700: hsl(100 22% 24%);
+  --color-slate-800: hsl(100 30% 16%);
+  --color-slate-900: hsl(103 37% 10%);
+  --color-slate-950: hsl(103 37% 6%);
+  --color-gray-50: hsl(80 30% 97%);
+  --color-gray-100: hsl(90 28% 93%);
+  --color-gray-200: hsl(100 22% 86%);
+  --color-gray-300: hsl(100 18% 76%);
+  --color-gray-400: hsl(101 12% 56%);
+  --color-gray-500: hsl(101 14% 40%);
+  --color-gray-600: hsl(101 15% 33%);
+  --color-gray-700: hsl(100 22% 24%);
+  --color-gray-800: hsl(100 30% 16%);
+  --color-gray-900: hsl(103 37% 10%);
+  --color-gray-950: hsl(103 37% 6%);
 
-  /* Glow effect: Dùng màu xanh sáng hơn một chút để tạo hào quang */
-  --shadow-glow: 0 0 40px -10px hsl(96 50% 30% / 0.3);
+  /* Emerald/green được ánh xạ về thang xanh rừng (primary) của Lovable */
+  --color-emerald-50: hsl(140 40% 96%);
+  --color-emerald-100: hsl(140 38% 91%);
+  --color-emerald-200: hsl(145 35% 82%);
+  --color-emerald-300: hsl(147 33% 68%);
+  --color-emerald-400: hsl(148 35% 52%);
+  --color-emerald-500: hsl(150 45% 38%);
+  --color-emerald-600: hsl(150 55% 28%);
+  --color-emerald-700: hsl(150 61% 22%);
+  --color-emerald-800: hsl(150 61% 18%);
+  --color-emerald-900: hsl(152 60% 13%);
+  --color-emerald-950: hsl(155 60% 8%);
+  --color-green-50: hsl(140 40% 96%);
+  --color-green-100: hsl(140 38% 91%);
+  --color-green-200: hsl(145 35% 82%);
+  --color-green-300: hsl(147 33% 68%);
+  --color-green-400: hsl(148 35% 52%);
+  --color-green-500: hsl(150 45% 38%);
+  --color-green-600: hsl(150 55% 28%);
+  --color-green-700: hsl(150 61% 22%);
+  --color-green-800: hsl(150 61% 18%);
+  --color-green-900: hsl(152 60% 13%);
+  --color-green-950: hsl(155 60% 8%);
 
-  /* --- SIDEBAR (Nếu có) --- */
-  --color-sidebar-background: hsl(100 5% 96%);
-  --color-sidebar-foreground: hsl(96 20% 20%);
-  --color-sidebar-primary: hsl(96 41% 19%);
-  --color-sidebar-primary-foreground: hsl(0 0% 98%);
-  --color-sidebar-accent: hsl(96 10% 90%);
-  --color-sidebar-accent-foreground: hsl(96 40% 15%);
-  --color-sidebar-border: hsl(96 10% 88%);
-  --color-sidebar-ring: hsl(96 41% 19%);
+  --animate-fade-up: fadeUp 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fadeIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-scale-in: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+:root {
+  --glass-blur: 24px;
+  --motion-fast: 140ms;
+  --motion-base: 300ms;
+  --motion-slow: 680ms;
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --scroll-y: 0px;
+  --scroll-progress: 0;
+  --pointer-x: 50vw;
+  --pointer-y: 30vh;
 }
 
 /* @layer base {
@@ -185,22 +227,75 @@
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 96px;
   }
 
   body {
-    background-color: var(--color-background);
+    min-height: 100vh;
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-family: var(--font-weavecarbon), system-ui, sans-serif;
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
+    background:
+      radial-gradient(44rem 44rem at calc(18% + (var(--scroll-progress) * 6%)) calc(-6% + (var(--scroll-progress) * 8%)), hsl(150 52% 52% / 0.22), transparent 62%),
+      radial-gradient(38rem 38rem at calc(86% - (var(--scroll-progress) * 8%)) calc(8% + (var(--scroll-progress) * 10%)), hsl(93 46% 58% / 0.18), transparent 62%),
+      linear-gradient(180deg, hsl(80 38% 97%) 0%, hsl(86 24% 94%) 48%, hsl(80 30% 96%) 100%);
+    background-attachment: fixed;
+  }
+
+  /* Ánh sáng theo con trỏ */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -20vh -10vw;
+    pointer-events: none;
+    z-index: -2;
+    background:
+      radial-gradient(22rem 22rem at var(--pointer-x) var(--pointer-y), hsl(150 55% 40% / 0.1), transparent 72%),
+      linear-gradient(115deg, transparent 0 42%, hsl(0 0% 100% / 0.24) 48%, transparent 54% 100%);
+    transform: translate3d(0, calc(var(--scroll-progress) * -24px), 0);
+  }
+
+  /* Thanh tiến trình cuộn */
+  body::after {
+    content: "";
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 3px;
+    pointer-events: none;
+    transform-origin: left center;
+    transform: scaleX(var(--scroll-progress));
+    background: linear-gradient(90deg, hsl(93 62% 56%), hsl(150 61% 28%), hsl(150 70% 18%));
+    box-shadow: 0 0 18px hsl(150 61% 26% / 0.5);
   }
 
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--font-weavecarbon), system-ui, sans-serif;
-    font-weight: 700;
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+  }
+
+  button, a, input, textarea, select, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection { background: hsl(150 61% 20% / 0.18); }
+
+  * { scrollbar-width: thin; scrollbar-color: hsl(150 35% 35% / 0.4) transparent; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: linear-gradient(hsl(150 35% 35% / 0.35), hsl(150 61% 20% / 0.55));
+    background-clip: padding-box;
   }
 }
 
@@ -210,35 +305,109 @@
 @layer components {
   .text-gradient-forest {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(
-      135deg,
-      var(--color-primary),
-      var(--color-forest-light)
-    );
+    background-image: linear-gradient(135deg, var(--color-forest-dark), var(--color-forest-light));
   }
 
   .bg-gradient-forest {
-    background: linear-gradient(
-      135deg,
-      var(--color-primary),
-      var(--color-forest-light)
-    );
+    background: linear-gradient(135deg, var(--color-forest-dark), var(--color-forest-light));
   }
 
   .bg-gradient-hero {
-    background: linear-gradient(
-      180deg,
-      var(--color-background) 0%,
-      var(--color-muted) 100%
-    );
+    background:
+      radial-gradient(circle at 20% 15%, hsl(150 45% 75% / 0.28), transparent 24rem),
+      linear-gradient(180deg, hsl(80 30% 96% / 0.74) 0%, hsl(90 28% 93% / 0.62) 100%);
   }
 
-  .glass-card {
-    background-color: var(--color-card);
-    opacity: 0.8;
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-md);
+  .glass-card,
+  .glass-panel,
+  .glass-shell {
+    position: relative;
+    background: linear-gradient(145deg, hsl(0 0% 100% / 0.78), hsl(78 28% 98% / 0.46));
+    backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    border: 1px solid hsl(0 0% 100% / 0.82);
+    box-shadow:
+      0 18px 54px -30px hsl(103 37% 8% / 0.42),
+      0 1px 0 hsl(0 0% 100% / 0.95) inset,
+      0 -1px 0 hsl(150 35% 35% / 0.08) inset;
+    isolation: isolate;
+  }
+
+  .glass-card::before,
+  .glass-panel::before,
+  .glass-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+      linear-gradient(135deg, hsl(0 0% 100% / 0.55), transparent 28%, transparent 72%, hsl(150 35% 70% / 0.08)),
+      radial-gradient(22rem 10rem at 12% -6%, hsl(0 0% 100% / 0.72), transparent 62%);
+    z-index: -1;
+  }
+
+  .glass-shell {
+    border-color: hsl(0 0% 100% / 0.7);
+    background: hsl(78 30% 98% / 0.64);
+    backdrop-filter: blur(30px) saturate(185%);
+    -webkit-backdrop-filter: blur(30px) saturate(185%);
+  }
+
+  .interactive-surface {
+    transition:
+      transform var(--motion-base) var(--ease-spring),
+      box-shadow var(--motion-base) var(--ease-smooth),
+      border-color var(--motion-base) var(--ease-smooth),
+      background var(--motion-base) var(--ease-smooth),
+      opacity var(--motion-fast) ease;
+  }
+
+  @media (hover: hover) {
+    .interactive-surface:hover {
+      transform: translateY(-3px) scale(1.004);
+      border-color: hsl(150 55% 35% / 0.24);
+      box-shadow:
+        0 28px 70px -30px hsl(103 37% 8% / 0.46),
+        0 0 0 1px hsl(0 0% 100% / 0.72) inset,
+        0 18px 42px -34px hsl(150 61% 28% / 0.72);
+    }
+  }
+
+  .sticky-glass {
+    background: hsl(78 34% 98% / 0.64);
+    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    border: 1px solid hsl(0 0% 100% / 0.74);
+    box-shadow: 0 12px 34px -26px hsl(103 37% 8% / 0.55);
+    transition: background 320ms var(--ease-smooth), box-shadow 320ms var(--ease-smooth);
+  }
+
+  body[data-scrolled="true"] .sticky-glass {
+    background: hsl(78 34% 99% / 0.82);
+    box-shadow: 0 18px 42px -28px hsl(103 37% 8% / 0.62);
+  }
+
+  .page-stage {
+    position: relative;
+    border-radius: 24px;
+    background: linear-gradient(180deg, hsl(0 0% 100% / 0.18), transparent 18rem);
+  }
+
+  .motion-reveal {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.985);
+    filter: blur(8px);
+    transition:
+      opacity 760ms var(--ease-smooth),
+      transform 760ms var(--ease-spring),
+      filter 760ms var(--ease-smooth);
+  }
+
+  .motion-reveal.motion-revealed {
+    opacity: 1;
+    transform: none;
+    filter: none;
   }
 
   .glow-effect {
@@ -250,20 +419,8 @@
    UTILITIES & ANIMATIONS
 ========================================================= */
 @layer utilities {
-  .animate-fade-up {
-    animation: fadeUp 0.8s ease-out forwards;
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.6s ease-out forwards;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.5s ease-out forwards;
-  }
-
   .animate-float {
-    animation: float 6s ease-in-out infinite;
+    animation: float 7s ease-in-out infinite;
   }
 
   .animate-pulse-soft {
@@ -273,11 +430,13 @@
   @keyframes fadeUp {
     from {
       opacity: 0;
-      transform: translateY(30px);
+      transform: translateY(20px);
+      filter: blur(5px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
+      filter: blur(0);
     }
   }
 
@@ -293,7 +452,7 @@
   @keyframes scaleIn {
     from {
       opacity: 0;
-      transform: scale(0.9);
+      transform: scale(0.965);
     }
     to {
       opacity: 1;
@@ -307,7 +466,7 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-20px);
+      transform: translateY(-10px);
     }
   }
 
@@ -423,3 +582,15 @@
   }
 }
 
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  body::before, body::after { display: none; }
+  .motion-reveal { opacity: 1 !important; transform: none !important; filter: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

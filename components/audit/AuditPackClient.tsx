@@ -384,7 +384,7 @@ export default function AuditPackClient() {
         </div>
 
         {/* Hero Card */}
-        <Card className="overflow-hidden rounded-2xl border-slate-200 bg-white shadow-sm">
+        <Card className="overflow-hidden rounded-2xl shadow-sm">
           <div className="bg-emerald-900 px-6 py-5 text-white">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -392,7 +392,7 @@ export default function AuditPackClient() {
                   HỒ SƠ TIỀN KIỂM TOÁN CARBON & CHỨNG TỪ TRUY VẾT
                 </p>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight">
-                  {auditSku.name || "Sản phẩm Dệt may"} ({auditSku.sku})
+                  {auditSku.name || "Sản phẩm"} ({auditSku.sku})
                 </h1>
                 <p className="mt-1 text-xs text-emerald-100/90">
                   Cơ sở sản xuất: {auditSku.factory} • Địa chỉ: {auditSku.factoryAddress} • Mã HS: {auditSku.cnCode}
@@ -436,7 +436,7 @@ export default function AuditPackClient() {
                 <p className="mt-1 text-3xl font-extrabold text-emerald-900">
                   {formatNum(auditPayload.totals.total)}
                 </p>
-                <p className="text-xs text-slate-500">kg CO₂e/chiếc</p>
+                <p className="text-xs text-slate-500">kg CO₂e/đơn vị</p>
               </div>
 
               <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
@@ -444,7 +444,7 @@ export default function AuditPackClient() {
                 <p className="mt-1 text-2xl font-bold text-slate-900">
                   {formatNum(auditPayload.totals.materials)}
                 </p>
-                <p className="text-xs text-slate-500">kg CO₂e/chiếc</p>
+                <p className="text-xs text-slate-500">kg CO₂e/đơn vị</p>
               </div>
 
               <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
@@ -452,7 +452,7 @@ export default function AuditPackClient() {
                 <p className="mt-1 text-2xl font-bold text-slate-900">
                   {formatNum(auditPayload.totals.energy)}
                 </p>
-                <p className="text-xs text-slate-500">kg CO₂e/chiếc</p>
+                <p className="text-xs text-slate-500">kg CO₂e/đơn vị</p>
               </div>
 
               <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
@@ -460,14 +460,14 @@ export default function AuditPackClient() {
                 <p className="mt-1 text-2xl font-bold text-slate-900">
                   {formatNum(auditPayload.totals.transport)}
                 </p>
-                <p className="text-xs text-slate-500">kg CO₂e/chiếc</p>
+                <p className="text-xs text-slate-500">kg CO₂e/đơn vị</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Emission Breakdown Table */}
-        <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -529,7 +529,7 @@ export default function AuditPackClient() {
         </Card>
 
         {/* Evidence & Verification Section */}
-        <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader className="border-b border-slate-100 pb-4">
             <CardTitle className="text-base font-bold text-slate-900">
               Chứng từ Đối soát & Tính Toàn vẹn (Audit Evidence & Integrity Hashes)
@@ -579,7 +579,7 @@ export default function AuditPackClient() {
         </Card>
 
         {auditBundle?.status === "completed" ? (
-          <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
+          <Card className="rounded-2xl shadow-sm">
             <CardHeader className="border-b border-slate-100 pb-4">
               <CardTitle className="text-base font-bold text-slate-900">Rà soát và phát hành nội bộ</CardTitle>
               <CardDescription className="text-xs">

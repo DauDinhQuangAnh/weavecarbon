@@ -111,16 +111,17 @@ interface CompanyData {
   phone?: string | null;
 }
 
-// SAC Higg FEM + BREF Textile BAT 2017 + Ecoinvent v3.10
+// Công đoạn điển hình của các ngành thuộc phạm vi CBAM (thép, nhôm, xi măng, phân bón) — hệ số điện năng minh hoạ
+// theo EU BREF (Iron & Steel, Non-Ferrous Metals, CLM, LVIC-AAF) + Ecoinvent v3.10. Thay bằng nhật ký sản xuất thực.
 const TEXTILE_PROCESSES = [
-  { key: 'knitting',  label: 'Dệt kim (Knitting)',         defaultFactor: 1.8,  unit: 'kWh/kg' },
-  { key: 'weaving',   label: 'Dệt thoi (Weaving)',          defaultFactor: 2.2,  unit: 'kWh/kg' },
-  { key: 'dyeing',    label: 'Nhuộm (Dyeing)',              defaultFactor: 5.5,  unit: 'kWh/kg' },
-  { key: 'printing',  label: 'In (Printing)',               defaultFactor: 2.5,  unit: 'kWh/kg' },
-  { key: 'cutting',   label: 'Cắt & May (Cutting/Sewing)',  defaultFactor: 1.2,  unit: 'kWh/kg' },
-  { key: 'washing',   label: 'Giặt (Washing)',              defaultFactor: 2.0,  unit: 'kWh/kg' },
-  { key: 'finishing', label: 'Hoàn tất (Finishing)',        defaultFactor: 1.5,  unit: 'kWh/kg' },
-  { key: 'packaging', label: 'Đóng gói (Packaging)',        defaultFactor: 0.3,  unit: 'kWh/kg' },
+  { key: 'eaf',        label: 'Luyện thép lò điện (EAF)',        defaultFactor: 450,  unit: 'kWh/t' },
+  { key: 'hot_rolling',label: 'Cán nóng thép (Hot rolling)',      defaultFactor: 120,  unit: 'kWh/t' },
+  { key: 'extrusion',  label: 'Ép đùn nhôm (Extrusion)',          defaultFactor: 380,  unit: 'kWh/t' },
+  { key: 'clinker',    label: 'Nung clinker (Kiln)',              defaultFactor: 32,   unit: 'kWh/t' },
+  { key: 'grinding',   label: 'Nghiền xi măng (Grinding)',        defaultFactor: 38,   unit: 'kWh/t' },
+  { key: 'ammonia',    label: 'Tổng hợp amoniac (NH₃)',           defaultFactor: 160,  unit: 'kWh/t' },
+  { key: 'urea',       label: 'Tạo hạt urê (Granulation)',        defaultFactor: 45,   unit: 'kWh/t' },
+  { key: 'packaging',  label: 'Đóng bao / cuộn (Packaging)',      defaultFactor: 5,    unit: 'kWh/t' },
 ];
 
 const EVIDENCE_BADGE: Record<string, { label: string; className: string }> = {
@@ -423,7 +424,7 @@ function CbamReportSectionContent() {
         <div>
           <h1 className="text-2xl font-bold">Báo cáo carbon theo cấu trúc CBAM-style</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            6 tab phỏng theo EU CBAM communication template — dệt may, da giày &amp; xuất khẩu.
+            6 tab phỏng theo EU CBAM communication template — thép, nhôm, xi măng, phân bón và hàng xuất khẩu liên quan.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -447,7 +448,7 @@ function CbamReportSectionContent() {
       </div>
 
       {/* Completeness score card */}
-      <Card className="border-slate-200">
+      <Card className="">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">Mức độ hoàn chỉnh báo cáo</CardTitle>
@@ -475,8 +476,8 @@ function CbamReportSectionContent() {
         <ShieldAlert className="h-4 w-4 text-amber-700" />
         <AlertTitle className="text-amber-900">Báo cáo carbon tiền-thẩm tra (pre-audit)</AlertTitle>
         <AlertDescription className="text-amber-800 text-xs">
-          Không phải tờ khai CBAM, không phải chứng nhận. Dệt may hiện chưa thuộc phạm vi CBAM (EU 2023/956) —
-          cấu trúc 6 tab phỏng theo mẫu DG TAXUD và phục vụ yêu cầu ESG/CSDDD từ buyer EU.
+          Không phải tờ khai CBAM, không phải chứng nhận. Chỉ hàng hoá có mã CN thuộc Phụ lục I (EU 2023/956) — thép, nhôm,
+          xi măng, phân bón, hydro, điện — mới thuộc phạm vi; cấu trúc 6 tab phỏng theo mẫu DG TAXUD phục vụ chuẩn bị dữ liệu.
         </AlertDescription>
       </Alert>
 
@@ -688,7 +689,7 @@ function CbamReportSectionContent() {
             <CardHeader>
               <CardTitle className="text-base">Phân rã quy trình sản xuất (D_Processes)</CardTitle>
               <CardDescription>
-                Quy trình điển hình ngành dệt may — hệ số từ SAC Higg FEM + Ecoinvent v3.10.
+                Công đoạn điển hình của các ngành thuộc phạm vi CBAM — hệ số điện năng minh hoạ từ EU BREF + Ecoinvent v3.10.
                 Tải nhật ký sản xuất (<code>process_log</code>) để thay thế hệ số mặc định bằng dữ liệu thực.
               </CardDescription>
             </CardHeader>
@@ -982,7 +983,7 @@ function CbamReportSectionContent() {
                 <AlertDescription className="text-amber-800 text-xs">
                   This report is a pre-audit export carbon data report. It is not a CBAM declaration,
                   not a certification, and requires third-party verification for official use.
-                  Textile goods are currently outside CBAM scope (Regulation EU 2023/956).
+                  Only goods with CN codes listed in Annex I of Regulation (EU) 2023/956 are in CBAM scope.
                   Structure follows DG TAXUD communication template for preparedness purposes.
                 </AlertDescription>
               </Alert>
@@ -1133,7 +1134,7 @@ function ProductionCbamScopeSection() {
           <CheckCircle2 className="h-4 w-4 text-emerald-700" />
           <AlertTitle className="text-emerald-900">CBAM_NOT_APPLICABLE</AlertTitle>
           <AlertDescription className="text-emerald-800 text-xs">
-            Không có sản phẩm nào đang khớp danh mục Annex I. Hàng dệt may và giày dép thông thường thuộc chương 61, 62 và 64 không nằm trong phạm vi CBAM. Hệ thống không mở biểu mẫu hoặc xuất tờ khai CBAM cho nhóm này.
+            Không có sản phẩm nào đang khớp danh mục Annex I. Các nhóm hàng ngoài Phụ lục I (ví dụ nông sản, dệt may, đồ gỗ) không nằm trong phạm vi CBAM. Hệ thống không mở biểu mẫu hoặc xuất tờ khai CBAM cho nhóm này.
           </AlertDescription>
         </Alert>
       ) : (

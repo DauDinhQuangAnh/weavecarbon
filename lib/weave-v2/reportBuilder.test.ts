@@ -46,7 +46,7 @@ describe("buildReportPayloadV2 consistency", () => {
     }
   });
 
-  it("keeps baseline textile reports outside CBAM and emits no monetary simulation", () => {
+  it("keeps non-Annex-I baseline reports (agri) outside CBAM and emits no monetary simulation", () => {
     const p = buildReportPayloadV2();
     expect(p.cbamApplicability).toBe("CBAM_NOT_APPLICABLE");
     expect(p.totals.cbamRiskEurPerUnit).toBe(0);

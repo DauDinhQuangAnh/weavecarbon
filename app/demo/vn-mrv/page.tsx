@@ -1,1 +1,6 @@
-import VnMrvClient from "@/components/dashboard/vn-mrv/VnMrvClient";import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";import {DASHBOARD_VN_MRV_NAMESPACES} from "@/lib/i18n/namespaces";export default function DemoVnMrvPage(){return <ScopedIntlProvider namespaces={DASHBOARD_VN_MRV_NAMESPACES}><VnMrvClient demo/></ScopedIntlProvider>}
+import { redirect } from "next/navigation";
+
+// Đường dẫn cũ — tính năng đã gộp vào /demo/vietnam-carbon (một trang duy nhất cho mỗi tính năng).
+export default function LegacyRedirect() {
+  redirect("/demo/vietnam-carbon");
+}

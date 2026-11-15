@@ -11,13 +11,13 @@ const exampleHash = (character: string) => character.repeat(64);
 
 const facilities = [
   WORKSPACE_DEMO.facilities[0],
-  { ...WORKSPACE_DEMO.facilities[0], id: id(4), facilityReference: "DEMO-DYEING", name: "Xưởng nhuộm minh họa", boundaryNotes: "Ranh giới mô phỏng: nhuộm, giặt và xử lý nước thải" },
-  { ...WORKSPACE_DEMO.facilities[0], id: id(5), facilityReference: "DEMO-SEWING", name: "Xưởng may minh họa", boundaryNotes: "Ranh giới mô phỏng: cắt, may và đóng gói" },
+  { ...WORKSPACE_DEMO.facilities[0], id: id(4), facilityReference: "DEMO-STEEL-MELT", name: "Xưởng luyện thép lò điện minh họa", boundaryNotes: "Ranh giới mô phỏng: lò điện hồ quang, lò thùng và xử lý khí thải" },
+  { ...WORKSPACE_DEMO.facilities[0], id: id(5), facilityReference: "DEMO-COFFEE", name: "Xưởng sơ chế cà phê minh họa", boundaryNotes: "Ranh giới mô phỏng: sấy, xát vỏ, phân loại và đóng bao" },
 ];
 const processes = [
   WORKSPACE_DEMO.processes[0],
-  { ...WORKSPACE_DEMO.processes[0], id: id(6), facilityRevisionId: id(4), facilityReference: "DEMO-DYEING", processReference: "DEMO-DYE-LINE", name: "Nhuộm và giặt minh họa" },
-  { ...WORKSPACE_DEMO.processes[0], id: id(7), facilityRevisionId: id(5), facilityReference: "DEMO-SEWING", processReference: "DEMO-SEW-LINE", name: "Cắt may minh họa" },
+  { ...WORKSPACE_DEMO.processes[0], id: id(6), facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processReference: "DEMO-EAF-LINE", name: "Luyện thép lò điện minh họa" },
+  { ...WORKSPACE_DEMO.processes[0], id: id(7), facilityRevisionId: id(5), facilityReference: "DEMO-COFFEE", processReference: "DEMO-COFFEE-LINE", name: "Sấy và xát cà phê minh họa" },
 ];
 export const DEMO_EVIDENCE: EvidenceDocumentV2[] = [
   { id: id(20), companyId: "demo-only", evidenceType: "electricity_invoice", documentName: "DEMO · Hóa đơn điện tháng 9", fileSizeBytes: 0, checksumSha256: exampleHash("a"), extractedJson: { synthetic: true }, status: "locked", createdAt: timestamp, updatedAt: timestamp },
@@ -30,16 +30,16 @@ export const DEMO_FACTORS: FactorProposal[] = [
 ];
 export const DEMO_MEASUREMENT_POINTS: IndustrialMeasurementPoint[] = [
   { id: id(40), facilityRevisionId: facilities[0].id, facilityReference: "DEMO-FACTORY", processRevisionId: processes[0].id, measurementPointReference: "DEMO-METER-01", revision: 1, measurementType: "electricity", canonicalUnit: "kWh", sourceType: "weavenode", deviceIdentity: "DEMO-NODE-01", calibrationStatus: "current", calibrationDueOn: "2027-03-01", samplingIntervalSeconds: 900, metadata: { synthetic: true, connected: false }, createdAt: timestamp },
-  { id: id(41), facilityRevisionId: id(4), facilityReference: "DEMO-DYEING", processRevisionId: id(6), measurementPointReference: "DEMO-METER-02", revision: 1, measurementType: "water", canonicalUnit: "m3", sourceType: "meter", deviceIdentity: "DEMO-NODE-02", calibrationStatus: "expired", calibrationDueOn: "2026-08-01", samplingIntervalSeconds: 3600, metadata: { synthetic: true, connected: false }, createdAt: timestamp },
+  { id: id(41), facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), measurementPointReference: "DEMO-METER-02", revision: 1, measurementType: "water", canonicalUnit: "m3", sourceType: "meter", deviceIdentity: "DEMO-NODE-02", calibrationStatus: "expired", calibrationDueOn: "2026-08-01", samplingIntervalSeconds: 3600, metadata: { synthetic: true, connected: false }, createdAt: timestamp },
 ];
 export const INDUSTRIAL_DEMO = {
   facilities, processes,
   activities: [
     { ...WORKSPACE_DEMO.activities[0], measurementPointRevisionId: id(40), sourceSha256: exampleHash("c"), evidenceDocumentIds: [id(20)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(8), activityReference: "DEMO-DYE-ELECTRICITY", facilityRevisionId: id(4), facilityReference: "DEMO-DYEING", processRevisionId: id(6), quantity: 6000, dataQualityLevel: "L3" as const, sourceSha256: exampleHash("d"), evidenceDocumentIds: [id(20)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(9), activityReference: "DEMO-DYE-FUEL", facilityRevisionId: id(4), facilityReference: "DEMO-DYEING", processRevisionId: id(6), activityType: "fuel", quantity: 800, canonicalUnit: "litre", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("e"), evidenceDocumentIds: [id(21)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(10), activityReference: "DEMO-SEW-PRODUCTION", facilityRevisionId: id(5), facilityReference: "DEMO-SEWING", processRevisionId: id(7), activityType: "production", quantity: 12000, canonicalUnit: "piece", dataQualityLevel: "L1" as const, sourceSha256: exampleHash("f"), evidenceDocumentIds: [id(22)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(11), activityReference: "DEMO-DYE-WATER", facilityRevisionId: id(4), facilityReference: "DEMO-DYEING", processRevisionId: id(6), measurementPointRevisionId: id(41), activityType: "water", quantity: 240, canonicalUnit: "m3", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("1"), evidenceDocumentIds: [] },
+    { ...WORKSPACE_DEMO.activities[0], id: id(8), activityReference: "DEMO-EAF-ELECTRICITY", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), quantity: 6000, dataQualityLevel: "L3" as const, sourceSha256: exampleHash("d"), evidenceDocumentIds: [id(20)] },
+    { ...WORKSPACE_DEMO.activities[0], id: id(9), activityReference: "DEMO-EAF-FUEL", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), activityType: "fuel", quantity: 800, canonicalUnit: "litre", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("e"), evidenceDocumentIds: [id(21)] },
+    { ...WORKSPACE_DEMO.activities[0], id: id(10), activityReference: "DEMO-COFFEE-PRODUCTION", facilityRevisionId: id(5), facilityReference: "DEMO-COFFEE", processRevisionId: id(7), activityType: "production", quantity: 180, canonicalUnit: "tonne", dataQualityLevel: "L1" as const, sourceSha256: exampleHash("f"), evidenceDocumentIds: [id(22)] },
+    { ...WORKSPACE_DEMO.activities[0], id: id(11), activityReference: "DEMO-EAF-WATER", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), measurementPointRevisionId: id(41), activityType: "water", quantity: 240, canonicalUnit: "m3", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("1"), evidenceDocumentIds: [] },
   ],
   measurementPoints: DEMO_MEASUREMENT_POINTS,
   evidence: DEMO_EVIDENCE,
@@ -63,11 +63,11 @@ export function demoActivityLineage(activityId: string): IndustrialActivityLinea
 
 const inventory = (month: "08" | "09", revision: number, multiplier: number): InventoryView => {
   const activitySnapshot = [
-    { scope: "scope1", facilityReference: "DEMO-DYEING", category: "Nhiên liệu lò hơi", calculatedCo2eKg: 2000 * multiplier },
+    { scope: "scope1", facilityReference: "DEMO-STEEL-MELT", category: "Khí thiên nhiên lò thùng", calculatedCo2eKg: 2000 * multiplier },
     { scope: "scope2", accountingMethod: "location_based", facilityReference: "DEMO-FACTORY", category: "Điện", calculatedCo2eKg: 600 * multiplier },
-    { scope: "scope2", accountingMethod: "location_based", facilityReference: "DEMO-DYEING", category: "Điện", calculatedCo2eKg: 3000 * multiplier },
-    { scope: "scope2", accountingMethod: "location_based", facilityReference: "DEMO-SEWING", category: "Điện", calculatedCo2eKg: 400 * multiplier },
-    { scope: "scope3", facilityReference: "DEMO-SEWING", category: "Vận chuyển đầu vào", calculatedCo2eKg: 500 * multiplier },
+    { scope: "scope2", accountingMethod: "location_based", facilityReference: "DEMO-STEEL-MELT", category: "Điện", calculatedCo2eKg: 3000 * multiplier },
+    { scope: "scope2", accountingMethod: "location_based", facilityReference: "DEMO-COFFEE", category: "Điện", calculatedCo2eKg: 400 * multiplier },
+    { scope: "scope3", facilityReference: "DEMO-COFFEE", category: "Vận chuyển đầu vào", calculatedCo2eKg: 500 * multiplier },
   ];
   return { id: id(month === "08" ? 60 : 60 + revision), inventoryReference: `DEMO-GHG-2026-${month}`, revision, reportingPeriodStart: `2026-${month}-01`, reportingPeriodEnd: `2026-${month}-${month === "08" ? "31" : "30"}`, inventoryStatus: "inventory_review_required", activitySnapshot, resultSha256: "demo-result-marker-not-a-verified-hash", result: {
     automatedStatus: "inventory_review_required", missingInputs: [], findings: [{ code: "DEMO_ONLY", severity: "warning", message: "Các số liệu và hệ số là giả định minh họa; chưa có thẩm tra độc lập.", path: null }], sources: [],
@@ -85,7 +85,7 @@ export const DEMO_CAPABILITIES: IndustrialCapabilityRegistry = {
     { id: "data-quality", label: "Chất lượng dữ liệu", status: "partial", evidence: ["Hoạt động L1–L3 và một chứng từ thiếu checksum"], nextGate: "Hoàn thiện chứng từ trong tình huống demo" },
     { id: "evidence", label: "Bằng chứng", status: "partial", evidence: ["Ba chứng từ mô phỏng, một chứng từ ở trạng thái khóa"], nextGate: "Rà soát hai chứng từ còn lại" },
     { id: "computation", label: "Tính toán", status: "implemented", evidence: ["Phân bổ phát thải giả định theo nguồn và cơ sở"], nextGate: "Thay hệ số demo bằng nguồn được rà soát trước khi dùng thực tế" },
-    { id: "industry-rules", label: "Quy tắc ngành", status: "partial", nextGate: "Rà soát chuyên gia cho tình huống dệt may" },
+    { id: "industry-rules", label: "Quy tắc ngành", status: "partial", nextGate: "Rà soát chuyên gia cho tình huống thép và nông sản" },
     { id: "export", label: "Yêu cầu xuất khẩu", status: "planned", nextGate: "Chưa có nghiệm thu hồ sơ hoặc nộp tới cơ quan tiếp nhận" },
   ],
   entities: [{ id: "facility", label: "Cơ sở", status: "implemented" }, { id: "process", label: "Quy trình", status: "implemented" }, { id: "activity", label: "Hoạt động", status: "implemented" }, { id: "target", label: "Yêu cầu đích", status: "planned" }],

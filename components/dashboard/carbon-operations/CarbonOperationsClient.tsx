@@ -1,4 +1,5 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -434,34 +435,21 @@ export default function CarbonOperationsClient({
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-5 p-4 md:space-y-6 md:p-6">
+    <div className="w-full space-y-5 md:space-y-6">
       {/* ── Hero Banner ── */}
-      <section className="overflow-hidden rounded-2xl border border-emerald-800/40 bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 p-6 text-white shadow-sm md:p-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-300">
-              <Database className="h-4 w-4" />
-              {t("eyebrow")}
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary"><Database className="h-3.5 w-3.5" /> {t("eyebrow")}</span></>}
+        actions={<>
+          {registry ? (
+            <div className="rounded-xl border border-border bg-background/60 px-4 py-2 text-right">
+              <p className="text-[11px] font-medium text-muted-foreground">{t("version")}</p>
+              <p className="mt-0.5 font-mono text-sm font-semibold text-foreground">{registry.platformVersion}</p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
-              {t("title")}
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-emerald-100/80 md:text-base">
-              {t("description")}
-            </p>
-          </div>
-          {registry && (
-            <div className="rounded-xl border border-emerald-500/20 bg-white/10 px-4 py-3 backdrop-blur-sm self-start lg:self-auto shrink-0">
-              <p className="text-[11px] font-medium text-emerald-200">
-                {t("version")}
-              </p>
-              <p className="mt-0.5 font-mono text-sm font-bold text-white">
-                {registry.platformVersion}
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+          ) : null}
+        </>}
+      />
 
       {error && (
         <div
@@ -511,7 +499,7 @@ export default function CarbonOperationsClient({
                   return (
                     <Card
                       key={status}
-                      className="rounded-xl border border-slate-200/90 bg-white shadow-xs hover:border-slate-300 hover:shadow-md transition-all duration-200"
+                      className="rounded-xl border shadow-xs hover:border-slate-300 hover:shadow-md transition-all duration-200"
                     >
                       <CardHeader className="pb-2.5">
                         <div className="flex items-center justify-between">
@@ -774,7 +762,7 @@ export default function CarbonOperationsClient({
 
             {/* ── Layers & Standardized Entities ── */}
             <section className="grid gap-4 md:gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <Layers className="h-5 w-5 text-emerald-600" />
@@ -821,7 +809,7 @@ export default function CarbonOperationsClient({
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-emerald-600" />
@@ -849,7 +837,7 @@ export default function CarbonOperationsClient({
 
             {/* ── Facilities: Declaration & Catalog ── */}
             <section className="grid gap-4 md:gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
@@ -944,7 +932,7 @@ export default function CarbonOperationsClient({
                           setForm({ ...form, name: e.target.value })
                         }
                         className="h-9 rounded-lg border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
-                        placeholder="Nhà máy May Vinatex Nam Định"
+                        placeholder="Nhà máy thép Phú Mỹ"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -984,7 +972,7 @@ export default function CarbonOperationsClient({
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
                     <Building2 className="h-4 w-4 text-emerald-600" />
@@ -1032,7 +1020,7 @@ export default function CarbonOperationsClient({
 
             {/* ── Industrial Processes & Measurement Points ── */}
             <section className="grid gap-4 md:gap-6 lg:grid-cols-2">
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1160,7 +1148,7 @@ export default function CarbonOperationsClient({
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1334,7 +1322,7 @@ export default function CarbonOperationsClient({
 
             {/* ── Governed Allocation Rules & Deterministic Runs ── */}
             <section className="grid gap-4 md:gap-6 xl:grid-cols-2">
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <GitBranch className="h-4 w-4 text-emerald-600" />
@@ -1545,7 +1533,7 @@ export default function CarbonOperationsClient({
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border border-slate-200/90 bg-white shadow-xs">
+              <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-emerald-600" />
@@ -1695,6 +1683,6 @@ export default function CarbonOperationsClient({
           </>
         )
       )}
-    </main>
+    </div>
   );
 }

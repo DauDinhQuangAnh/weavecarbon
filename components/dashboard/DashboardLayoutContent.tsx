@@ -4,6 +4,9 @@ import React from "react";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import MethodologyBanner from "@/components/app/MethodologyBanner";
+import DemoDatasetBanner from "@/components/app/DemoDatasetBanner";
 import DashboardHeaderButton from "./DashboardHeaderButton";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +33,7 @@ const DASHBOARD_ROUTE_TITLES: Record<string, { title: string; subtitle?: string 
     subtitle: "Quản lý danh mục sản phẩm và hồ sơ carbon",
   },
   "/logistics": {
-    title: "Quản lý vận chuyển",
+    title: "Logistics",
     subtitle: "Theo dõi tất cả các lô hàng trên bản đồ thế giới",
   },
   "/transport": {
@@ -42,11 +45,11 @@ const DASHBOARD_ROUTE_TITLES: Record<string, { title: string; subtitle?: string 
     subtitle: "Tra cứu trạng thái vận chuyển theo mã lô hàng",
   },
   "/carbon-calculator": {
-    title: "Tính Carbon Proxy",
+    title: "Tính carbon",
     subtitle: "Ước tính phát thải CO2e theo vật liệu, sản xuất và vận chuyển",
   },
   "/evidence": {
-    title: "Tải chứng từ",
+    title: "Chứng từ",
     subtitle: "Quản lý chứng từ và nâng cấp độ tin cậy dữ liệu",
   },
   "/data-gap": {
@@ -54,7 +57,7 @@ const DASHBOARD_ROUTE_TITLES: Record<string, { title: string; subtitle?: string 
     subtitle: "Theo dõi dữ liệu còn thiếu cho tính toán carbon",
   },
   "/export": {
-    title: "Xuất báo cáo",
+    title: "Xuất khẩu",
     subtitle: "Tạo gói dữ liệu và báo cáo tuân thủ",
   },
   "/reports": {
@@ -88,6 +91,32 @@ const DASHBOARD_ROUTE_TITLES: Record<string, { title: string; subtitle?: string 
   "/calculation-history": {
     title: "Lịch sử tính toán",
     subtitle: "Xem lại các lần tính phát thải đã lưu",
+  },
+  "/emissions": { title: "Phát thải", subtitle: "Kiểm kê theo Scope và nhịp vận hành" },
+  "/processes": { title: "Quy trình", subtitle: "Đầu vào, năng lượng và đầu ra theo từng công đoạn" },
+  "/facilities": { title: "Cơ sở sản xuất", subtitle: "Phát thải, độ đầy đủ dữ liệu và bối cảnh theo cơ sở" },
+  "/carbon-operations": { title: "Vận hành carbon", subtitle: "Trạng thái năng lực lõi và luồng dữ liệu carbon" },
+  "/industry-packs": { title: "Industry Packs", subtitle: "Taxonomy, field mapping và hệ số theo ngành" },
+  "/activity-data": { title: "Dữ liệu hoạt động", subtitle: "Bản ghi điện, nhiên liệu, nguyên liệu và sản lượng" },
+  "/evidence-graph": { title: "Đồ thị bằng chứng", subtitle: "Truy vết hoạt động → bằng chứng → hệ số → kết quả" },
+  "/data-quality": { title: "Chất lượng dữ liệu", subtitle: "DQL, hệ số phát thải và bằng chứng còn thiếu" },
+  "/inbox": { title: "Hộp thư công việc", subtitle: "Việc cần duyệt, bổ sung và rà soát" },
+  "/hotspots": { title: "Điểm nóng phát thải", subtitle: "Nguồn đóng góp lớn nhất theo cơ sở và hạng mục" },
+  "/climate-risk": { title: "Rủi ro khí hậu", subtitle: "Mức độ phơi nhiễm vật lý của cơ sở và nhà cung cấp" },
+  "/vietnam-carbon": { title: "Carbon Việt Nam", subtitle: "Kiểm kê khí nhà kính và MRV theo NĐ 06/2022/NĐ-CP" },
+  "/compliance": { title: "Tuân thủ", subtitle: "Ma trận báo cáo theo thị trường và khung tiêu chuẩn" },
+  "/verification": { title: "Xác minh", subtitle: "Review bằng chứng và chuẩn bị cho bên xác minh" },
+  "/mitigation-operations": { title: "Giảm phát thải & hạn ngạch", subtitle: "Sáng kiến giảm phát thải, kịch bản và hạn ngạch" },
+  "/connected-data": { title: "WeaveNode", subtitle: "Thiết bị đo, telemetry và đối soát meter" },
+  "/cbam-report": { title: "Báo cáo CBAM", subtitle: "Hồ sơ phát thải nhúng cho hàng hoá thuộc phạm vi EU CBAM" },
+  "/reports/registry": { title: "Báo cáo", subtitle: "Trung tâm báo cáo pháp lý & thị trường" },
+  "/report-builder": {
+    title: "Báo cáo",
+    subtitle: "Report Scope Engine · tổng hợp theo đúng phạm vi đối tượng và kỳ",
+  },
+  "/demo-lab": {
+    title: "Phòng demo theo ngành",
+    subtitle: "Input công nghiệp có nguồn → quy trình WeaveCarbon → đầu ra nội địa & xuất khẩu",
   },
   "/passport-dashboard": {
     title: "Product Passport",
@@ -132,10 +161,10 @@ export default function DashboardLayoutContent({
   const titleBelongsToCurrentPath =
     Boolean(titlePath) &&
     normalizeDashboardPath(titlePath) === normalizeDashboardPath(pathname);
-  const displayTitle = titleBelongsToCurrentPath ? title : routeTitle.title;
-  const displaySubtitle = titleBelongsToCurrentPath
-    ? subtitle
-    : routeTitle.subtitle;
+  // Tiêu đề thanh trên luôn khớp tên mục trên menu (nếu route đã khai báo); trang chỉ bổ sung phụ đề.
+  const hasRouteTitle = Boolean(DASHBOARD_ROUTE_TITLES[normalizeDashboardPath(pathname)]);
+  const displayTitle = hasRouteTitle ? routeTitle.title : titleBelongsToCurrentPath ? title : routeTitle.title;
+  const displaySubtitle = hasRouteTitle ? routeTitle.subtitle : titleBelongsToCurrentPath ? subtitle : routeTitle.subtitle;
   const isProductsPage = pathname === "/products" || pathname === "/demo/products";
   const isLogisticsPage = pathname === "/logistics" || pathname === "/demo/logistics";
   const isExportPage = pathname === "/export" || pathname === "/demo/export";
@@ -258,37 +287,31 @@ export default function DashboardLayoutContent({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-slate-200 bg-white/95 py-2.5 backdrop-blur lg:sticky lg:top-0 lg:z-20 lg:bg-white lg:py-3">
-        <div className="flex w-full items-center justify-between gap-3 px-2.5 md:px-3 lg:px-4">
+      <header className="sticky-glass fixed inset-x-2 top-2 z-30 rounded-2xl px-3 py-2.5 md:px-5 lg:sticky lg:mx-4 lg:mt-3 lg:py-3">
+        <div className="flex w-full items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <DashboardHeaderButton />
             <div className="min-w-0 overflow-hidden">
-              <div className="flex min-w-0 items-baseline gap-2 overflow-hidden whitespace-nowrap">
-                <h1
-                  className="truncate text-xl font-extrabold leading-tight tracking-tight text-slate-800 md:text-2xl"
-                  style={{ fontFamily: "\"Plus Jakarta Sans\", system-ui, sans-serif" }}
-                >
-                  {displayTitle}
-                </h1>
-                {displaySubtitle ? (
-                  <>
-                    <span className="hidden shrink-0 text-sm font-medium leading-tight text-muted-foreground md:inline md:text-base">
-                      &bull;
-                    </span>
-                    <p className="hidden min-w-0 truncate text-sm font-medium leading-tight text-muted-foreground md:block md:text-base">
-                      {displaySubtitle}
-                    </p>
-                  </>
-                ) : null}
-              </div>
+              <h1 className="truncate font-display text-base font-semibold leading-tight text-foreground md:text-lg">
+                {displayTitle}
+              </h1>
+              {displaySubtitle ? (
+                <p className="hidden truncate text-xs text-muted-foreground md:block">{displaySubtitle}</p>
+              ) : null}
             </div>
           </div>
-          <div className="shrink-0 lg:hidden">
+          <div className="flex shrink-0 items-center gap-2">
+            {isDemoPage ? (
+              <Badge variant="secondary" className="hidden rounded-full border border-white/60 sm:inline-flex">
+                Source-backed demo
+              </Badge>
+            ) : null}
+            <div className="lg:hidden">
             {shouldShowMobileBackButton ? (
               <button
                 type="button"
                 aria-label="Go back"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground hover:bg-muted"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/70 bg-background/60 text-foreground backdrop-blur-md hover:bg-background/80"
                 onClick={() => {
                   if (typeof window !== "undefined" && window.history.length > 1) {
                     router.back();
@@ -300,15 +323,20 @@ export default function DashboardLayoutContent({
                 <ArrowLeft className="h-4 w-4" />
               </button>
             ) : null}
+            </div>
           </div>
         </div>
       </header>
 
       <div
-        className={`flex-1 px-2.5 pb-4 ${mobileContentTopPadding} md:px-3 md:pb-6 md:pt-24 lg:px-4 lg:pt-4`}
+        className={`page-stage mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-4 ${mobileContentTopPadding} md:px-4 md:pb-6 md:pt-24 lg:px-6 lg:pt-4`}
       >
-        {children}
+        {isDemoPage && isOverviewPage ? <DemoDatasetBanner /> : null}
+        <div className="animate-fade-up">{children}</div>
       </div>
+      <footer className="glass-shell mx-2 mb-3 mt-2 rounded-2xl px-4 py-3 md:mx-4 md:px-6">
+        <MethodologyBanner />
+      </footer>
     </>);
 
 }

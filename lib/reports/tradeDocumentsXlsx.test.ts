@@ -18,7 +18,7 @@ describe("tradeDocumentsXlsx", () => {
     billOfLadingNo: "ONEVNHAN260411",
     containerNo: "MSKU9012445",
     barcodeStandard: "GS1-Digital",
-    buyerBrand: "H&M Hennes & Mauritz GBC AB",
+    buyerBrand: "EuroSteel Trading GmbH (demo)",
     buyerWebhookUrl: "https://api.hm.com/carbon/v1/ingest"
   };
 

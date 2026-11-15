@@ -130,8 +130,8 @@ const ProductSuggestionsCard: React.FC<ProductSuggestionsCardProps> = ({
       : t("buttonGenerate");
 
   return (
-    <Card className="border border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:p-6">
+    <Card className="border shadow-sm">
+      <CardHeader className="border-b px-4 py-3 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">

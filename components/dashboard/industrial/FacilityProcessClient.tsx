@@ -44,12 +44,12 @@ import {
 } from "@/lib/design-system/dataQualityLadder";
 
 const PROCESS_TYPE_SUGGESTIONS = [
+  { label: "Chuẩn bị nguyên liệu", value: "material_preparation" },
   { label: "Sản xuất chính", value: "production" },
-  { label: "Nhuộm & Giặt", value: "dyeing_washing" },
-  { label: "Cắt & May", value: "cutting_sewing" },
-  { label: "Lò hơi & Hơi nước", value: "boiler_steam" },
-  { label: "Xử lý nước thải", value: "wastewater_treatment" },
-  { label: "Đóng gói & Hoàn tất", value: "packaging_finishing" },
+  { label: "Lò nung / lò hơi / sấy", value: "thermal_process" },
+  { label: "Điện & tiện ích", value: "utilities" },
+  { label: "Xử lý chất thải & khí thải", value: "wastewater_treatment" },
+  { label: "Đóng gói & hoàn tất", value: "packaging_finishing" },
 ];
 
 export default function FacilityProcessClient({
@@ -361,12 +361,12 @@ export default function FacilityProcessClient({
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
                 {[
-                  { key: "production", title: "1. Sản xuất chính", icon: Cpu, energy: "Điện lưới", share: "24%", dql: "IoT Cấp 1", desc: "Kéo sợi, dệt thoi/kim" },
-                  { key: "dyeing_washing", title: "2. Nhuộm & Giặt", icon: Flame, energy: "Hơi lò hơi", share: "38%", dql: "Hóa đơn Cấp 2", desc: "Nhuộm cao áp & giặt sạch" },
-                  { key: "cutting_sewing", title: "3. Cắt & May", icon: Boxes, energy: "Điện 3 pha", share: "8%", dql: "IoT Cấp 1", desc: "Cắt rập và may chuyền" },
-                  { key: "boiler_steam", title: "4. Lò hơi & Hơi", icon: Zap, energy: "Biomass / Than", share: "20%", dql: "Cân nhiên liệu Cấp 1", desc: "Cấp hơi bão hòa nhà máy" },
-                  { key: "wastewater_treatment", title: "5. Xử lý nước thải", icon: Activity, energy: "Điện sục khí", share: "6%", dql: "Đồng hồ Cấp 2", desc: "Bể vi sinh & tuần hoàn" },
-                  { key: "packaging_finishing", title: "6. Hoàn tất & Gói", icon: FileCheck2, energy: "Điện nhẹ", share: "4%", dql: "Ước tính Cấp 3", desc: "Ủi hơi & đóng thùng" },
+                  { key: "material_preparation", title: "1. Chuẩn bị nguyên liệu", icon: Boxes, energy: "Điện 3 pha", share: "9%", dql: "Phiếu cân Cấp 1", desc: "Nghiền, phối liệu, tiếp nhận nông sản" },
+                  { key: "production", title: "2. Sản xuất chính", icon: Cpu, energy: "Điện lưới", share: "31%", dql: "IoT Cấp 1", desc: "Luyện, cán, ép đùn, tổng hợp" },
+                  { key: "thermal_process", title: "3. Lò nung / sấy", icon: Flame, energy: "Than / khí / biomass", share: "38%", dql: "Hóa đơn Cấp 2", desc: "Lò clinker, lò thùng, máy sấy" },
+                  { key: "utilities", title: "4. Điện & tiện ích", icon: Zap, energy: "Điện lưới / DPPA", share: "12%", dql: "Đồng hồ Cấp 1", desc: "Khí nén, làm mát, chiếu sáng" },
+                  { key: "wastewater_treatment", title: "5. Xử lý chất thải", icon: Activity, energy: "Điện sục khí", share: "6%", dql: "Đồng hồ Cấp 2", desc: "Lọc bụi, xử lý nước, bùn" },
+                  { key: "packaging_finishing", title: "6. Hoàn tất & đóng gói", icon: FileCheck2, energy: "Điện nhẹ", share: "4%", dql: "Ước tính Cấp 3", desc: "Đóng bao, cuộn, xếp pallet" },
                 ].map((step) => {
                   const isSelected = typeFilter === step.key;
                   return (
@@ -401,11 +401,11 @@ export default function FacilityProcessClient({
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-muted-foreground text-[11px]">
-                    <strong>AI Process Insights:</strong> Công đoạn <span className="text-foreground font-medium">Nhuộm & Lò hơi</span> chiếm <strong>58%</strong> tổng tải phát thải. Áp dụng tuần hoàn nước ngưng và biến tần quạt lò hơi có thể tiết kiệm 15 - 20% than/biomass.
+                    <strong>AI Process Insights:</strong> Công đoạn <span className="text-foreground font-medium">Lò nung / sấy</span> và <span className="text-foreground font-medium">Sản xuất chính</span> chiếm <strong>69%</strong> tổng tải phát thải. Thu hồi nhiệt thải lò và biến tần quạt/bơm có thể giảm 12 - 18% nhiên liệu.
                   </span>
                 </div>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                  BAT Benchmark: 8.8 MJ/kg (Đạt chuẩn EU)
+                  BAT benchmark: lò clinker 3,3 GJ/t (EU BREF CLM)
                 </span>
               </div>
             </section>
@@ -777,7 +777,7 @@ export default function FacilityProcessClient({
                 <Input
                   required
                   maxLength={120}
-                  placeholder={isFacility ? "FAC-DYEING-01" : "PROC-DYE-LINE1"}
+                  placeholder={isFacility ? "FAC-STEEL-01" : "PROC-EAF-LINE1"}
                   className="mt-1.5 text-xs font-mono"
                   value={form.reference}
                   onChange={(event) => setForm({ ...form, reference: event.target.value })}
@@ -789,7 +789,7 @@ export default function FacilityProcessClient({
                 <Input
                   required
                   maxLength={240}
-                  placeholder={isFacility ? "Xưởng nhuộm hoàn tất số 1" : "Dây chuyền nhuộm và giặt sấy"}
+                  placeholder={isFacility ? "Nhà máy luyện thép số 1" : "Dây chuyền lò điện hồ quang"}
                   className="mt-1.5 text-xs"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -826,7 +826,7 @@ export default function FacilityProcessClient({
                     <Input
                       required
                       maxLength={120}
-                      placeholder="production, dyeing, sewing..."
+                      placeholder="production, thermal_process, utilities..."
                       className="mt-1.5 text-xs font-mono"
                       value={form.processType}
                       onChange={(event) => setForm({ ...form, processType: event.target.value })}

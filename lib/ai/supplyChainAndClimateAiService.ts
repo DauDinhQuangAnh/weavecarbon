@@ -214,7 +214,7 @@ export function generateSupplierScope3Questionnaire(sectorOrMaterial: string): S
   const isWetProcess = norm.includes("nhuộm") || norm.includes("hóa chất") || norm.includes("hoàn tất");
 
   return {
-    sector: sectorOrMaterial || "Sản xuất dệt may / chuỗi cung ứng công nghiệp",
+    sector: sectorOrMaterial || "Sản xuất công nghiệp / chuỗi cung ứng nông – công nghiệp",
     title: `Biểu mẫu thu thập dữ liệu phát thải Scope 3 (GHG Protocol Category 1) — ${sectorOrMaterial || "Tổng hợp"}`,
     estimatedCompletionMinutes: isWetProcess ? 25 : 15,
     sections: [
@@ -464,13 +464,13 @@ export function simulateClimatePhysicalHazards(
       implementationTimeline: "Quý 1–2 / 2026",
     },
     {
-      name: "Sơn phản xạ nhiệt Cool-Roof và thông gió tự nhiên xưởng may",
-      description: "Giảm nhiệt độ bề mặt mái xưởng từ 6–10°C, bảo vệ sức khỏe công nhân may và giảm tải máy lạnh.",
+      name: "Sơn phản xạ nhiệt Cool-Roof và thông gió tự nhiên nhà xưởng",
+      description: "Giảm nhiệt độ bề mặt mái xưởng từ 6–10°C, bảo vệ sức khỏe công nhân vận hành và giảm tải máy lạnh.",
       estimatedCostTier: "Thấp",
       implementationTimeline: "Ngay trong 30 ngày",
     },
     {
-      name: "Bể thu gom nước mưa tuần hoàn và hệ thống lọc tuần hoàn nước nhuộm",
+      name: "Bể thu gom nước mưa và hệ thống tuần hoàn nước làm mát công nghệ",
       description: "Đảm bảo nguồn nước hoạt động tối thiểu 14 ngày khi xảy ra hạn hán hoặc xâm nhập mặn.",
       estimatedCostTier: "Cao",
       implementationTimeline: "Lộ trình 2026–2027",
@@ -508,7 +508,7 @@ export function simulateClimatePhysicalHazards(
   const tcfdRecommendations = [
     {
       measure: "Tường ngăn triều cường & trạm bơm thoát nước tự động",
-      justification: "Bảo vệ nguyên vật liệu vải và sản phẩm may mặc thành phẩm khỏi nguy cơ ẩm mốc, hư hỏng khi mưa lớn cục bộ.",
+      justification: "Bảo vệ nguyên liệu, nông sản và thành phẩm trong kho khỏi nguy cơ ẩm mốc, hư hỏng khi mưa lớn cục bộ.",
       estimatedCostUsd: "$12,000 – $25,000",
       timeframe: "Quý 1–2 / 2026",
     },

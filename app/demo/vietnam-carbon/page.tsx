@@ -1,2 +1,1 @@
-import Client from "@/components/dashboard/industrial/DemoOperationalDataClient";
-export default function Page() { return <Client mode="vietnam" />; }
+import VnMrvClient from "@/components/dashboard/vn-mrv/VnMrvClient";import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";import {DASHBOARD_VN_MRV_NAMESPACES} from "@/lib/i18n/namespaces";export default function DemoVnMrvPage(){return <ScopedIntlProvider namespaces={DASHBOARD_VN_MRV_NAMESPACES}><VnMrvClient demo/></ScopedIntlProvider>}

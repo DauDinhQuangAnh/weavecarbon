@@ -37,11 +37,13 @@ const Header = () => {
     return mobileSectionOffsets[href] ?? defaultOffset;
   };
 
-  const navLinks = [
-    { labelKey: "features", href: "#features" },
+  // Điều hướng đồng bộ với bản Lovable: Vấn đề · Giải pháp · Cách hoạt động · Báo cáo mẫu · Gói dịch vụ
+  const navLinks: { labelKey: string; label?: string; href: string }[] = [
+    { labelKey: "problem", label: "Vấn đề", href: "#problem" },
+    { labelKey: "solution", label: "Giải pháp", href: "#solution" },
     { labelKey: "howItWorks", href: "#how-it-works" },
-    { labelKey: "impact", href: "#impact" },
-    { labelKey: "contact", href: "#contact" },
+    { labelKey: "reports", label: "Báo cáo mẫu", href: "#reports-sample" },
+    { labelKey: "pricing", label: "Gói dịch vụ", href: "#pricing" },
   ];
 
   const scrollToSection = (href: string) => {
@@ -113,7 +115,7 @@ const Header = () => {
                         href={link.href}
                         className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {t(link.labelKey)}
+                        {link.label ?? t(link.labelKey)}
                       </Link>
                     ) : (
                       <a
@@ -122,7 +124,7 @@ const Header = () => {
                         className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         onClick={(event) => handleAnchorClick(event, link.href)}
                       >
-                        {t(link.labelKey)}
+                        {link.label ?? t(link.labelKey)}
                       </a>
                     ),
                   )}
@@ -170,7 +172,7 @@ const Header = () => {
                     className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    {t(link.labelKey)}
+                    {link.label ?? t(link.labelKey)}
                   </Link>
                 ) : (
                     <a
@@ -179,7 +181,7 @@ const Header = () => {
                       className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                       onClick={(event) => handleAnchorClick(event, link.href)}
                     >
-                      {t(link.labelKey)}
+                      {link.label ?? t(link.labelKey)}
                     </a>
                 ),
               )}

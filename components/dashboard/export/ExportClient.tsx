@@ -709,7 +709,7 @@ const ExportPage: React.FC = () => {
 
     return (
       <div key={group}>
-        <Card className="border border-slate-300 bg-slate-50 shadow-sm">
+        <Card className="border bg-slate-50 shadow-sm">
           <CardContent className="p-3 md:p-4">
             <div className="grid grid-cols-12 items-end gap-2">
               <div className="col-span-4 md:col-span-4">

@@ -58,6 +58,7 @@ export interface DashboardOverviewResponse {
     transport?: number;
     packaging?: number;
     total?: number;
+    batchTotal?: number;
   }>;
   marketReadiness?: Array<{
     marketCode?: string;
@@ -77,22 +78,23 @@ export interface DashboardOverviewResponse {
 export const MARKET_READINESS_PREVIEW_LIMIT = 3;
 
 export const EMISSION_COLOR_PALETTE = [
-"hsl(171 78% 33%)",
-"hsl(220 85% 54%)",
-"hsl(281 78% 56%)",
-"hsl(8 82% 56%)"];
+// Bảng màu đồng bộ Lovable (navy / forest / amber / lime)
+"hsl(96 49% 14%)",
+"hsl(150 61% 26%)",
+"hsl(38 70% 52%)",
+"hsl(93 32% 57%)"];
 
 export const PRICING_MODAL_OPEN_EVENT = "weavecarbon:open-pricing-modal";
 export const OVERVIEW_STAT_HEADER_CLASS =
-  "rounded-t-[inherit] border-b border-slate-300 bg-slate-100 p-3 pb-2 md:p-6 md:pb-3";
+  "rounded-t-[inherit] border-b border-border/60 p-3 pb-2 md:p-6 md:pb-3";
 export const OVERVIEW_STAT_HEADER_INNER_CLASS =
   "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2";
 export const OVERVIEW_STAT_LABEL_CLASS =
   "line-clamp-2 text-sm font-semibold leading-snug text-slate-700 md:text-[15px]";
 export const OVERVIEW_STAT_VALUE_CLASS =
-  "shrink-0 text-right text-2xl font-bold leading-none text-slate-900 md:text-3xl";
+  "shrink-0 text-right font-display text-2xl font-semibold leading-none tabular-nums text-foreground md:text-3xl";
 export const OVERVIEW_STAT_ACCENT_VALUE_CLASS =
-  "shrink-0 text-right text-2xl font-bold leading-none md:text-3xl";
+  "shrink-0 text-right font-display text-2xl font-semibold leading-none tabular-nums md:text-3xl";
 
 export const normalizeEmissionKey = (value: string) =>
 value.

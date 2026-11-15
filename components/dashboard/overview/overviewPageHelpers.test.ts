@@ -21,10 +21,10 @@ describe("normalizeEmissionKey", () => {
 
 describe("getCategoryColor", () => {
   it("maps known Vietnamese and English category labels to a palette color", () => {
-    expect(getCategoryColor("Nguyên liệu")).toBe("hsl(171 78% 33%)");
-    expect(getCategoryColor("Materials")).toBe("hsl(171 78% 33%)");
-    expect(getCategoryColor("Vận chuyển")).toBe("hsl(8 82% 56%)");
-    expect(getCategoryColor("Transportation")).toBe("hsl(8 82% 56%)");
+    expect(getCategoryColor("Nguyên liệu")).toBe("hsl(96 49% 14%)");
+    expect(getCategoryColor("Materials")).toBe("hsl(96 49% 14%)");
+    expect(getCategoryColor("Vận chuyển")).toBe("hsl(93 32% 57%)");
+    expect(getCategoryColor("Transportation")).toBe("hsl(93 32% 57%)");
   });
 
   it("returns null for unrecognized labels", () => {

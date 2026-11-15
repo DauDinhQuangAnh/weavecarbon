@@ -59,10 +59,10 @@ const FRAMEWORK_DEFINITIONS = [
     id: "EU_DPP",
     code: "EU DPP / ESPR",
     name: "Hộ chiếu Sản phẩm Số & Ecodesign (ESPR 2024/1781)",
-    scope: "Dệt may & Da giày",
-    badge: "Textiles / Shoes",
+    scope: "Thép, nhôm, dệt may (nhóm ưu tiên ESPR)",
+    badge: "ESPR priority groups",
     color: "purple",
-    desc: "Truy xuất nguồn gốc chuỗi cung ứng, % sợi tái chế và kiểm soát hóa chất REACH",
+    desc: "Truy xuất nguồn gốc chuỗi cung ứng, % vật liệu tái chế và kiểm soát hóa chất REACH",
     targetPath: "/products",
     targetLabel: "Hồ sơ Sản phẩm & DPP"
   },

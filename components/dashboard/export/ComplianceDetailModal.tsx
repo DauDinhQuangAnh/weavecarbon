@@ -616,7 +616,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
                   documents={exportComplianceDocuments}
                 />
 
-                <Card className="border-slate-200 shadow-sm">
+                <Card className="shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 rounded-xl bg-blue-100 p-2">
@@ -656,7 +656,7 @@ const ComplianceDetailModal: React.FC<ComplianceDetailModalProps> = ({
                 </Card>
 
                 {compliance.verificationRequired && (
-                  <Card className="border-slate-200 shadow-sm">
+                  <Card className="shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">

@@ -644,7 +644,7 @@ const toProductRecord = (
     productCode: payload.productCode,
     productName: payload.productName,
     productType: payload.productType,
-    productCategory: payload.productCategory || "textile",
+    productCategory: payload.productCategory || "steel",
     hsCode: payload.hsCode || existing?.hsCode,
     cnCode: payload.cnCode || existing?.cnCode,
     facility: payload.facility || existing?.facility,
@@ -749,8 +749,8 @@ export const getDemoProductSuggestions = (dataset: DemoDataset, productId: strin
     {
       id: `${productId}-sug-1`,
       type: "material",
-      title: "Chuyển sang vật liệu tái chế / hữu cơ",
-      description: `Thay thế một phần vật liệu nguyên sinh của ${productName} bằng cotton hữu cơ hoặc polyester tái chế (GRS) để giảm hệ số phát thải đầu vào.`,
+      title: "Tăng tỷ lệ nguyên liệu tái chế / thay thế",
+      description: `Tăng tỷ lệ phế liệu, vật liệu tái chế hoặc phụ gia thay thế (xỉ, tro bay, nhôm tái chế, phân bón hiệu quả cao) trong đầu vào của ${productName} để giảm hệ số phát thải nguyên liệu.`,
       potentialReduction: 32,
       difficulty: "medium",
     },
@@ -924,9 +924,9 @@ export const importDemoBulkRows = (
   rows.forEach((row, index) => {
     const productName = String(row.product_name || row.productName || `Demo Product ${index + 1}`);
     const productCode = String(row.product_code || row.productCode || `DEMO-${Date.now().toString().slice(-4)}-${index + 1}`);
-    const productType = String(row.product_type || row.productType || "tshirt");
+    const productType = String(row.product_type || row.productType || "steel_product");
     const quantity = Number(row.quantity || 100);
-    const weightPerUnit = Number(row.weight_per_unit || row.weightPerUnit || 220);
+    const weightPerUnit = Number(row.weight_per_unit || row.weightPerUnit || 1000000);
     const destinationMarket = String(row.destination_market || row.destinationMarket || "vietnam");
     const originAddress: AddressInput = {
       streetNumber: "",
@@ -963,20 +963,20 @@ export const importDemoBulkRows = (
       productCode,
       productName,
       productType,
-      productCategory: "textile",
+      productCategory: String(row.product_category || row.productCategory || "steel") as ProductAssessmentData["productCategory"],
       weightPerUnit,
       quantity,
       materials: [
         {
           id: createId(),
-          materialType: String(row.primary_material || "cotton"),
+          materialType: String(row.primary_material || "steel_scrap"),
           percentage: 100,
           source: "domestic",
           certifications: [],
         },
       ],
       accessories: [],
-      productionProcesses: [String(row.process_type || "cutting_sewing")],
+      productionProcesses: [String(row.process_type || "production")],
       energySources: [{ id: createId(), source: String(row.energy_source || "grid"), percentage: 100 }],
       manufacturingLocation: String(row.manufacturing_location || "Ho Chi Minh City, Vietnam"),
       wasteRecovery: String(row.waste_recovery || "partial"),

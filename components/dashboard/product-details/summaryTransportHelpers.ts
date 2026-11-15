@@ -1,3 +1,4 @@
+import { materialDisplayName } from "@/lib/industrialLabels";
 import { MATERIAL_TYPES } from "@/components/dashboard/assessment/steps/types";
 import type { ProductRecord } from "@/lib/productsApi";
 import {
@@ -371,5 +372,5 @@ export function getMaterialEmissionFactor(materialType: string): number {
 
 export function getMaterialLabel(materialType: string): string {
   const material = MATERIAL_TYPES.find((m) => m.value === materialType);
-  return material?.label || materialType;
+  return material?.label || materialDisplayName(materialType);
 }

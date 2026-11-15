@@ -187,7 +187,7 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
       transportMode: 'sea',
       preferentialOriginClaim: true,
       exporter: {
-        name: 'WeaveCarbon Garment JSC',
+        name: 'Vietnam Industrial Group JSC',
         address: 'Lot B2, Tan Binh Industrial Park, Ho Chi Minh City',
         country: 'VN',
         contact: 'export@weavecarbon.vn / +84-28-38123456'
@@ -226,7 +226,7 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
         'Số tờ khai hải quan': '104829384720',
         'Cước vận chuyển': 2450,
         'Bảo hiểm': 180,
-        'Tên Exporter': 'WeaveCarbon Garment JSC',
+        'Tên Exporter': 'Vietnam Industrial Group JSC',
         'Địa chỉ Exporter': 'Tan Binh IP, HCMC',
         'Tên Importer': 'Nordic Retail B.V.',
         'Địa chỉ Importer': 'Amsterdam, NL'
@@ -343,7 +343,7 @@ export default function ShipmentExportPortal({ documentManagerSlot }: ShipmentEx
   return (
     <div className="space-y-5">
       {/* HEADER: Chọn shipment & Tiến độ tinh gọn */}
-      <Card className="border-slate-200 bg-white shadow-xs">
+      <Card className="shadow-xs">
         <CardContent className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex-1 min-w-[280px] space-y-1.5">
             <span className="text-xs font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">

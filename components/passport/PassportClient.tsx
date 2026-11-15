@@ -1,4 +1,5 @@
 "use client";
+import { productTypeDisplayName } from "@/lib/industrialLabels";
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -179,7 +180,7 @@ function normalizeProductData(product: ProductData): ProductData {
 
 
 function convertToProductData(stored: StoredProduct): ProductData {
-  const productTypeLabel = PRODUCT_TYPES.find((p) => p.value === stored.productType)?.label || stored.productType;
+  const productTypeLabel = PRODUCT_TYPES.find((p) => p.value === stored.productType)?.label || productTypeDisplayName(stored.productType) || stored.productType;
 
   return {
     id: stored.id,
@@ -297,7 +298,7 @@ function generateTransportFromProduct(stored: StoredProduct): TransportData | nu
 }
 
 function convertProductRecordToProductData(product: ProductRecord): ProductData {
-  const productTypeLabel = PRODUCT_TYPES.find((p) => p.value === product.productType)?.label || product.productType;
+  const productTypeLabel = PRODUCT_TYPES.find((p) => p.value === product.productType)?.label || productTypeDisplayName(product.productType) || product.productType;
 
   return {
     id: product.id,
@@ -1157,7 +1158,7 @@ const PassportClient: React.FC = () => {
         </Card>
 
         
-        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
+        <Card className="overflow-hidden shadow-sm">
           <div className="h-1 bg-blue-500"></div>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -1178,7 +1179,7 @@ const PassportClient: React.FC = () => {
 
         
         {transport && transport.legs.length > 0 &&
-        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
+        <Card className="overflow-hidden shadow-sm">
           <div className="h-1 bg-linear-to-r from-sky-500 via-cyan-400 to-slate-400"></div>
             <CardHeader className="space-y-3 pb-3">
               <div className="flex items-start justify-between gap-2">
@@ -1258,7 +1259,7 @@ const PassportClient: React.FC = () => {
         }
 
         
-        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
+        <Card className="overflow-hidden shadow-sm">
           <div className="h-1 bg-slate-400"></div>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">

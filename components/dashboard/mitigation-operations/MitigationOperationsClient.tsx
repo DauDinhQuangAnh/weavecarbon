@@ -1,4 +1,5 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -447,14 +448,12 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
-      <section className="rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-950 to-cyan-950 p-7 text-white shadow-md">
-        <p className="text-sm font-semibold uppercase tracking-[.15em] text-emerald-200">
-          G2-04 · Giảm thiểu & Quản lý Hạn ngạch
-        </p>
-        <h1 className="mt-3 text-3xl font-bold">{t("title")}</h1>
-        <p className="mt-3 max-w-3xl text-slate-200 text-sm leading-relaxed">{t("description")}</p>
-      </section>
+    <div className="w-full space-y-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">G2-04 · Giảm thiểu &amp; quản lý hạn ngạch</span></>}
+      />
 
       {error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 text-sm">
@@ -476,8 +475,8 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
 
       <section className="grid gap-6 xl:grid-cols-2">
         {/* Initiative Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">{t("initiativeTitle")}</CardTitle>
@@ -624,8 +623,8 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         </Card>
 
         {/* Scenario Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <CardTitle className="text-base font-bold text-slate-900">{t("scenarioTitle")}</CardTitle>
             <CardDescription className="text-xs text-slate-600">{t("scenarioDescription")}</CardDescription>
           </CardHeader>
@@ -680,8 +679,8 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         </Card>
 
         {/* Allocation Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">{t("allocationTitle")}</CardTitle>
@@ -770,8 +769,8 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         </Card>
 
         {/* Position Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">{t("positionTitle")}</CardTitle>
@@ -842,7 +841,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         </Card>
       </section>
 
-      <Card className="border border-slate-200/80 bg-slate-50/50">
+      <Card className="border bg-slate-50/50">
         <CardContent className="flex gap-3 p-5">
           <FileLock2 className="h-5 w-5 shrink-0 text-emerald-700 mt-0.5" />
           <div>
@@ -1157,6 +1156,6 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }

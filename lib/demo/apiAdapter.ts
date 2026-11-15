@@ -897,7 +897,7 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         }
 
         const isFuel = hintKind === "fuel_receipt" || /xang|dau|diesel|petrol/i.test(fileName);
-        const isMaterial = hintKind === "material_invoice" || /nguyen_lieu|vai|cotton|soi|bom/i.test(fileName);
+        const isMaterial = hintKind === "material_invoice" || /nguyen_lieu|phe_lieu|quang|clinker|vai|cotton|soi|bom/i.test(fileName);
         const isTransport = hintKind === "transport_bol" || /van_don|bol|shipment|airway/i.test(fileName);
 
         if (isFuel) {
@@ -932,8 +932,8 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
               success: true,
               source: "ai_vision",
               detected_kind: "material_invoice",
-              document_title: "Hóa đơn nguyên vật liệu dệt may",
-              supplier_name: "Công ty Cổ phần Bông Việt",
+              document_title: "Hóa đơn nguyên vật liệu đầu vào",
+              supplier_name: "Công ty CP Thương mại Phế liệu Hoà Phát",
               facility_name: "Kho nguyên liệu A",
               billing_period: "2026-02",
               period_start: "2026-02-10",
@@ -941,7 +941,7 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
               total_amount: 85000000,
               currency: "VND",
               confidence: 0.91,
-              summary: "AI đã trích xuất thông tin hóa đơn 500 kg sợi Cotton chải kỹ từ nhà cung ứng Bông Việt."
+              summary: "AI đã trích xuất hóa đơn 500 tấn thép phế liệu (HS 7204) từ nhà cung ứng Phế liệu Hoà Phát."
             }
           };
         }
@@ -1005,7 +1005,7 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         }
 
         const isFuel = kind === "fuel_receipt" || /xang|dau|diesel|petrol/i.test(fileName);
-        const isMaterial = kind === "material_invoice" || /nguyen_lieu|vai|cotton|soi|bom/i.test(fileName);
+        const isMaterial = kind === "material_invoice" || /nguyen_lieu|phe_lieu|quang|clinker|vai|cotton|soi|bom/i.test(fileName);
         const isTransport = kind === "transport_bol" || /van_don|bol|shipment|airway/i.test(fileName);
 
         const extractedJson = isFuel
@@ -1021,9 +1021,9 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
             }
           : isMaterial
           ? {
-              supplier: "Công ty Cổ phần Bông Việt",
+              supplier: "Công ty CP Thương mại Phế liệu Hoà Phát",
               facility_name: "Kho nguyên liệu A",
-              material_name: "Sợi Cotton 100%",
+              material_name: "Thép phế liệu HMS 1&2",
               amount_vnd: 85000000,
               billing_period: "2026-02",
               period_start: "2026-02-10",
@@ -1348,17 +1348,17 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
         const payload = getBodyObject(body);
         const query = String(payload.query || "").toLowerCase();
         let answer =
-          "**Nhận định:** Mức phát thải này ở ngưỡng trung bình ngành dệt may xuất khẩu Việt Nam.\n\n" +
-          "**Nguyên nhân chính:**\n- Hệ số vật liệu nguyên sinh cao (cotton, polyester)\n- Khoảng cách vận chuyển đường dài sang EU/US\n- Chưa tối ưu tỷ lệ vật liệu tái chế trong BOM\n\n" +
-          "**Đề xuất giảm phát thải (theo thứ tự ưu tiên):**\n1. Chuyển sang cotton hữu cơ hoặc polyester tái chế (GRS) — giảm 35–40% phát thải vật liệu\n2. Gộp lô hàng để tăng fill-rate container — giảm phát thải vận chuyển trên mỗi sản phẩm\n3. Điện mặt trời tại nhà máy để giảm phát thải Scope 2\n\n" +
+          "**Nhận định:** Cường độ phát thải của danh mục demo tập trung ở thép, nhôm và phân bón — ba nhóm hàng thuộc phạm vi EU CBAM.\n\n" +
+          "**Nguyên nhân chính:**\n- Phát thải quá trình và nhiên liệu tại lò điện hồ quang, lò nung clinker và cụm tổng hợp amoniac (Scope 1)\n- Điện lưới cho điện phân/ép đùn nhôm (Scope 2)\n- Phôi nhôm nguyên sinh và quặng nhập khẩu (Scope 3 upstream)\n\n" +
+          "**Đề xuất giảm phát thải (theo thứ tự ưu tiên):**\n1. Tăng tỷ lệ thép phế và nhôm tái chế — giảm 25–40% phát thải nguyên liệu\n2. Hợp đồng điện tái tạo (DPPA) hoặc điện mặt trời áp mái — giảm Scope 2\n3. Thu hồi nhiệt thải lò nung và tối ưu tỷ lệ clinker/phụ gia\n\n" +
           "_Lưu ý: Đây là ước tính proxy. Tải chứng từ lên Evidence để hệ thống nâng độ tin cậy lên dữ liệu sơ cấp._";
 
-        if (query.includes("wool") || query.includes("len")) {
+        if (query.includes("cà phê") || query.includes("ca phe") || query.includes("coffee") || query.includes("gạo") || query.includes("nông")) {
           answer =
-            "**Nhận định:** Len có hệ số phát thải cao nhất trong các vật liệu dệt (10.1 kg CO2e/kg) do chuỗi cung ứng từ chăn nuôi.\n\n" +
-            "**Nguyên nhân:**\n- Phát thải CH₄ từ cừu (Scope 3 upstream)\n- Xử lý hóa chất tẩy trắng và nhuộm\n- Vận chuyển nguyên liệu thô quốc tế\n\n" +
-            "**Đề xuất:**\n1. Chứng nhận RWS (Responsible Wool Standard) để traceability\n2. Blend với cotton hữu cơ để giảm hệ số trung bình\n3. Sourcing len từ nhà cung ứng gần thị trường đích\n\n" +
-            "_Ước tính proxy — thay bằng dữ liệu sơ cấp từ nhà cung ứng để báo cáo audit._";
+            "**Nhận định:** Với nông sản (cà phê, gạo, điều, cao su), phát thải tập trung ở giai đoạn canh tác: N₂O từ phân đạm và CH₄ từ ruộng lúa ngập nước.\n\n" +
+            "**Nguyên nhân:**\n- Lượng phân đạm trên mỗi tấn sản phẩm cao (Scope 3 upstream)\n- Ruộng lúa ngập liên tục làm tăng CH₄\n- Sấy bằng củi/than tại cơ sở sơ chế\n\n" +
+            "**Đề xuất:**\n1. Thu thập dữ liệu nông hộ + toạ độ vườn (đồng thời đáp ứng EUDR)\n2. Canh tác lúa ướt-khô xen kẽ (AWD) để giảm CH₄\n3. Chuyển máy sấy sang biomass/điện tái tạo\n\n" +
+            "_Ước tính proxy — thay bằng dữ liệu sơ cấp từ nông hộ/hợp tác xã để báo cáo audit._";
         }
 
         return { handled: true, value: { answer } };

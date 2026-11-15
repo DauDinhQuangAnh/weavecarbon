@@ -160,17 +160,17 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
 
   if (loading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin" /></div>;
   return <section className="space-y-6">
-    <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-emerald-950 to-teal-950 p-7 text-white shadow-sm">
-      <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[.15em] text-emerald-200"><Network className="h-5 w-5" />G2-11 · Supplier Network</p>
-      <h2 className="mt-3 text-3xl font-bold">Carbon + Climate Criticality</h2>
-      <p className="mt-3 max-w-4xl text-slate-200">Quản trị hồ sơ, địa điểm và quan hệ nhà cung ứng; liên kết carbon, khí hậu và phụ thuộc kinh doanh bằng mô hình trọng số minh bạch.</p>
+    <div className="border-t border-border/70 pt-6">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary"><Network className="h-3.5 w-3.5" />G2-11 · Supplier Network</span>
+      <h2 className="mt-2 font-display text-xl font-semibold tracking-tight text-foreground">Mức độ trọng yếu carbon & khí hậu của nhà cung ứng</h2>
+      <p className="mt-1 max-w-4xl text-sm text-muted-foreground">Quản trị hồ sơ, địa điểm và quan hệ nhà cung ứng; liên kết carbon, khí hậu và phụ thuộc kinh doanh bằng mô hình trọng số minh bạch.</p>
     </div>
     <div className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" /><p>Đây là công cụ sàng lọc có kiểm soát, không phải dự báo rủi ro vật lý hoặc kết luận đảm bảo tự động. Điểm chuẩn hóa do người được phân quyền cung cấp theo chính sách đã phê duyệt; mọi kết quả vẫn cần chuyên gia rà soát.</p></div>
     {demo && <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể tạo hồ sơ nhà cung ứng, địa điểm, liên kết carbon và xây dựng mô hình trọng số. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).</div>}
     {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
 
     {/* Section 1: Hồ sơ và quan hệ nhà cung ứng */}
-    <Card className="rounded-xl border border-slate-200/80 bg-white shadow-xs">
+    <Card className="rounded-xl border shadow-xs">
       <CardHeader className="border-b border-slate-100 pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -273,7 +273,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
     </Card>
 
     {/* Section 2: Dữ liệu khí hậu và carbon */}
-    <Card className="rounded-xl border border-slate-200/80 bg-white shadow-xs">
+    <Card className="rounded-xl border shadow-xs">
       <CardHeader className="border-b border-slate-100 pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -336,7 +336,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
     </Card>
 
     {/* Section 3: Mô hình và snapshot criticality */}
-    <Card className="rounded-xl border border-slate-200/80 bg-white shadow-xs">
+    <Card className="rounded-xl border shadow-xs">
       <CardHeader className="border-b border-slate-100 pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -398,7 +398,7 @@ export default function SupplierNetworkPanel({ demo = false }: { demo?: boolean 
     </Card>
 
     {/* Section 4: Danh mục ưu tiên */}
-    <Card className="rounded-xl border border-slate-200/80 bg-white shadow-xs">
+    <Card className="rounded-xl border shadow-xs">
       <CardHeader className="border-b border-slate-100 pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

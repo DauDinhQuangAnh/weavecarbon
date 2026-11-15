@@ -34,8 +34,8 @@ describe('aiDocumentExtractor', () => {
     const result = await extractDocumentWithContext(file, DOCUMENT_CONTEXTS.process, { demo: true });
 
     expect(result.success).toBe(true);
-    expect(result.fields.reference).toBe('PROC-DYE-COTTON-01');
-    expect(result.fields.processType).toBe('dyeing_washing');
+    expect(result.fields.reference).toBe('PROC-EAF-STEEL-01');
+    expect(result.fields.processType).toBe('production');
   });
 
   it('maps raw backend fields into context schema for emission activity', async () => {

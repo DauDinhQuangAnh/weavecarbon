@@ -43,7 +43,7 @@ interface CarbonTooltipProps {
   payload?: CarbonTooltipPayload[];
 }
 
-const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#8b5cf6", "#64748b"];
+const COLORS = ["hsl(150 61% 26%)", "hsl(96 49% 14%)", "hsl(93 32% 57%)", "hsl(38 70% 52%)", "hsl(101 15% 40%)"];
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -107,8 +107,8 @@ const CarbonBreakdownChart: React.FC<CarbonBreakdownChartProps> = ({
   };
 
   return (
-    <Card className="border border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:p-6">
+    <Card className="border shadow-sm">
+      <CardHeader className="border-b px-4 py-3 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5 text-primary" />

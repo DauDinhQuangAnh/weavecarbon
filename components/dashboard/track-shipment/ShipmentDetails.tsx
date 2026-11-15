@@ -247,7 +247,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
 
 
       
-      <Card className="border border-slate-200 shadow-sm">
+      <Card className="border shadow-sm">
         <CardHeader className={`border-b p-4 sm:p-6 ${statusPalette.header}`}>
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">

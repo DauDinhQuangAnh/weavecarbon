@@ -522,8 +522,8 @@ const UsersSettings: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border border-slate-200 shadow-sm">
-        <CardHeader className="rounded-t-[inherit] border-b border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+      <Card className="overflow-hidden border shadow-sm">
+        <CardHeader className="rounded-t-[inherit] border-b p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -645,7 +645,7 @@ const UsersSettings: React.FC = () => {
             )}
           </div>
         </CardHeader>
-        <CardContent className="bg-white p-4 pt-4">
+        <CardContent className="p-4 pt-4">
           {!companyId ?
           <p className="text-sm text-slate-600">
               {t("companyContextMissing")}
@@ -674,14 +674,14 @@ const UsersSettings: React.FC = () => {
 
               <div className="space-y-2 md:hidden">
                 {filteredMembers.length === 0 ? (
-                  <Card className="border border-slate-200 bg-slate-50/60 shadow-sm">
+                  <Card className="border bg-slate-50/60 shadow-sm">
                     <CardContent className="py-8 text-center text-sm text-slate-600">
                       {normalizedSearchKeyword ? t("noSearchResults") : t("noTeamMembersFound")}
                     </CardContent>
                   </Card>
                 ) : (
                   paginatedMembers.map((member) => (
-                    <Card key={member.id} className="overflow-hidden border border-slate-200 bg-white shadow-sm">
+                    <Card key={member.id} className="overflow-hidden border shadow-sm">
                       <CardContent className="space-y-3 p-3">
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">

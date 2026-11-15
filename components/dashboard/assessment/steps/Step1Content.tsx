@@ -239,7 +239,7 @@ const Step1SKUInfo: React.FC<Step1SKUInfoProps> = ({ data, onChange }) => {
             id="poContractId"
             value={data.poContractId || ""}
             onChange={(e) => onChange({ poContractId: e.target.value })}
-            placeholder="PO-2026-TXT-099" />
+            placeholder="PO-2026-STL-099" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="billOfLadingNo">Bill of Lading</Label>

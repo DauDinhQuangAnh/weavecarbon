@@ -216,7 +216,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
     header: "PO/Contract ID",
     width: 24,
     required: false,
-    example: "PO-2026-TXT-099"
+    example: "PO-2026-STL-099"
   },
   {
     key: "billOfLadingNo",

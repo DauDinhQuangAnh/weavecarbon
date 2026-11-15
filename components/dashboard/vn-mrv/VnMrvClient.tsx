@@ -1,4 +1,5 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
@@ -529,29 +530,25 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
   const select = "h-10 w-full rounded-md border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
-      <section className="rounded-3xl bg-gradient-to-br from-red-950 via-slate-950 to-emerald-950 p-7 text-white shadow-md">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[.15em] text-emerald-200">
-              G2-03 · Báo cáo MRV Quốc gia (Nghị định 06/2022/NĐ-CP)
-            </p>
-            <h1 className="mt-3 text-3xl font-bold">{t("title")}</h1>
-            <p className="mt-3 max-w-3xl text-slate-200 text-sm leading-relaxed">{t("description")}</p>
-          </div>
+    <div className="w-full space-y-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">G2-03 · Báo cáo MRV quốc gia (NĐ 06/2022/NĐ-CP)</span></>}
+        actions={<>
           {isCompanyAdmin ? (
-            <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 px-3 py-1 text-xs">
-              <ShieldCheck className="w-3.5 h-3.5 mr-1" />
-              Company Admin (Toàn quyền quản trị MRV)
+            <Badge variant="secondary" className="px-3 py-1 text-xs">
+              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+              Company Admin (toàn quyền quản trị MRV)
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-amber-300 border-amber-500/30 px-3 py-1 text-xs">
-              <ShieldAlert className="w-3.5 h-3.5 mr-1" />
+            <Badge variant="outline" className="border-warning/40 px-3 py-1 text-xs text-warning">
+              <ShieldAlert className="mr-1 h-3.5 w-3.5" />
               Chế độ xem ({user?.company_role || "member"})
             </Badge>
           )}
-        </div>
-      </section>
+        </>}
+      />
 
       {error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 text-sm flex items-center gap-2">
@@ -568,8 +565,8 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
 
       <section className="grid gap-6 xl:grid-cols-3">
         {/* Case Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">{t("caseTitle")}</CardTitle>
@@ -685,8 +682,8 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
         </Card>
 
         {/* Plan Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <CardTitle className="text-base font-bold text-slate-900">{t("planTitle")}</CardTitle>
             <CardDescription className="text-xs text-slate-600">{t("planDescription")}</CardDescription>
           </CardHeader>
@@ -866,8 +863,8 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
         </Card>
 
         {/* Filing Card */}
-        <Card className="border border-slate-200/80 shadow-xs">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+        <Card className="border shadow-xs">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <CardTitle className="text-base font-bold text-slate-900">{t("filingTitle")}</CardTitle>
             <CardDescription className="text-xs text-slate-600">{t("filingDescription")}</CardDescription>
           </CardHeader>
@@ -1040,7 +1037,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
         </Card>
       </section>
 
-      <Card className="border border-slate-200/80 bg-slate-50/50">
+      <Card className="border bg-slate-50/50">
         <CardContent className="flex gap-3 p-5">
           <ClipboardCheck className="h-5 w-5 shrink-0 text-emerald-700 mt-0.5" />
           <p className="text-xs text-muted-foreground leading-relaxed">{t("legalNotice")}</p>
@@ -1237,7 +1234,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                       (f) =>
                         f.id ===
                         cases.find((c) => c.id === selectedFilingForMau06.caseId)?.facilityRevisionId
-                    )?.name || "Nhà máy dệt may hoàn tất"}
+                    )?.name || "Nhà máy thép Hải Phòng (demo)"}
                   </p>
                   <p>
                     <strong>Lĩnh vực:</strong> Công Thương (industry_trade)
@@ -1304,6 +1301,6 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   );
 }

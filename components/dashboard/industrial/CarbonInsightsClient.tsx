@@ -175,14 +175,14 @@ export default function CarbonInsightsClient({
       actualIntensity: "220–280 kgCO₂e / tấn hơi",
       batIntensity: "≤ 45 kgCO₂e / tấn hơi (Biomass/Thu hồi)",
       gapPercent: 80,
-      batSource: "IFC EHS Guidelines for Textiles (BAT Benchmark)",
+      batSource: "IFC EHS Guidelines (BAT benchmark lò hơi công nghiệp)",
     },
     {
-      category: "Suất tiêu hao điện dệt nhuộm",
-      actualIntensity: "0.85 kWh / mét vải thành phẩm",
-      batIntensity: "≤ 0.52 kWh / mét vải (Biến tần VFD & Động cơ IE4)",
-      gapPercent: 38,
-      batSource: "EU BREF Textiles (Best Available Techniques)",
+      category: "Suất tiêu hao điện lò điện hồ quang (EAF)",
+      actualIntensity: "520–560 kWh / tấn thép lỏng",
+      batIntensity: "≤ 400 kWh / tấn (nạp liệu nóng, biến tần VFD, động cơ IE4)",
+      gapPercent: 28,
+      batSource: "EU BREF Iron & Steel (Best Available Techniques)",
     },
     {
       category: "Môi chất lạnh Chiller làm mát",
@@ -331,7 +331,7 @@ export default function CarbonInsightsClient({
           reductionPotential: "Loại trừ 100% rò rỉ GWP cao",
           capexTier: "Thấp",
           paybackPeriod: "Ngay lập tức",
-          rationale: "Khắc phục triệt để hao hụt Chiller điều hòa trung tâm tại nhà xưởng dệt và kho lạnh.",
+          rationale: "Khắc phục triệt để hao hụt Chiller điều hòa trung tâm tại nhà xưởng, kho lạnh nông sản và trạm làm mát.",
         },
       ];
     } else if (s2 >= s1 && s2 >= s3) {
@@ -344,7 +344,7 @@ export default function CarbonInsightsClient({
           reductionPotential: "Cắt giảm 25 - 35% điện năng tiêu thụ",
           capexTier: "Trung bình",
           paybackPeriod: "4.0 - 4.5 năm",
-          rationale: "Tận dụng diện tích mái xưởng dệt may / công nghiệp, trực tiếp giảm hệ số phát thải lưới quốc gia.",
+          rationale: "Tận dụng diện tích mái nhà xưởng công nghiệp và kho nông sản, trực tiếp giảm hệ số phát thải lưới quốc gia.",
         },
         {
           title: "Ký kết Cơ chế Mua bán điện Trực tiếp (DPPA) hoặc Hợp đồng I-REC",
@@ -1539,7 +1539,7 @@ export default function CarbonInsightsClient({
                           <h3 className="font-semibold text-foreground">Giả lập Đường cong Chi phí Giảm phát thải Biên (MACC)</h3>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Mô hình hóa chi phí ròng trên mỗi tấn CO₂e cắt giảm cho 5 giải pháp khử carbon trọng yếu ngành dệt may.
+                          Mô hình hóa chi phí ròng trên mỗi tấn CO₂e cắt giảm cho 5 giải pháp khử carbon trọng yếu của danh mục công nghiệp.
                         </p>
                       </div>
 

@@ -290,8 +290,8 @@ const CalculationHistoryClient: React.FC<CalculationHistoryClientProps> = ({
         onNavigateAssessment={() => router.push("/assessment")} /> :
 
 
-      <Card className="border border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-200 bg-slate-50/70">
+      <Card className="border shadow-sm">
+          <CardHeader className="border-b">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <CardTitle>{t("detailsTitle")}</CardTitle>

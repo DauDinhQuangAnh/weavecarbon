@@ -114,7 +114,7 @@ export default function CorporateGhgInventoryPanel() {
     }), decision === 'approved_for_internal_report' ? 'Đã duyệt inventory nội bộ.' : 'Đã ghi inventory review.');
 
   return (
-    <Card className="mt-4 rounded-xl border-amber-200 bg-white shadow-xs">
+    <Card className="mt-4 rounded-xl border-amber-200 shadow-xs">
       <CardHeader className="border-b border-amber-100/60 pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">

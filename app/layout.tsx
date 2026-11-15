@@ -4,7 +4,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Be_Vietnam_Pro } from "next/font/google";
+import ScrollExperience from "@/components/motion/ScrollExperience";
 import { getScopedMessages } from "@/lib/i18n/messages";
 import { ROOT_NAMESPACES } from "@/lib/i18n/namespaces";
 import { getBackendHealth } from "@/lib/backendHealth";
@@ -17,12 +17,6 @@ import {
 } from "@/lib/toastConfig";
 import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 
-const beVietnamProBody = Be_Vietnam_Pro({
-  subsets: ["latin", "vietnamese"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-weavecarbon",
-  display: "swap"
-});
 
 // Availability is a runtime concern. Keep the shell dynamic so a deployment
 // never bakes a transient healthy/unhealthy result into every generated page;
@@ -49,8 +43,14 @@ export default async function RootLayout({
   const { locale, messages } = await getScopedMessages(ROOT_NAMESPACES);
   return (
     <html data-scroll-behavior="smooth" lang={locale} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" />
+      </head>
       <body
-        className={`${beVietnamProBody.variable} antialiased`}>
+        className="antialiased">
+        <ScrollExperience />
         {backendHealth.healthy ? (
           <AuthProvider>
             <NextIntlClientProvider locale={locale} messages={messages}>

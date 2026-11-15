@@ -207,8 +207,8 @@ export default function AuditTrailPage() {
         </Card>
       ) : (
         <>
-          <Card className="mb-6 shadow-sm border-slate-200">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+          <Card className="mb-6 shadow-sm">
+            <CardHeader className="border-b border-slate-100">
               <CardTitle className="text-base flex items-center gap-2">
                 <FileText className="h-5 w-5 text-emerald-600" />
                 Chứng từ &amp; evidence ({evidence.length})
@@ -257,8 +257,8 @@ export default function AuditTrailPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+          <Card className="shadow-sm">
+            <CardHeader className="border-b border-slate-100">
               <CardTitle className="text-base flex items-center gap-2">
                 <GitCommit className="h-5 w-5 text-sky-600" />
                 Lịch sử chỉnh sửa ({versions.length})

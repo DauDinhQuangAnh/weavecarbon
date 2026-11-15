@@ -100,7 +100,7 @@ export function CompliancePanel({
                 KẾT QUẢ PCF NỘI BỘ — CHƯA XÁC MINH ĐỘC LẬP
               </td>
               <td className="px-3 py-2 text-right text-base font-bold tabular-nums">
-                {result.totalKgCo2e.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/chiếc</span>
+                {result.totalKgCo2e.toFixed(3)} <span className="text-xs font-normal">kg CO₂e/đơn vị</span>
               </td>
             </tr>
             {result.hasRedFlag && (

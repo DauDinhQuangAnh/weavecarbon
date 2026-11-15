@@ -1,1 +1,1 @@
-export { default } from "../vn-mrv/page";
+import VnMrvClient from "@/components/dashboard/vn-mrv/VnMrvClient";import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";import {DASHBOARD_VN_MRV_NAMESPACES} from "@/lib/i18n/namespaces";export default function VnMrvPage(){return <ScopedIntlProvider namespaces={DASHBOARD_VN_MRV_NAMESPACES}><VnMrvClient/></ScopedIntlProvider>}

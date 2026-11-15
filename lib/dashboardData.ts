@@ -16,11 +16,11 @@ export interface ReductionScenario {
 export const reductionScenarios: ReductionScenario[] = [
   {
     id: 1,
-    title: 'Chuyển sang cotton hữu cơ đã chứng nhận',
-    description: 'Thay thế cotton thường bằng cotton hữu cơ GOTS cho dòng áo thun.',
-    rangeLabel: '-10% đến -18% Scope 3 vật liệu',
+    title: 'Tăng tỷ lệ thép phế trong mẻ luyện lò điện',
+    description: 'Nâng tỷ lệ phế liệu nạp lò EAF từ 70% lên 85% cho dòng thép cuộn HRC.',
+    rangeLabel: '-10% đến -18% phát thải nguyên liệu',
     requiredCondition:
-      'Hợp đồng cung ứng GOTS ≥ 12 tháng, không tăng tỉ trọng polyester.',
+      'Hợp đồng cung ứng phế liệu ≥ 12 tháng, kiểm soát tạp chất Cu/Sn.',
     dataSourceStatus: 'proxy',
     disclaimer: 'Ước tính dựa trên Ecoinvent v3.10; cần thẩm tra với hóa đơn thực tế.',
   },
@@ -35,11 +35,11 @@ export const reductionScenarios: ReductionScenario[] = [
   },
   {
     id: 3,
-    title: 'Bao bì giấy tái chế thay nhựa',
-    description: 'Đổi polybag sang bao bì giấy FSC có thể tái chế.',
+    title: 'Bao bì tái sử dụng thay bao dùng một lần',
+    description: 'Đổi bao PP nhiều lớp sang bao jumbo tái sử dụng cho xi măng và phân bón.',
     rangeLabel: '-2% đến -4% phát thải bao bì',
     requiredCondition:
-      'Đảm bảo bao bì giấy chịu được tiêu chuẩn vận chuyển của buyer.',
+      'Đảm bảo bao jumbo đạt tải trọng và tiêu chuẩn chống ẩm của khách hàng.',
     dataSourceStatus: 'proxy',
     disclaimer: 'Tác động phụ thuộc khối lượng bao bì/đơn vị SKU.',
   },
@@ -57,9 +57,9 @@ export interface PriorityAction {
 export const priorityActions: PriorityAction[] = [
   {
     id: 1,
-    title: 'Bổ sung dữ liệu nhà cung ứng nhuộm',
+    title: 'Bổ sung dữ liệu nhà cung ứng phế liệu thép',
     description:
-      'Giảm proxy Scope 3 và tăng confidence cho sản phẩm SHIRT-WOVEN-002.',
+      'Giảm proxy Scope 3 và tăng confidence cho sản phẩm STL-HRC-002.',
     impactLabel: 'Giảm rủi ro dữ liệu',
     priority: 'high',
     link: '/suppliers',

@@ -1,4 +1,5 @@
 "use client";
+import { processDisplayName } from "@/lib/industrialLabels";
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
@@ -59,6 +60,7 @@ import ComplianceStatus from "@/components/dashboard/product-details/ComplianceS
 import ProductSuggestionsCard from "@/components/dashboard/product-details/ProductSuggestionsCard";
 import ProductEvidenceList from "@/components/dashboard/product-details/ProductEvidenceList";
 import DataCompletenessCheck from "@/components/dashboard/product-details/DataCompletenessCheck";
+import AuditReadinessPanel from "@/components/products/AuditReadinessPanel";
 import EndOfLifeAssessment from "@/components/dashboard/product-details/EndOfLifeAssessment";
 import VersionHistory from "@/components/dashboard/product-details/VersionHistory";
 
@@ -798,7 +800,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
       return t("na");
     }
     const key = `productionInfo.processes.${normalized}`;
-    return t.has(key) ? t(key) : processValue;
+    return t.has(key) ? t(key) : processDisplayName(normalized) || processValue;
   };
 
   const getEnergySourceLabel = (sourceValue: string) => {
@@ -1223,7 +1225,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
   if (!productId) {
     return (
-      <Card className="max-w-2xl mx-auto border border-slate-200 shadow-sm">
+      <Card className="max-w-2xl mx-auto border shadow-sm">
         <CardContent className="p-8 text-center">
           <AlertCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">{t("notFoundTitle")}</h2>
@@ -1238,7 +1240,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
   if (loading && !product) {
     return (
-      <Card className="max-w-2xl mx-auto border border-slate-200 shadow-sm">
+      <Card className="max-w-2xl mx-auto border shadow-sm">
         <CardContent className="p-8 text-center">
           <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">{t("loadingProduct")}</p>
@@ -1249,7 +1251,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
   if (!product) {
     return (
-      <Card className="max-w-2xl mx-auto border border-slate-200 shadow-sm">
+      <Card className="max-w-2xl mx-auto border shadow-sm">
         <CardContent className="p-8 text-center">
           <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">{t("notFoundTitle")}</h2>
@@ -1378,13 +1380,14 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
 
           {product && <ProductSuggestionsCard productId={product.id} />}
 
+          {product && <AuditReadinessPanel product={product} />}
           {product && <DataCompletenessCheck product={product} />}
 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            <Card className="border border-slate-200 shadow-sm">
-              <CardHeader className="px-4 py-3 sm:p-6 border-b border-slate-200 bg-slate-50/70">
+            <Card className="border shadow-sm">
+              <CardHeader className="px-4 py-3 sm:p-6 border-b">
                 <CardTitle className="text-lg">
                   {t("productionInfo.title")}
                 </CardTitle>
@@ -1442,8 +1445,8 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
             </Card>
 
             
-            <Card className="border border-slate-200 shadow-sm">
-              <CardHeader className="px-4 py-3 sm:p-6 border-b border-slate-200 bg-slate-50/70">
+            <Card className="border shadow-sm">
+              <CardHeader className="px-4 py-3 sm:p-6 border-b">
                 <CardTitle className="text-lg">
                   {t("logisticsInfo.title")}
                 </CardTitle>
@@ -1511,8 +1514,8 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
           }
 
           
-          <Card className="border border-slate-200 shadow-sm">
-            <CardHeader className="px-4 py-3 sm:p-6 border-b border-slate-200 bg-slate-50/70">
+          <Card className="border shadow-sm">
+            <CardHeader className="px-4 py-3 sm:p-6 border-b">
               <CardTitle className="text-lg">
                 {t("additionalInfo.title")}
               </CardTitle>

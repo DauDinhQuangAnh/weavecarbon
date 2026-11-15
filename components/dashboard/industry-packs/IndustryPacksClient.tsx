@@ -1,4 +1,5 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -323,14 +324,12 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
 
   if (loading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin" /></div>;
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
-      <section className="rounded-3xl bg-gradient-to-br from-slate-950 via-zinc-900 to-amber-950 p-7 text-white shadow-md">
-        <p className="text-sm font-semibold uppercase tracking-[.15em] text-amber-200">
-          G2-05 + G2-12 · Industry Packs
-        </p>
-        <h1 className="mt-3 text-3xl font-bold">{t("title")}</h1>
-        <p className="mt-3 max-w-3xl text-slate-200 text-sm leading-relaxed">{t("description")}</p>
-      </section>
+    <div className="w-full space-y-6">
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<><span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">G2-05 + G2-12 · Industry Packs</span></>}
+      />
 
       {error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800 text-sm">
@@ -394,8 +393,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
         <div className="space-y-6">
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {manifests.map((pack) => (
-          <Card key={pack.id} className="border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-3">
+          <Card key={pack.id} className="border shadow-xs hover:shadow-md transition-all">
+            <CardHeader className="border-b border-slate-100 pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
                 <Factory className="h-5 w-5 text-amber-700" />
                 {pack.label}
@@ -420,8 +419,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
         ))}
       </div>
 
-      <Card className="border border-slate-200/80 shadow-xs">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="border shadow-xs">
+        <CardHeader className="border-b border-slate-100">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <CardTitle className="text-lg font-bold text-slate-900">{t("pilotTitle")}</CardTitle>
@@ -710,8 +709,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
         </CardContent>
       </Card>
 
-      <Card className="border border-slate-200/80 shadow-xs">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+      <Card className="border shadow-xs">
+        <CardHeader className="border-b border-slate-100">
           <CardTitle className="text-lg font-bold text-slate-900">{t("resultsTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="pt-5 space-y-3">
@@ -769,8 +768,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
     <div className="space-y-6">
       {/* 3 Main Framework Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border border-slate-200/80 bg-white shadow-xs">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+        <Card className="border shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">Cơ chế Biên giới Carbon</span>
               <Badge className="bg-blue-600 text-white text-[10px]">EU Regulation</Badge>
@@ -796,8 +795,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200/80 bg-white shadow-xs">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+        <Card className="border shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">Luật BVMT Việt Nam</span>
               <Badge className="bg-emerald-600 text-white text-[10px]">QĐ 13/2024 & QĐ 01/2022</Badge>
@@ -823,8 +822,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200/80 bg-white shadow-xs">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+        <Card className="border shadow-xs">
+          <CardHeader className="pb-3 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-purple-600 uppercase tracking-wider">Chuẩn mực Toàn cầu</span>
               <Badge className="bg-purple-600 text-white text-[10px]">ISO & GHG Protocol</Badge>
@@ -852,7 +851,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
       </div>
 
       {/* Sector Readiness Matrix Table */}
-      <Card className="border border-slate-200/80 bg-white shadow-xs">
+      <Card className="border shadow-xs">
         <CardHeader className="pb-3 border-b border-slate-100">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -883,7 +882,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
               {[
                 { sector: "Thép & Hợp kim sắt (Steel)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", score: "88%", action: "Bóc tách phát thải điện phân EAF vs lò cao BF-BOF" },
                 { sector: "Xi măng & Clinker (Cement)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", score: "86%", action: "Kiểm soát phát thải nung đá vôi CaCO3 & tỷ lệ clinker" },
-                { sector: "Dệt may & Da giày (Textile & Apparel)", cbam: "Khảo sát Scope 3", vn: "Cơ sở nhuộm & dệt lớn", score: "94%", action: "BOM nguyên liệu, lò hơi biomass & dữ liệu chuỗi cung ứng" },
+                { sector: "Nông nghiệp & Nông sản (Cà phê, Gạo, Cao su)", cbam: "Ngoài CBAM · áp dụng EUDR", vn: "Nhà máy chế biến nông sản", score: "78%", action: "Toạ độ vùng trồng EUDR, phân bón & nhiên liệu sấy" },
                 { sector: "Nhôm & Đúc kim loại (Aluminium)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", score: "90%", action: "Đo phát thải anode PFCs & tỷ lệ nhôm tái chế" },
                 { sector: "Vật liệu xây dựng & Gốm sứ", cbam: "Đang xem xét mở rộng", vn: "Cơ sở gạch gốm kính", score: "82%", action: "Định lượng tiêu hao khí nung và vận tải nội bộ" },
                 { sector: "Hóa chất & Phân bón (Fertilisers)", cbam: "Bắt buộc phân bón", vn: "Nhóm hóa chất cơ bản", score: "84%", action: "Giám sát N2O axit nitric & định mức khí thiên nhiên" },
@@ -917,8 +916,8 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
   {/* TAB 3: Interactive Industry Pilot Calculator & BAT Gap Analyzer */}
   {activeTab === "calculator" && (
     <div className="space-y-6">
-      <Card className="border border-slate-200/80 bg-white shadow-xs">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+      <Card className="border shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
@@ -1045,6 +1044,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
   )}
 
   <p className="text-xs text-muted-foreground">{t("legalNotice")}</p>
-</main>
+</div>
 );
 }

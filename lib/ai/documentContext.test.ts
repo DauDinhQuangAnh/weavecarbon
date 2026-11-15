@@ -114,7 +114,7 @@ describe('documentContext Schema & Quality Contracts', () => {
     expect(batchConfig.expectedFields.some((f) => f.key === 'orderReference')).toBe(true);
     expect(batchConfig.expectedFields.some((f) => f.key === 'productCode')).toBe(true);
     expect(batchConfig.expectedFields.some((f) => f.key === 'batchSize')).toBe(true);
-    expect(batchConfig.samplePresets.some((p) => p.data.batchSize === 10000)).toBe(true);
+    expect(batchConfig.samplePresets.some((p) => p.data.batchSize === 420)).toBe(true);
   });
 
   it('verifies allowance_quota specific schema and presets', () => {

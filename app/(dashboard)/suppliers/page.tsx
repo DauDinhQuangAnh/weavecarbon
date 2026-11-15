@@ -72,7 +72,7 @@ const EMPTY_FORM = {
   supplierEmail: '',
   material: '',
   deadline: '',
-  required: 'Chỉ số điện kWh, Định mức than/sinh khối, Tỷ lệ tái chế %, Chứng chỉ ISO 14064 / OEKO-TEX',
+  required: 'Chỉ số điện kWh, định mức than/khí/sinh khối, tỷ lệ tái chế %, chứng chỉ ISO 14064 / ISO 14001',
 };
 
 export default function SuppliersPage() {
@@ -87,7 +87,7 @@ export default function SuppliersPage() {
   // AI Dialogs & Inspectors
   const [showAiImport, setShowAiImport] = useState(false);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
-  const [selectedQuestionnaireSector, setSelectedQuestionnaireSector] = useState('Nhuộm & hoàn tất');
+  const [selectedQuestionnaireSector, setSelectedQuestionnaireSector] = useState('Luyện kim & gia công kim loại');
   const [generatedQuestionnaire, setGeneratedQuestionnaire] = useState<SupplierScope3Questionnaire | null>(null);
   const [inspectingEsgSupplier, setInspectingEsgSupplier] = useState<SupplierEsgScreeningResult | null>(null);
 
@@ -186,7 +186,7 @@ export default function SuppliersPage() {
   };
 
   const handleOpenQuestionnaireGen = (initialSector?: string) => {
-    const sec = initialSector || 'Nhuộm & hoàn tất';
+    const sec = initialSector || 'Luyện kim & gia công kim loại';
     setSelectedQuestionnaireSector(sec);
     setGeneratedQuestionnaire(generateSupplierScope3Questionnaire(sec));
     setShowQuestionnaireModal(true);
@@ -283,7 +283,7 @@ export default function SuppliersPage() {
                   <Label htmlFor="supplier-name" className="text-xs font-semibold text-slate-700">Tên nhà cung ứng</Label>
                   <Input
                     id="supplier-name"
-                    placeholder="Ví dụ: Công ty Dệt May ABC"
+                    placeholder="Ví dụ: Công ty CP Thép ABC"
                     value={form.supplierName}
                     onChange={(e) => setForm({ ...form, supplierName: e.target.value })}
                   />
@@ -302,7 +302,7 @@ export default function SuppliersPage() {
                   <Label htmlFor="supplier-material" className="text-xs font-semibold text-slate-700">Nguyên vật liệu cung cấp</Label>
                   <Input
                     id="supplier-material"
-                    placeholder="Ví dụ: Vải sợi Organic Cotton, Nhuộm hoạt tính"
+                    placeholder="Ví dụ: Thép phế liệu HMS, cà phê quả tươi, khí tự nhiên"
                     value={form.material}
                     onChange={(e) => setForm({ ...form, material: e.target.value })}
                   />
@@ -314,7 +314,7 @@ export default function SuppliersPage() {
                     </Label>
                     <button
                       type="button"
-                      onClick={() => handleOpenQuestionnaireGen(form.material || 'Dệt may')}
+                      onClick={() => handleOpenQuestionnaireGen(form.material || 'Sản xuất công nghiệp')}
                       className="text-[11px] font-medium text-emerald-700 hover:underline inline-flex items-center gap-1"
                     >
                       <Sparkles className="h-3 w-3" /> Gợi ý AI
@@ -349,7 +349,7 @@ export default function SuppliersPage() {
 
       {/* Quick summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border border-slate-200/80 bg-white shadow-xs">
+        <Card className="border shadow-xs">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-slate-600">Tổng yêu cầu dữ liệu</div>
             <div className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{totalRequests}</div>
@@ -380,8 +380,8 @@ export default function SuppliersPage() {
       </div>
 
       {/* Main Scope 3 Requests Table with AI ESG Screener */}
-      <Card className="border border-slate-200/80 shadow-xs">
-        <CardHeader className="border-b border-slate-200/80 bg-slate-50/60 py-3.5 px-4 flex flex-wrap items-center justify-between gap-2">
+      <Card className="border shadow-xs">
+        <CardHeader className="border-b py-3.5 px-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base font-semibold text-slate-900">Danh sách yêu cầu thu thập dữ liệu Scope 3</CardTitle>
             <p className="text-xs text-slate-500 mt-0.5">

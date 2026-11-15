@@ -34,12 +34,12 @@ export interface DppPayloadV2 {
 
 export const DEFAULT_EXPORT_CONFIG_V2: ExportConfigV2 = {
   customsDeclarationNo: "106429381040",
-  poContractId: "PO-2026-TXT-099",
+  poContractId: "PO-2026-STL-099",
   billOfLadingNo: "ONEVNHAN260411",
   containerNo: "ONEU1234567",
   barcodeStandard: "GS1-Digital",
-  buyerBrand: "H&M Group",
-  buyerWebhookUrl: "https://api.hm-group.com/sustainability/v1/ingest"
+  buyerBrand: "EuroSteel Trading GmbH (demo)",
+  buyerWebhookUrl: "https://buyer.example.com/sustainability/v1/ingest"
 };
 
 const sha256 = async (input: string) => {

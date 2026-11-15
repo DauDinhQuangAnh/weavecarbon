@@ -226,8 +226,8 @@ const PersonalSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm">
-        <CardHeader className="rounded-t-[inherit] border-b border-slate-200 bg-gradient-to-r from-white via-emerald-50/40 to-slate-50">
+      <Card className="overflow-hidden border shadow-sm">
+        <CardHeader className="rounded-t-[inherit] border-b bg-gradient-to-r from-white via-emerald-50/40 to-slate-50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-100 text-sm font-semibold tracking-wide text-emerald-700">

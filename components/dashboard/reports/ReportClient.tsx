@@ -1,4 +1,7 @@
 "use client";
+import PageHeader from "@/components/app/PageHeader";
+import StatCard from "@/components/app/StatCard";
+import StatusPill from "@/components/app/StatusPill";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
@@ -575,6 +578,7 @@ const ReportsPage: React.FC = () => {
         return extraExportSourceCounts.analytics;
       }
       if (dataset === "products") return exportSourceCounts.products;
+      if (dataset === "activity") return exportSourceCounts.activity;
       if (dataset === "users") return exportSourceCounts.users;
       if (dataset === "history") return exportSourceCounts.history;
       return 0;
@@ -631,7 +635,7 @@ const ReportsPage: React.FC = () => {
   }, [canMutate, hasStandardReportingAccess, standardPlanLabel, t]);
 
   useEffect(() => {
-    setPageTitle(t("title"), t("subtitle"));
+    setPageTitle("Báo cáo", "Xuất dữ liệu, báo cáo theo chuẩn và báo cáo đã lưu");
   }, [setPageTitle, t]);
 
   const loadReports = useCallback(
@@ -1010,55 +1014,42 @@ const ReportsPage: React.FC = () => {
   return (
     <div className="space-y-4 md:space-y-6 no-horizontal-scroll" suppressHydrationWarning>
       <div className="space-y-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-end">
+        <PageHeader
+          title="Xuất dữ liệu & báo cáo đã lưu"
+          description="Xuất dữ liệu Excel (XLSX) có đầy đủ metadata, tạo báo cáo PDF theo ESG · GHG · CBAM · PCF và quản lý các bản đã tạo."
+          meta={isDemoRuntime ? <StatusPill label="Demo · dữ liệu export có metadata demo" tone="warning" /> : undefined}
+          actions={
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-xl border-emerald-100 bg-white px-4 text-slate-900 hover:bg-emerald-50"
-              onClick={() => setPreviewOpen(true)}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Xem trước báo cáo
-            </Button>
-            <Button
-              type="button"
-              className="h-10 rounded-xl bg-emerald-800 px-4 text-white hover:bg-emerald-900"
-              onClick={() => handleQuickExport("company", t("types.company.label"))}
-              disabled={exportingDataset === "company"}
-            >
-              {exportingDataset === "company" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Báo cáo đầy đủ
-            </Button>
-          </div>
-        </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Xem trước báo cáo
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleQuickExport("company", t("types.company.label"))}
+                disabled={exportingDataset === "company"}
+              >
+                {exportingDataset === "company" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Báo cáo đầy đủ
+              </Button>
+            </div>
+          }
+        />
 
-        {isDemoRuntime && (
-          <div className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-            <Badge variant="outline" className="rounded-full border-amber-300 bg-amber-100 px-3 text-amber-700">
-              Demo
-            </Badge>
-            <span>Tenant: Ego Lism • Dữ liệu export sẽ có metadata demo</span>
-          </div>
-        )}
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {reportSummaryCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <Card key={card.label} className="rounded-xl border border-emerald-100 bg-white shadow-sm">
-                <CardContent className="flex min-h-[112px] flex-col items-center justify-center p-4 text-center">
-                  <Icon className={cn("mb-2 h-6 w-6", card.iconClassName)} />
-                  <p className="text-2xl font-bold leading-none text-slate-950">{card.value}</p>
-                  <p className="mt-1 text-xs text-slate-600">{card.label}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {reportSummaryCards.map((card) => (
+            <StatCard key={card.label} label={card.label} value={String(card.value)} />
+          ))}
         </div>
 
         {/* ── Report standard tabs: ESG / GHG / CBAM / ISO ────────── */}
@@ -1073,10 +1064,10 @@ const ReportsPage: React.FC = () => {
                 onClick={() => setActiveCategory(category.key)}
                 aria-pressed={isActive}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
+                  "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "border-emerald-800 bg-emerald-800 text-white shadow-sm"
-                    : "border-emerald-100 bg-white text-slate-700 hover:bg-emerald-50"
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-white/70 bg-background/60 text-muted-foreground hover:bg-white/70 hover:text-foreground"
                 )}
               >
                 <CategoryIcon className="h-4 w-4" />
@@ -1130,8 +1121,8 @@ const ReportsPage: React.FC = () => {
                 iconBg: "bg-purple-100 text-purple-700",
                 title: "Theo dõi Yêu cầu",
                 desc: locale === "vi"
-                  ? "EU ESPR/DPP · EPR dệt may · Kiểm kê KNK VN (TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
-                  : "EU ESPR/DPP · Textile EPR · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
+                  ? "EU CBAM · EU ESPR/DPP · Kiểm kê KNK VN (NĐ 06/2022, TT 38/2023/TT-BCT) · Khoảng trống dữ liệu"
+                  : "EU CBAM · EU ESPR/DPP · VN GHG inventory (TT 38/2023/TT-BCT) · Data gap analysis",
               },
             ] as const)
               .filter((card) => PDF_CARD_CATEGORY[card.key] === activeCategory)
@@ -1140,7 +1131,7 @@ const ReportsPage: React.FC = () => {
               return (
                 <Card
                   key={card.key}
-                  className="rounded-xl border border-slate-100 bg-white shadow-sm"
+                  className="rounded-xl border border-slate-100 shadow-sm"
                 >
                   <CardContent className="flex flex-col gap-3 p-4">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
@@ -1187,7 +1178,7 @@ const ReportsPage: React.FC = () => {
         </div>
 
         {activeCategory === "ghg" && <CorporateGhgInventoryPanel />}
-        {activeCategory === "esg" && <EuTextileEprPanel />}
+        {activeCategory === "esg" && !isDemoRuntime && <EuTextileEprPanel />}
 
         {/* CBAM pre-audit tool (merged from the former /cbam-report page) */}
         {activeCategory === "cbam" && (
@@ -1196,7 +1187,7 @@ const ReportsPage: React.FC = () => {
           </div>
         )}
 
-        <Card className="rounded-xl border border-emerald-200 bg-white shadow-sm">
+        <Card className="rounded-xl border border-emerald-200 shadow-sm">
           <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
@@ -1220,7 +1211,7 @@ const ReportsPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm">
+        <Card className="rounded-xl border border-emerald-100 shadow-sm">
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-emerald-800" />
@@ -1241,10 +1232,6 @@ const ReportsPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <div className="border-t border-emerald-100 bg-emerald-50/40 px-1 py-3 text-xs text-emerald-900">
-          <Shield className="mr-2 inline h-3.5 w-3.5 align-[-2px]" />
-          Phương pháp tính là climate-only partial CFP có tham chiếu ISO 14067; không phải chứng nhận tuân thủ hay kết luận đảm bảo độc lập. Nguồn và phiên bản hệ số phải được kiểm tra trong từng phép tính.
-        </div>
       </div>
 
       <ReportPreviewModal open={previewOpen} onOpenChange={setPreviewOpen} />

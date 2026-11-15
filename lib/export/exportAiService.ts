@@ -78,7 +78,7 @@ const DEMO_PRESETS: Record<string, ExportAiExtractedData> = {
     freightAmount: 2450,
     insuranceAmount: 180,
     exporter: {
-      name: 'WeaveCarbon Garment JSC',
+      name: 'Vietnam Industrial Group JSC',
       address: 'Lot B2, Tan Binh Industrial Park, Ho Chi Minh City',
       country: 'VN',
       contact: 'export@weavecarbon.vn / +84-28-38123456',
@@ -92,7 +92,7 @@ const DEMO_PRESETS: Record<string, ExportAiExtractedData> = {
     },
     confidence: 0.96,
     source: 'gemini-vision-ocr',
-    documentTitle: 'Commercial Invoice & Contract Xuất khẩu Dệt may EU',
+    documentTitle: 'Commercial Invoice & Contract xuất khẩu thép HRC sang EU',
     detectedKind: 'commercial_invoice',
     summary: 'AI đã trích xuất thành công Commercial Invoice số INV-2026-EU-089 đi Rotterdam với đầy đủ thông số thanh toán, Incoterm và đối tác.',
   },
@@ -122,7 +122,7 @@ const DEMO_PRESETS: Record<string, ExportAiExtractedData> = {
     freightAmount: 3100,
     insuranceAmount: 220,
     exporter: {
-      name: 'WeaveCarbon Garment JSC',
+      name: 'Vietnam Industrial Group JSC',
       address: 'Lot B2, Tan Binh Industrial Park, Ho Chi Minh City',
       country: 'VN',
       contact: 'export@weavecarbon.vn',
@@ -165,7 +165,7 @@ const DEMO_PRESETS: Record<string, ExportAiExtractedData> = {
     freightAmount: 2850,
     insuranceAmount: 195,
     exporter: {
-      name: 'WeaveCarbon Garment JSC',
+      name: 'Vietnam Industrial Group JSC',
       address: 'Dinh Vu Industrial Zone, Hai Phong',
       country: 'VN',
     },
@@ -186,7 +186,7 @@ export function getExportAiSamplePresets(): { id: string; label: string; desc: s
   return [
     {
       id: 'invoice',
-      label: '📄 Commercial Invoice Dệt may EU',
+      label: '📄 Commercial Invoice thép HRC EU',
       desc: 'Hóa đơn thương mại chuẩn EU kèm hợp đồng PO & Incoterm FOB',
       data: DEMO_PRESETS.invoice,
     },

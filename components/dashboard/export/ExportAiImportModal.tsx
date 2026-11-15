@@ -232,7 +232,7 @@ export const ExportAiImportModal: React.FC<ExportAiImportModalProps> = ({
               {/* Data groups */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 {/* Commercial & Contract */}
-                <Card className="border-slate-200 shadow-none">
+                <Card className="shadow-none">
                   <CardContent className="p-3.5 space-y-2">
                     <b className="text-xs text-slate-900 flex items-center gap-1.5 border-b pb-1.5">
                       <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-800" />
@@ -270,7 +270,7 @@ export const ExportAiImportModal: React.FC<ExportAiImportModalProps> = ({
                 </Card>
 
                 {/* Logistics & Vận tải */}
-                <Card className="border-slate-200 shadow-none">
+                <Card className="shadow-none">
                   <CardContent className="p-3.5 space-y-2">
                     <b className="text-xs text-slate-900 flex items-center gap-1.5 border-b pb-1.5">
                       <Ship className="h-3.5 w-3.5 text-blue-700" />
@@ -310,7 +310,7 @@ export const ExportAiImportModal: React.FC<ExportAiImportModalProps> = ({
                 </Card>
 
                 {/* Parties: Doanh nghiệp xuất nhập khẩu */}
-                <Card className="border-slate-200 shadow-none md:col-span-2">
+                <Card className="shadow-none md:col-span-2">
                   <CardContent className="p-3.5 space-y-2">
                     <b className="text-xs text-slate-900 flex items-center gap-1.5 border-b pb-1.5">
                       <Building2 className="h-3.5 w-3.5 text-slate-700" />

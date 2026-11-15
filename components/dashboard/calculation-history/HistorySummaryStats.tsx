@@ -32,7 +32,7 @@ const HistorySummaryStats: React.FC<HistorySummaryStatsProps> = ({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <Card className="border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+      <Card className="border shadow-sm transition-all hover:shadow-md hover:border-slate-300">
         <CardContent className="p-4">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
