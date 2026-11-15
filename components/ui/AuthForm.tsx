@@ -63,7 +63,7 @@ const AuthForm: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState<"b2b" | "b2c" | null>(null);
-  const [activeTab, setActiveTab] = useState("login");
+  const [activeTab, setActiveTab] = useState(searchParams.get("signup") === "1" ? "signup" : "login");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

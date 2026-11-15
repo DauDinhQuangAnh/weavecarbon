@@ -1,3 +1,6 @@
+"use client";
+
+import { useLandingLanguage } from "./LandingLanguage";
 import {
   ArrowRight,
   Boxes,
@@ -14,20 +17,20 @@ import {
 } from "lucide-react";
 
 const USP = () => {
-  const language = "vi" as "vi" | "en";
+  const { language } = useLandingLanguage();
 
   const copy = language === "en" ? {
     eyebrow: "WHY WEAVECARBON?",
     title: "One carbon data infrastructure across multiple industrial sectors",
     intro: "WeaveCarbon does not build a separate carbon app for every sector. It uses one governed data backbone, then adapts taxonomy, validation, allocation and reporting rules through industry-specific packs.",
-    industries: ["Textile & footwear", "Steel", "Cement", "Aluminium", "Fertilisers & chemicals", "Construction materials"],
+    industries: ["Steel", "Cement", "Aluminium", "Fertilisers & chemicals", "Construction materials", "Agriculture & agri-products"],
     flow: [
       [Database, "Operational data", "Meter · invoice · BOM · supplier"],
       [Boxes, "Carbon data core", "Normalize · evidence · calculate"],
       [FileCheck2, "Market outputs", "VN · GHG · ISO · Buyer · EU"],
     ],
     capabilities: [
-      { icon: Layers3, eyebrow: "INDUSTRY-ADAPTIVE CORE", title: "One data backbone, multiple Industry Packs", desc: "A shared canonical model covers facility, process, product, supplier and evidence; each industry changes taxonomy, validation, allocation and reporting logic rather than rebuilding the platform.", chips: ["Steel", "Cement", "Textile", "Aluminium"] },
+      { icon: Layers3, eyebrow: "INDUSTRY-ADAPTIVE CORE", title: "One data backbone, multiple Industry Packs", desc: "A shared canonical model covers facility, process, product, supplier and evidence; each industry changes taxonomy, validation, allocation and reporting logic rather than rebuilding the platform.", chips: ["Steel", "Cement", "Aluminium", "Agriculture"] },
       { icon: Building2, eyebrow: "DOMESTIC → EXPORT", title: "Start with domestic needs, reuse data for export", desc: "Electricity, fuel, production, materials and evidence can support Vietnam GHG/MRV first, then be reused for PCF, buyer requests, CBAM or DPP when relevant.", chips: ["Vietnam GHG", "MRV", "PCF", "CBAM"] },
       { icon: Network, eyebrow: "CARBON EVIDENCE GRAPH", title: "Not only a number — the evidence behind the number", desc: "Activity Data → Evidence → Emission Factor → Allocation → Calculation → Review → Version are linked into a reproducible and traceable lineage.", chips: ["Provenance", "Evidence", "Versioning"] },
       { icon: Gauge, eyebrow: "DATA QUALITY", title: "Data does not need to be perfect on day one", desc: "Primary, proxy, self-reported, reconciled and verified states remain visible so teams know exactly what must improve before review or assurance.", chips: ["Primary", "Proxy", "L1–L5"] },
@@ -40,24 +43,24 @@ const USP = () => {
   } : {
     eyebrow: "VÌ SAO CHỌN WEAVECARBON?",
     title: "Một hạ tầng dữ liệu carbon cho nhiều ngành công nghiệp",
-    intro: "WeaveCarbon không xây một phần mềm carbon riêng cho từng ngành. Nền tảng dùng chung một data backbone được quản trị, sau đó thích nghi taxonomy, validation, allocation và reporting rule theo từng Industry Pack.",
-    industries: ["Dệt may & da giày", "Thép", "Xi măng", "Nhôm", "Phân bón & hóa chất", "Vật liệu xây dựng"],
+    intro: "WeaveCarbon không xây một phần mềm carbon riêng cho từng ngành. Nền tảng dùng chung một lõi dữ liệu được quản trị, sau đó điều chỉnh phân loại, quy tắc kiểm tra, phân bổ và quy tắc báo cáo theo từng gói ngành (Industry Pack).",
+    industries: ["Thép", "Xi măng", "Nhôm", "Phân bón & hóa chất", "Vật liệu xây dựng", "Nông nghiệp & nông sản"],
     flow: [
       [Database, "Dữ liệu vận hành", "Đồng hồ · hóa đơn · BOM · nhà cung cấp"],
-      [Boxes, "Carbon data core", "Chuẩn hóa · evidence · tính toán"],
-      [FileCheck2, "Đầu ra thị trường", "VN · GHG · ISO · Buyer · EU"],
+      [Boxes, "Lõi dữ liệu carbon", "Chuẩn hóa · bằng chứng · tính toán"],
+      [FileCheck2, "Đầu ra thị trường", "VN · GHG · ISO · Bên mua · EU"],
     ],
     capabilities: [
-      { icon: Layers3, eyebrow: "INDUSTRY-ADAPTIVE CORE", title: "Một hạ tầng dữ liệu, nhiều Industry Pack", desc: "Core data model dùng chung cho facility, process, product, supplier và evidence; từng ngành thay taxonomy, validation, allocation và reporting logic thay vì xây lại hệ thống.", chips: ["Steel", "Cement", "Textile", "Aluminium"] },
-      { icon: Building2, eyebrow: "DOMESTIC → EXPORT", title: "Bắt đầu từ nhu cầu nội địa, tái sử dụng khi xuất khẩu", desc: "Cùng dữ liệu điện, nhiên liệu, sản lượng, vật liệu và chứng từ có thể phục vụ GHG/MRV Việt Nam trước, sau đó mở rộng sang PCF, buyer, CBAM hoặc DPP khi phù hợp.", chips: ["Vietnam GHG", "MRV", "PCF", "CBAM"] },
-      { icon: Network, eyebrow: "CARBON EVIDENCE GRAPH", title: "Không chỉ có con số — có cả hồ sơ đứng sau con số", desc: "Activity Data → Evidence → Emission Factor → Allocation → Calculation → Review → Version được nối thành một lineage có thể truy xuất và tái lập.", chips: ["Provenance", "Evidence", "Versioning"] },
-      { icon: Gauge, eyebrow: "DATA QUALITY", title: "Không cần dữ liệu hoàn hảo ngay từ đầu", desc: "Trạng thái primary, proxy, self-reported, reconciled và verified được hiển thị rõ để doanh nghiệp biết phần nào cần cải thiện trước review hoặc assurance.", chips: ["Primary", "Proxy", "L1–L5"] },
-      { icon: FileCheck2, eyebrow: "REPORTING ADAPTERS", title: "Một dataset, nhiều đầu ra báo cáo", desc: "Cùng dữ liệu được map sang Vietnam GHG, GHG Protocol, ISO 14064-1, ISO 14067, Product Carbon, yêu cầu buyer và EU CBAM cho hàng hóa thuộc phạm vi.", chips: ["GHG Protocol", "ISO", "Buyer", "EU"] },
-      { icon: ShieldCheck, eyebrow: "VERIFICATION READINESS", title: "Chuẩn bị dữ liệu trước xác minh — không tự nhận chứng nhận", desc: "WeaveCarbon khóa calculation snapshot, quản lý finding và evidence package để doanh nghiệp làm việc minh bạch với chuyên gia hoặc verifier độc lập.", chips: ["Review", "Audit Trail", "Verifier-ready"] },
+      { icon: Layers3, eyebrow: "LÕI THÍCH ỨNG THEO NGÀNH", title: "Một hạ tầng dữ liệu, nhiều gói ngành", desc: "Mô hình dữ liệu lõi dùng chung cho cơ sở, quy trình, sản phẩm, nhà cung ứng và bằng chứng; từng ngành chỉ thay đổi phân loại, quy tắc kiểm tra, phân bổ và logic báo cáo thay vì xây lại hệ thống.", chips: ["Thép", "Xi măng", "Nhôm", "Nông nghiệp"] },
+      { icon: Building2, eyebrow: "NỘI ĐỊA → XUẤT KHẨU", title: "Bắt đầu từ nhu cầu nội địa, tái sử dụng khi xuất khẩu", desc: "Cùng dữ liệu điện, nhiên liệu, sản lượng, vật liệu và chứng từ có thể phục vụ kiểm kê KNK/MRV Việt Nam trước, sau đó mở rộng sang PCF, yêu cầu bên mua, CBAM hoặc DPP khi phù hợp.", chips: ["Kiểm kê KNK VN", "MRV", "PCF", "CBAM"] },
+      { icon: Network, eyebrow: "ĐỒ THỊ BẰNG CHỨNG CARBON", title: "Không chỉ có con số — có cả hồ sơ đứng sau con số", desc: "Dữ liệu hoạt động → Bằng chứng → Hệ số phát thải → Phân bổ → Tính toán → Rà soát → Phiên bản được nối thành một chuỗi nguồn gốc có thể truy xuất và tái lập.", chips: ["Nguồn gốc", "Bằng chứng", "Phiên bản"] },
+      { icon: Gauge, eyebrow: "CHẤT LƯỢNG DỮ LIỆU", title: "Không cần dữ liệu hoàn hảo ngay từ đầu", desc: "Trạng thái sơ cấp, ước tính, tự khai báo, đã đối chiếu và đã xác minh được hiển thị rõ để doanh nghiệp biết phần nào cần cải thiện trước khi rà soát hoặc đảm bảo.", chips: ["Sơ cấp", "Ước tính", "L1–L5"] },
+      { icon: FileCheck2, eyebrow: "BỘ CHUYỂN ĐỔI BÁO CÁO", title: "Một bộ dữ liệu, nhiều đầu ra báo cáo", desc: "Cùng dữ liệu được ánh xạ sang kiểm kê KNK Việt Nam, GHG Protocol, ISO 14064-1, ISO 14067, carbon sản phẩm, yêu cầu bên mua và EU CBAM cho hàng hóa thuộc phạm vi.", chips: ["GHG Protocol", "ISO", "Bên mua", "EU"] },
+      { icon: ShieldCheck, eyebrow: "SẴN SÀNG XÁC MINH", title: "Chuẩn bị dữ liệu vững chắc trước khi xác minh", desc: "WeaveCarbon khóa ảnh chụp kết quả tính toán, quản lý phát hiện và gói bằng chứng để doanh nghiệp làm việc minh bạch với chuyên gia hoặc đơn vị xác minh độc lập.", chips: ["Rà soát", "Nhật ký kiểm toán", "Sẵn sàng xác minh"] },
     ],
-    promise: "Domestic first. Export ready.",
+    promise: "Vững nội địa. Sẵn sàng xuất khẩu.",
     promiseDesc: "Dữ liệu được chuẩn hóa và quản trị một lần để phục vụ kiểm kê nội địa, vận hành carbon và các yêu cầu thị trường quốc tế khi doanh nghiệp cần.",
-    governed: "ONE GOVERNED DATA LAYER",
+    governed: "MỘT LỚP DỮ LIỆU ĐƯỢC QUẢN TRỊ",
   };
 
   return (

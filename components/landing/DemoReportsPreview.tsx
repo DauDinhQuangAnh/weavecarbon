@@ -1,9 +1,12 @@
+"use client";
+
+import { useLandingLanguage } from "./LandingLanguage";
 import { Package, Truck, Factory, ClipboardCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const DemoReportsPreview = () => {
-  const language = "vi" as "vi" | "en";
+  const { language } = useLandingLanguage();
 
   const copy = language === "en" ? {
     eyebrow: "SAMPLE OUTPUTS",
@@ -41,32 +44,32 @@ const DemoReportsPreview = () => {
     eyebrow: "ĐẦU RA MẪU",
     title: "Nhiều đầu ra báo cáo từ cùng một lớp dữ liệu được quản trị",
     intro: "Đầu ra được điều chỉnh theo bối cảnh kiểm kê hoặc thị trường thay vì ép mọi ngành vào một mẫu báo cáo duy nhất. WeaveCarbon chuẩn bị hồ sơ có bằng chứng trước xác minh; không thay thế đơn vị xác minh độc lập.",
-    cta: "Mở toàn bộ Demo Workspace",
+    cta: "Mở không gian làm việc demo",
     preAudit: "Trước xác minh",
     reports: [
       {
         icon: Package,
         name: "Hồ sơ Product Carbon Footprint",
-        desc: "Đầu ra theo sản phẩm/SKU gồm BOM, cơ sở allocation, Scope, emission-factor snapshot, chất lượng dữ liệu và evidence liên kết.",
-        sample: { id: "WC-PCF-001", title: "Hồ sơ carbon sản phẩm công nghiệp", meta: "ISO 14067 · GHG Product · trường dữ liệu theo buyer" },
+        desc: "Đầu ra theo sản phẩm/SKU gồm định mức nguyên vật liệu, cơ sở phân bổ, phạm vi Scope, ảnh chụp hệ số phát thải, chất lượng dữ liệu và bằng chứng liên kết.",
+        sample: { id: "WC-PCF-001", title: "Hồ sơ carbon sản phẩm công nghiệp", meta: "ISO 14067 · GHG Product Standard · trường dữ liệu theo bên mua" },
       },
       {
         icon: Truck,
         name: "Hồ sơ sẵn sàng xuất khẩu & thị trường",
-        desc: "Đầu ra theo buyer, DPP readiness hoặc EU CBAM khi sản phẩm và CN code thuộc phạm vi áp dụng.",
-        sample: { id: "WC-MKT-2026-001", title: "Hồ sơ bằng chứng cho thị trường xuất khẩu", meta: "Buyer PCF · DPP readiness · CBAM khi phù hợp" },
+        desc: "Đầu ra theo yêu cầu bên mua, mức sẵn sàng DPP hoặc EU CBAM khi sản phẩm và mã CN thuộc phạm vi áp dụng.",
+        sample: { id: "WC-MKT-2026-001", title: "Hồ sơ bằng chứng cho thị trường xuất khẩu", meta: "PCF cho bên mua · sẵn sàng DPP · CBAM khi phù hợp" },
       },
       {
         icon: Factory,
         name: "Hồ sơ GHG / MRV cấp cơ sở",
-        desc: "Kiểm kê Scope 1 và Scope 2 cấp cơ sở với mapping nguồn phát thải, bối cảnh sản xuất, độ đầy đủ bằng chứng và trạng thái review.",
-        sample: { id: "WC-FAC-VN-001", title: "Cơ sở công nghiệp tại Việt Nam", meta: "GHG/MRV Việt Nam · GHG Protocol · ISO 14064-1" },
+        desc: "Kiểm kê Scope 1 và Scope 2 cấp cơ sở với ánh xạ nguồn phát thải, bối cảnh sản xuất, độ đầy đủ bằng chứng và trạng thái rà soát.",
+        sample: { id: "WC-FAC-VN-001", title: "Cơ sở công nghiệp tại Việt Nam", meta: "Kiểm kê KNK/MRV Việt Nam · GHG Protocol · ISO 14064-1" },
       },
       {
         icon: ClipboardCheck,
         name: "Chất lượng dữ liệu & sẵn sàng xác minh",
-        desc: "Nêu rõ evidence còn thiếu, mức dùng proxy, finding chưa xử lý và lộ trình nâng cấp trước review hoặc assurance độc lập.",
-        sample: { id: "WC-DQ-001", title: "Danh mục evidence và chất lượng dữ liệu", meta: "L1–L5 · gap · review status · version history" },
+        desc: "Nêu rõ bằng chứng còn thiếu, mức dùng số liệu ước tính, phát hiện chưa xử lý và lộ trình nâng cấp trước khi rà soát hoặc đảm bảo độc lập.",
+        sample: { id: "WC-DQ-001", title: "Danh mục bằng chứng và chất lượng dữ liệu", meta: "L1–L5 · khoảng trống · trạng thái rà soát · lịch sử phiên bản" },
       },
     ],
   };

@@ -1,9 +1,12 @@
+"use client";
+
+import { useLandingLanguage } from "./LandingLanguage";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
 
 const Pricing = () => {
-  const language = "vi" as "vi" | "en";
+  const { language } = useLandingLanguage();
 
   const copy = language === "en" ? {
     eyebrow: "PLANS",
@@ -22,10 +25,10 @@ const Pricing = () => {
     subtitle: "Các gói mở rộng từ trải nghiệm demo đến triển khai đa cơ sở công nghiệp. Các thuật ngữ kỹ thuật như CBAM, GHG Protocol và ISO được giữ nguyên theo đúng ngữ cảnh chuyên ngành.",
     popular: "Phổ biến nhất",
     tiers: [
-      { name: "Trial", price: "Miễn phí 14 ngày", features: ["5 SKU", "1 lô hàng demo", "Đánh giá carbon dạng Estimate", "Không xuất báo cáo chính thức"], cta: "Dùng thử B2B", href: "/auth", highlight: false },
-      { name: "Standard", price: "899.000 – 1.490.000 ₫/tháng", features: ["Quản lý Product/SKU", "Bulk upload", "Scope 1-2-3 cơ bản", "Data Gap Checker", "Dashboard", "Draft report"], cta: "Dùng thử B2B", href: "/auth", highlight: false },
-      { name: "Export", price: "3.000.000 – 6.000.000 ₫/tháng", features: ["Hồ sơ Product Carbon Footprint", "Adapter báo cáo xuất khẩu/thị trường", "Báo cáo GHG cấp cơ sở", "Audit Trail nâng cao", "Quản lý nhiều người dùng", "Hỗ trợ onboarding"], cta: "Dùng thử B2B", href: "/auth", highlight: true },
-      { name: "Enterprise", price: "Liên hệ", features: ["API / ERP", "Đa cơ sở", "Custom workflow", "SLA", "Hỗ trợ triển khai riêng"], cta: "Liên hệ tư vấn", href: "mailto:mytrinhh.bb@gmail.com", highlight: false },
+      { name: "Trial", price: "Miễn phí 14 ngày", features: ["5 SKU", "1 lô hàng demo", "Đánh giá carbon ước tính", "Không xuất báo cáo chính thức"], cta: "Dùng thử B2B", href: "/auth", highlight: false },
+      { name: "Standard", price: "899.000 – 1.490.000 ₫/tháng", features: ["Quản lý sản phẩm/SKU", "Tải dữ liệu hàng loạt", "Scope 1-2-3 cơ bản", "Kiểm tra khoảng trống dữ liệu", "Bảng điều khiển", "Báo cáo nháp"], cta: "Dùng thử B2B", href: "/auth", highlight: false },
+      { name: "Export", price: "3.000.000 – 6.000.000 ₫/tháng", features: ["Hồ sơ dấu chân carbon sản phẩm (PCF)", "Bộ chuyển đổi báo cáo xuất khẩu/thị trường", "Báo cáo KNK cấp cơ sở", "Nhật ký kiểm toán nâng cao", "Quản lý nhiều người dùng", "Hỗ trợ triển khai ban đầu"], cta: "Dùng thử B2B", href: "/auth", highlight: true },
+      { name: "Enterprise", price: "Liên hệ", features: ["Tích hợp API / ERP", "Đa cơ sở sản xuất", "Quy trình tùy chỉnh", "Cam kết chất lượng dịch vụ (SLA)", "Hỗ trợ triển khai riêng"], cta: "Liên hệ tư vấn", href: "mailto:mytrinhh.bb@gmail.com", highlight: false },
     ],
   };
 

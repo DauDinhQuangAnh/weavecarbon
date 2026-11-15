@@ -1,7 +1,10 @@
+"use client";
+
+import { useLandingLanguage } from "./LandingLanguage";
 import { Database, Calculator, ClipboardCheck, History, FileText } from "lucide-react";
 
 const Solution = () => {
-  const language = "vi" as "vi" | "en";
+  const { language } = useLandingLanguage();
 
   const copy = language === "en" ? {
     eyebrow: "SOLUTION",
@@ -37,32 +40,32 @@ const Solution = () => {
   } : {
     eyebrow: "GIẢI PHÁP",
     title: "Một hạ tầng dữ liệu carbon được quản trị xuyên suốt quy trình công nghiệp",
-    subtitle: "WeaveCarbon giữ quy trình rõ ràng: kết nối dữ liệu, chuẩn hóa, liên kết bằng chứng, tính toán theo rule cố định, review phiên bản và tạo đúng đầu ra cho từng bối cảnh báo cáo.",
+    subtitle: "WeaveCarbon giữ quy trình rõ ràng: kết nối dữ liệu, chuẩn hóa, liên kết bằng chứng, tính toán theo quy tắc cố định, rà soát theo phiên bản và tạo đúng đầu ra cho từng bối cảnh báo cáo.",
     modules: [
       {
         icon: Database,
         title: "Kết nối dữ liệu công nghiệp",
-        desc: "Tập hợp dữ liệu đồng hồ đo, hóa đơn, ERP, BOM, file nhà cung cấp, nhật ký sản xuất, logistics và activity data từ WeaveNode.",
+        desc: "Tập hợp dữ liệu đồng hồ đo, hóa đơn, ERP, định mức nguyên vật liệu, tệp nhà cung cấp, nhật ký sản xuất, logistics và dữ liệu hoạt động từ WeaveNode.",
       },
       {
         icon: Calculator,
-        title: "Carbon Engine xác định được cách tính",
-        desc: "Tính Scope 1, Scope 2, một phần Scope 3 và phát thải cấp sản phẩm/cơ sở bằng emission factor được quản trị và calculation snapshot bất biến.",
+        title: "Carbon Engine minh bạch cách tính",
+        desc: "Tính Scope 1, Scope 2, một phần Scope 3 và phát thải cấp sản phẩm/cơ sở bằng hệ số phát thải được quản trị và ảnh chụp kết quả tính toán bất biến.",
       },
       {
         icon: ClipboardCheck,
         title: "Kiểm soát chất lượng & thiếu hụt dữ liệu",
-        desc: "Phân loại dữ liệu primary, proxy, self-reported, reconciled và verified để biết chính xác phần nào còn thiếu trước review hoặc assurance.",
+        desc: "Phân loại dữ liệu sơ cấp, ước tính (proxy), tự khai báo, đã đối chiếu và đã xác minh để biết chính xác phần nào còn thiếu trước khi rà soát hoặc đảm bảo (assurance).",
       },
       {
         icon: History,
-        title: "Evidence Graph & Audit Trail",
-        desc: "Nối Activity Data → Evidence → Emission Factor → Allocation → Calculation → Review → Version thành một lineage có thể truy xuất và tái lập.",
+        title: "Đồ thị bằng chứng & nhật ký kiểm toán",
+        desc: "Nối Dữ liệu hoạt động → Bằng chứng → Hệ số phát thải → Phân bổ → Tính toán → Rà soát → Phiên bản thành một chuỗi nguồn gốc có thể truy xuất và tái lập.",
       },
       {
         icon: FileText,
-        title: "Báo cáo & adapter theo thị trường",
-        desc: "Tái sử dụng cùng dữ liệu cho GHG/MRV Việt Nam, GHG Protocol, ISO 14064-1, ISO 14067, buyer PCF, DPP readiness và EU CBAM khi phù hợp.",
+        title: "Báo cáo & bộ chuyển đổi theo thị trường",
+        desc: "Tái sử dụng cùng dữ liệu cho kiểm kê KNK/MRV Việt Nam, GHG Protocol, ISO 14064-1, ISO 14067, PCF theo yêu cầu bên mua, mức sẵn sàng DPP và EU CBAM khi phù hợp.",
       },
     ],
   };

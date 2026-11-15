@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { api, isApiError } from "@/lib/apiClient";import { motion } from "motion/react";
 import { ArrowRight, Mail } from "lucide-react";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLandingT } from "./LandingLanguage";
 import { toast } from "sonner";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const CTA = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const t = useTranslations("cta");
+  const t = useLandingT("cta");
   const reducedEffects = useReducedEffects();
   const blurClass = reducedEffects ? "blur-2xl" : "blur-3xl";
 

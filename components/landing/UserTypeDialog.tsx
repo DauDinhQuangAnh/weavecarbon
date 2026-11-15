@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Building2, User, ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLandingT } from "./LandingLanguage";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -16,8 +16,8 @@ interface UserTypeDialogProps {
 }
 
 const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
-  const t = useTranslations("userType");
-  const tAuth = useTranslations("auth");
+  const t = useLandingT("userType");
+  const tAuth = useLandingT("auth");
   const router = useRouter();
   const { startLocalDemo, startLocalB2CDemo } = useAuth();
   const [demoLoading, setDemoLoading] = useState<"b2b" | "b2c" | null>(null);

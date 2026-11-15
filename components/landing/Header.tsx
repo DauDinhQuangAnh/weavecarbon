@@ -6,7 +6,9 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import UserTypeDialog from "./UserTypeDialog";
-import { useTranslations } from "next-intl";
+import { useLandingT } from "./LandingLanguage";
+import LanguageToggle from "./LanguageToggle";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
 
 const Header = () => {
@@ -14,7 +16,21 @@ const Header = () => {
   const headerRef = useRef<HTMLElement>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showUserTypeDialog, setShowUserTypeDialog] = useState(false);
-  const t = useTranslations("navigation");
+  const t = useLandingT("navigation");
+  const { startLocalDemo } = useAuth();
+  const [isStartingDemo, setIsStartingDemo] = useState(false);
+
+  const goTry = async () => {
+    setIsMenuOpen(false);
+    if (isStartingDemo) return;
+    setIsStartingDemo(true);
+    try {
+      const { error } = await startLocalDemo("b2b_standard_20");
+      navigate.push(error ? "/auth" : "/demo/demo-lab");
+    } finally {
+      setIsStartingDemo(false);
+    }
+  };
   const pathname = usePathname();
   const sectionOffsets: Record<string, number> = {
     "#features": 28,
@@ -37,13 +53,13 @@ const Header = () => {
     return mobileSectionOffsets[href] ?? defaultOffset;
   };
 
-  // Điều hướng đồng bộ với bản Lovable: Vấn đề · Giải pháp · Cách hoạt động · Báo cáo mẫu · Gói dịch vụ
+  // Điều hướng theo bản Lovable, bổ sung "Cách hoạt động" theo luồng trình bày của landing.
   const navLinks: { labelKey: string; label?: string; href: string }[] = [
-    { labelKey: "problem", label: "Vấn đề", href: "#problem" },
-    { labelKey: "solution", label: "Giải pháp", href: "#solution" },
+    { labelKey: "problem", href: "#problem" },
+    { labelKey: "solution", href: "#solution" },
     { labelKey: "howItWorks", href: "#how-it-works" },
-    { labelKey: "reports", label: "Báo cáo mẫu", href: "#reports-sample" },
-    { labelKey: "pricing", label: "Gói dịch vụ", href: "#pricing" },
+    { labelKey: "reports", href: "#reports-sample" },
+    { labelKey: "pricing", href: "#pricing" },
   ];
 
   const scrollToSection = (href: string) => {
@@ -96,7 +112,7 @@ const Header = () => {
       >
         <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-4 md:px-6 lg:px-8 2xl:px-10">
           <div className="relative flex h-14 items-center justify-between gap-2 sm:h-16 md:h-20">
-            <Link href="/" className="group flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
+            <Link href="/" className="group flex min-w-0 flex-1 items-center gap-2 xl:flex-none">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-forest shadow-md transition-shadow group-hover:shadow-lg sm:h-10 sm:w-10">
                 <Leaf className="h-4 w-4 text-primary-foreground sm:h-5 sm:w-5" />
               </div>
@@ -105,7 +121,7 @@ const Header = () => {
               </span>
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+            <nav className="hidden xl:flex flex-1 items-center justify-center gap-5 2xl:gap-7">
               {pathname !== "/calculator" && (
                 <>
                   {navLinks.map((link) =>
@@ -113,18 +129,18 @@ const Header = () => {
                       <Link
                         key={link.labelKey}
                         href={link.href}
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        className="whitespace-nowrap text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {link.label ?? t(link.labelKey)}
+                        {t(link.labelKey)}
                       </Link>
                     ) : (
                       <a
                         key={link.labelKey}
                         href={link.href}
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        className="whitespace-nowrap text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                         onClick={(event) => handleAnchorClick(event, link.href)}
                       >
-                        {link.label ?? t(link.labelKey)}
+                        {t(link.labelKey)}
                       </a>
                     ),
                   )}
@@ -132,28 +148,37 @@ const Header = () => {
               )}
             </nav>
 
-            <div className="hidden lg:flex items-center justify-end gap-3">
+            <div className="hidden xl:flex shrink-0 items-center justify-end gap-2">
+              <LanguageToggle />
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={() => navigate.push("/calculator")}
-              >
-                {t("calculator")}
-              </Button>
-              <Button
-                variant="hero"
                 size="sm"
                 onClick={() => setShowUserTypeDialog(true)}
               >
                 {t("login")}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate.push("/auth?signup=1")}
+              >
+                {t("signup")}
+              </Button>
+              <Button
+                variant="hero"
+                size="sm"
+                onClick={goTry}
+                disabled={isStartingDemo}
+              >
+                {isStartingDemo ? t("starting") : t("trial")}
+              </Button>
             </div>
 
-            <div className="flex shrink-0 gap-1.5 sm:gap-2 lg:hidden">
+            <div className="flex shrink-0 gap-1.5 sm:gap-2 xl:hidden">
               <button
-                className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted sm:p-2.5 lg:hidden"
+                className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted sm:p-2.5 xl:hidden"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Toggle menu"
+                aria-label={t("menu")}
               >
                 <Menu className="w-6 h-6" />
               </button>
@@ -162,7 +187,7 @@ const Header = () => {
         </div>
 
         {isMenuOpen && (
-          <div className="lg:hidden bg-background border-b border-border animate-fade-in">
+          <div className="xl:hidden bg-background border-b border-border animate-fade-in">
             <nav className="mx-auto w-full max-w-[1800px] flex flex-col gap-4 px-4 py-4 md:px-6 lg:px-8 2xl:px-10">
               {navLinks.map((link) =>
                 link.href.startsWith("/") ? (
@@ -172,7 +197,7 @@ const Header = () => {
                     className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    {link.label ?? t(link.labelKey)}
+                    {t(link.labelKey)}
                   </Link>
                 ) : (
                     <a
@@ -181,23 +206,14 @@ const Header = () => {
                       className="text-base font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                       onClick={(event) => handleAnchorClick(event, link.href)}
                     >
-                      {link.label ?? t(link.labelKey)}
+                      {t(link.labelKey)}
                     </a>
                 ),
               )}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                <LanguageToggle className="self-center" />
                 <Button
                   variant="ghost"
-                  className="w-full justify-center"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate.push("/calculator");
-                  }}
-                >
-                  {t("calculator")}
-                </Button>
-                <Button
-                  variant="hero"
                   className="w-full justify-center"
                   onClick={() => {
                     setIsMenuOpen(false);
@@ -205,6 +221,24 @@ const Header = () => {
                   }}
                 >
                   {t("login")}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-center"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate.push("/auth?signup=1");
+                  }}
+                >
+                  {t("signup")}
+                </Button>
+                <Button
+                  variant="hero"
+                  className="w-full justify-center"
+                  onClick={goTry}
+                  disabled={isStartingDemo}
+                >
+                  {isStartingDemo ? t("starting") : t("trial")}
                 </Button>
               </div>
             </nav>

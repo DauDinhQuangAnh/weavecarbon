@@ -6,7 +6,7 @@ import { ArrowRight, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
 import UserTypeDialog from "./UserTypeDialog";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLandingLanguage, useLandingT } from "./LandingLanguage";
 import Waves from "../icons/Waves";
 import { useEffect, useRef, useState } from "react";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
@@ -20,14 +20,11 @@ const Hero = () => {
   const [showUserTypeDialog, setShowUserTypeDialog] = useState(false);
   const [isDesktopHero, setIsDesktopHero] = useState(false);
   const heroRef = useRef<HTMLElement | null>(null);
-  const locale = "vi";
-  const t = useTranslations("hero");
+  const { language } = useLandingLanguage();
+  const t = useLandingT("hero");
   const reducedEffects = useReducedEffects();
   const isHeroInView = useInView(heroRef, { amount: 0.15 });
-  const heroTitle = t("title");
   const trustText = t("trust");
-  const trustMatch =
-    locale === "vi" ? trustText.match(/^(.*)\s(Việt Nam)$/u) : null;
 
   useEffect(() => {
     const syncViewport = () => {
@@ -42,6 +39,7 @@ const Hero = () => {
   return (
     <section
       ref={heroRef}
+      lang={language}
       className="relative flex w-full items-start justify-center overflow-x-clip overflow-y-hidden bg-gradient-hero pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-10 sm:pt-[calc(env(safe-area-inset-top)+6.5rem)] sm:pb-14 lg:min-h-[100svh] lg:items-center lg:pt-40 lg:pb-20"
     >
       {/* Background decorations */}
@@ -117,10 +115,11 @@ const Hero = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.6 }}
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.05 }}
-            className="mb-5 text-3xl font-bold leading-[1.05] tracking-tight text-foreground sm:mb-6 sm:text-4xl md:text-5xl lg:text-7xl"
+            className="mb-5 text-3xl font-bold leading-[1.05] tracking-tight text-foreground sm:mb-6 sm:text-4xl md:text-5xl lg:max-w-[56vw] lg:text-6xl xl:text-7xl"
           >
-            {heroTitle}{" "}
+            {t("titleLead")}
             <span className="text-gradient-forest">{t("titleHighlight")}</span>
+            {t("titleTail")}
           </motion.h1>
 
           {/* Subheading */}
@@ -129,20 +128,11 @@ const Hero = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.6 }}
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
-            className="mb-8 text-base leading-7 text-muted-foreground sm:mb-10 sm:text-lg md:text-xl"
+            className="mb-8 text-base leading-7 text-muted-foreground sm:mb-10 sm:text-lg md:text-xl lg:max-w-2xl"
           >
             {t("subtitle")}
           </motion.p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.6 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.12 }}
-            className="mb-8 rounded-xl border border-slate-300 bg-white/75 px-4 py-3 text-sm leading-6 text-slate-700 sm:mb-10 md:max-w-2xl"
-          >
-            {t("boundary")}
-          </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
@@ -184,14 +174,7 @@ const Hero = () => {
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
             className="max-w-xl text-center text-sm leading-6 text-muted-foreground md:text-left"
           >
-            {trustMatch ? (
-              <>
-                <span>{trustMatch[1]} </span>
-                <span className="block sm:inline">{trustMatch[2]}</span>
-              </>
-            ) : (
-              trustText
-            )}
+            {trustText}
           </motion.p>
         </div>
       </div>

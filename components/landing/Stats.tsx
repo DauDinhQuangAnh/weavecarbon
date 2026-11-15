@@ -2,12 +2,12 @@
 
 import { motion } from "motion/react";
 import { TrendingUp } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLandingT } from "./LandingLanguage";
 import StatsWave from "@/components/icons/StatsWave";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const Stats = () => {
-  const t = useTranslations("stats");
+  const t = useLandingT("stats");
   const reducedEffects = useReducedEffects();
   const stats = [
     {

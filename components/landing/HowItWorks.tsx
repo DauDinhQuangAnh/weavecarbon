@@ -8,12 +8,12 @@ import {
   Recycle,
   Sparkles,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLandingT } from "./LandingLanguage";
 import { useEffect, useRef, useState } from "react";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
 const HowItWorks = () => {
-  const t = useTranslations("howItWorks");
+  const t = useLandingT("howItWorks");
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   const reducedEffects = useReducedEffects();

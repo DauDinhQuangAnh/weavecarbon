@@ -1,7 +1,10 @@
+"use client";
+
+import { useLandingLanguage } from "./LandingLanguage";
 import { FileSpreadsheet, Network, ShieldAlert, Globe2 } from "lucide-react";
 
 const Problem = () => {
-  const language = "vi" as "vi" | "en";
+  const { language } = useLandingLanguage();
 
   const copy = language === "en" ? {
     eyebrow: "THE DATA GAP INDUSTRY IS FACING",
@@ -37,22 +40,22 @@ const Problem = () => {
       {
         icon: FileSpreadsheet,
         title: "Dữ liệu carbon nằm rải rác",
-        desc: "Đồng hồ đo, hóa đơn, dữ liệu ERP, BOM, nhật ký sản xuất, file nhà cung cấp và logistics thường nằm ở nhiều hệ thống và bảng tính khác nhau.",
+        desc: "Đồng hồ đo, hóa đơn, dữ liệu ERP, định mức nguyên vật liệu (BOM), nhật ký sản xuất, file nhà cung cấp và logistics thường nằm ở nhiều hệ thống và bảng tính khác nhau.",
       },
       {
         icon: Network,
         title: "Scope 3 và bằng chứng nhà cung cấp khó kết nối",
-        desc: "Dữ liệu từ nhà cung cấp thường đến chậm, khác mức chi tiết, không đồng nhất đơn vị, boundary và chứng từ đi kèm.",
+        desc: "Dữ liệu từ nhà cung cấp thường đến chậm, khác mức chi tiết, không đồng nhất về đơn vị, ranh giới tính toán và chứng từ đi kèm.",
       },
       {
         icon: ShieldAlert,
         title: "Có số nhưng khó chứng minh",
-        desc: "Một kết quả carbon thiếu factor snapshot, evidence, version và lịch sử review sẽ khó tái lập và khó chuẩn bị cho xác minh độc lập.",
+        desc: "Một kết quả carbon thiếu ảnh chụp hệ số phát thải, bằng chứng, phiên bản và lịch sử rà soát sẽ khó tái lập và khó chuẩn bị cho xác minh độc lập.",
       },
       {
         icon: Globe2,
         title: "Một bộ dữ liệu phải phục vụ nhiều thị trường",
-        desc: "GHG/MRV nội địa, GHG Protocol, ISO, buyer PCF, DPP và CBAM cần đầu ra khác nhau, nhưng dữ liệu hoạt động gốc chỉ nên được quản trị một lần.",
+        desc: "Kiểm kê KNK/MRV nội địa, GHG Protocol, ISO, PCF theo yêu cầu bên mua, hộ chiếu sản phẩm số (DPP) và CBAM cần đầu ra khác nhau, nhưng dữ liệu hoạt động gốc chỉ nên được quản trị một lần.",
       },
     ],
   };

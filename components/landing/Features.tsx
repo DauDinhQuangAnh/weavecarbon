@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLandingT } from "./LandingLanguage";
 import { useEffect, useRef, useState } from "react";
 import { useReducedEffects } from "@/hooks/useReducedEffects";
 
@@ -712,7 +712,7 @@ const DesktopCircularLayout: React.FC<DesktopLayoutProps> = ({
 
 // Main Features Component
 const Features = () => {
-  const t = useTranslations("features");
+  const t = useLandingT("features");
   const [viewportMode, setViewportMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const reducedEffects = useReducedEffects();
 
