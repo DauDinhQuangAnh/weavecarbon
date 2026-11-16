@@ -427,6 +427,127 @@ const STATIC_FACTORS: Record<string, RawCarbonFactorMetadata> = {
     geography: "generic",
     quality: "internal_proxy",
     isProxy: true
+  },
+  "process-clinker-kiln": {
+    id: "process-clinker-kiln",
+    label: "Kiln clinker calcination & firing",
+    unit: "kWh/kg",
+    value: 0.95,
+    source: "WeaveCarbon cement kiln benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-cement-grinding": {
+    id: "process-cement-grinding",
+    label: "Cement finish grinding",
+    unit: "kWh/kg",
+    value: 0.07,
+    source: "WeaveCarbon cement benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-eaf-melting": {
+    id: "process-eaf-melting",
+    label: "Electric arc furnace steel melting",
+    unit: "kWh/kg",
+    value: 0.45,
+    source: "WeaveCarbon steel EAF benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-hot-rolling": {
+    id: "process-hot-rolling",
+    label: "Steel hot rolling",
+    unit: "kWh/kg",
+    value: 0.12,
+    source: "WeaveCarbon steel rolling benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-extrusion": {
+    id: "process-extrusion",
+    label: "Aluminium extrusion",
+    unit: "kWh/kg",
+    value: 0.55,
+    source: "WeaveCarbon aluminium benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-ammonia-synthesis": {
+    id: "process-ammonia-synthesis",
+    label: "Ammonia & fertiliser chemical synthesis",
+    unit: "kWh/kg",
+    value: 0.85,
+    source: "WeaveCarbon chemical synthesis benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-urea-granulation": {
+    id: "process-urea-granulation",
+    label: "Urea granulation & finishing",
+    unit: "kWh/kg",
+    value: 0.15,
+    source: "WeaveCarbon fertiliser benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-drying": {
+    id: "process-drying",
+    label: "Agricultural thermal drying",
+    unit: "kWh/kg",
+    value: 0.25,
+    source: "WeaveCarbon agricultural processing benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-milling": {
+    id: "process-milling",
+    label: "Grain milling and hulling",
+    unit: "kWh/kg",
+    value: 0.08,
+    source: "WeaveCarbon agri milling benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-kiln-firing": {
+    id: "process-kiln-firing",
+    label: "Ceramic / tile kiln firing",
+    unit: "kWh/kg",
+    value: 0.35,
+    source: "WeaveCarbon building materials benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
+  },
+  "process-mining": {
+    id: "process-mining",
+    label: "Mining extraction and beneficiation",
+    unit: "kWh/kg",
+    value: 0.18,
+    source: "WeaveCarbon mining benchmark",
+    sourceUrl: IPCC_AR6_URL,
+    geography: "generic",
+    quality: "documented_secondary",
+    isProxy: false
   }
 };
 
@@ -483,7 +604,32 @@ const FACTOR_ID_ALIASES: Record<string, string> = {
   genericgarment: "process-generic-garment",
   dyeing: "process-dyeing",
   printing: "process-printing",
-  finishing: "process-finishing"
+  finishing: "process-finishing",
+  clinker: "cat-clinker",
+  gypsumadditives: "cat-gypsum-additives",
+  steelscrap: "cat-steel-scrap",
+  ironorepellet: "cat-iron-ore-pellet",
+  primaryaluminium: "cat-aluminium-primary",
+  recycledaluminium: "cat-aluminium-recycled",
+  naturalgasfeedstock: "cat-natural-gas-feedstock",
+  coffeecherry: "cat-coffee-cherry",
+  paddyrice: "cat-paddy-rice",
+  fieldlatex: "cat-field-latex",
+  clayfeldspar: "cat-clay-feldspar",
+  glazefrit: "cat-glaze-frit",
+  heavymineralsand: "cat-heavy-mineral-sand",
+  blackpepper: "cat-black-pepper",
+  clinkerkiln: "process-clinker-kiln",
+  cementgrinding: "process-cement-grinding",
+  eafmelting: "process-eaf-melting",
+  hotrolling: "process-hot-rolling",
+  extrusion: "process-extrusion",
+  ammoniasynthesis: "process-ammonia-synthesis",
+  ureagranulation: "process-urea-granulation",
+  drying: "process-drying",
+  milling: "process-milling",
+  kilnfiring: "process-kiln-firing",
+  mining: "process-mining"
 };
 
 export interface CategoryMethodologyConfig {
@@ -505,12 +651,79 @@ export const CATEGORY_METHODOLOGY: Record<ProductCategory, CategoryMethodologyCo
     defaultProcessFactorId: "process-generic-garment",
     defaultMaterialFactorId: "cat-other-generic",
     processFallbackWarningLabel: "garment"
+  },
+  steel: {
+    methodologyName: "WeaveCarbon Industrial Steel PCF",
+    methodologyVersion: "WeaveCarbon Industrial Steel PCF v1.0 - EAF/BOF boundary",
+    calculationGraphVersion: "steel-pcf-1.0.0",
+    defaultProcessFactorId: "process-eaf-melting",
+    defaultMaterialFactorId: "cat-steel-scrap",
+    processFallbackWarningLabel: "steel"
+  },
+  cement: {
+    methodologyName: "WeaveCarbon Industrial Cement PCF",
+    methodologyVersion: "WeaveCarbon Industrial Cement PCF v1.0 - calcination & kiln boundary",
+    calculationGraphVersion: "cement-pcf-1.0.0",
+    defaultProcessFactorId: "process-clinker-kiln",
+    defaultMaterialFactorId: "cat-clinker",
+    processFallbackWarningLabel: "cement"
+  },
+  aluminium: {
+    methodologyName: "WeaveCarbon Industrial Aluminium PCF",
+    methodologyVersion: "WeaveCarbon Industrial Aluminium PCF v1.0 - smelting & extrusion boundary",
+    calculationGraphVersion: "aluminium-pcf-1.0.0",
+    defaultProcessFactorId: "process-extrusion",
+    defaultMaterialFactorId: "cat-aluminium-primary",
+    processFallbackWarningLabel: "aluminium"
+  },
+  fertiliser: {
+    methodologyName: "WeaveCarbon Industrial Fertiliser PCF",
+    methodologyVersion: "WeaveCarbon Industrial Fertiliser PCF v1.0 - chemical synthesis boundary",
+    calculationGraphVersion: "fertiliser-pcf-1.0.0",
+    defaultProcessFactorId: "process-ammonia-synthesis",
+    defaultMaterialFactorId: "cat-natural-gas-feedstock",
+    processFallbackWarningLabel: "fertiliser"
+  },
+  mining: {
+    methodologyName: "WeaveCarbon Mining & Minerals PCF",
+    methodologyVersion: "WeaveCarbon Mining & Minerals PCF v1.0 - extraction & beneficiation",
+    calculationGraphVersion: "mining-pcf-1.0.0",
+    defaultProcessFactorId: "process-mining",
+    defaultMaterialFactorId: "cat-heavy-mineral-sand",
+    processFallbackWarningLabel: "mining"
+  },
+  construction_materials: {
+    methodologyName: "WeaveCarbon Construction Materials PCF",
+    methodologyVersion: "WeaveCarbon Construction Materials PCF v1.0 - firing & autoclave boundary",
+    calculationGraphVersion: "construction-materials-pcf-1.0.0",
+    defaultProcessFactorId: "process-kiln-firing",
+    defaultMaterialFactorId: "cat-clay-feldspar",
+    processFallbackWarningLabel: "construction materials"
+  },
+  agriculture: {
+    methodologyName: "WeaveCarbon Agriculture & Food PCF",
+    methodologyVersion: "WeaveCarbon Agriculture & Food PCF v1.0 - farming, drying & milling boundary",
+    calculationGraphVersion: "agriculture-pcf-1.0.0",
+    defaultProcessFactorId: "process-drying",
+    defaultMaterialFactorId: "cat-paddy-rice",
+    processFallbackWarningLabel: "agriculture"
+  },
+  other: {
+    methodologyName: "WeaveCarbon Generic Industrial PCF",
+    methodologyVersion: "WeaveCarbon Generic Industrial PCF v1.0",
+    calculationGraphVersion: "generic-pcf-1.0.0",
+    defaultProcessFactorId: "process-generic-garment",
+    defaultMaterialFactorId: "cat-other-generic",
+    processFallbackWarningLabel: "generic"
   }
 };
 
 export const resolveCategoryMethodology = (
-  category: ProductCategory | null | undefined
-): CategoryMethodologyConfig => CATEGORY_METHODOLOGY[category || "textile"];
+  category: ProductCategory | string | null | undefined
+): CategoryMethodologyConfig => {
+  const key = (category || "textile") as ProductCategory;
+  return CATEGORY_METHODOLOGY[key] || CATEGORY_METHODOLOGY.textile;
+};
 
 export const MARKET_DISTANCE_DEFAULTS: Record<string, number> = {
   vietnam: 500,

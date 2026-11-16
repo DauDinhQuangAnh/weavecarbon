@@ -24,7 +24,9 @@ import {
   Building2,
   PackageCheck,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
+import { useAppLanguage } from '@/lib/i18n/appLanguage';
 import { getIndustrialPortfolio } from '@/lib/industrialPortfolio/dataset';
 import { getIndustrialReporting, type ReportProfileRow } from '@/lib/industrialPortfolio/reporting';
 import { exportIndustrialReportProfile } from '@/lib/industrialPortfolio/reportExport';
@@ -82,7 +84,8 @@ const toReportProfile = (profile: LegalMarketProfile): ReportProfileRow => ({
 });
 
 const ReportRegistryClient: React.FC = () => {
-  const vi = true;
+  const appLanguage = useAppLanguage();
+  const vi = appLanguage === 'vi';
   const router = useRouter();
   const base = isDemoPath(usePathname()) ? '/demo' : '';
   const navigate = (path: string) => router.push(`${base}${path.replace(/^\/dashboard/, '')}`);
@@ -91,6 +94,7 @@ const ReportRegistryClient: React.FC = () => {
   const [industry, setIndustry] = useState('All');
   const [market, setMarket] = useState('All');
   const [selectedCode, setSelectedCode] = useState('VN_GHG_CURRENT');
+  const [isExporting, setIsExporting] = useState(false);
 
   const visibleProfiles = useMemo(() => legalMarketProfiles.filter((profile) => {
     const industryMatch = industry === 'All' || profile.applicableIndustries.includes(industry as any);
@@ -122,13 +126,20 @@ const ReportRegistryClient: React.FC = () => {
       ? `Khung pháp lý/tiêu chuẩn được version theo nguồn chính thức · dữ liệu doanh nghiệp bên trong là DEMO`
       : 'Legal/standard framework is versioned from authoritative sources · internal business data is DEMO');
 
-  const exportProfile = (profile: LegalMarketProfile) => {
+  const exportProfile = async (profile: LegalMarketProfile) => {
     if (profile.reportProfileCode === 'EU_CBAM_2026') {
       navigate('/dashboard/cbam-report');
       return;
     }
     const dbProfile = reporting.reportProfiles.find((p) => p.profileCode === profile.reportProfileCode);
-    exportIndustrialReportProfile(dbProfile || toReportProfile(profile), dataset, reporting);
+    setIsExporting(true);
+    try {
+      await exportIndustrialReportProfile(dbProfile || toReportProfile(profile), dataset, reporting);
+    } catch (err) {
+      console.error('Failed to export profile', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const sections = vi ? selectedProfile.reportSectionsVi : selectedProfile.reportSectionsEn;
@@ -226,7 +237,22 @@ const ReportRegistryClient: React.FC = () => {
         <SectionCard
           title={vi ? 'Bản xem trước hồ sơ chuẩn — dữ liệu DEMO' : 'Standard report preview — DEMO data'}
           description={vi ? `${industry === 'All' ? 'Danh mục đa ngành' : industryLabel(industry, true)} · ${vi ? selectedProfile.titleVi : selectedProfile.titleEn}` : `${industry === 'All' ? 'Multi-industry portfolio' : industry} · ${selectedProfile.titleEn}`}
-          actions={<Button size="sm" onClick={() => exportProfile(selectedProfile)}>{selectedProfile.reportProfileCode === 'EU_CBAM_2026' ? <ExternalLink className="mr-2 h-4 w-4" /> : <Download className="mr-2 h-4 w-4" />}{selectedProfile.reportProfileCode === 'EU_CBAM_2026' ? (vi ? 'Mở module CBAM' : 'Open CBAM module') : (vi ? 'Xuất gói XLSX' : 'Export XLSX package')}</Button>}
+          actions={
+            <Button size="sm" onClick={() => exportProfile(selectedProfile)} disabled={isExporting}>
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : selectedProfile.reportProfileCode === 'EU_CBAM_2026' ? (
+                <ExternalLink className="mr-2 h-4 w-4" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {selectedProfile.reportProfileCode === 'EU_CBAM_2026'
+                ? (vi ? 'Mở module CBAM' : 'Open CBAM module')
+                : isExporting
+                  ? (vi ? 'Đang xuất XLSX…' : 'Exporting XLSX…')
+                  : (vi ? 'Xuất gói XLSX' : 'Export XLSX package')}
+            </Button>
+          }
         >
           <div className="overflow-hidden rounded-2xl border border-border bg-background">
             <div className="border-b border-border bg-[#F4F7F0] p-5">

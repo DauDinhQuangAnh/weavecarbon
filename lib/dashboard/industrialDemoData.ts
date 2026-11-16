@@ -1,7 +1,8 @@
-import type { IndustrialActivityLineage, IndustrialCapabilityRegistry, IndustrialMeasurementPoint } from "@/lib/industrialCoreApi";
+import type { IndustrialActivity, IndustrialActivityLineage, IndustrialCapabilityRegistry, IndustrialFacility, IndustrialMeasurementPoint, IndustrialProcess } from "@/lib/industrialCoreApi";
 import type { EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import type { FactorProposal } from "@/lib/dataGovernanceApi";
 import { WORKSPACE_DEMO, type InventoryView } from "./industrialWorkspace";
+import { industrialDatasetSnapshot } from "@/lib/industrialPortfolio/snapshot";
 
 // Synthetic fixtures for the new /demo pages only. No database, file or device is represented here.
 const id = (n: number) => `30000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -9,15 +10,49 @@ const timestamp = "2026-09-30T00:00:00Z";
 // Format examples, not hashes of uploaded documents or verified calculations.
 const exampleHash = (character: string) => character.repeat(64);
 
-const facilities = [
+const SNAPSHOT_FACILITIES: IndustrialFacility[] = industrialDatasetSnapshot.facilities.map((f) => ({
+  id: f.id,
+  facilityReference: f.id,
+  revision: 1,
+  name: f.name,
+  countryCode: "VN",
+  timezone: "Asia/Ho_Chi_Minh",
+  lifecycleStatus: "active" as const,
+  boundaryNotes: `Ranh giới ngành ${f.industry}: ${f.name} (Phát thải kỳ: ${f.emissions_tco2e} tCO2e)`,
+  metadata: { industry: f.industry, completeness: f.completeness, open_gaps: f.open_gaps, emissions_tco2e: f.emissions_tco2e, lat: f.latitude, lng: f.longitude },
+  createdAt: timestamp,
+}));
+
+const SNAPSHOT_PROCESSES: IndustrialProcess[] = industrialDatasetSnapshot.processes.map((p) => ({
+  id: p.id,
+  facilityRevisionId: p.facility_id,
+  facilityReference: p.facility_id,
+  processReference: p.id,
+  revision: 1,
+  name: `${p.name} (${p.intensity})`,
+  processType: p.emissions_tco2e > 2000 ? "thermal_process" : p.emissions_tco2e > 1000 ? "production" : "utilities",
+  lifecycleStatus: "active" as const,
+  createdAt: timestamp,
+}));
+
+const legacyFacilities: IndustrialFacility[] = [
   WORKSPACE_DEMO.facilities[0],
   { ...WORKSPACE_DEMO.facilities[0], id: id(4), facilityReference: "DEMO-STEEL-MELT", name: "Xưởng luyện thép lò điện minh họa", boundaryNotes: "Ranh giới mô phỏng: lò điện hồ quang, lò thùng và xử lý khí thải" },
   { ...WORKSPACE_DEMO.facilities[0], id: id(5), facilityReference: "DEMO-COFFEE", name: "Xưởng sơ chế cà phê minh họa", boundaryNotes: "Ranh giới mô phỏng: sấy, xát vỏ, phân loại và đóng bao" },
 ];
-const processes = [
+const facilities: IndustrialFacility[] = [
+  ...SNAPSHOT_FACILITIES,
+  ...legacyFacilities,
+];
+
+const legacyProcesses: IndustrialProcess[] = [
   WORKSPACE_DEMO.processes[0],
   { ...WORKSPACE_DEMO.processes[0], id: id(6), facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processReference: "DEMO-EAF-LINE", name: "Luyện thép lò điện minh họa" },
   { ...WORKSPACE_DEMO.processes[0], id: id(7), facilityRevisionId: id(5), facilityReference: "DEMO-COFFEE", processReference: "DEMO-COFFEE-LINE", name: "Sấy và xát cà phê minh họa" },
+];
+const processes: IndustrialProcess[] = [
+  ...SNAPSHOT_PROCESSES,
+  ...legacyProcesses,
 ];
 export const DEMO_EVIDENCE: EvidenceDocumentV2[] = [
   { id: id(20), companyId: "demo-only", evidenceType: "electricity_invoice", documentName: "DEMO · Hóa đơn điện tháng 9", fileSizeBytes: 0, checksumSha256: exampleHash("a"), extractedJson: { synthetic: true }, status: "locked", createdAt: timestamp, updatedAt: timestamp },
@@ -32,14 +67,45 @@ export const DEMO_MEASUREMENT_POINTS: IndustrialMeasurementPoint[] = [
   { id: id(40), facilityRevisionId: facilities[0].id, facilityReference: "DEMO-FACTORY", processRevisionId: processes[0].id, measurementPointReference: "DEMO-METER-01", revision: 1, measurementType: "electricity", canonicalUnit: "kWh", sourceType: "weavenode", deviceIdentity: "DEMO-NODE-01", calibrationStatus: "current", calibrationDueOn: "2027-03-01", samplingIntervalSeconds: 900, metadata: { synthetic: true, connected: false }, createdAt: timestamp },
   { id: id(41), facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), measurementPointReference: "DEMO-METER-02", revision: 1, measurementType: "water", canonicalUnit: "m3", sourceType: "meter", deviceIdentity: "DEMO-NODE-02", calibrationStatus: "expired", calibrationDueOn: "2026-08-01", samplingIntervalSeconds: 3600, metadata: { synthetic: true, connected: false }, createdAt: timestamp },
 ];
+const SNAPSHOT_ACTIVITIES: IndustrialActivity[] = industrialDatasetSnapshot.activity.map((a, i) => {
+  const matchingProcess = SNAPSHOT_PROCESSES.find((p) => p.facilityRevisionId === a.facility_id);
+  const qualityLevel: "L1" | "L2" | "L3" | "L4" = a.quality === 'Primary' ? 'L4' : a.quality === 'Evidence-backed' ? 'L3' : a.quality === 'Self-reported' ? 'L2' : 'L1';
+  const actName = a.activity.toLowerCase();
+  const activityType = actName.includes('electricity') ? 'electricity' : (actName.includes('diesel') || actName.includes('gas') || actName.includes('coal') || actName.includes('steam')) ? 'fuel' : actName.includes('waste') ? 'waste' : 'material';
+  return {
+    id: a.id,
+    activityReference: a.id,
+    facilityRevisionId: a.facility_id || 'FAC-BD',
+    facilityReference: a.facility_id || 'FAC-BD',
+    processRevisionId: matchingProcess?.id || null,
+    measurementPointRevisionId: null,
+    activityType,
+    periodStart: '2026-08-01T00:00:00Z',
+    periodEnd: '2026-08-31T23:59:59Z',
+    quantity: a.value,
+    canonicalUnit: a.unit,
+    sourceKind: a.source.toLowerCase().includes('meter') ? 'meter' : 'invoice',
+    dataQualityLevel: qualityLevel,
+    sourceSha256: exampleHash(String.fromCharCode(97 + (i % 26))),
+    evidenceDocumentIds: a.evidence_count > 0 ? [DEMO_EVIDENCE[i % DEMO_EVIDENCE.length].id] : [],
+    createdAt: timestamp,
+  };
+});
+
+const legacyActivities: IndustrialActivity[] = [
+  { ...WORKSPACE_DEMO.activities[0], measurementPointRevisionId: id(40), sourceSha256: exampleHash("c"), evidenceDocumentIds: [id(20)] },
+  { ...WORKSPACE_DEMO.activities[0], id: id(8), activityReference: "DEMO-EAF-ELECTRICITY", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), quantity: 6000, dataQualityLevel: "L3" as const, sourceSha256: exampleHash("d"), evidenceDocumentIds: [id(20)] },
+  { ...WORKSPACE_DEMO.activities[0], id: id(9), activityReference: "DEMO-EAF-FUEL", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), activityType: "fuel", quantity: 800, canonicalUnit: "litre", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("e"), evidenceDocumentIds: [id(21)] },
+  { ...WORKSPACE_DEMO.activities[0], id: id(10), activityReference: "DEMO-COFFEE-PRODUCTION", facilityRevisionId: id(5), facilityReference: "DEMO-COFFEE", processRevisionId: id(7), activityType: "production", quantity: 180, canonicalUnit: "tonne", dataQualityLevel: "L1" as const, sourceSha256: exampleHash("f"), evidenceDocumentIds: [id(22)] },
+  { ...WORKSPACE_DEMO.activities[0], id: id(11), activityReference: "DEMO-EAF-WATER", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), measurementPointRevisionId: id(41), activityType: "water", quantity: 240, canonicalUnit: "m3", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("1"), evidenceDocumentIds: [] },
+];
+
 export const INDUSTRIAL_DEMO = {
-  facilities, processes,
+  facilities,
+  processes,
   activities: [
-    { ...WORKSPACE_DEMO.activities[0], measurementPointRevisionId: id(40), sourceSha256: exampleHash("c"), evidenceDocumentIds: [id(20)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(8), activityReference: "DEMO-EAF-ELECTRICITY", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), quantity: 6000, dataQualityLevel: "L3" as const, sourceSha256: exampleHash("d"), evidenceDocumentIds: [id(20)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(9), activityReference: "DEMO-EAF-FUEL", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), activityType: "fuel", quantity: 800, canonicalUnit: "litre", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("e"), evidenceDocumentIds: [id(21)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(10), activityReference: "DEMO-COFFEE-PRODUCTION", facilityRevisionId: id(5), facilityReference: "DEMO-COFFEE", processRevisionId: id(7), activityType: "production", quantity: 180, canonicalUnit: "tonne", dataQualityLevel: "L1" as const, sourceSha256: exampleHash("f"), evidenceDocumentIds: [id(22)] },
-    { ...WORKSPACE_DEMO.activities[0], id: id(11), activityReference: "DEMO-EAF-WATER", facilityRevisionId: id(4), facilityReference: "DEMO-STEEL-MELT", processRevisionId: id(6), measurementPointRevisionId: id(41), activityType: "water", quantity: 240, canonicalUnit: "m3", dataQualityLevel: "L2" as const, sourceSha256: exampleHash("1"), evidenceDocumentIds: [] },
+    ...SNAPSHOT_ACTIVITIES,
+    ...legacyActivities,
   ],
   measurementPoints: DEMO_MEASUREMENT_POINTS,
   evidence: DEMO_EVIDENCE,
@@ -48,10 +114,10 @@ export const INDUSTRIAL_DEMO = {
 export function demoActivityLineage(activityId: string): IndustrialActivityLineage | null {
   const activity = INDUSTRIAL_DEMO.activities.find(row => row.id === activityId);
   if (!activity) return null;
-  const facility = facilities.find(row => row.id === activity.facilityRevisionId)!;
+  const facility = facilities.find(row => row.id === activity.facilityRevisionId) || facilities[0];
   const process = processes.find(row => row.id === activity.processRevisionId);
   const point = DEMO_MEASUREMENT_POINTS.find(row => row.id === activity.measurementPointRevisionId);
-  const evidence = DEMO_EVIDENCE.filter(row => activity.evidenceDocumentIds.includes(row.id)).map(row => ({ id: row.id, name: row.documentName, type: row.evidenceType, status: row.status, checksumSha256: row.checksumSha256 || null }));
+  const evidence = DEMO_EVIDENCE.filter(row => (activity.evidenceDocumentIds || []).includes(row.id)).map(row => ({ id: row.id, name: row.documentName, type: row.evidenceType, status: row.status, checksumSha256: row.checksumSha256 || null }));
   return {
     activity, facility: { id: facility.id, reference: facility.facilityReference, name: facility.name },
     process: process ? { id: process.id, reference: process.processReference, name: process.name } : null,

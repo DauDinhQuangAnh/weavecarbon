@@ -29,6 +29,8 @@ export interface DashboardProduct {
   cnCode?: string;
   category: string;
   co2: number;
+  batchTotal?: number;
+  quantity?: number;
   status: ProductStatus;
   materials: string[];
   weight: number;
@@ -103,6 +105,8 @@ const mapProductRecordToDashboardProduct = (product: ProductRecord): DashboardPr
   cnCode: product.cnCode,
   category: product.productType || "other",
   co2: product.carbonResults?.perProduct?.total || product.carbonResults?.totalBatch?.total || 0,
+  batchTotal: product.carbonResults?.totalBatch?.total,
+  quantity: product.quantity,
   status: product.status as ProductStatus,
   materials: (product.materials || []).map((material) => material.materialType).filter(Boolean),
   weight: product.weightPerUnit || 0,

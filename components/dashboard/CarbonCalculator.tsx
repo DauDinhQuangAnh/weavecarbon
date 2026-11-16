@@ -55,10 +55,49 @@ const MATERIAL_OPTIONS_BY_CATEGORY: Record<ProductCategory, { value: string; lab
     { value: 'cat-cotton-organic', label: 'Cotton hữu cơ' },
     { value: 'cat-hemp', label: 'Hemp' },
   ],
+  steel: [
+    { value: 'cat-steel-scrap', label: 'Thép phế liệu' },
+    { value: 'cat-iron-ore-pellet', label: 'Quặng sắt viên' },
+  ],
+  cement: [
+    { value: 'cat-clinker', label: 'Clinker xi măng' },
+    { value: 'cat-gypsum-additives', label: 'Thạch cao & phụ gia' },
+  ],
+  aluminium: [
+    { value: 'cat-aluminium-primary', label: 'Nhôm nguyên sinh' },
+    { value: 'cat-aluminium-recycled', label: 'Nhôm tái chế' },
+  ],
+  fertiliser: [
+    { value: 'cat-natural-gas-feedstock', label: 'Khí tự nhiên (nguyên liệu)' },
+  ],
+  agriculture: [
+    { value: 'cat-coffee-cherry', label: 'Cà phê quả tươi' },
+    { value: 'cat-paddy-rice', label: 'Lúa' },
+    { value: 'cat-field-latex', label: 'Mủ cao su' },
+    { value: 'cat-black-pepper', label: 'Hạt tiêu đen' },
+  ],
+  construction_materials: [
+    { value: 'cat-clay-feldspar', label: 'Đất sét & tràng thạch' },
+    { value: 'cat-glaze-frit', label: 'Men frit' },
+  ],
+  mining: [
+    { value: 'cat-heavy-mineral-sand', label: 'Cát sa khoáng' },
+  ],
+  other: [
+    { value: 'cat-other-generic', label: 'Vật liệu tổng hợp / proxy' },
+  ],
 };
 
 const CATEGORY_LABELS: Record<ProductCategory, string> = {
   textile: 'Dệt may',
+  steel: 'Thép',
+  cement: 'Xi măng',
+  aluminium: 'Nhôm',
+  fertiliser: 'Phân bón & hoá chất',
+  agriculture: 'Nông nghiệp & nông sản',
+  construction_materials: 'Vật liệu xây dựng',
+  mining: 'Khai khoáng',
+  other: 'Khác',
 };
 
 const GRID_EMISSION_FACTOR = getCarbonFactor('energy-grid-vn-2023')?.value ?? 0.6592;
@@ -215,7 +254,7 @@ export default function CarbonCalculator() {
           factorId: 'packaging-minimal-proxy',
           weightKg: kg * 0.05
         },
-        processFactorIds: ['process-cutting-sewing'],
+        processFactorIds: [resolveCategoryMethodology(category).defaultProcessFactorId],
         energyMix: [
           {
             factorId: 'energy-grid-vn-2023',

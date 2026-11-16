@@ -60,6 +60,8 @@ import {
 } from '@/lib/industrialPortfolio/engine/scopedIndustryReportEngine';
 import { defaultProfileForIndustry, type ReportCheckLevel } from '@/lib/industrialPortfolio/engine/aiMonthlyReportEngine';
 import { exportGeneratedReportPdf } from '@/lib/industrialPortfolio/engine/generatedReportPdf';
+import { exportGeneratedReportXlsx } from '@/lib/industrialPortfolio/reportExport';
+import { useAppLanguage } from '@/lib/i18n/appLanguage';
 
 const industryLabel = (industry: ReportingIndustry, vi: boolean) => vi ? ({
   Agriculture: 'Nông nghiệp & nông sản',
@@ -113,11 +115,12 @@ const checkTone: Record<ReportCheckLevel, string> = {
 const checkIcon = (level: ReportCheckLevel) => level === 'pass' ? CheckCircle2 : level === 'info' ? ShieldCheck : AlertTriangle;
 
 const AIReportBuilderClient: React.FC = () => {
-  const vi = true;
+  const appLanguage = useAppLanguage();
+  const vi = appLanguage === 'vi';
   const router = useRouter();
   const pathname = usePathname();
   const base = isDemoPath(pathname) ? '/demo' : '';
-  const navigate = (lovablePath: string) => router.push(`${base}${lovablePath.replace(/^\/dashboard\/reports\/registry$/, '/reports').replace(/^\/dashboard/, '')}`);
+  const navigate = (lovablePath: string) => router.push(`${base}${lovablePath.replace(/^\/dashboard/, '')}`);
   const dataset = getIndustrialPortfolio();
   const reporting = getIndustrialReporting();
 
@@ -130,6 +133,7 @@ const AIReportBuilderClient: React.FC = () => {
   const [profileCode, setProfileCode] = useState(initialProfile.code);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingXlsx, setIsExportingXlsx] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
   const [generated, setGenerated] = useState<GeneratedScopedIndustryReport | null>(null);
 
@@ -289,6 +293,12 @@ const AIReportBuilderClient: React.FC = () => {
     try { await exportGeneratedReportPdf(generated, vi); } finally { setIsExporting(false); }
   };
 
+  const downloadXlsx = async () => {
+    if (!generated || isExportingXlsx) return;
+    setIsExportingXlsx(true);
+    try { await exportGeneratedReportXlsx(generated, vi); } finally { setIsExportingXlsx(false); }
+  };
+
   const scopeReady = entityType === 'industry' || Boolean(entityId);
   const blockers = generated?.checks.filter((check) => check.level === 'blocker').length || 0;
   const warnings = generated?.checks.filter((check) => check.level === 'warning').length || 0;
@@ -394,7 +404,18 @@ const AIReportBuilderClient: React.FC = () => {
       {generated && <SectionCard
         title={vi ? '4. Report hoàn chỉnh theo scope' : '4. Complete scope-aware report'}
         description={`${generated.id} · ${generated.profileTitle}`}
-        actions={<Button size="sm" onClick={downloadPdf} disabled={isExporting}>{isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4"/>}{vi ? 'Tải PDF' : 'Download PDF'}</Button>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={downloadXlsx} disabled={isExportingXlsx}>
+              {isExportingXlsx ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {vi ? 'Tải Excel' : 'Download Excel'}
+            </Button>
+            <Button size="sm" onClick={downloadPdf} disabled={isExporting}>
+              {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {vi ? 'Tải PDF' : 'Download PDF'}
+            </Button>
+          </div>
+        }
       >
         <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">

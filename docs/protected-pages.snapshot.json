@@ -187,7 +187,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/CarbonCalculator.tsx",
-      "sha256": "db5084a84a466184cc334b0cede9250420fb27bd64781c6495e977fb2e47a38e"
+      "sha256": "bd021145784c4a2b48b25752039eaa5d71135a7f880c222d2598df4683417744"
     },
     {
       "repo": "FE",
@@ -517,7 +517,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/overview/OverviewPageClient.tsx",
-      "sha256": "110e14c1f75fab28601665d21262f9e53bbc41fd14d82ef25f57d148c87c2223"
+      "sha256": "5f40d60fa5d34de4943469d9ffcfc17ea73576f54145bfc15f56294e4db4f028"
     },
     {
       "repo": "FE",
@@ -897,7 +897,7 @@
     {
       "repo": "FE",
       "path": "contexts/ProductContext.tsx",
-      "sha256": "a08d21ef9f0040e5ee34bcde895ef54046039d4ba2d024241e34f2546c10c23e"
+      "sha256": "4b4437bc1ddfb642953550cdfc1fdc3db671e09af1334c4a82ed7d0e4525b9bc"
     },
     {
       "repo": "FE",
@@ -1057,12 +1057,12 @@
     {
       "repo": "FE",
       "path": "lib/carbon/factorRegistry.ts",
-      "sha256": "7995f8dc186c3eb72ee91d25d3e6306efe0abde82c91ceef1ff3fbbca0934b0e"
+      "sha256": "9385575029d1282e600b324b1941ba4c0e3b9e459659050d66b16a264b5f2bd6"
     },
     {
       "repo": "FE",
       "path": "lib/carbon/types.ts",
-      "sha256": "0bb6113845db7da87d10e2da0ff1b74bb946304b50377a8207411851dd9e8c9f"
+      "sha256": "901ed6046c20816e5c9fa59d86901ea2300769259e1b217c91156a6136948e1e"
     },
     {
       "repo": "FE",

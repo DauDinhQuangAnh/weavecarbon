@@ -4,6 +4,7 @@ import { createWorkbook } from '@/lib/reports/excelRuntime';
 import type { IndustrialDatasetState } from '@/lib/industrialPortfolio/dataset';
 import type { IndustrialReportingState, ReportProfileRow } from '@/lib/industrialPortfolio/reporting';
 import { getLegalProfile, REPORTING_REGISTRY_REVIEW_DATE } from '@/lib/industrialPortfolio/legalMarketRegistry';
+import type { GeneratedScopedIndustryReport } from '@/lib/industrialPortfolio/engine/scopedIndustryReportEngine';
 
 // Bảng tính tối giản (mảng 2 chiều) → ghi ra file bằng exceljs (thư viện sẵn có của FE).
 type SheetData = { rows: unknown[][]; widths?: number[] };
@@ -204,4 +205,53 @@ export function exportIndustrialReportProfile(
 
   const safe = profile.profileCode.replace(/[^A-Za-z0-9_-]/g, '_');
   return writeWorkbook(sheets, `WeaveCarbon_${safe}_${dataset.organization.period.replace(/\s+/g, '_')}.xlsx`);
+}
+
+export async function exportGeneratedReportXlsx(
+  report: GeneratedScopedIndustryReport,
+  vi = true
+) {
+  const sheets: { name: string; ws: SheetData }[] = [];
+
+  const summary = aoaToSheet([
+    [vi ? 'Trường' : 'Field', vi ? 'Giá trị' : 'Value'],
+    [vi ? 'Mã báo cáo' : 'Report ID', report.id],
+    [vi ? 'Tiêu đề' : 'Title', report.title],
+    [vi ? 'Phụ đề' : 'Subtitle', report.subtitle],
+    [vi ? 'Khung báo cáo / Profile' : 'Profile / Standard', report.profileTitle],
+    [vi ? 'Trạng thái' : 'Status', report.status],
+    [vi ? 'Loại đối tượng' : 'Entity type', report.scope.entityType],
+    [vi ? 'Đối tượng báo cáo' : 'Report entity', report.scope.entityLabel],
+    [vi ? 'Kỳ báo cáo' : 'Period', report.scope.periodLabel],
+    [vi ? 'Lineage truy xuất' : 'Scope lineage', report.scope.lineage.join(' → ')],
+    [vi ? 'Tổng phát thải (tCO2e)' : 'Emissions (tCO2e)', report.metrics.emissionsTco2e],
+    [vi ? 'Chất lượng dữ liệu (%)' : 'Data quality (%)', report.metrics.dataQualityPct],
+    [vi ? 'Độ phủ bằng chứng (%)' : 'Evidence coverage (%)', report.metrics.evidenceCoveragePct],
+    [vi ? 'Phát hiện cần xử lý' : 'Open findings', report.metrics.openFindings],
+    [vi ? 'TRẠNG THÁI DỮ LIỆU' : 'DATA STATUS', 'DEMO / SYNTHETIC BUSINESS DATA — NOT FOR OFFICIAL FILING'],
+    [vi ? 'Lưu ý' : 'Note', vi ? 'Báo cáo được tổng hợp từ dữ liệu demo theo đúng phạm vi (scope). Không phải báo cáo kiểm toán chính thức.' : 'Scoped report compiled from demonstration data. Not an official audit filing.'],
+  ]);
+  styleSheet(summary, [32, 100]);
+  sheets.push({ name: 'Report Scope', ws: summary });
+
+  const checksSheet = aoaToSheet([
+    [vi ? 'Mã kiểm tra' : 'Check ID', vi ? 'Mức độ' : 'Level', vi ? 'Quy tắc' : 'Label', vi ? 'Chi tiết' : 'Detail'],
+    ...report.checks.map((c) => [c.id, c.level.toUpperCase(), c.label, c.detail]),
+  ]);
+  styleSheet(checksSheet, [20, 16, 36, 80]);
+  sheets.push({ name: 'Pre-issue Gate', ws: checksSheet });
+
+  const sectionsSheet = aoaToSheet([
+    [vi ? 'Mục' : 'Section', vi ? 'Nội dung tóm tắt' : 'Content', vi ? 'Số liệu kiểm tra' : 'Facts'],
+    ...report.sections.map((s) => [
+      s.title,
+      s.body.join('\n\n'),
+      (s.facts || []).map((f) => `${f.label}: ${f.value}`).join('; '),
+    ]),
+  ]);
+  styleSheet(sectionsSheet, [28, 90, 48]);
+  sheets.push({ name: 'Narrative & Facts', ws: sectionsSheet });
+
+  const fileName = `WeaveCarbon_${report.id.replace(/[^A-Za-z0-9_-]/g, '_')}_${report.scope.periodLabel.replace(/[^A-Za-z0-9_-]/g, '_')}.xlsx`;
+  return writeWorkbook(sheets, fileName);
 }

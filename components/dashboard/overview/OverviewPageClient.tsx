@@ -260,7 +260,7 @@ const OverviewPage: React.FC = () => {
   };
 
   const localStats = useMemo(() => {
-    const totalCO2 = products.reduce((sum, p) => sum + p.co2, 0);
+    const totalCO2 = products.reduce((sum, p) => sum + (p.batchTotal ?? p.co2), 0);
     const skuCount = products.length;
     const publishedCount = products.filter(
       (p) => p.status === "published"
@@ -548,11 +548,15 @@ const OverviewPage: React.FC = () => {
       </div>
 
       {isDemoOverview ? null : (
-      <OverviewCharts
-          productEmissions={productEmissions}
-          emissionBreakdown={emissionBreakdown}
-          isLoading={insightsLoading}
-          hideBreakdown={isDemoOverview} />
+        <>
+          <OverviewCharts
+            productEmissions={productEmissions}
+            emissionBreakdown={emissionBreakdown}
+            isLoading={insightsLoading}
+            hideBreakdown={false}
+          />
+          <IndustrialPortfolioSection />
+        </>
       )}
 
 
