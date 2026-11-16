@@ -1,0 +1,3 @@
+# Next.js: Unauthenticated Remote Code Execution in Image Optimization API (SVG)
+# Advisory published recently; upstream patch 16.4.1 pending regression verification
+GHSA-2464-fhr4-w9xw
