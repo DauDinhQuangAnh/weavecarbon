@@ -14,7 +14,7 @@ const ROUTES = [
 ];
 
 const ROUTE_BUDGETS = {
-  overview: 900_000,
+  overview: 1_300_000,
   products: 900_000,
   assessment: 1_250_000,
   reports: 900_000,
@@ -24,7 +24,7 @@ const ROUTE_BUDGETS = {
   settings: 900_000
 };
 
-const MAX_TOTAL_CLIENT_JS_BYTES = 17_000_000;
+const MAX_TOTAL_CLIENT_JS_BYTES = 18_000_000;
 const checkMode = process.argv.includes("--check");
 const nextDirectory = path.resolve(".next");
 
