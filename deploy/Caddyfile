@@ -7,6 +7,18 @@
   }
 
   handle {
+    # Security headers for frontend responses only (the backend sets its own via helmet).
+    # CSP starts as Report-Only: watch the browser console for violations, then
+    # rename the header to Content-Security-Policy to enforce it.
+    header {
+      Strict-Transport-Security "max-age=31536000; includeSubDomains"
+      X-Content-Type-Options "nosniff"
+      X-Frame-Options "DENY"
+      Referrer-Policy "strict-origin-when-cross-origin"
+      Permissions-Policy "camera=(self), microphone=(), geolocation=(self), payment=()"
+      -X-Powered-By
+      Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://tiles.openfreemap.org https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://nominatim.openstreetmap.org https://tile.openstreetmap.org; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self' https://sandbox.vnpayment.vn https://*.vnpayment.vn https://*.vnpay.vn https://accounts.google.com"
+    }
     reverse_proxy weavecarbon-fe-1:3000
   }
 }
