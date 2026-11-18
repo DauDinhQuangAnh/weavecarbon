@@ -27,7 +27,7 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/billing/page.tsx",
-      "sha256": "55a5d3057aa7b595c464ddf9f308b6652dff619639bb0ed86d52891f2b4a1fa5"
+      "sha256": "41be353bce48fb54c69d9ce53f6e811544ca16f96201b1036218063acdf61c43"
     },
     {
       "repo": "FE",
@@ -182,7 +182,7 @@
     {
       "repo": "FE",
       "path": "app/layout.tsx",
-      "sha256": "734ef711538904d2b1530f28bca630906afe11938fbc2eb2cfd4329d75286235"
+      "sha256": "a6cb577e4fcc1c2aa9c9ed1c4344234c1c8cab87146691986e79f2d946e9c0d3"
     },
     {
       "repo": "FE",
@@ -207,17 +207,17 @@
     {
       "repo": "FE",
       "path": "components/dashboard/LogisticsClient.tsx",
-      "sha256": "5e4571d97532e94c0f58b592514a500b25b0ff4854bb90d0507e8b56a88ae739"
+      "sha256": "27ec9d3d505e67ae141fa5a716a1e8d5b1febac1604d3f3733a724121cd7aa1e"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/OverviewCharts.tsx",
-      "sha256": "0ac90ca5ccb4d62099af90ffcf89fedf87069326caf0e4148d13adc0372cf995"
+      "sha256": "65bed3b5b6b4217d3e93ca5890d54914cd6e30633a28f4a798401cb34011d1ed"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/PricingModal.tsx",
-      "sha256": "d695a23186c1e7c0a3146b72594516e75fdee429b057fb9332867005acd0a10e"
+      "sha256": "8f6f23dc3af4cfb32e31fabcf45b01506a1ef85c2d8a5816e9161646abe7a9e0"
     },
     {
       "repo": "FE",
@@ -232,7 +232,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductsClient.tsx",
-      "sha256": "cf3acb38ad0d32d0596f66f763813a27b93ba5c04e3a1ca808bb34ce94f8da64"
+      "sha256": "ff63b46e57ccb0d8aec20263f288238b26c3f563c86285a77d8e7604fb4b278e"
     },
     {
       "repo": "FE",
@@ -242,7 +242,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/AssessmentClient.tsx",
-      "sha256": "0850ae28ee8961dbc6585682fa41c6dba95b5031663450a2a122676acb58dfc9"
+      "sha256": "5303e5d3573aeddc1b2b45ef80a178ccff1b863e3af72c3dbbe9a0fb608fd6d0"
     },
     {
       "repo": "FE",
@@ -512,7 +512,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/logistic/SupplyChainMapContent.tsx",
-      "sha256": "5e9ffebbc27989be2dd893e9a7af5507c729c1c33a3b6f34d1c7839a757b04a9"
+      "sha256": "b1cc4cd2e1bbd38eb7c99dcc97e3fd94b807af03f59913cfa74252989067c74b"
     },
     {
       "repo": "FE",
@@ -527,7 +527,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/CarbonBreakdownChart.tsx",
-      "sha256": "c51ae83bf1d37b56f2fbb961c9e1e9ad33f77e29288bdba07ffdc4df0d9fb9e4"
+      "sha256": "85020f7a2c048afdb336f0b524c9e27c0daf847177629bb0fd24ac22a77ef719"
     },
     {
       "repo": "FE",
@@ -582,7 +582,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/products/BatchManagementModal.tsx",
-      "sha256": "54382df7687be104eff53eff7fae689142383ca1d8006e11491f59e5d86c7c83"
+      "sha256": "ae5fcf52cf96963a28043cf23cb92da9217fc3d0a3aad8f9a9d54547093125d7"
     },
     {
       "repo": "FE",
@@ -882,7 +882,7 @@
     {
       "repo": "FE",
       "path": "contexts/AuthContext.tsx",
-      "sha256": "a0b8f259fcb76b6a75e439658c960ccbec74c1837cec07431825cfc6452c009b"
+      "sha256": "d76493d3741267f2774006f7db63b799d3f454f875fee9f22597abcb657e98bf"
     },
     {
       "repo": "FE",
@@ -1097,7 +1097,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/apiAdapter.ts",
-      "sha256": "4294d9b0a6699014dc00a10a5c3bb32cbca39b2751c493908a0eb4fc659f391e"
+      "sha256": "dadb082ab73b425e4e4432e50bc13ca1ae765ed2e11f8869dcdcdffae614ebd3"
     },
     {
       "repo": "FE",
@@ -1142,7 +1142,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/domain/products.ts",
-      "sha256": "6815b0b9b1ec36b94a135314d94aafa602854061c464da6880b54eff031c6e78"
+      "sha256": "2c851a562282f03cebcdf6a34e77797cc20caa3f28bfa5b4a3950457ceb41385"
     },
     {
       "repo": "FE",
@@ -1497,7 +1497,7 @@
     {
       "repo": "FE",
       "path": "locales/vi/common.json",
-      "sha256": "782ebb6f70b16fc8d220012a47bc57fba98c8baee8511584988a3d5cdf2ee4a9"
+      "sha256": "5880a53078fa1e4a81c5350e7e9f049fea5a82f3e53b70fadbd802e1ec5df036"
     },
     {
       "repo": "FE",
@@ -1512,7 +1512,7 @@
     {
       "repo": "FE",
       "path": "package.json",
-      "sha256": "d1aef3655eb122b2f00c82bdefad593303d721e7f4037e5639122a2dd19f0d33"
+      "sha256": "f5946b9f72ba63e8adab66b9e0b356973c44b05d5f8721a345a3bb121e83ab0f"
     },
     {
       "repo": "FE",
@@ -1657,7 +1657,7 @@
     {
       "repo": "BE",
       "path": "src/middleware/rateLimiter.js",
-      "sha256": "711bffaf72bec23ebc09b4d16e5465a698c216108b1025b562976247aa7f58ba"
+      "sha256": "ae7bafcc335855077dc54369963a060656ff3338e96ffd4705629059b1408324"
     },
     {
       "repo": "BE",
@@ -1752,7 +1752,7 @@
     {
       "repo": "BE",
       "path": "src/modules/auth/index.js",
-      "sha256": "373e51ed67d038ee103c5060ee76546e8bd6397ae376fb226c22c27cfe609dfa"
+      "sha256": "fdd22937bc548d3b80c2e9670c90b5b2707d83d04c9dda047f0ec1735cbdbdec"
     },
     {
       "repo": "BE",
@@ -1952,7 +1952,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/aiExtractor.js",
-      "sha256": "89551ea3a5b84d554cdb3df164ad15504f92f9aabef4cd782c7f7381edbb079d"
+      "sha256": "3b3c908a5b458fd1a5eea82a6de0bfcdd75113fe4db1986051b63485642abd58"
     },
     {
       "repo": "BE",
@@ -2042,7 +2042,7 @@
     {
       "repo": "BE",
       "path": "src/modules/products/service.js",
-      "sha256": "0b3afaf81cc3458fd56d50e4c87a81f1d9f5b119e60ca9d5f79faeb99930f434"
+      "sha256": "6d5280115b32ccb280fa7941cc309399dd13a1a2b8fa7e41991c402d0bb1b320"
     },
     {
       "repo": "BE",
@@ -2372,7 +2372,7 @@
     {
       "repo": "BE",
       "path": "src/routes/auth.js",
-      "sha256": "5218776920868da49b29dc5611fe32a314f2ffb8cb77c07a47afaf29d1bda8f2"
+      "sha256": "b2dbefa5be8fb57c10a56b098718b9849fb2fb1e9c4a469d2aa97e4497b24461"
     },
     {
       "repo": "BE",
@@ -2547,7 +2547,7 @@
     {
       "repo": "BE",
       "path": "src/server.js",
-      "sha256": "613bf951371176f559f6cdc6bed4038570cedc18e14efcbbb9b9fe0ac41f7ad6"
+      "sha256": "2aa6c10a035d6fdb450ef6b97c0b967cacb08d6099c4a9f1841f4ead6a61f651"
     },
     {
       "repo": "BE",
@@ -2922,7 +2922,7 @@
     {
       "repo": "BE",
       "path": "src/services/subscriptionService/planRules.js",
-      "sha256": "e15f2e9c2be6f2f2c628c33e0ebb12b821775bb663d5941a32f97f9c4a2aa9ab"
+      "sha256": "58ad83e7115ac9f0f70418de2b82d9453633a2fe88da8ee583cbb6dbbc778365"
     },
     {
       "repo": "BE",
@@ -3345,6 +3345,12 @@
       "date": "2026-11-15",
       "reason": "User approved industrial/agri demo data, Lovable UI sync and report registry update",
       "filesUpdated": 58,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-18",
+      "reason": "User approved bugfix plan from the weavecarbon.com test report (18/11/2026): MapLibre worker, B2C demo session, pitch-deck pricing, demo data consistency, number formatting, assessment wizard hints, demo Weavey, search folding, chart warnings, SEO metadata; BE Gemini key removal, demo cleanup, rate limit, pricing, search.",
+      "filesUpdated": 22,
       "filesRemoved": []
     }
   ]

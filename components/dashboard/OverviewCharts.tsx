@@ -187,7 +187,7 @@ export default function OverviewCharts({
             {isLoading ? (
               <div className="h-full w-full rounded-md border border-slate-300 bg-slate-200/70 animate-pulse" />
             ) : showMonthly ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 200 }}>
                 <LineChart data={monthly.data} margin={{ top: 8, right: isMobile ? 8 : 16, left: isMobile ? -16 : 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                   <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "var(--color-muted-foreground)" }} />
@@ -205,7 +205,7 @@ export default function OverviewCharts({
                 </LineChart>
               </ResponsiveContainer>
             ) : hasProductData ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 200 }}>
                 <BarChart
                   data={productEmissions}
                   margin={{ top: 4, right: isMobile ? 8 : 16, left: isMobile ? -16 : 0, bottom: 0 }}
@@ -269,7 +269,7 @@ export default function OverviewCharts({
             {isLoading ? (
               <div className="h-full w-full rounded-md border border-slate-300 bg-slate-200/70 animate-pulse" />
             ) : hasBreakdownData ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 200 }}>
                 <PieChart>
                   <Pie
                     data={emissionBreakdown}

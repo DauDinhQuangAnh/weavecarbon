@@ -179,7 +179,7 @@ export default function IndustrialPortfolioSection() {
           footer="Chuỗi demo tổng hợp. Mỗi ngành có nhịp vận hành riêng; tổng các giá trị khớp với tổng theo cơ sở đã seed."
         >
           <div className="h-[340px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 200 }}>
               <LineChart data={cadence} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                 <XAxis dataKey="period" tick={axisTick} tickLine={false} axisLine={false} />
@@ -249,7 +249,7 @@ export default function IndustrialPortfolioSection() {
           }
         >
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 200 }}>
               <AreaChart data={series} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                 <XAxis dataKey="period" tick={{ ...axisTick, fontSize: 12 }} tickLine={false} axisLine={false} />

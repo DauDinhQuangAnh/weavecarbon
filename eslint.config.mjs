@@ -9,7 +9,9 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    // copied third-party worker bundles (scripts/copy-maplibre-worker.mjs)
+    "public/vendor/**"
   ]),
   {
     rules: {

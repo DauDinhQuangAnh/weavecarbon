@@ -23,9 +23,21 @@ import MaintenanceScreen from "@/components/system/MaintenanceScreen";
 // getBackendHealth() still coalesces checks within its short server-side TTL.
 export const dynamic = "force-dynamic";
 
+const SITE_URL = "https://weavecarbon.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "WeaveCarbon",
   description: "Industrial carbon and climate data infrastructure",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "WeaveCarbon",
+    title: "WeaveCarbon · Industrial carbon & climate data infrastructure",
+    description: "Hạ tầng dữ liệu carbon và rủi ro khí hậu cho chuỗi cung ứng công nghiệp.",
+    locale: "vi_VN"
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
