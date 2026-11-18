@@ -161,7 +161,7 @@ export default function IndustrialPortfolioSection() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Phát thải toàn danh mục" value={fmt(emissionsSummary.totalTonnes)} unit="tCO₂e" subtext={`Danh mục demo ${organization.period}`} />
+        <StatCard label="Phát thải kiểm kê các cơ sở" value={fmt(emissionsSummary.totalTonnes)} unit="tCO₂e" subtext={`Danh mục demo ${organization.period}`} />
         <StatCard label="Độ phủ ngành" value={String(facilities.length)} subtext="Số ngành được đại diện" />
         <StatCard
           label="Sản phẩm xuất khẩu / song dụng"

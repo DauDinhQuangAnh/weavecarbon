@@ -4,8 +4,9 @@ import { motion } from "motion/react";
 import { Leaf, Linkedin, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { useLandingT } from "./LandingLanguage";
+import { SALES_CONTACT } from "@/lib/pricing/plans";
 
-const CONTACT_EMAIL = "mytrinhh.bb@gmail.com";
+const CONTACT_EMAIL = SALES_CONTACT.email;
 const CONTACT_PHONE = "0828 413 747";
 
 const Footer = () => {

@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Check, Crown, Mail, Phone, Sparkles, X, Zap } from "lucide-react";
+import { ArrowLeft, Check, Crown, Mail, Phone, Sparkles, Zap } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -21,6 +21,7 @@ import {
   normalizeSubscriptionPlan,
   type StandardSkuLimit
 } from "@/lib/subscriptionPlans";
+import { PRICING_PLANS, SALES_CONTACT } from "@/lib/pricing/plans";
 
 interface PricingModalProps {
   open: boolean;
@@ -39,10 +40,11 @@ interface PricingModalProps {
 type MainPlanId = "trial" | "standard" | "export";
 type SelectionStep = "plans" | "standard-options";
 
+// Contact and prices come from the official price list (lib/pricing/plans.ts).
 const ENTERPRISE_CONTACT = {
-  name: "DoanThi My Trinh",
-  phone: "0828 413 747",
-  email: "mytrinh.bb@gmail.com"
+  name: "WeaveCarbon Sales",
+  phone: SALES_CONTACT.phoneDisplay,
+  email: SALES_CONTACT.email
 } as const;
 
 const pricingPlans: Array<{
@@ -87,22 +89,14 @@ const standardPackages: Array<{
   price: string;
   popular?: boolean;
 }> = [
-  { skuLimit: 20, price: "899,000" },
-  { skuLimit: 35, price: "1,199,000", popular: true },
-  { skuLimit: 50, price: "1,499,000" }
+  // Starter is sold as a single 20-SKU package; SKU tiers are no longer offered.
+  { skuLimit: 20, price: (PRICING_PLANS.starter.priceVnd ?? 0).toLocaleString("vi-VN"), popular: true }
 ];
 
-const includedFeaturesByPlan: Record<MainPlanId, Set<string>> = {
-  trial: new Set(["simpleProxy", "domesticTransport", "pdfReport"]),
-  standard: new Set(["simpleProxy", "domesticTransport", "exportTransport"]),
-  export: new Set([
-    "allStandard",
-    "usEuCompliance",
-    "circularCredit",
-    "advancedAudit",
-    "erpApi",
-    "dedicatedManager"
-  ])
+const PLAN_KEY_BY_ID: Record<MainPlanId, "trial" | "starter" | "pro"> = {
+  trial: "trial",
+  standard: "starter",
+  export: "pro"
 };
 
 const PLAN_COPY: Record<MainPlanId, {
@@ -118,14 +112,14 @@ const PLAN_COPY: Record<MainPlanId, {
     cycle: "Kích hoạt tự động"
   },
   standard: {
-    name: "Standard",
-    description: "Một gói Standard, chọn thêm mức SKU phù hợp",
-    price: "899,000 - 1,499,000"
+    name: PRICING_PLANS.starter.name,
+    description: PRICING_PLANS.starter.audience.vi,
+    price: (PRICING_PLANS.starter.priceVnd ?? 0).toLocaleString("vi-VN")
   },
   export: {
-    name: "Export",
-    description: "Dành cho hồ sơ xuất khẩu và tuân thủ nâng cao",
-    price: "Liên hệ"
+    name: PRICING_PLANS.pro.name,
+    description: PRICING_PLANS.pro.audience.vi,
+    price: (PRICING_PLANS.pro.priceVnd ?? 0).toLocaleString("vi-VN")
   }
 };
 
@@ -255,9 +249,9 @@ const PricingModal: React.FC<PricingModalProps> = ({
                   : normalizedCurrentPlan === plan.id;
               const isBlockedByExport =
                 currentPlanFamily === "export" && plan.id === "standard";
-              const featureKeys = isMobileView
-                ? plan.featureKeys.slice(0, plan.id === "export" ? 4 : 3)
-                : plan.featureKeys;
+              // Feature lists come from the official price list (lib/pricing/plans.ts).
+              const planFeatures = PRICING_PLANS[PLAN_KEY_BY_ID[plan.id]].features.vi;
+              const visibleFeatures = isMobileView ? planFeatures.slice(0, 4) : planFeatures;
 
               return (
                 <Card
@@ -298,31 +292,22 @@ const PricingModal: React.FC<PricingModalProps> = ({
                     )}
                     {isStandardCard && !isMobileView && (
                       <p className="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                        Chọn thêm 20, 35 hoặc 50 SKU theo nhu cầu sử dụng.
+                        Mỗi lần thanh toán: 30 ngày sử dụng, cộng thêm 20 SKU.
                       </p>
                     )}
                   </CardHeader>
                   <CardContent className={isMobileView ? "space-y-3" : "space-y-4"}>
                     <ul className={isMobileView ? "space-y-1.5" : "space-y-2"}>
-                      {featureKeys.map((featureKey) => {
-                        const included = includedFeaturesByPlan[plan.id].has(featureKey);
-                        return (
-                          <li key={`${plan.id}-${featureKey}`} className="flex items-start gap-2 text-sm">
-                            {included ? (
-                              <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-                            ) : (
-                              <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                            )}
-                            <span className={included ? "" : "text-muted-foreground"}>
-                              {t(`features.${featureKey}`)}
-                            </span>
-                          </li>
-                        );
-                      })}
+                      {visibleFeatures.map((feature) => (
+                        <li key={`${plan.id}-${feature}`} className="flex items-start gap-2 text-sm">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
                     </ul>
-                    {isMobileView && plan.featureKeys.length > featureKeys.length && (
+                    {isMobileView && planFeatures.length > visibleFeatures.length && (
                       <p className="text-xs text-muted-foreground">
-                        +{plan.featureKeys.length - featureKeys.length} tính năng khác
+                        +{planFeatures.length - visibleFeatures.length} tính năng khác
                       </p>
                     )}
 
@@ -338,10 +323,10 @@ const PricingModal: React.FC<PricingModalProps> = ({
                       <Button
                         variant={plan.popular ? "default" : "outline"}
                         className="w-full"
-                        onClick={() => setSelectionStep("standard-options")}
+                        onClick={() => handleSubmitSelection("standard", 20)}
                         disabled={isBlockedByExport}
                       >
-                        {isBlockedByExport ? "Không áp dụng" : "Mua thêm SKU"}
+                        {isBlockedByExport ? "Không áp dụng" : `Đăng ký ${PRICING_PLANS.starter.name}`}
                       </Button>
                     ) : isCurrentPlan ? (
                       <Button variant="secondary" className="w-full" disabled>

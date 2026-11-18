@@ -27,6 +27,7 @@ import { fetchProducts } from '@/lib/productsApi';
 import { api } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardTitle } from '@/contexts/DashboardContext';
+import { PRICING_PLANS, SALES_CONTACT, salesMailto } from '@/lib/pricing/plans';
 
 interface SubscriptionState {
   plan: string | null;
@@ -44,11 +45,11 @@ interface PaymentSessionData {
   session_id?: string;
 }
 
-const SKU_TIERS: { value: 20 | 35 | 50; label: string; price: string }[] = [
-  { value: 20, label: '+20 SKU', price: '899,000 VND/tháng' },
-  { value: 35, label: '+35 SKU', price: '1,199,000 VND/tháng' },
-  { value: 50, label: '+50 SKU', price: '1,499,000 VND/tháng' },
-];
+// Official price list: lib/pricing/plans.ts (Starter = backend plan "standard").
+const STARTER = PRICING_PLANS.starter;
+const PRO = PRICING_PLANS.pro;
+const TRIAL = PRICING_PLANS.trial;
+const STARTER_SKU = STARTER.skuLimit ?? 20;
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -69,7 +70,6 @@ export default function BillingPage() {
   });
 
   const [showStandardModal, setShowStandardModal] = useState(false);
-  const [selectedSku, setSelectedSku] = useState<20 | 35 | 50>(20);
   const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
@@ -119,8 +119,8 @@ export default function BillingPage() {
           : null);
       return days !== null ? `Trial (còn ${days} ngày)` : 'Trial';
     }
-    if (planFamily === 'standard') return 'Standard';
-    if (planFamily === 'export') return 'Export';
+    if (planFamily === 'standard') return STARTER.name;
+    if (planFamily === 'export') return PRO.name;
     return effectivePlan;
   }, [effectivePlan, planFamily, subState, trialEndsAt, trialExpired]);
 
@@ -136,13 +136,13 @@ export default function BillingPage() {
           target_plan: 'standard',
           billing_cycle: 'monthly',
           payment_provider: 'vnpay',
-          standard_sku_limit: selectedSku,
+          standard_sku_limit: STARTER_SKU,
         }
       );
       const url = res?.payment_url ?? res?.vnpay_url ?? res?.checkout_url;
       if (url) {
         const currentStandardLimit = planFamily === 'standard' ? subState.skuLimit : 0;
-        const expectedProductsLimit = currentStandardLimit + selectedSku;
+        const expectedProductsLimit = currentStandardLimit + STARTER_SKU;
         sessionStorage.setItem('weavecarbon_pending_upgrade_plan', 'standard');
         sessionStorage.setItem('weavecarbon_pending_upgrade_display_plan', 'standard');
         sessionStorage.setItem('weavecarbon_pending_upgrade_expected_products_limit', String(expectedProductsLimit));
@@ -209,7 +209,7 @@ export default function BillingPage() {
               </div>
 
               <ul className="flex-1 space-y-2 text-sm">
-                {['Tính carbon proxy đơn giản', 'Vận chuyển nội địa', 'Xuất báo cáo PDF'].map((f) => (
+                {TRIAL.features.vi.map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
                     {f}
@@ -240,22 +240,19 @@ export default function BillingPage() {
                 <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mb-1">
                   <Sparkles className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-bold">Standard</h3>
-                <p className="text-sm text-muted-foreground">
-                  Một gói Standard, chọn thêm mức SKU phù hợp
-                </p>
+                <h3 className="text-lg font-bold">{STARTER.name}</h3>
+                <p className="text-sm text-muted-foreground">{STARTER.audience.vi}</p>
                 <div className="mt-1">
-                  <span className="text-2xl font-bold">899,000 – 1,499,000</span>
-                  <span className="block text-sm text-muted-foreground">VND/tháng</span>
+                  <span className="text-2xl font-bold">{STARTER.priceLabel.vi}</span>
                 </div>
               </div>
 
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
-                Chọn thêm 20, 35 hoặc 50 SKU theo nhu cầu sử dụng.
+                Mỗi lần thanh toán: 30 ngày sử dụng, cộng thêm {STARTER_SKU} SKU.
               </div>
 
               <ul className="flex-1 space-y-2 text-sm">
-                {['Tính carbon proxy đơn giản', 'Vận chuyển nội địa', 'Vận chuyển xuất khẩu'].map((f) => (
+                {STARTER.features.vi.map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
                     {f}
@@ -268,7 +265,7 @@ export default function BillingPage() {
                 onClick={() => setShowStandardModal(true)}
                 disabled={!user?.company_id}
               >
-                Mua thêm SKU
+                {planFamily === 'standard' ? 'Gia hạn Starter' : 'Đăng ký Starter'}
               </Button>
             </CardContent>
           </Card>
@@ -280,23 +277,16 @@ export default function BillingPage() {
                 <div className="w-14 h-14 rounded-full bg-amber-500 flex items-center justify-center mb-1">
                   <Crown className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-lg font-bold">Export</h3>
-                <p className="text-sm text-muted-foreground">Doanh nghiệp</p>
+                <h3 className="text-lg font-bold">{PRO.name}</h3>
+                <p className="text-sm text-muted-foreground">{PRO.audience.vi}</p>
                 <div className="mt-1">
-                  <span className="text-3xl font-bold">3M – 6M</span>
-                  <span className="block text-sm text-muted-foreground">VND/tháng</span>
+                  <span className="text-2xl font-bold">{PRO.priceLabel.vi}</span>
+                  <span className="block text-sm text-muted-foreground">Kích hoạt qua đội tư vấn</span>
                 </div>
               </div>
 
               <ul className="flex-1 space-y-2 text-sm">
-                {[
-                  'Tất cả tính năng của Standard',
-                  'Báo cáo tuân thủ US/EU',
-                  'Theo dõi circular credit',
-                  'Hỗ trợ audit nâng cao',
-                  'Tích hợp ERP API',
-                  'Quản lý tài khoản riêng',
-                ].map((f) => (
+                {PRO.features.vi.map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
                     {f}
@@ -309,7 +299,7 @@ export default function BillingPage() {
                 className="w-full mt-auto border-primary text-primary hover:bg-primary/5"
                 onClick={() =>
                   window.open(
-                    'mailto:sales@weavecarbon.com?subject=Tư vấn gói Export WeaveCarbon',
+                    salesMailto('Tư vấn gói Pro WeaveCarbon'),
                     '_blank'
                   )
                 }
@@ -321,10 +311,11 @@ export default function BillingPage() {
         </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          Để được tư vấn hoặc tuỳ chỉnh gói, liên hệ{' '}
-          <a href="mailto:sales@weavecarbon.com" className="text-primary underline">
-            sales@weavecarbon.com
-          </a>
+          Gói Enterprise (đa cơ sở, tích hợp API, Industry Pack, hỗ trợ chuyên trách): liên hệ{' '}
+          <a href={salesMailto('Tư vấn gói Enterprise WeaveCarbon')} className="text-primary underline">
+            {SALES_CONTACT.email}
+          </a>{' '}
+          · {SALES_CONTACT.phoneDisplay}
         </p>
       </div>
 
@@ -332,40 +323,20 @@ export default function BillingPage() {
       <Dialog open={showStandardModal} onOpenChange={setShowStandardModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Chọn gói SKU Standard</DialogTitle>
+            <DialogTitle>Thanh toán gói {STARTER.name}</DialogTitle>
             <DialogDescription>
-              Chọn số lượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
+              {STARTER.priceLabel.vi} · 30 ngày sử dụng · cộng thêm {STARTER_SKU} SKU vào giới hạn hiện tại.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            {SKU_TIERS.map((tier) => (
-              <button
-                key={tier.value}
-                type="button"
-                onClick={() => setSelectedSku(tier.value)}
-                className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
-                  selectedSku === tier.value
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedSku === tier.value ? 'border-primary' : 'border-slate-300'
-                    }`}
-                  >
-                    {selectedSku === tier.value && (
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                    )}
-                  </div>
-                  <span className="font-medium text-sm">{tier.label}</span>
-                </div>
-                <span className="text-sm font-semibold text-primary">{tier.price}</span>
-              </button>
+          <ul className="space-y-2 py-2 text-sm">
+            {STARTER.features.vi.map((f) => (
+              <li key={f} className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                {f}
+              </li>
             ))}
-          </div>
+          </ul>
 
           <div className="flex gap-2 pt-1">
             <Button

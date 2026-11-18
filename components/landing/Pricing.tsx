@@ -4,32 +4,43 @@ import { useLandingLanguage } from "./LandingLanguage";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { PRICING_PLANS, PRICING_PLAN_ORDER, salesMailto } from "@/lib/pricing/plans";
 
 const Pricing = () => {
   const { language } = useLandingLanguage();
 
-  const copy = language === "en" ? {
+  const lang = language === "en" ? "en" : "vi";
+  const header = lang === "en" ? {
     eyebrow: "PLANS",
     title: "Start with the data foundation, expand as reporting needs grow",
     subtitle: "Plans scale from demo exploration to multi-facility industrial deployment. Technical standards such as CBAM, GHG Protocol and ISO remain part of the reporting context rather than being translated or renamed.",
     popular: "Most popular",
-    tiers: [
-      { name: "Trial", price: "Free for 14 days", features: ["5 SKUs", "1 demo shipment", "Estimated carbon assessment", "No official report export"], cta: "Try B2B", href: "/auth", highlight: false },
-      { name: "Standard", price: "899,000 – 1,490,000 VND/month", features: ["Product/SKU management", "Bulk upload", "Basic Scope 1-2-3", "Data Gap Checker", "Dashboard", "Draft reports"], cta: "Try B2B", href: "/auth", highlight: false },
-      { name: "Export", price: "3,000,000 – 6,000,000 VND/month", features: ["Product Carbon Footprint package", "Export/market reporting adapters", "Facility GHG report", "Advanced Audit Trail", "Multi-user management", "Onboarding support"], cta: "Try B2B", href: "/auth", highlight: true },
-      { name: "Enterprise", price: "Contact us", features: ["API / ERP", "Multi-facility", "Custom workflow", "SLA", "Dedicated deployment support"], cta: "Contact sales", href: "mailto:mytrinhh.bb@gmail.com", highlight: false },
-    ],
+    tryCta: "Try B2B",
+    contactCta: "Contact sales",
   } : {
     eyebrow: "GÓI DỊCH VỤ",
     title: "Bắt đầu từ nền tảng dữ liệu, mở rộng theo nhu cầu báo cáo",
     subtitle: "Các gói mở rộng từ trải nghiệm demo đến triển khai đa cơ sở công nghiệp. Các thuật ngữ kỹ thuật như CBAM, GHG Protocol và ISO được giữ nguyên theo đúng ngữ cảnh chuyên ngành.",
     popular: "Phổ biến nhất",
-    tiers: [
-      { name: "Trial", price: "Miễn phí 14 ngày", features: ["5 SKU", "1 lô hàng demo", "Đánh giá carbon ước tính", "Không xuất báo cáo chính thức"], cta: "Dùng thử B2B", href: "/auth", highlight: false },
-      { name: "Standard", price: "899.000 – 1.490.000 ₫/tháng", features: ["Quản lý sản phẩm/SKU", "Tải dữ liệu hàng loạt", "Scope 1-2-3 cơ bản", "Kiểm tra khoảng trống dữ liệu", "Bảng điều khiển", "Báo cáo nháp"], cta: "Dùng thử B2B", href: "/auth", highlight: false },
-      { name: "Export", price: "3.000.000 – 6.000.000 ₫/tháng", features: ["Hồ sơ dấu chân carbon sản phẩm (PCF)", "Bộ chuyển đổi báo cáo xuất khẩu/thị trường", "Báo cáo KNK cấp cơ sở", "Nhật ký kiểm toán nâng cao", "Quản lý nhiều người dùng", "Hỗ trợ triển khai ban đầu"], cta: "Dùng thử B2B", href: "/auth", highlight: true },
-      { name: "Enterprise", price: "Liên hệ", features: ["Tích hợp API / ERP", "Đa cơ sở sản xuất", "Quy trình tùy chỉnh", "Cam kết chất lượng dịch vụ (SLA)", "Hỗ trợ triển khai riêng"], cta: "Liên hệ tư vấn", href: "mailto:mytrinhh.bb@gmail.com", highlight: false },
-    ],
+    tryCta: "Dùng thử B2B",
+    contactCta: "Liên hệ tư vấn",
+  };
+
+  // Prices and features come from the single price list in lib/pricing/plans.ts.
+  const copy = {
+    ...header,
+    tiers: PRICING_PLAN_ORDER.map((key) => {
+      const plan = PRICING_PLANS[key];
+      const isEnterprise = key === "enterprise";
+      return {
+        name: plan.name,
+        price: `${plan.priceLabel[lang]} · ${plan.audience[lang]}`,
+        features: plan.features[lang],
+        cta: isEnterprise ? header.contactCta : header.tryCta,
+        href: isEnterprise ? salesMailto("WeaveCarbon Enterprise") : "/auth",
+        highlight: key === "pro",
+      };
+    }),
   };
 
   return (

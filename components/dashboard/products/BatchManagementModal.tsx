@@ -44,7 +44,9 @@ import {
   type ProductBatchSummary,
   type ProductRecord
 } from "@/lib/productsApi";
-import { isApiError } from "@/lib/apiClient";interface BatchManagementModalProps {
+import { isApiError } from "@/lib/apiClient";
+import { formatFixed } from "@/lib/format/number";
+interface BatchManagementModalProps {
   open: boolean;
   onClose: () => void;
   initialBatchId?: string;
@@ -784,7 +786,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                       <p className="text-xs text-muted-foreground">{product.productCode}</p>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {(product.carbonResults?.perProduct.total ?? 0).toFixed(2)} kg CO2e
+                      {formatFixed(product.carbonResults?.perProduct.total ?? 0, 2)} kg CO₂e
                     </Badge>
                   </div>
                 )}
@@ -1029,7 +1031,7 @@ const BatchManagementModal: React.FC<BatchManagementModalProps> = ({
                             <Plus className="w-4 h-4 text-primary" />
                             <span className="text-sm truncate">{product.productName}</span>
                             <Badge variant="outline" className="text-xs ml-auto">
-                              {(product.carbonResults?.perProduct.total ?? 0).toFixed(2)} kg
+                              {formatFixed(product.carbonResults?.perProduct.total ?? 0, 2)} kg
                             </Badge>
                           </div>
                     )}

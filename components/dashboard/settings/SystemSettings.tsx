@@ -51,6 +51,7 @@ import {
   DialogTitle } from
 "@/components/ui/dialog";
 import { Building2, Clock, Save, X, Zap, User, KeyRound } from "lucide-react";
+import { PRICING_PLANS } from '@/lib/pricing/plans';
 import { toast } from "sonner";interface CompanyData {
   id: string;
   name: string;
@@ -106,10 +107,9 @@ interface PaymentSessionData {
   session_id?: string;
 }
 
+// Official price list (lib/pricing/plans.ts): Starter is one 20-SKU package.
 const SKU_TIERS: { value: 20 | 35 | 50; label: string; price: string }[] = [
-  { value: 20, label: '+20 SKU', price: '899,000 VND/tháng' },
-  { value: 35, label: '+35 SKU', price: '1,199,000 VND/tháng' },
-  { value: 50, label: '+50 SKU', price: '1,499,000 VND/tháng' },
+  { value: 20, label: `${PRICING_PLANS.starter.name} (+20 SKU)`, price: PRICING_PLANS.starter.priceLabel.vi },
 ];
 
 const TRIAL_PRODUCTS_LIMIT = 5;
@@ -619,11 +619,11 @@ const SystemSettings: React.FC = () => {
         }) :
     activePlanFamily === "standard" ?
       subscriptionInfo.standardExpired ?
-        `Standard \u0111\u00e3 h\u1ebft h\u1ea1n${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
+        `Starter \u0111\u00e3 h\u1ebft h\u1ea1n${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
       subscriptionInfo.standardDaysRemaining === null ?
-        `Standard \u0111ang ho\u1ea1t \u0111\u1ed9ng${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
+        `Starter \u0111ang ho\u1ea1t \u0111\u1ed9ng${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
         `C\u00f2n ${subscriptionInfo.standardDaysRemaining} ng\u00e0y${activeStandardSkuLimit ? ` - ${activeStandardSkuLimit} SKU` : ""}` :
-      "G\u00f3i Export \u0111ang ho\u1ea1t \u0111\u1ed9ng";
+      "G\u00f3i Pro \u0111ang ho\u1ea1t \u0111\u1ed9ng";
   if (!canAccessSystemSettings) {
     return null;
   }
@@ -1245,9 +1245,9 @@ const SystemSettings: React.FC = () => {
     <Dialog open={showStandardModal} onOpenChange={setShowStandardModal}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Chọn gói SKU Standard</DialogTitle>
+          <DialogTitle>Thanh toán gói {PRICING_PLANS.starter.name}</DialogTitle>
           <DialogDescription>
-            Chọn số lượng SKU phù hợp với nhu cầu doanh nghiệp của bạn.
+            30 ngày sử dụng, cộng thêm 20 SKU vào giới hạn hiện tại.
           </DialogDescription>
         </DialogHeader>
 

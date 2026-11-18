@@ -41,6 +41,7 @@ import {
   type ProxyMaterialShare,
   type ProxyTransportMode
 } from "@/lib/carbon/proxyCalculator";
+import { formatFixed } from "@/lib/format/number";
 
 interface MaterialInputRow {
   id: string;
@@ -356,7 +357,7 @@ export default function CalculatorClient() {
                   <div className="space-y-6">
                     <div className="rounded-2xl bg-gradient-forest p-6 text-center text-primary-foreground">
                       <p className="mb-2 text-sm font-medium opacity-80">{t("result")}</p>
-                      <p className="mb-1 text-5xl font-display font-bold">{emissions.total.toFixed(2)}</p>
+                      <p className="mb-1 text-5xl font-display font-bold">{formatFixed(emissions.total, 2)}</p>
                       <p className="text-sm opacity-80">{t("kgCO2e")}</p>
                       <p className="mt-2 text-xs opacity-70">
                         {t("carEquivalent", { km: Math.round(emissions.total / 0.21).toLocaleString("vi-VN") })}
@@ -373,7 +374,7 @@ export default function CalculatorClient() {
                               {t(labelKey)}
                             </span>
                             <span className="font-medium text-foreground">
-                              {emissions[key].toFixed(2)} {t("kgCO2e")}
+                              {formatFixed(emissions[key], 2)} {t("kgCO2e")}
                             </span>
                           </div>
                           <Progress value={getPercentage(emissions[key], emissions.total)} className="h-2" />

@@ -70,6 +70,7 @@ import {
 import { api } from "@/lib/apiClient";
 import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
 import { cacheSummaryProduct } from "@/lib/summaryProductCache";
+import { co2PerUnitLabel, formatFixed } from "@/lib/format/number";
 
 // Dynamic imports — these components are only needed when user opens a modal
 const BulkUploadModal = dynamic(
@@ -1304,10 +1305,12 @@ const ProductsClient: React.FC = () => {
                       <div>
                         <p className="text-base font-bold leading-none text-emerald-700">
                           {typeof product.carbonResults?.perProduct.total === "number"
-                            ? `${product.carbonResults.perProduct.total.toFixed(2)} kg`
+                            ? `${formatFixed(product.carbonResults.perProduct.total, 2)} kg`
                             : "-"}
                         </p>
-                        <p className="mt-1 text-[11px] text-slate-500 font-medium">{t("co2PerUnit")}</p>
+                        <p className="mt-1 text-[11px] text-slate-500 font-medium">
+                          {co2PerUnitLabel(product.weightPerUnit)?.replace(/^kg /, "") ?? t("co2PerUnit")}
+                        </p>
                         <div className="mt-1.5 flex items-center gap-1.5" title="Audit-ready score (chỉ báo nội bộ)">
                           <span className="h-1 w-16 overflow-hidden rounded-full bg-muted">
                             <span

@@ -406,8 +406,8 @@
     "pageTitle": "Tổng quan",
     "pageSubtitle": "Tổng quan theo dõi carbon của bạn",
     "stats": {
-      "totalCO2": "Tổng phát thải CO₂",
-      "kgCO2eThisMonth": "kg CO₂e tháng này",
+      "totalCO2": "Tổng CO₂e của các SKU",
+      "kgCO2eThisMonth": "kg CO₂e · tổng các lô SKU đang theo dõi",
       "skuTracking": "SKU Theo dõi",
       "activeProducts": "sản phẩm đang hoạt động",
       "exportReadiness": "Sẵn sàng xuất khẩu",

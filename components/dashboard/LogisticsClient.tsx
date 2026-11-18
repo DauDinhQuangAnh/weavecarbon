@@ -64,6 +64,7 @@ import { useResolvedRoadRouteGeometry } from "@/hooks/useResolvedRoadRouteGeomet
 import { usePermissions } from "@/hooks/usePermissions";
 import { showNoPermissionToast } from "@/lib/noPermissionToast";
 import { isApiError } from "@/lib/apiClient";
+import { formatFixed, formatNumber } from "@/lib/format/number";
 
 const ProductQRCode = dynamic(() => import("./ProductQRCode"), { ssr: false });
 
@@ -599,7 +600,7 @@ const LogisticsClient: React.FC = () => {
           </p>
           {overview && (
             <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
-              CO₂e vận chuyển ước tính: {overview.totalCo2e.toFixed(0)} kg
+              CO₂e vận chuyển ước tính: {formatNumber(overview.totalCo2e, 0)} kg
             </span>
           )}
         </div>
@@ -678,7 +679,7 @@ const LogisticsClient: React.FC = () => {
             },
             {
               label: "kg CO₂e ước tính",
-              value: overview.totalCo2e.toFixed(0),
+              value: formatNumber(overview.totalCo2e, 0),
               icon: <Activity className="h-4 w-4 text-emerald-700" />,
               iconBg: "bg-emerald-100/70",
               valueColor: "text-emerald-700",
@@ -863,7 +864,7 @@ const LogisticsClient: React.FC = () => {
                             {getTransportBadge(primaryMode)}
                             {s.totalDistanceKm > 0 && (
                               <span className="text-[11px] text-slate-500 font-medium">
-                                · {s.totalDistanceKm.toLocaleString()} km
+                                · {formatNumber(s.totalDistanceKm, 0)} km
                               </span>
                             )}
                           </div>
@@ -874,7 +875,7 @@ const LogisticsClient: React.FC = () => {
                       <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
                         <div>
                           <p className="text-base font-bold leading-none text-emerald-700">
-                            {s.totalCo2e.toFixed(1)} kg CO₂e
+                            {formatFixed(s.totalCo2e, 1)} kg CO₂e
                           </p>
                           <p className="mt-1 text-[11px] text-slate-500 font-medium">
                             {s.estimatedArrival
@@ -1079,7 +1080,7 @@ const LogisticsClient: React.FC = () => {
                                   {leg.originLocation} → {leg.destinationLocation}
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                  {leg.distanceKm.toLocaleString()} km · <span className="font-semibold text-emerald-700">{leg.co2e.toFixed(2)} kg CO₂e</span>
+                                  {formatNumber(leg.distanceKm, 0)} km · <span className="font-semibold text-emerald-700">{formatFixed(leg.co2e, 2)} kg CO₂e</span>
                                 </p>
                               </div>
                               <TooltipProvider>
@@ -1151,7 +1152,7 @@ const LogisticsClient: React.FC = () => {
                                   </td>
                                   <td className="px-3.5 py-2.5 text-slate-600 whitespace-nowrap">{getModeLabel(leg.transportMode)}</td>
                                   <td className="px-3.5 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">{factorKey}</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700 whitespace-nowrap">{leg.distanceKm.toLocaleString()}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700 whitespace-nowrap">{formatNumber(leg.distanceKm, 0)}</td>
                                   <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600 whitespace-nowrap">{tonneKm.toFixed(2)}</td>
                                   <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600 whitespace-nowrap">{defra.factor}</td>
                                   <td className="px-3.5 py-2.5 text-right font-semibold tabular-nums text-emerald-700 whitespace-nowrap">{leg.co2e.toFixed(2)}</td>
@@ -1163,7 +1164,7 @@ const LogisticsClient: React.FC = () => {
                             <tr className="border-t border-slate-200 bg-emerald-50/50">
                               <td colSpan={4} className="px-3.5 py-2.5 font-bold text-slate-800">Tổng cộng</td>
                               <td className="px-3.5 py-2.5 text-right font-bold tabular-nums text-slate-800 whitespace-nowrap">
-                                {selectedShipment.totalDistanceKm.toLocaleString()}
+                                {formatNumber(selectedShipment.totalDistanceKm, 0)}
                               </td>
                               <td className="px-3.5 py-2.5" />
                               <td className="px-3.5 py-2.5" />
@@ -1190,7 +1191,7 @@ const LogisticsClient: React.FC = () => {
                             <span className="font-semibold text-slate-800">{p.productName || p.sku}</span>
                             <div className="flex items-center gap-3 text-slate-500">
                               <span>{p.quantity} sản phẩm</span>
-                              <span className="font-semibold text-emerald-700">{p.allocatedCo2e.toFixed(2)} kg CO₂e</span>
+                              <span className="font-semibold text-emerald-700">{formatFixed(p.allocatedCo2e, 2)} kg CO₂e</span>
                             </div>
                           </div>
                         ))}
@@ -1211,13 +1212,13 @@ const LogisticsClient: React.FC = () => {
                       </Badge>
                     </div>
                     <p className="text-2xl font-bold text-emerald-700 mt-1">
-                      {selectedShipment.totalCo2e.toFixed(2)} kg CO₂e
+                      {formatFixed(selectedShipment.totalCo2e, 2)} kg CO₂e
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-medium text-slate-500">Tổng cự ly hành trình</p>
                     <p className="text-xl font-bold text-slate-900 mt-1">
-                      {selectedShipment.totalDistanceKm.toLocaleString()} km
+                      {formatNumber(selectedShipment.totalDistanceKm, 0)} km
                     </p>
                   </div>
                 </div>
