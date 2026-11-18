@@ -669,8 +669,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode;}> = ({
         return { error: new Error("Demo sign-in did not return valid tokens.") };
       }
 
+      // Demo sessions run on non-/demo routes (e.g. /b2c). tokenStore only reads
+      // localStorage on /demo paths, so a persisted (localStorage) demo token was
+      // invisible after a reload and the user was sent back to /auth. Keep demo
+      // tokens tab-scoped in sessionStorage, like non-remembered real sessions.
       authTokenStore.setTokens(payload.tokens, {
-        persist: true,
+        persist: false,
         storageScope: "storage"
       });
       clearSubscriptionLockStateCache();
