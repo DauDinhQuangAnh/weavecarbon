@@ -174,6 +174,14 @@ export default function CalculatorClient() {
                   </div>
                   {t("title")}
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Phạm vi máy tính này: sản phẩm dệt may, ước tính proxy. Doanh nghiệp công nghiệp
+                  (thép, xi măng, nhôm, phân bón…) xem{" "}
+                  <Link href="/auth" className="text-primary underline-offset-2 hover:underline">
+                    không gian demo công nghiệp
+                  </Link>
+                  .
+                </p>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">

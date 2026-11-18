@@ -24,6 +24,7 @@ import type {
 import type { AddressInput, ProductAssessmentData } from "@/types/domain/product";
 import { createDemoShipment, cascadeProductRemovalFromShipments } from "@/lib/demo/domain/logistics";
 import { syncDemoComplianceForPublishedProduct } from "@/lib/demo/domain/export";
+import { matchesSearch } from "@/lib/text/search";
 
 const createId = () =>
   globalThis.crypto?.randomUUID?.() ||
@@ -712,11 +713,8 @@ export const listDemoProducts = (
     items = items.filter((item) => item.status === query.status);
   }
   if (search) {
-    items = items.filter(
-      (item) =>
-        item.productName.toLowerCase().includes(search) ||
-        item.productCode.toLowerCase().includes(search) ||
-        item.productType.toLowerCase().includes(search)
+    items = items.filter((item) =>
+      matchesSearch(search, item.productName, item.productCode, item.productType)
     );
   }
   const total = items.length;

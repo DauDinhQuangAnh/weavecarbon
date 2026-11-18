@@ -72,6 +72,7 @@ import {
   getDemoFuelInvoices,
   getDemoSuppliers,
 } from "@/lib/demo/domain/operations";
+import { buildDemoChatAnswer } from "@/lib/demo/demoChat";
 import {
   applyDemoB2CDonationDisposition,
   createDemoB2CDonation,
@@ -1346,21 +1347,10 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       // ── Chat / AI direct ───────────────────────────────────────
       if (method === "POST" && pathname === "/chat/direct") {
         const payload = getBodyObject(body);
-        const query = String(payload.query || "").toLowerCase();
-        let answer =
-          "**Nhận định:** Cường độ phát thải của danh mục demo tập trung ở thép, nhôm và phân bón — ba nhóm hàng thuộc phạm vi EU CBAM.\n\n" +
-          "**Nguyên nhân chính:**\n- Phát thải quá trình và nhiên liệu tại lò điện hồ quang, lò nung clinker và cụm tổng hợp amoniac (Scope 1)\n- Điện lưới cho điện phân/ép đùn nhôm (Scope 2)\n- Phôi nhôm nguyên sinh và quặng nhập khẩu (Scope 3 upstream)\n\n" +
-          "**Đề xuất giảm phát thải (theo thứ tự ưu tiên):**\n1. Tăng tỷ lệ thép phế và nhôm tái chế — giảm 25–40% phát thải nguyên liệu\n2. Hợp đồng điện tái tạo (DPPA) hoặc điện mặt trời áp mái — giảm Scope 2\n3. Thu hồi nhiệt thải lò nung và tối ưu tỷ lệ clinker/phụ gia\n\n" +
-          "_Lưu ý: Đây là ước tính proxy. Tải chứng từ lên Evidence để hệ thống nâng độ tin cậy lên dữ liệu sơ cấp._";
-
-        if (query.includes("cà phê") || query.includes("ca phe") || query.includes("coffee") || query.includes("gạo") || query.includes("nông")) {
-          answer =
-            "**Nhận định:** Với nông sản (cà phê, gạo, điều, cao su), phát thải tập trung ở giai đoạn canh tác: N₂O từ phân đạm và CH₄ từ ruộng lúa ngập nước.\n\n" +
-            "**Nguyên nhân:**\n- Lượng phân đạm trên mỗi tấn sản phẩm cao (Scope 3 upstream)\n- Ruộng lúa ngập liên tục làm tăng CH₄\n- Sấy bằng củi/than tại cơ sở sơ chế\n\n" +
-            "**Đề xuất:**\n1. Thu thập dữ liệu nông hộ + toạ độ vườn (đồng thời đáp ứng EUDR)\n2. Canh tác lúa ướt-khô xen kẽ (AWD) để giảm CH₄\n3. Chuyển máy sấy sang biomass/điện tái tạo\n\n" +
-            "_Ước tính proxy — thay bằng dữ liệu sơ cấp từ nông hộ/hợp tác xã để báo cáo audit._";
-        }
-
+        const answer = buildDemoChatAnswer(
+          String(payload.query || ""),
+          (getDemoDataset().products || []) as Parameters<typeof buildDemoChatAnswer>[1]
+        );
         return { handled: true, value: { answer } };
       }
 

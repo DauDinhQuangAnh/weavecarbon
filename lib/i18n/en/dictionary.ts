@@ -7795,5 +7795,21 @@ export const EN_DICTIONARY: Record<string, string> = {
 "Tổng CO₂e của các SKU": "Total CO₂e of SKUs",
 "Phát thải 7 cơ sở (kiểm kê)": "7-facility inventory emissions",
 "Phát thải kiểm kê các cơ sở": "Facility inventory emissions",
-"kg CO₂e / tấn sản phẩm": "kg CO₂e / tonne of product"
+"kg CO₂e / tấn sản phẩm": "kg CO₂e / tonne of product",
+"Điều khoản sử dụng": "Terms of use",
+"Chính sách bảo mật": "Privacy policy",
+"← Về trang chủ": "← Back to home",
+"Chọn một sản phẩm để xem hộ chiếu sản phẩm và mã QR.": "Choose a product to view its product passport and QR code.",
+"Đang tải danh sách sản phẩm…": "Loading products…",
+"Chưa có sản phẩm nào. Hãy thêm sản phẩm trước.": "No products yet. Add a product first.",
+"Đang kiểm tra đăng nhập…": "Checking sign-in…",
+"Phạm vi máy tính này: sản phẩm dệt may, ước tính proxy. Doanh nghiệp công nghiệp (thép, xi măng, nhôm, phân bón…) xem": "This calculator covers textile products with proxy estimates. Industrial businesses (steel, cement, aluminium, fertiliser…) see the",
+"không gian demo công nghiệp": "industrial demo workspace",
+"Biểu mẫu này hiện hỗ trợ sản phẩm dệt may. Sản phẩm công nghiệp (thép, xi măng, nhôm, phân bón…) vui lòng nhập qua Dữ liệu hoạt động và Industry Packs.": "This form currently supports textile products. For industrial products (steel, cement, aluminium, fertiliser…) please use Activity data and Industry Packs.",
+"Còn thiếu: {items}": "Still missing: {items}",
+"Khối lượng / sản phẩm": "Weight per product",
+"Ít nhất một vật liệu": "At least one material",
+"Ít nhất một quy trình sản xuất": "At least one production process",
+"Ít nhất một chặng vận chuyển": "At least one transport leg",
+"Chặng vận chuyển hợp lệ": "A valid transport leg"
 };

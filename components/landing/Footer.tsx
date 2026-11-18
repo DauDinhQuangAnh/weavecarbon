@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Leaf, Linkedin, Mail, Phone } from "lucide-react";
+import { Leaf, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { useLandingT } from "./LandingLanguage";
 import { SALES_CONTACT } from "@/lib/pricing/plans";
@@ -68,13 +68,6 @@ const Footer = () => {
             </Link>
             <p className="mb-6 max-w-sm text-sm leading-6 text-primary-foreground/70">{t("desc")}</p>
             <div className="flex items-center gap-3">
-              <a
-                href="#"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/10 transition-colors hover:bg-primary-foreground/20"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="h-5 w-5" />
-              </a>
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
                 className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/10 transition-colors hover:bg-primary-foreground/20"
@@ -146,7 +139,10 @@ const Footer = () => {
           className="flex flex-col items-center justify-between gap-4 border-t border-primary-foreground/10 pt-6 text-center md:flex-row md:text-left"
         >
           <p className="text-sm text-primary-foreground/60">
-            &copy; {currentYear} WeaveCarbon. {t("rights")}
+            &copy; {currentYear} WeaveCarbon. {t("rights")}{" "}
+            <Link href="/terms" className="underline-offset-2 hover:underline">{t("terms")}</Link>
+            {" · "}
+            <Link href="/privacy" className="underline-offset-2 hover:underline">{t("privacy")}</Link>
           </p>
           <p className="max-w-xl text-xs text-primary-foreground/50 md:text-right">{t("disclaimer")}</p>
         </motion.div>

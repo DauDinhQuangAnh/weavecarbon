@@ -1242,6 +1242,40 @@ export default function AssessmentClient({
     }
   };
 
+  // Tells the user why "Tiếp theo" is disabled instead of a silent grey button.
+  const missingRequirements = (): string[] => {
+    const missing: string[] = [];
+    switch (currentStep) {
+      case 1:
+        if (!productData.productCode) missing.push("Mã sản phẩm");
+        if (!productData.productName) missing.push("Tên sản phẩm");
+        if (!productData.productType) missing.push("Loại sản phẩm");
+        if (!(productData.weightPerUnit > 0)) missing.push("Khối lượng / sản phẩm");
+        if (!(productData.quantity > 0)) missing.push("Số lượng sản xuất");
+        break;
+      case 2: {
+        const total = productData.materials.reduce((sum, material) => sum + (material.percentage || 0), 0);
+        if (productData.materials.length === 0) missing.push("Ít nhất một vật liệu");
+        else if (total !== 100) missing.push(`Tổng tỷ lệ vật liệu = 100% (hiện ${total}%)`);
+        break;
+      }
+      case 3: {
+        const total = productData.energySources.reduce((sum, energy) => sum + (energy.percentage || 0), 0);
+        if (productData.productionProcesses.length === 0) missing.push("Ít nhất một quy trình sản xuất");
+        if (total !== 100) missing.push(`Tổng tỷ lệ nguồn năng lượng = 100% (hiện ${total}%)`);
+        break;
+      }
+      case 4:
+        if (!productData.destinationMarket) missing.push("Thị trường đích");
+        if (productData.transportLegs.length === 0) missing.push("Ít nhất một chặng vận chuyển");
+        if (hasTrialDomesticAddressMismatch || hasUnusableRoadTransportLegs) missing.push("Chặng vận chuyển hợp lệ");
+        break;
+      default:
+        break;
+    }
+    return missing;
+  };
+
   const handleNext = () => {
     if (currentStep < steps.length) {
       setCurrentStep((prev) => prev + 1);
@@ -1804,6 +1838,18 @@ export default function AssessmentClient({
 
         </CardContent>
       </Card>
+
+      {currentStep === 1 &&
+      <p className="mt-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+          Biểu mẫu này hiện hỗ trợ sản phẩm dệt may. Sản phẩm công nghiệp (thép, xi măng, nhôm, phân bón…)
+          vui lòng nhập qua Dữ liệu hoạt động và Industry Packs.
+        </p>
+      }
+      {currentStep < steps.length && !canProceed() && missingRequirements().length > 0 &&
+      <p className="mt-4 text-sm text-amber-700" role="status">
+          Còn thiếu: {missingRequirements().join(", ")}
+        </p>
+      }
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:flex sm:items-center sm:justify-between">
         <Button

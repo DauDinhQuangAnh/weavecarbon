@@ -44,6 +44,15 @@ export default async function AuthLayout({
             <p className="text-center text-sm text-muted-foreground mt-6">
               {t("termsNotice")}
             </p>
+            <p className="mt-2 text-center text-sm">
+              <Link href="/terms" className="text-primary underline-offset-2 hover:underline">
+                Điều khoản sử dụng
+              </Link>
+              <span className="mx-2 text-muted-foreground">·</span>
+              <Link href="/privacy" className="text-primary underline-offset-2 hover:underline">
+                Chính sách bảo mật
+              </Link>
+            </p>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import PassportClient from "@/components/passport/PassportClient";
+import PassportDashboardClient from "@/components/passport/PassportDashboardClient";
 import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
 import { DASHBOARD_PASSPORT_NAMESPACES } from "@/lib/i18n/namespaces";
 
@@ -15,7 +15,7 @@ export default function DemoPassportDashboardPage() {
   return (
     <ScopedIntlProvider namespaces={DASHBOARD_PASSPORT_NAMESPACES}>
       <Suspense fallback={<PassportLoading />}>
-        <PassportClient />
+        <PassportDashboardClient />
       </Suspense>
     </ScopedIntlProvider>
   );

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import AuditPackClient from "@/components/audit/AuditPackClient";
+import { RequireSignedIn } from "@/components/auth/RequireSignedIn";
 import ScopedIntlProvider from "@/components/i18n/ScopedIntlProvider";
 import { DASHBOARD_REPORTS_NAMESPACES } from "@/lib/i18n/namespaces";
 
@@ -18,7 +19,9 @@ export default function AuditPage() {
   return (
     <ScopedIntlProvider namespaces={DASHBOARD_REPORTS_NAMESPACES}>
       <Suspense fallback={<AuditLoading />}>
-        <AuditPackClient />
+        <RequireSignedIn>
+          <AuditPackClient />
+        </RequireSignedIn>
       </Suspense>
     </ScopedIntlProvider>
   );
