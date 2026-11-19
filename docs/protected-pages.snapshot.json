@@ -177,7 +177,7 @@
     {
       "repo": "FE",
       "path": "app/globals.css",
-      "sha256": "03c81d3580a1fbf27fd80050b9133907232a0edcded11c9eb2101a2d31d58d5d"
+      "sha256": "77ec3de4ffdbb34ba085eed67bbe91ddf9f82107986bef608c3ebfca4af09d3f"
     },
     {
       "repo": "FE",
@@ -3286,6 +3286,12 @@
         "BE/src/validators/productsValidators.js",
         "BE/src/validators/reportsValidators.js"
       ]
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked to fix landing-page scroll lag (19/11/2026): scroll/pointer effects no longer write CSS variables on <html> every frame (CSS scroll-driven animation + a dedicated transformed glow element), body gradient moved to a fixed composited layer instead of background-attachment: fixed, in-flow landing cards drop backdrop-blur, hero WebGL skips MSAA on high-density screens.",
+      "filesUpdated": 1,
+      "filesRemoved": []
     }
   ]
 }

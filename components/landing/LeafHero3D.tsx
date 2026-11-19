@@ -108,7 +108,9 @@ const LeafHero3D = () => {
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      // MSAA only on low-density screens; at ≥1.5× the extra pixels already smooth edges
+      // and multisampling a full-viewport canvas there is the costliest part of a frame.
+      antialias: Math.min(window.devicePixelRatio, maxPixelRatio) < 1.5,
       powerPreference:
         maxPixelRatio > 1 ? "high-performance" : "low-power",
     });

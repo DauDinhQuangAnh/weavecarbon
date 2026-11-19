@@ -81,7 +81,7 @@ const Stats = () => {
                 delay: index * 0.08,
               }}
               whileHover={{ y: -4 }}
-              className="rounded-2xl border border-primary-foreground/10 bg-primary-foreground/5 p-5 text-center backdrop-blur-sm transition-colors hover:bg-primary-foreground/10 sm:p-6 md:p-8"
+              className="rounded-2xl border border-primary-foreground/10 bg-primary-foreground/5 p-5 text-center transition-colors hover:bg-primary-foreground/10 sm:p-6 md:p-8"
             >
               <div className="text-4xl md:text-5xl font-display font-bold mb-2">
                 {stat.value}

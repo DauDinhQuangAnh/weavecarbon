@@ -148,7 +148,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({
         >
           <span
             className={`mb-4 inline-flex rounded-full border border-primary/10 px-4 py-1.5 text-sm font-medium text-primary shadow-sm ${
-              reducedEffects ? "bg-white/85" : "bg-white/55 backdrop-blur-sm"
+              reducedEffects ? "bg-white/85" : "bg-white/55"
             }`}
           >
             {t("badge")}
@@ -174,7 +174,7 @@ const MobileSliderLayout: React.FC<FeatureLayoutProps> = ({
         >
           <div
             className={`relative overflow-hidden rounded-[2rem] border border-white/65 p-3 shadow-[0_26px_70px_-40px_rgba(45,74,28,0.5)] ${
-              reducedEffects ? "bg-white/90" : "bg-white/45 backdrop-blur-md"
+              reducedEffects ? "bg-white/90" : "bg-white/45"
             }`}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -345,7 +345,7 @@ const MobileGridLayout: React.FC<FeatureLayoutProps> = ({
                   setExpandedIndex(expandedIndex === index ? null : index)
                 }
                 className={`relative min-h-fit cursor-pointer rounded-2xl border border-primary/10 p-5 transition-all duration-300 hover:border-primary/30 sm:p-6 ${
-                  reducedEffects ? "bg-card" : "bg-card/80 backdrop-blur-sm"
+                  reducedEffects ? "bg-card" : "bg-card/80"
                 }`}
                 style={{
                   borderColor:

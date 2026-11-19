@@ -79,10 +79,10 @@ const USP = () => {
         </div>
 
         <div className="mx-auto mb-8 flex max-w-6xl flex-wrap items-center justify-center gap-2.5">
-          {copy.industries.map((industry) => <span key={industry} className="group inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3.5 py-2 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:text-foreground hover:shadow-md"><Factory className="h-3.5 w-3.5 text-primary transition-transform duration-300 group-hover:scale-110" />{industry}</span>)}
+          {copy.industries.map((industry) => <span key={industry} className="group inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3.5 py-2 text-xs font-medium text-muted-foreground shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:text-foreground hover:shadow-md"><Factory className="h-3.5 w-3.5 text-primary transition-transform duration-300 group-hover:scale-110" />{industry}</span>)}
         </div>
 
-        <div className="mx-auto mb-10 max-w-6xl rounded-2xl border border-primary/15 bg-card/70 p-3 shadow-[0_20px_70px_-45px_hsl(var(--primary)/0.45)] backdrop-blur md:p-4">
+        <div className="mx-auto mb-10 max-w-6xl rounded-2xl border border-primary/15 bg-card/70 p-3 shadow-[0_20px_70px_-45px_hsl(var(--primary)/0.45)] md:p-4">
           <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
             {copy.flow.map(([Icon, title, subtitle], index) => {
               const Comp = Icon as typeof Database;

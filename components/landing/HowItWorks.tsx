@@ -176,7 +176,7 @@ const HowItWorks = () => {
                               className={`relative rounded-3xl p-8 shadow-lg transition-all duration-300 group ${
                                 reducedEffects ?
                                   "bg-card hover:shadow-xl" :
-                                  "bg-card/80 backdrop-blur-sm hover:shadow-2xl"
+                                  "bg-card/80 hover:shadow-2xl"
                               }`}
                               style={{
                                 borderWidth: "1px",
@@ -311,7 +311,7 @@ const HowItWorks = () => {
                           >
                             <div
                               className={`rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 ${
-                                reducedEffects ? "bg-card" : "bg-card/80 backdrop-blur-sm"
+                                reducedEffects ? "bg-card" : "bg-card/80"
                               }`}
                               style={{
                                 borderWidth: "1px",
