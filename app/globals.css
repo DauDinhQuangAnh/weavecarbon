@@ -666,7 +666,8 @@
 ========================================================= */
 .app-contrast,
 html[data-app-surface="app"] {
-  --color-background: hsl(86 22% 93%);
+  /* Ô nhập/ô chọn dùng bg-background → để gần trắng; nền trang đậm hơn đặt riêng ở .app-contrast. */
+  --color-background: hsl(80 30% 98.6%);
   --color-card: hsl(75 30% 99.6%);
   --color-popover: hsl(75 30% 99.6%);
   --color-secondary: hsl(90 24% 90.5%);

@@ -177,7 +177,7 @@
     {
       "repo": "FE",
       "path": "app/globals.css",
-      "sha256": "a77dc1efe629f70e49f6defa2decf10189a137d781d27495fd74d59f75980acf"
+      "sha256": "26eaca55df3c9f8ed98f53e47100fc19539ac375afba09880b7adb1f56b23695"
     },
     {
       "repo": "FE",
@@ -3342,6 +3342,12 @@
     {
       "date": "2026-11-19",
       "reason": "Found while verifying the contrast/QR work (19/11/2026): Tailwind v4 applied dark: utilities from the OS colour scheme although the app has no dark theme, so on dark-mode machines inputs (dark:bg-input/30) looked greyed out like disabled fields. dark: now only applies under a .dark class, which no page sets.",
+      "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "Contrast follow-up (same request): many selects/inputs use bg-background, which the contrast layer had darkened to the page tone, so they looked grey next to white inputs. The background token is near-white again inside the dashboard; the darker page tone stays on the .app-contrast layout root.",
       "filesUpdated": 1,
       "filesRemoved": []
     }
