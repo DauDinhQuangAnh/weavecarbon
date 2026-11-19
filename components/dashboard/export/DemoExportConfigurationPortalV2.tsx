@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
@@ -59,6 +60,7 @@ import { buildAuditPackJsonV2, buildAuditPackPayloadV2, buildAuditRowsCsvV2 } fr
 import CompanyDataExportCardV2 from "./CompanyDataExportCardV2";
 import ComplianceDetailModal from "./ComplianceDetailModal";
 import ShipmentExportPortal from "./ShipmentExportPortal";
+import { DEMO_EXPORT_COPY } from "@/lib/demo/exportPortalDemoCopy";
 import { MARKET_REGULATIONS, type MarketCode, type MarketCompliance } from "./types";
 
 const downloadText = (filename: string, content: string, mime: string) => {
@@ -76,6 +78,47 @@ export interface DemoExportConfigurationPortalV2Props {
   onOpenMarketDetail?: (market: MarketCode) => void;
 }
 
+// Cấu hình trống cho tài khoản thật: không điền sẵn số tờ khai/PO/B/L/buyer mẫu.
+const EMPTY_EXPORT_CONFIG_V2: ExportConfigV2 = {
+  customsDeclarationNo: "",
+  poContractId: "",
+  billOfLadingNo: "",
+  containerNo: "",
+  barcodeStandard: "GS1-Digital",
+  buyerBrand: "",
+  buyerWebhookUrl: ""
+};
+
+// Cách diễn đạt cho tài khoản thật: không khẳng định có đơn vị thứ ba xác minh/kiểm toán
+// khi doanh nghiệp chưa có bằng chứng đó, và không dùng hải trình/đơn giá giả định.
+const REAL_EXPORT_COPY = {
+  tradeDocsTitle: "Chứng từ Vận tải & Thương mại nhúng Carbon",
+  sealTitle: "Niêm phong số liệu WeaveCarbon (SHA-256)",
+  sealAuditorPrefix: "Xác minh độc lập:",
+  sealAuditorName: "chưa có (số liệu tự khai báo)",
+  placeholderHash: "chưa khoá số liệu",
+  dppAuditorLine: "Chưa có xác minh độc lập của bên thứ ba · Phương pháp ISO 14067 (tự khai báo)",
+  qrVerifiedLine: "Số liệu tự khai báo · chưa xác minh độc lập",
+  preAuditTitle: "Gói hồ sơ chuẩn bị cho kiểm toán (pre-audit pack)",
+  auditReadyBadge: "ĐỦ DỮ LIỆU SƠ CẤP",
+  originalDocsHeading: "HỒ SƠ CHỨNG TỪ GỐC (TẢI VỀ CHO ĐƠN VỊ XÁC MINH)",
+  invoiceCopy:
+    "Phục vụ thanh toán ngân hàng & hải quan: bổ sung chỉ số phát thải carbon (kg CO₂e/đơn vị) và tổng phát thải của lô hàng để chuẩn bị dữ liệu CBAM khi áp dụng.",
+  ladingCopy:
+    "Phục vụ hãng tàu & logistics: đo lường phát thải vận tải biển Well-to-Wake (GLEC / IMO DCS) theo chặng vận tải thực tế của lô hàng.",
+  invoiceHeader: (buyer: string, po: string) =>
+    `Nhà mua hàng: ${buyer || "chưa nhập"} · Hợp đồng/PO: ${po || "chưa nhập"}`,
+  packingHeader: (container: string) => `Số hiệu Container: ${container || "chưa nhập"}`,
+  ladingHeader: "Hải trình, tàu và khoảng cách lấy theo dữ liệu vận tải thực tế của lô hàng",
+  ladingRouteNote: "Cần khối lượng hàng và chặng vận tải thực tế để tính theo GLEC v3.0",
+  ladingTotalNote: "Chưa gồm vận tải biển khi thiếu dữ liệu chặng vận tải",
+};
+
+/**
+ * Cổng xuất khẩu đầy đủ, dùng chung cho demo và tài khoản thật.
+ * Demo dùng gói SKU mẫu; tài khoản thật chỉ dùng sản phẩm, thị trường và chứng từ thật từ API
+ * (không rơi về dữ liệu mẫu khi chưa có dữ liệu).
+ */
 const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2Props> = ({
   documentManagerSlot,
   onOpenMarketDetail
@@ -85,9 +128,10 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
   const [activeTab, setActiveTab] = useState<string>("shipment");
   const [enterpriseExportOpen, setEnterpriseExportOpen] = useState(false);
   const [isExportingFullReport, setIsExportingFullReport] = useState(false);
-  const [cfg, setCfg] = useState<ExportConfigV2>(DEFAULT_EXPORT_CONFIG_V2);
+  const [cfg, setCfg] = useState<ExportConfigV2>(isDemoRuntime ? DEFAULT_EXPORT_CONFIG_V2 : EMPTY_EXPORT_CONFIG_V2);
   const [activeSku, setActiveSku] = useState(DEMO_PACK_V2[0]?.sku || "");
   const [products, setProducts] = useState<ProductRecord[]>([]);
+  const [productsState, setProductsState] = useState<"loading" | "ready" | "error">("loading");
   const [productEvidence, setProductEvidence] = useState<Record<string, EvidenceDocumentV2[]>>({});
   const [realComplianceData, setRealComplianceData] = useState<Record<MarketCode, MarketCompliance> | null>(null);
   const [dpp, setDpp] = useState<DppPayloadV2 | null>(null);
@@ -104,6 +148,11 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     setDocumentPreviewOpen(true);
   };
   const useRealProducts = !isDemoRuntime && products.length > 0;
+  // Đơn giá, quy cách đóng gói, trọng lượng và hải trình trong bản xem trước chứng từ chỉ là mô phỏng của demo;
+  // tài khoản thật chưa có các dữ liệu này nên hiển thị "—" thay vì số liệu giả định.
+  const sim = isDemoRuntime;
+  const NA = "—";
+  const copyText = sim ? DEMO_EXPORT_COPY : REAL_EXPORT_COPY;
 
   const breakdowns = useMemo(
     () => useRealProducts ? products.map((product) => getProductEmbeddedBreakdownV2(product)) : getAllCarbonBreakdownsV2(),
@@ -293,8 +342,9 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     }, {} as Record<MarketCode, MarketCompliance>);
   }, [marketProductScope, marketReadiness]);
 
-  const displayComplianceData = realComplianceData || marketComplianceData;
+  const displayComplianceData = realComplianceData || (isDemoRuntime ? marketComplianceData : ({} as Record<MarketCode, MarketCompliance>));
   const displayMarketCards = useMemo(() => {
+    if (!isDemoRuntime && !realComplianceData) return [];
     if (realComplianceData) {
       return (Object.keys(realComplianceData) as MarketCode[])
         .map((code) => {
@@ -311,7 +361,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     }
 
     return marketReadiness;
-  }, [marketReadiness, realComplianceData]);
+  }, [isDemoRuntime, marketReadiness, realComplianceData]);
 
   const openMarketDetail = (market: MarketCode) => {
     setSelectedMarketCode(market);
@@ -339,7 +389,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
       try {
         const remote = await fetchExportConfigurationV2();
         if (!cancelled && remote) {
-          setCfg({ ...DEFAULT_EXPORT_CONFIG_V2, ...remote });
+          setCfg({ ...(isDemoRuntime ? DEFAULT_EXPORT_CONFIG_V2 : EMPTY_EXPORT_CONFIG_V2), ...remote });
         }
       } catch {
         // Demo/offline mode keeps local defaults.
@@ -348,7 +398,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isDemoRuntime]);
 
   useEffect(() => {
     if (isDemoRuntime) return;
@@ -358,6 +408,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
         const items = await fetchAllProducts({ sort_by: "updated_at", sort_order: "desc" });
         if (cancelled) return;
         setProducts(items);
+        setProductsState("ready");
         if (items.length > 0) {
           setActiveSku((current) =>
             items.some((item) => item.id === current || item.productCode === current)
@@ -368,6 +419,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
       } catch {
         if (!cancelled) {
           setProducts([]);
+          setProductsState("error");
         }
       }
     })();
@@ -667,6 +719,17 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
   const [downloadingXlsx, setDownloadingXlsx] = useState<string | null>(null);
 
   const handleDownloadXlsx = async (type: "commercial-invoice" | "packing-list" | "bill-of-lading") => {
+    // Bản Excel dựng sẵn dùng đơn giá/trọng lượng/hải trình mô phỏng → chỉ cho demo.
+    // Tài khoản thật tải chứng từ do backend sinh từ dữ liệu thật.
+    if (!isDemoRuntime) {
+      setDownloadingXlsx(type);
+      try {
+        await handleDownloadDocument(type);
+      } finally {
+        setDownloadingXlsx(null);
+      }
+      return;
+    }
     setDownloadingXlsx(type);
     try {
       await exportBrandedTradeDocumentXlsx(type, cfg, breakdowns, totals);
@@ -683,7 +746,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     try {
       const result = await exportFullStandardReport("xlsx", {
         locale: "vi",
-        requestedBy: "Vietnam Industrial Group (Demo)",
+        requestedBy: isDemoRuntime ? "Vietnam Industrial Group (Demo)" : null,
         planLabel: "Enterprise / Standard",
       });
       toast.success(
@@ -706,6 +769,12 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
     return Math.round(sum / displayMarketCards.length);
   }, [displayMarketCards]);
 
+  const topMarketsLabel = useMemo(() => {
+    if (isDemoRuntime && !realComplianceData) return "EU 85% · JP 72%";
+    const top = [...displayMarketCards].sort((a, b) => b.score - a.score).slice(0, 2);
+    return top.length ? top.map((m) => `${m.code} ${Math.round(m.score)}%`).join(" · ") : "Chưa có dữ liệu";
+  }, [displayMarketCards, isDemoRuntime, realComplianceData]);
+
   const handleOpenMarket = (code: MarketCode) => {
     if (onOpenMarketDetail) {
       onOpenMarketDetail(code);
@@ -713,6 +782,48 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
       openMarketDetail(code);
     }
   };
+
+  if (!isDemoRuntime && productsState !== "ready") {
+    return (
+      <div className="space-y-5">
+        <Card className="border shadow-sm">
+          <CardContent className="flex flex-col gap-2 p-5 text-sm text-slate-600">
+            {productsState === "loading" ? (
+              <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Đang tải sản phẩm và cấu hình xuất khẩu…</span>
+            ) : (
+              <span className="inline-flex items-center gap-2 text-amber-800"><AlertTriangle className="h-4 w-4" />Không tải được danh sách sản phẩm. Vui lòng tải lại trang.</span>
+            )}
+          </CardContent>
+        </Card>
+        <ShipmentExportPortal />
+      </div>
+    );
+  }
+
+  if (!isDemoRuntime && products.length === 0) {
+    return (
+      <div className="space-y-5">
+        <Card className="border shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+              <FileSpreadsheet className="h-5 w-5 text-emerald-800" />
+              Cổng Cấu hình Xuất khẩu (Export Configuration Portal)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-600">
+            <p>
+              Công ty bạn chưa có sản phẩm nào được đánh giá carbon. Thêm và xuất bản sản phẩm để đồng bộ số liệu carbon
+              vào chứng từ thương mại, khoá số liệu và sinh hộ chiếu số (DPP).
+            </p>
+            <Button asChild size="sm">
+              <Link href="/products" prefetch={false}>Thêm sản phẩm</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <ShipmentExportPortal />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -843,8 +954,8 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Lô hàng xuất khẩu</span>
               <Ship className="h-4 w-4 text-emerald-700" />
             </div>
-            <p className="mt-1 truncate text-sm sm:text-base font-bold text-slate-900">{cfg.poContractId || "PO-2026-STL-099"}</p>
-            <p className="mt-0.5 truncate text-[11px] text-slate-500">B/L: {cfg.billOfLadingNo || "ONEVNHAN260411"}</p>
+            <p className="mt-1 truncate text-sm sm:text-base font-bold text-slate-900">{cfg.poContractId || (isDemoRuntime ? "PO-2026-STL-099" : "Chưa nhập PO/Hợp đồng")}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-500">B/L: {cfg.billOfLadingNo || (isDemoRuntime ? "ONEVNHAN260411" : "—")}</p>
           </CardContent>
         </Card>
 
@@ -876,7 +987,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Mức sẵn sàng thị trường</span>
               <Globe className="h-4 w-4 text-emerald-700" />
             </div>
-            <p className="mt-1 text-sm sm:text-base font-bold text-emerald-700">EU 85% · JP 72%</p>
+            <p className="mt-1 text-sm sm:text-base font-bold text-emerald-700">{topMarketsLabel}</p>
             <p className="mt-0.5 truncate text-[11px] text-slate-500">Trung bình: {averageReadiness}% hoàn thiện</p>
           </CardContent>
         </Card>
@@ -884,7 +995,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-xl bg-slate-100 p-1 rounded-xl">
+        <TabsList className={`grid w-full ${isDemoRuntime ? "grid-cols-3 max-w-xl" : "grid-cols-2 sm:grid-cols-4 max-w-3xl"} bg-slate-100 p-1 rounded-xl h-auto`}>
           <TabsTrigger value="shipment" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
             <Package className="h-4 w-4 shrink-0" />
             <span className="truncate">Lô hàng & Chứng từ</span>
@@ -897,6 +1008,12 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
             <ShieldCheck className="h-4 w-4 shrink-0" />
             <span className="truncate">Kiểm toán & Tuân thủ</span>
           </TabsTrigger>
+          {!isDemoRuntime && (
+            <TabsTrigger value="customs" className="flex items-center gap-1.5 text-xs sm:text-sm font-medium">
+              <FolderCheck className="h-4 w-4 shrink-0" />
+              <span className="truncate">Hồ sơ lô hàng & hải quan</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* TAB 1: Lô hàng & Chứng từ */}
@@ -989,7 +1106,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                       <Leaf className="h-4 w-4 text-emerald-300" />
                     </div>
                     <CardTitle className="text-base font-bold text-slate-900 sm:text-lg">
-                      Chứng từ Vận tải & Thương mại nhúng Carbon (WeaveCarbon Verified)
+                      {copyText.tradeDocsTitle}
                     </CardTitle>
                   </div>
                   <p className="text-xs text-slate-600 sm:text-sm">
@@ -1016,7 +1133,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     badge: "Thương mại & CBAM",
                     kpiLabel: "Tổng giá trị & Thuế CBAM",
                     kpiValue: `$${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} · Scope 1+2+3`,
-                    copy: "Phục vụ thanh toán ngân hàng & Hải quan EU: Bổ sung đơn giá, thành tiền, chỉ số phát thải carbon (kg CO₂e/đơn vị) và tổng phát thải để khai báo thuế CBAM."
+                    copy: copyText.invoiceCopy
                   },
                   {
                     title: "Packing List",
@@ -1036,7 +1153,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     badge: "Hải trình & Hãng tàu",
                     kpiLabel: "Phát thải tàu biển Scope 3.4",
                     kpiValue: `10,450 NM · ${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(3)} tCO₂e`,
-                    copy: "Phục vụ hãng tàu & logistics: Đo lường phát thải vận tải biển quốc tế Well-to-Wake (chuẩn GLEC / IMO DCS) từ cảng Cát Lái (VN) đến Rotterdam (EU)."
+                    copy: copyText.ladingCopy
                   }
                 ].map((item) => {
                   const Icon = item.icon;
@@ -1174,12 +1291,14 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     <h4 className="text-base sm:text-lg font-bold text-white">
                       {selectedDocPreview === "commercial-invoice" && `Commercial Invoice (Hóa đơn số: INV-${cfg.poContractId || "2026-EU-01"})`}
                       {selectedDocPreview === "packing-list" && `Packing List (Phiếu đóng gói: PL-${cfg.poContractId || "2026-EU-01"})`}
-                      {selectedDocPreview === "bill-of-lading" && `Bill of Lading Maritime Annex (Vận đơn B/L: ${cfg.billOfLadingNo || "ONEVNHAN260411"})`}
+                      {selectedDocPreview === "bill-of-lading" && `Bill of Lading Maritime Annex (Vận đơn B/L: ${cfg.billOfLadingNo || (isDemoRuntime ? "ONEVNHAN260411" : "—")})`}
                     </h4>
                     <p className="text-xs text-emerald-100/80">
-                      {selectedDocPreview === "commercial-invoice" && `Nhà mua hàng: ${cfg.buyerBrand || "EuroSteel Trading GmbH (demo)"} · Hợp đồng/PO: ${cfg.poContractId || "PO-2026-0891"} · Ngày phát hành: 26/09/2026`}
-                      {selectedDocPreview === "packing-list" && `Số hiệu Container: ${cfg.containerNo || "MSKU9012445"} · Đóng gói: Thùng carton 5 lớp FSC · Trọng tải: ${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg`}
-                      {selectedDocPreview === "bill-of-lading" && `Hải trình: Cảng Cát Lái (VNSGN) ➔ Cảng Rotterdam (NLRTM) · Tàu: ONE APUS / 012E · Khoảng cách: 10,450 Hải lý`}
+                      {selectedDocPreview === "commercial-invoice" && copyText.invoiceHeader(cfg.buyerBrand, cfg.poContractId)}
+                      {selectedDocPreview === "packing-list" && (sim
+                        ? DEMO_EXPORT_COPY.packingHeader(cfg.containerNo, (breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 }))
+                        : REAL_EXPORT_COPY.packingHeader(cfg.containerNo))}
+                      {selectedDocPreview === "bill-of-lading" && copyText.ladingHeader}
                     </p>
                   </div>
 
@@ -1232,9 +1351,9 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                                 </td>
                                 <td className="px-3.5 py-2.5 text-center text-slate-600 font-mono">{item.sku.cnCode}</td>
                                 <td className="px-3.5 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
-                                <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700">${unitPrice.toFixed(2)}</td>
+                                <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700">{sim ? `$${unitPrice.toFixed(2)}` : NA}</td>
                                 <td className="px-3.5 py-2.5 text-right tabular-nums font-semibold text-slate-900">
-                                  ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  {sim ? `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : NA}
                                 </td>
                                 <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-emerald-800 bg-emerald-50/40">
                                   {item.embeddedKgPerUnit.toFixed(3)}
@@ -1250,7 +1369,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                             <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
                             <td className="px-3.5 py-3.5 text-right">-</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-bold">
-                              ${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {sim ? `$${breakdowns.reduce((sum, item, idx) => sum + item.sku.units * (8.5 + (idx % 3) * 3.75), 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : NA}
                             </td>
                             <td className="px-3.5 py-3.5 text-right">-</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums text-emerald-950 font-bold text-sm">
@@ -1295,16 +1414,16 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                               return (
                                 <tr key={item.sku.sku} className="border-t border-emerald-50 even:bg-emerald-50/20 hover:bg-emerald-50/60 transition-colors">
                                   <td className="px-3.5 py-2.5 text-center font-mono text-emerald-900 font-semibold bg-emerald-50/40">
-                                    CTN {String(fromCtn).padStart(3, "0")} - {String(toCtn).padStart(3, "0")}
+                                    {sim ? `CTN ${String(fromCtn).padStart(3, "0")} - ${String(toCtn).padStart(3, "0")}` : NA}
                                   </td>
                                   <td className="px-3.5 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{pcsPerCtn}</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-semibold">{totalCtns}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{sim ? pcsPerCtn : NA}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-semibold">{sim ? totalCtns : NA}</td>
                                   <td className="px-3.5 py-2.5 text-right tabular-nums">{item.sku.units.toLocaleString("vi-VN")}</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{netWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{grossWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{cbm.toFixed(2)} m³</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600">{pkgCarbon.toFixed(1)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{sim ? `${netWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg` : NA}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{sim ? `${grossWeight.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg` : NA}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{sim ? `${cbm.toFixed(2)} m³` : NA}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-600">{sim ? pkgCarbon.toFixed(1) : NA}</td>
                                   <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-slate-900">{item.embeddedTonnesBatch.toFixed(4)}</td>
                                 </tr>
                               );
@@ -1312,12 +1431,12 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                           })()}
                           <tr className="bg-gradient-to-r from-emerald-100 via-emerald-50 to-teal-100 font-bold border-t-2 border-emerald-500 text-emerald-950">
                             <td className="px-3.5 py-3.5" colSpan={3}>Tổng kiện & trọng lượng đóng gói</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng` : NA}</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + item.sku.units, 0).toLocaleString("vi-VN")} pcs</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.22).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.045).toFixed(2)} m³</td>
-                            <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.42).toFixed(1)} kg</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.22).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg` : NA}</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.25).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} kg` : NA}</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.045).toFixed(2)} m³` : NA}</td>
+                            <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${(breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0) * 0.42).toFixed(1)} kg` : NA}</td>
                             <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-bold">{totals.toFixed(4)} tCO₂e</td>
                           </tr>
                         </tbody>
@@ -1331,9 +1450,9 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
                           <span className="text-emerald-800 font-semibold block uppercase text-[10px] tracking-wider">Phát thải vận tải biển (Scope 3.4)</span>
                           <p className="text-lg font-bold text-slate-900 mt-0.5">
-                            {(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
+                            {sim ? `${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e` : NA}
                           </p>
-                          <p className="text-[11px] text-slate-600 mt-0.5">Hải trình 10,450 NM (Cát Lái ➔ Rotterdam) theo GLEC v3.0</p>
+                          <p className="text-[11px] text-slate-600 mt-0.5">{copyText.ladingRouteNote}</p>
                         </div>
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
                           <span className="text-emerald-800 font-semibold block uppercase text-[10px] tracking-wider">Carbon nhúng hàng hóa (Cradle-to-Gate)</span>
@@ -1345,9 +1464,9 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                         <div className="rounded-xl border border-emerald-400 bg-gradient-to-br from-emerald-100/90 to-teal-100/80 p-3 shadow-2xs">
                           <span className="text-emerald-950 font-bold block uppercase text-[10px] tracking-wider">Tổng phát thải giao nhận toàn diện</span>
                           <p className="text-lg font-bold text-emerald-950 mt-0.5">
-                            {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
+                            {sim ? `${(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e` : `${totals.toFixed(4)} tCO₂e`}
                           </p>
-                          <p className="text-[11px] text-emerald-900 font-medium mt-0.5">Đầy đủ vòng đời vận chuyển quốc tế bàn giao tại cảng EU</p>
+                          <p className="text-[11px] text-emerald-900 font-medium mt-0.5">{copyText.ladingTotalNote}</p>
                         </div>
                       </div>
 
@@ -1372,25 +1491,25 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                               return (
                                 <tr key={item.sku.sku} className="border-t border-emerald-50 even:bg-emerald-50/20 hover:bg-emerald-50/60 transition-colors">
                                   <td className="px-3.5 py-2.5 font-mono text-slate-800 font-medium">
-                                    {cfg.containerNo || "MSKU9012445"} <span className="text-[11px] text-slate-500 font-normal">/ VN-892104</span>
+                                    {cfg.containerNo || (sim ? DEMO_EXPORT_COPY.containerFallback : NA)}{sim ? <> <span className="text-[11px] text-slate-500 font-normal">{DEMO_EXPORT_COPY.containerSeal}</span></> : null}
                                   </td>
                                   <td className="px-3.5 py-2.5 font-medium text-slate-900">{item.sku.sku}</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{Math.ceil(item.sku.units / 50)} thùng</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{grossWeightMt.toFixed(3)} MT</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700">{maritimeEmission.toFixed(4)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{sim ? `${Math.ceil(item.sku.units / 50)} thùng` : NA}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums">{sim ? `${grossWeightMt.toFixed(3)} MT` : NA}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums text-slate-700">{sim ? maritimeEmission.toFixed(4) : NA}</td>
                                   <td className="px-3.5 py-2.5 text-right tabular-nums text-emerald-800 font-bold bg-emerald-50/40">{item.embeddedTonnesBatch.toFixed(4)}</td>
-                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-slate-950">{totalFootprint.toFixed(4)}</td>
+                                  <td className="px-3.5 py-2.5 text-right tabular-nums font-bold text-slate-950">{(sim ? totalFootprint : item.embeddedTonnesBatch).toFixed(4)}</td>
                                 </tr>
                               );
                             })}
                             <tr className="bg-gradient-to-r from-emerald-100 via-emerald-50 to-teal-100 font-bold border-t-2 border-emerald-500 text-emerald-950">
-                              <td className="px-3.5 py-3.5" colSpan={2}>Tổng phát thải cả vận đơn B/L ({cfg.billOfLadingNo || "ONEVNHAN260411"})</td>
-                              <td className="px-3.5 py-3.5 text-right tabular-nums">{breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng</td>
-                              <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025).toFixed(3)} MT</td>
-                              <td className="px-3.5 py-3.5 text-right tabular-nums">{(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e</td>
+                              <td className="px-3.5 py-3.5" colSpan={2}>Tổng phát thải cả vận đơn B/L ({cfg.billOfLadingNo || (isDemoRuntime ? "ONEVNHAN260411" : "—")})</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${breakdowns.reduce((sum, item) => sum + Math.ceil(item.sku.units / 50), 0)} thùng` : NA}</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025).toFixed(3)} MT` : NA}</td>
+                              <td className="px-3.5 py-3.5 text-right tabular-nums">{sim ? `${(breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e` : NA}</td>
                               <td className="px-3.5 py-3.5 text-right tabular-nums">{totals.toFixed(4)} tCO₂e</td>
                               <td className="px-3.5 py-3.5 text-right tabular-nums text-sm font-bold">
-                                {(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e
+                                {sim ? `${(totals + breakdowns.reduce((sum, item) => sum + item.sku.units, 0) * 0.00025 * 0.098).toFixed(4)} tCO₂e` : `${totals.toFixed(4)} tCO₂e`}
                               </td>
                             </tr>
                           </tbody>
@@ -1407,11 +1526,11 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-bold text-emerald-950 text-sm">Chứng thực Dấu chân Carbon WeaveCarbon Trust Engine</p>
+                          <p className="font-bold text-emerald-950 text-sm">{copyText.sealTitle}</p>
                           <Badge variant="outline" className="border-emerald-300 bg-white text-emerald-800 text-[10px]">ISO 14067:2018</Badge>
                         </div>
                         <p className="text-slate-600 text-[11px] mt-0.5">
-                          Đơn vị kiểm toán độc lập: <b>SGS Vietnam</b> · Mã Hash niêm phong: <span className="font-mono text-emerald-900 font-semibold">{dpp?.payloadSha256 ? `${dpp.payloadSha256.slice(0, 16)}...` : "7f8a92b0c1e4...8a2f"}</span>
+                          {copyText.sealAuditorPrefix} <b>{copyText.sealAuditorName}</b> · Mã Hash niêm phong: <span className="font-mono text-emerald-900 font-semibold">{dpp?.payloadSha256 ? `${dpp.payloadSha256.slice(0, 16)}...` : copyText.placeholderHash}</span>
                         </p>
                       </div>
                     </div>
@@ -1521,7 +1640,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
 
                       <div className="pt-1 flex items-center gap-2 text-emerald-800 font-medium">
                         <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-700" />
-                        <span>Đơn vị kiểm toán độc lập: SGS Vietnam · Tiêu chuẩn ISO 14067</span>
+                        <span>{copyText.dppAuditorLine}</span>
                       </div>
                     </div>
 
@@ -1580,12 +1699,12 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                           <span className="font-bold text-emerald-900">{dpp.embeddedKgPerUnit.toFixed(3)} kg CO₂e</span>
                         </div>
                         <div className="flex justify-between items-center text-[10px] text-slate-500">
-                          <span>Bằng chứng EVN:</span>
+                          <span>{sim ? "Bằng chứng EVN:" : "Bằng chứng:"}</span>
                           <span className="font-mono">{dpp.evidenceHashes[0]?.sha256.slice(0, 12)}...</span>
                         </div>
                         <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-semibold pt-0.5 border-t border-slate-200">
                           <CheckCircle2 className="h-3 w-3" />
-                          <span>Verified by SGS Vietnam</span>
+                          <span>{copyText.qrVerifiedLine}</span>
                         </div>
                       </div>
                     </div>
@@ -1610,9 +1729,15 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                 Mức độ sẵn sàng theo thị trường xuất khẩu
               </h3>
               <Badge variant="outline" className="text-xs text-slate-600">
-                4 thị trường mục tiêu
+                {displayMarketCards.length} thị trường mục tiêu
               </Badge>
             </div>
+
+            {!displayMarketCards.length && (
+              <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                Chưa có dữ liệu sẵn sàng theo thị trường. Hoàn thiện hồ sơ sản phẩm và chứng từ để hệ thống đánh giá.
+              </p>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {displayMarketCards.map((market) => (
@@ -1640,7 +1765,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
                       <div className={`flex items-center gap-1 text-[11px] font-medium ${market.score >= 80 ? "text-emerald-700" : "text-amber-700"}`}>
                         {market.score >= 80 ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-                        <span>{market.score >= 80 ? "Sẵn sàng xuất khẩu" : "2 mục cần bổ sung"}</span>
+                        <span>{sim ? (market.score >= 80 ? "Sẵn sàng xuất khẩu" : "2 mục cần bổ sung") : (market.score >= 80 ? "Hồ sơ đạt ngưỡng checklist" : "Cần bổ sung hồ sơ")}</span>
                       </div>
                       <span className="flex items-center text-slate-400 hover:text-slate-600 text-[11px]">
                         Chi tiết <ChevronRight className="h-3 w-3" />
@@ -1656,7 +1781,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
           <div className="space-y-3">
             <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
               <Shield className="h-5 w-5 text-emerald-800" />
-              Pre-Audit Pack — Sẵn sàng kiểm toán SGS / BV / CBAM
+              {copyText.preAuditTitle}
             </h3>
             <Card className="overflow-hidden rounded-xl border-2 font-mono text-sm shadow-sm">
               <div className="border-b border-dashed border-slate-200 bg-slate-50 px-4 py-3">
@@ -1678,7 +1803,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                     </Badge>
                   ) : (
                     <Badge className="rounded-md bg-emerald-700 font-mono text-white hover:bg-emerald-700">
-                      AUDIT-READY
+                      {copyText.auditReadyBadge}
                     </Badge>
                   )}
                 </div>
@@ -1731,7 +1856,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
 
               <div className="space-y-3 border-t border-dashed border-slate-200 p-4">
                 <div className="text-xs font-bold tracking-wide text-emerald-900">
-                  &gt;&gt;&gt; HỒ SƠ CHỨNG TỪ GỐC (TẢI VỀ CHO KIỂM TOÁN VIÊN SGS / TÜV RHEINLAND) &lt;&lt;&lt;
+                  &gt;&gt;&gt; {copyText.originalDocsHeading} &lt;&lt;&lt;
                 </div>
                 <div className="space-y-1 text-xs">
                   {selectedEvidence.map((item) => (
@@ -1760,7 +1885,7 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
                   </Button>
                 </div>
                 <div className="pt-2 text-[10px] text-emerald-900">
-                  ISO 14067:2018 · Ecoinvent v3.10 · DEFRA 2024 · Bộ TN&MT VN
+                  {sim ? "ISO 14067:2018 · Ecoinvent v3.10 · DEFRA 2024 · Bộ TN&MT VN" : "ISO 14067:2018 · nguồn hệ số theo kết quả tính của từng sản phẩm"}
                 </div>
               </div>
             </Card>
@@ -1777,6 +1902,13 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
             </div>
           )}
         </TabsContent>
+
+        {/* Hồ sơ lô hàng, hải quan, EU import, ICS2, xuất xứ… (luồng backend, chỉ tài khoản thật) */}
+        {!isDemoRuntime && (
+          <TabsContent value="customs" className="space-y-5">
+            <ShipmentExportPortal />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Local Compliance Detail Modal Fallback */}

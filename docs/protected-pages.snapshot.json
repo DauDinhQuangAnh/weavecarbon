@@ -367,7 +367,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/cbam/CbamReportSection.tsx",
-      "sha256": "d6704ce96526ec644eeee1836825795848bc2c4f9ceb7a11515b24cc3a4fdc49"
+      "sha256": "a11fb49b4300896f4ca06fff6e1ce3c7561cff5ebc8fa4cf96b03a03fef0d553"
     },
     {
       "repo": "FE",
@@ -412,7 +412,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/DemoExportConfigurationPortalV2.tsx",
-      "sha256": "f5ba433f92eef6b275ebd09a6dbe178a76ba4d53b8f0ee0f280cfc3ab86a55a9"
+      "sha256": "3ba0fb8e5bf1f1d544aa6967ecba08e5c7104720b28795ded264571c51a9d166"
     },
     {
       "repo": "FE",
@@ -432,7 +432,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ExportConfigurationPortalV2.tsx",
-      "sha256": "2b484029f130b49f7c130fb435f0b13a44379a73ba7feb13cd276ce09be9e3d4"
+      "sha256": "f279134146a46d981640ffd0a7db7b800989c26ae425781515bf120d0fc0f0fd"
     },
     {
       "repo": "FE",
@@ -517,7 +517,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/overview/OverviewPageClient.tsx",
-      "sha256": "5f40d60fa5d34de4943469d9ffcfc17ea73576f54145bfc15f56294e4db4f028"
+      "sha256": "40725b04f646b2460b5e9f0c08abe8caea522e342b151fdb4d987b3dd271f8ee"
     },
     {
       "repo": "FE",
@@ -3357,6 +3357,12 @@
       "date": "2026-11-19",
       "reason": "User approved (19/11/2026) syncing BE hashes to BE main 6ddc04c. src/server.js: opt-in demo cleanup scheduler from the approved bugfix plan. demoAccountService.js, tokens.js, analyticsService.js, subscriptionService.js: changes from earlier BE commit 9f7701e already on main.",
       "filesUpdated": 5,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User requested (19/11/2026) that the signed-in B2B dashboard match the demo, with real data instead of demo data: overview uses the demo layout and an industrial portfolio computed from real inventories/facilities/products/evidence (duplicate card removed); real accounts get the full export portal (real products/markets only, neutral claim copy, no simulated prices/weights/routes) plus a customs tab; CBAM tab uses the full tool plus the HS/CN scope screen.",
+      "filesUpdated": 4,
       "filesRemoved": []
     }
   ]

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ProductProvider, useProducts } from '@/contexts/ProductContext';
 import { api } from '@/lib/apiClient';
 import { CBAM_RULESET, evaluateCbamApplicability, normalizeHsCode } from '@/lib/cbam/applicability';
@@ -1121,9 +1121,9 @@ function ProductionCbamScopeSection() {
   const missing = rows.filter((row) => row.applicability === 'CBAM_CODE_MISSING');
 
   return (
-    <div className="flex-1 p-6 space-y-4">
+    <div className="mt-8 space-y-4 border-t border-border/70 pt-6">
       <div>
-        <h1 className="text-2xl font-bold">Kiểm tra phạm vi CBAM</h1>
+        <h2 className="text-xl font-semibold">Kiểm tra phạm vi CBAM theo sản phẩm</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Sàng lọc HS/CN theo bộ quy tắc {CBAM_RULESET.version}; kết quả khớp phải được chuyên viên hải quan xác nhận.
         </p>
@@ -1206,12 +1206,13 @@ function ProductionCbamScopeSection() {
   );
 }
 
+// Demo và tài khoản thật dùng cùng công cụ chuẩn bị dữ liệu CBAM (dữ liệu lấy qua API của từng chế độ),
+// kèm bảng sàng lọc phạm vi HS/CN theo sản phẩm.
 export default function CbamReportSection() {
-  const pathname = usePathname();
-  const isDemoPath = pathname === '/demo' || pathname.startsWith('/demo/');
   return (
     <ProductProvider>
-      {isDemoPath ? <CbamReportSectionContent /> : <ProductionCbamScopeSection />}
+      <CbamReportSectionContent />
+      <ProductionCbamScopeSection />
     </ProductProvider>
   );
 }

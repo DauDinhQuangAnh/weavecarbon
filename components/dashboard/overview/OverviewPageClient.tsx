@@ -3,8 +3,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import IndustrialPortfolioSection from "@/components/dashboard/portfolio/IndustrialPortfolioSection";
-import { usePathname } from "next/navigation";
-import { isDemoPath } from "@/lib/demo/routes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
@@ -77,7 +75,6 @@ const ProductOverviewModal = dynamic(
 );
 
 const OverviewPage: React.FC = () => {
-  const isDemoOverview = isDemoPath(usePathname());
   const t = useTranslations("overview");
   const locale = "vi";
   const displayLocale = "vi-VN";
@@ -412,22 +409,19 @@ const OverviewPage: React.FC = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {isDemoOverview ? (
-        <>
-          <OverviewCharts
-            productEmissions={productEmissions}
-            emissionBreakdown={emissionBreakdown}
-            isLoading={insightsLoading}
-            hideBreakdown />
-          <IndustrialPortfolioSection />
-          <div className="border-t border-border/70 pt-6">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">Danh mục sản phẩm (SKU)</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Hồ sơ carbon cấp sản phẩm, mức sẵn sàng theo thị trường và gợi ý giảm phát thải.
-            </p>
-          </div>
-        </>
-      ) : null}
+      {/* Cùng một bố cục cho demo và tài khoản thật; chỉ khác nguồn dữ liệu. */}
+      <OverviewCharts
+        productEmissions={productEmissions}
+        emissionBreakdown={emissionBreakdown}
+        isLoading={insightsLoading}
+        hideBreakdown />
+      <IndustrialPortfolioSection />
+      <div className="border-t border-border/70 pt-6">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">Danh mục sản phẩm (SKU)</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Hồ sơ carbon cấp sản phẩm, mức sẵn sàng theo thị trường và gợi ý giảm phát thải.
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card className="overflow-hidden border">
           <CardHeader className={OVERVIEW_STAT_HEADER_CLASS}>
@@ -547,17 +541,6 @@ const OverviewPage: React.FC = () => {
         </Card>
       </div>
 
-      {isDemoOverview ? null : (
-        <>
-          <OverviewCharts
-            productEmissions={productEmissions}
-            emissionBreakdown={emissionBreakdown}
-            isLoading={insightsLoading}
-            hideBreakdown={false}
-          />
-          <IndustrialPortfolioSection />
-        </>
-      )}
 
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -899,7 +882,6 @@ const OverviewPage: React.FC = () => {
         </div>
       )}
 
-      {isDemoOverview ? null : <IndustrialPortfolioSection />}
 
       <Dialog
         open={showMarketReadinessDialog}
