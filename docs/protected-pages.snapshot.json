@@ -57,7 +57,7 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/layout.tsx",
-      "sha256": "b7bb73acdbc2464c6c67ba9db6996870dde493fa41ba0373315d0b0644eba2ff"
+      "sha256": "4bdc676a2976292f72df745480b26a988cbaba53f1223825f402f66a978ffd2e"
     },
     {
       "repo": "FE",
@@ -137,7 +137,7 @@
     {
       "repo": "FE",
       "path": "app/demo/layout.tsx",
-      "sha256": "d024f561312b07865197a8a633fc8d43172243b85ba02502663ca7ea25e83d33"
+      "sha256": "6009cb15833dfc9b0983a0b3bafbb98a2e7dc5996cbf62021919aac3ff7801aa"
     },
     {
       "repo": "FE",
@@ -177,7 +177,7 @@
     {
       "repo": "FE",
       "path": "app/globals.css",
-      "sha256": "77ec3de4ffdbb34ba085eed67bbe91ddf9f82107986bef608c3ebfca4af09d3f"
+      "sha256": "e2dc4cd4b437793a2e3f99f90ee8511a1e8e5b2fabba82000fdd2deaae5caee8"
     },
     {
       "repo": "FE",
@@ -197,7 +197,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/DashboardLayoutContent.tsx",
-      "sha256": "388c8708a7084142f8d958b3f5f3e375e6e49e08e0c4465e78db9d1289988917"
+      "sha256": "7fb6ca58b916cdda9f65ef3c96ff91581e15148f0f6104d3392e439412cdf9bd"
     },
     {
       "repo": "FE",
@@ -1437,7 +1437,7 @@
     {
       "repo": "FE",
       "path": "lib/weave-v2/exportLogisticsDocs.ts",
-      "sha256": "a2b0a12713a2e2f88c16dbe12959dc450a6258ad651a6cb0a4f8475552856025"
+      "sha256": "a14c64f74d408354f197d84afe3909f00d6f7aae8e70dcb1307a53110b6f8511"
     },
     {
       "repo": "FE",
@@ -3313,6 +3313,12 @@
       "date": "2026-11-19",
       "reason": "User asked (19/11/2026) that demo work like a signed-in account with only the data differing: remove per-page demo notices/badges/toasts (only the sidebar DEMO MODE box remains), show every menu entry in demo (settings, export, reports), let demo write to the session data (carbon operations facilities/processes/measurement points/activities/allocation rules & runs, industry-pack pilots, data governance, transport save, shipment cancel, enterprise security controls), and replace real certification-body names in demo export copy with a generic independent verifier.",
       "filesUpdated": 8,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked (19/11/2026) for higher contrast across the dashboard (real and demo alike) without changing brand colours: a scoped .app-contrast / html[data-app-surface] token layer darkens the page background, borders, inputs, muted text and slate/gray neutrals, makes glass cards and the sticky header more opaque with visible borders, and swaps near-invisible white borders for the border token. Also drops a leftover \"(demo)\" suffix from the default export buyer name.",
+      "filesUpdated": 5,
       "filesRemoved": []
     }
   ]

@@ -38,7 +38,7 @@ export const DEFAULT_EXPORT_CONFIG_V2: ExportConfigV2 = {
   billOfLadingNo: "ONEVNHAN260411",
   containerNo: "ONEU1234567",
   barcodeStandard: "GS1-Digital",
-  buyerBrand: "EuroSteel Trading GmbH (demo)",
+  buyerBrand: "EuroSteel Trading GmbH",
   buyerWebhookUrl: "https://buyer.example.com/sustainability/v1/ingest"
 };
 

@@ -652,3 +652,81 @@
     transform: scaleX(1);
   }
 }
+
+/* =========================================================
+   APP SURFACE CONTRAST (dashboard thật + demo)
+   Giữ nguyên màu thương hiệu (primary/emerald/accent/lime); chỉ tách lớp
+   nền – thẻ – viền – chữ phụ rõ hơn. Áp cho layout dashboard qua class
+   .app-contrast (SSR) và html[data-app-surface] (cho dialog/popover portal).
+========================================================= */
+.app-contrast,
+html[data-app-surface="app"] {
+  --color-background: hsl(86 22% 93%);
+  --color-card: hsl(75 30% 99.6%);
+  --color-popover: hsl(75 30% 99.6%);
+  --color-secondary: hsl(90 24% 90.5%);
+  --color-muted: hsl(100 22% 86.5%);
+  --color-muted-foreground: hsl(101 16% 29%);
+  --color-border: hsl(100 18% 79%);
+  --color-input: hsl(100 18% 71%);
+
+  --color-sidebar-background: hsl(75 30% 99.2%);
+  --color-sidebar-foreground: hsl(101 16% 27%);
+  --color-sidebar-accent: hsl(90 26% 90%);
+  --color-sidebar-border: hsl(100 18% 79%);
+
+  --color-slate-50: hsl(84 26% 95.5%);
+  --color-slate-100: hsl(90 24% 91.5%);
+  --color-slate-200: hsl(100 19% 81.5%);
+  --color-slate-300: hsl(100 16% 69%);
+  --color-slate-400: hsl(101 11% 47%);
+  --color-slate-500: hsl(101 14% 34%);
+  --color-slate-600: hsl(101 15% 28%);
+  --color-gray-50: hsl(84 26% 95.5%);
+  --color-gray-100: hsl(90 24% 91.5%);
+  --color-gray-200: hsl(100 19% 81.5%);
+  --color-gray-300: hsl(100 16% 69%);
+  --color-gray-400: hsl(101 11% 47%);
+  --color-gray-500: hsl(101 14% 34%);
+  --color-gray-600: hsl(101 15% 28%);
+
+  --shadow-sm: 0 1px 2px hsl(103 37% 8% / 0.06), 0 6px 16px -10px hsl(103 37% 8% / 0.28);
+}
+
+/* Nền trang đặc, tối hơn thẻ một bậc để thẻ trắng nổi lên. */
+.app-contrast {
+  background-color: hsl(86 22% 93%);
+}
+
+@layer components {
+  .app-contrast :is(.glass-card, .glass-panel, .glass-shell) {
+    background: linear-gradient(160deg, hsl(0 0% 100% / 0.97), hsl(78 30% 99% / 0.92));
+    border: 1px solid hsl(100 18% 80%);
+    box-shadow:
+      0 1px 2px hsl(103 37% 8% / 0.05),
+      0 14px 36px -26px hsl(103 37% 8% / 0.4);
+  }
+
+  .app-contrast :is(.glass-card, .glass-panel, .glass-shell)::before {
+    background: radial-gradient(22rem 8rem at 12% -6%, hsl(0 0% 100% / 0.5), transparent 62%);
+  }
+
+  .app-contrast .sticky-glass {
+    background: hsl(78 34% 99% / 0.96);
+    border-color: hsl(100 18% 80%);
+  }
+
+  body[data-scrolled="true"] .app-contrast .sticky-glass {
+    background: hsl(78 34% 99.5% / 0.98);
+  }
+}
+
+@layer utilities {
+  /* Viền trắng mờ trên nền sáng gần như vô hình → dùng viền token. */
+  /* :where() giữ specificity bằng utility gốc để hover:border-* vẫn thắng. */
+  :where(.app-contrast, html[data-app-surface="app"] body) :is(
+    .border-white\/60, .border-white\/65, .border-white\/70, .border-white\/80
+  ) {
+    border-color: var(--color-border);
+  }
+}

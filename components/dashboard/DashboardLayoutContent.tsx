@@ -182,6 +182,16 @@ export default function DashboardLayoutContent({
             ? "pt-[4.5rem]"
           : "pt-[4.4rem]";
 
+  // Dialog/popover render qua portal ra ngoài layout, nên gắn cờ lên <html>
+  // để chúng nhận cùng bộ màu tương phản của dashboard (xem globals.css).
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.appSurface = "app";
+    return () => {
+      delete root.dataset.appSurface;
+    };
+  }, []);
+
   useEffect(() => {
     if (SKIP_AUTH_GUARD) return;
     if (
