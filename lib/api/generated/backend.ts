@@ -12551,7 +12551,9 @@ export interface operations {
     };
     getPassportByProductId: {
         parameters: {
-            query?: never;
+            query?: {
+                shipmentId?: string;
+            };
             header?: never;
             path: {
                 productId: string;

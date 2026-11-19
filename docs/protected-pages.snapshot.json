@@ -982,7 +982,7 @@
     {
       "repo": "FE",
       "path": "lib/api/generated/backend.ts",
-      "sha256": "d63776107d8e717f3a44fced085df7bf27b1227fcc1a09d558e0cd1c8a6af181"
+      "sha256": "8e85710a7acf3f1514c5186e8cc5244d8a9acc6c77d7e576b7bae19e72cfa642"
     },
     {
       "repo": "FE",
@@ -3330,6 +3330,12 @@
     {
       "date": "2026-11-19",
       "reason": "Follow-up to the QR fix (same request): the QR dialog's one-line link widened the dialog grid and clipped its right side; the dialog body now has min-w-0.",
+      "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "Contract sync for the same QR request: the backend public passport endpoint gained an optional shipmentId query parameter, so the FE OpenAPI snapshot and generated backend types were regenerated with npm run contract:sync.",
       "filesUpdated": 1,
       "filesRemoved": []
     }
