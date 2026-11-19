@@ -1,5 +1,5 @@
 "use client";
-import { productTypeDisplayName } from "@/lib/industrialLabels";
+import { materialDisplayName, productTypeDisplayName } from "@/lib/industrialLabels";
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -307,7 +307,7 @@ function convertProductRecordToProductData(product: ProductRecord): ProductData 
     productName: product.productName,
     productCode: product.productCode,
     category: product.productType || "other",
-    description: `${productTypeLabel || "Product"} - ${product.quantity || 1} items`,
+    description: `${productTypeLabel || "Sản phẩm"} · Số lượng: ${(Number(product.quantity) || 1).toLocaleString("vi-VN")}`,
     weight: String(product.weightPerUnit || 0),
     unit: "g",
     primaryMaterial: product.materials[0]?.materialType || "",
@@ -1300,7 +1300,7 @@ const PassportClient: React.FC = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Factory className="w-4 h-4 text-slate-600" />
-              Product composition and origin
+              Thành phần và xuất xứ
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1309,13 +1309,13 @@ const PassportClient: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
                   {MATERIAL_LABELS[product.primaryMaterial] ||
-                  product.primaryMaterial}{" "}
+                  materialDisplayName(product.primaryMaterial)}{" "}
                   {product.materialPercentage}%
                 </Badge>
                 {product.secondaryMaterial &&
                 <Badge variant="outline">
                     {MATERIAL_LABELS[product.secondaryMaterial] ||
-                  product.secondaryMaterial}{" "}
+                  materialDisplayName(product.secondaryMaterial)}{" "}
                     {product.secondaryPercentage}%
                   </Badge>
                 }

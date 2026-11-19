@@ -318,7 +318,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <Card className="bg-linear-to-br from-slate-50 to-slate-100">
             <CardContent className="p-6 flex flex-col items-center">
               <div className="bg-white p-4 rounded-xl shadow-sm">

@@ -227,7 +227,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductQRCode.tsx",
-      "sha256": "c721828d6d56c91e2cac1669bb2c8206129f69b37687919219a4ac1feca519b8"
+      "sha256": "6eea42c3c00dbcac8ab6a0bc2c4a05aa9cae175526f794c9da92292ec138b19d"
     },
     {
       "repo": "FE",
@@ -3325,6 +3325,12 @@
       "date": "2026-11-19",
       "reason": "User asked (19/11/2026) to re-check product QR generation in demo and real accounts and the page the QR opens. Demo and real QR now both open the public /passport page (demo adds demo=1 and reads sample data on the scanning device; seeded products need only the id, so the QR is sparse and scannable; session-created products carry a compact deflate snapshot without internal carbon results). The demo passport follows the backend rules (published products only, shipment must contain the product). The QR dialog warns when the product is unpublished and shows the link on one line. The public endpoint accepts an optional shipmentId (honoured only for a shipment of the same company that contains the product), and the passport page no longer scans tenant shipments after the public lookup. The demo /passport adapter handler now uses the same resolver.",
       "filesUpdated": 7,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "Follow-up to the QR fix (same request): the QR dialog's one-line link widened the dialog grid and clipped its right side; the dialog body now has min-w-0.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ]
