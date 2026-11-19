@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -40,11 +40,7 @@ import { industrialCoreApi } from "@/lib/industrialCoreApi";
 import { listEvidenceV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { dataGovernanceApi } from "@/lib/dataGovernanceApi";
 import { fetchAllProducts } from "@/lib/products/productsQueries";
-import {
-  buildDemoPortfolioView,
-  buildRealPortfolioView,
-  type PortfolioView,
-} from "@/lib/industrialPortfolio/portfolioView";
+import { buildRealPortfolioView, type PortfolioView } from "@/lib/industrialPortfolio/portfolioView";
 
 const fmt = (n: number) => n.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
 const severityIcon = { critical: AlertOctagon, warning: AlertTriangle, info: Info } as const;
@@ -124,14 +120,20 @@ export default function IndustrialPortfolioSection() {
   const demo = isDemoPath(pathname);
   const base = demo ? "/demo" : "";
   const [granularity, setGranularity] = useState<"monthly" | "quarterly">("monthly");
-  const demoView = useMemo(() => (demo ? buildDemoPortfolioView() : null), [demo]);
-  const loadReal = useCallback(async (): Promise<PortfolioView | null> => (demo ? null : loadRealPortfolio()), [demo]);
-  const real = useIndustrialWorkspaceQuery(loadReal, demo);
-  const view = demoView ?? real.data;
+  // Demo: bộ dữ liệu mẫu chỉ được tải khi đang ở /demo. Tài khoản thật: tính từ API.
+  const loadView = useCallback(
+    async (): Promise<PortfolioView> =>
+      demo
+        ? (await import("@/lib/industrialPortfolio/portfolioDemoView")).buildDemoPortfolioView()
+        : loadRealPortfolio(),
+    [demo]
+  );
+  const real = useIndustrialWorkspaceQuery(loadView, demo);
+  const view = real.data;
 
   if (!view) {
     return (
-      <SectionCard className="mt-6" title="Danh mục carbon công nghiệp" description="Đang tổng hợp dữ liệu của doanh nghiệp…">
+      <SectionCard className="mt-6" title="Danh mục carbon công nghiệp" description="Đang tổng hợp dữ liệu…">
         {real.error ? (
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-destructive">{real.error}</p>

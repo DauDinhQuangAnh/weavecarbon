@@ -47,7 +47,7 @@ import { dataGovernanceApi, type DqlAssessment } from "@/lib/dataGovernanceApi";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
 import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
 import { vnMrvApi, type VnMrvCase, type VnMrvFiling, type VnMrvPlan } from "@/lib/vnMrvApi";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 const today = "2026-09-15";
 
@@ -145,8 +145,9 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
 
   const load = useCallback(async () => {
     if (demo) {
-      setFacilities(demoSessionCache.getFacilities());
-      setCases(demoSessionCache.getMrvCases());
+      await loadDemoData();
+      setFacilities(demoCache().getFacilities());
+      setCases(demoCache().getMrvCases());
       setLoading(false);
       return;
     }
@@ -185,7 +186,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
       setError(null);
       try {
         const fac = facilities.find((f) => f.id === caseForm.facilityRevisionId) || facilities[0];
-        const x = demoSessionCache.addMrvCase({
+        const x = demoCache().addMrvCase({
           facilityId: caseForm.facilityRevisionId || fac?.id || "demo-fac",
           facilityName: fac?.name || "Cơ sở demo",
           caseReference: caseForm.caseReference || `MRV-${Date.now()}`,

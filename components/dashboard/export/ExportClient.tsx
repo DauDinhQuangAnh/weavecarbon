@@ -54,7 +54,7 @@ import { useBreakpoint } from "@/hooks/useBreakpoint";
 import type { MarketCode, MarketCompliance } from "./types";
 import { computeMarketDocumentReadinessScore } from "./readiness";
 import ComplianceDetailModal from "./ComplianceDetailModal";
-import ExportConfigurationPortalV2 from "./ExportConfigurationPortalV2";
+import ExportPortal from "./ExportPortal";
 import {
   DEFAULT_GROUP_MARKET_FILTER,
   DEFAULT_GROUP_SEARCH,
@@ -962,7 +962,7 @@ const ExportPage: React.FC = () => {
   return (
     <>
       <div className="space-y-4 md:space-y-6 no-horizontal-scroll">
-        <ExportConfigurationPortalV2
+        <ExportPortal
           documentManagerSlot={documentManagerSlot}
           onOpenMarketDetail={handleOpenMarketDetail}
         />

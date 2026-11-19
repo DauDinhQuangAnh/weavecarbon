@@ -38,14 +38,13 @@ import { isApiError } from "@/lib/apiClient";
 import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCoreApi";
 import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
 import { mitigationOperationsApi, type AllowanceAllocation, type AllowancePosition, type MitigationInitiative, type MitigationScenario, type InitiativeLifecycleStatus } from "@/lib/mitigationOperationsApi";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
-import { DEMO_INVENTORIES } from "@/lib/dashboard/industrialDemoData";
 import {
   simulateMaccInitiatives,
   type MaccSimulationResult,
   type MaccInitiativeItem,
 } from "@/lib/ai/carbonDataAiService";
 import { toast } from "sonner";
+import { demoCache, demoData, loadDemoData } from "@/lib/dashboard/loadDemoData";
 const ids = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const select = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 
@@ -85,9 +84,10 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
 
   const load = useCallback(async () => {
     if (demo) {
-      const demoFacs = demoSessionCache.getFacilities();
+      await loadDemoData();
+      const demoFacs = demoCache().getFacilities();
       setFacilities(demoFacs);
-      setInventories((DEMO_INVENTORIES as unknown) as CorporateGhgInventory[]);
+      setInventories((demoData().DEMO_INVENTORIES as unknown) as CorporateGhgInventory[]);
       setInitiatives([
         {
           id: "demo-init-1",

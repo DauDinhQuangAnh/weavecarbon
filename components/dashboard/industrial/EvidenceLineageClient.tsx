@@ -18,7 +18,6 @@ import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { workspaceCanWrite } from "@/lib/dashboard/industrialWorkspace";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import {
   auditEvidenceForensics,
   generateIsoVerificationOpinion,
@@ -34,6 +33,7 @@ import {
   DATA_QUALITY_LADDER,
   normalizeDataQualityTier,
 } from "@/lib/design-system/dataQualityLadder";
+import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 type GraphNodeType = "evidence" | "point" | "activity" | "factor" | "process" | "report";
 
@@ -73,14 +73,14 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
   const permissions = usePermissions();
   const canWrite = demo || workspaceCanWrite(permissions, demo);
 
-  const loadActivities = useCallback(async () => (demo ? demoSessionCache.getActivities() : industrialCoreApi.activities(500)), [demo]);
+  const loadActivities = useCallback(async () => (demo ? (await loadDemoData()).demoSessionCache.getActivities() : industrialCoreApi.activities(500)), [demo]);
   const activities = useIndustrialWorkspaceQuery(loadActivities, demo);
   const activityId = activities.data?.find((row) => row.id === selected)?.id || activities.data?.[0]?.id || "";
 
   const loadLineage = useCallback(async (): Promise<IndustrialActivityLineage | null> => {
     if (!activityId) return null;
     if (!demo) return industrialCoreApi.activityLineage(activityId);
-    return demoSessionCache.getLineage(activityId);
+    return (await loadDemoData()).demoSessionCache.getLineage(activityId);
   }, [activityId, demo]);
 
   const lineage = useIndustrialWorkspaceQuery(loadLineage, demo);
@@ -238,7 +238,7 @@ ${opinionDraft.opinionTitle}
       if (demo) {
         let count = 0;
         activities.data.forEach((act) => {
-          demoSessionCache.saveActivityReview(act.id, {
+          demoCache().saveActivityReview(act.id, {
             decision: "approved",
             notes: "Ký duyệt thẩm tra hàng loạt có bảo chứng băm SHA-256 (ISO 14064-3).",
           });
@@ -277,7 +277,7 @@ ${opinionDraft.opinionTitle}
     setMessage(null);
     try {
       if (demo) {
-        demoSessionCache.saveActivityReview(data.activity.id, { decision, notes: notes.trim() });
+        demoCache().saveActivityReview(data.activity.id, { decision, notes: notes.trim() });
         setMessage("Đã lưu review demo vào bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).");
         await lineage.reload();
         return;

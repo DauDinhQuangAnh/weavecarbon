@@ -30,8 +30,7 @@ import { industrialCoreApi, type IndustrialFacility, type IndustrialProcess } fr
 import { dataGovernanceApi, type FactorProposal } from "@/lib/dataGovernanceApi";
 import { industryPacksApi, type IndustryPackManifest, type IndustryPackPilot } from "@/lib/industryPacksApi";
 import { listEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
-import { DEMO_EVIDENCE, DEMO_FACTORS } from "@/lib/dashboard/industrialDemoData";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
+import { demoCache, demoData, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 type Line = { category: string; sourceReference: string; activityQuantity: number; activityUnit: string; factorProposalId: string; evidenceDocumentIds: string };
 const initialLines = (categories: string[] = ["process", "fuel", "electricity"]): Line[] => categories.map((category) => ({ category, sourceReference: "", activityQuantity: 0, activityUnit: "", factorProposalId: "", evidenceDocumentIds: "" }));
@@ -221,11 +220,12 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
 
   const load = useCallback(async () => {
     if (demo) {
+      await loadDemoData();
       setManifests(FALLBACK_MANIFESTS);
-      setFacilities(demoSessionCache.getFacilities());
-      setProcesses(demoSessionCache.getProcesses());
-      setFactors(DEMO_FACTORS);
-      setEvidence(DEMO_EVIDENCE.filter(evidenceReady));
+      setFacilities(demoCache().getFacilities());
+      setProcesses(demoCache().getProcesses());
+      setFactors(demoData().DEMO_FACTORS);
+      setEvidence(demoData().DEMO_EVIDENCE.filter(evidenceReady));
       setLoading(false);
       return;
     }

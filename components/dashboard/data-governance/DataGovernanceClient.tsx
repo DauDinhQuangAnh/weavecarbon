@@ -23,10 +23,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { EvidenceSelector } from "@/components/evidence/EvidenceSelector";
 import { isApiError } from "@/lib/apiClient";
 import { dataGovernanceApi, type DqlAssessment, type FactorProposal } from "@/lib/dataGovernanceApi";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { assessDataQualityPedigree, type DqlPedigreeAssessment } from "@/lib/ai/carbonDataAiService";
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { STANDARD_FACTORS } from "@/lib/ai/factorRecommendationAiService";
+import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 const initialDql = { subjectType: "activity", subjectReference: "", temporalScore: 3, geographicScore: 3,
   technologicalScore: 3, completenessScore: 3, reliabilityScore: 3, completenessPercent: 100, rationale: "" };
@@ -82,8 +82,9 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
 
   const load = useCallback(async () => {
     if (demo) {
-      setDql(demoSessionCache.getDql());
-      setFactors(demoSessionCache.getFactors());
+      await loadDemoData();
+      setDql(demoCache().getDql());
+      setFactors(demoCache().getFactors());
       setLoading(false);
       return;
     }
@@ -101,7 +102,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
       setSaving(true);
       setError(null);
       try {
-        const created = demoSessionCache.addDql({ ...dqlForm });
+        const created = demoCache().addDql({ ...dqlForm });
         setDql((rows) => [created, ...rows]);
         setDqlForm(initialDql);
       } finally {
@@ -122,7 +123,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
       setSaving(true);
       setError(null);
       try {
-        const created = demoSessionCache.addFactor({
+        const created = demoCache().addFactor({
           proposalReference: factorForm.proposalReference,
           factorId: factorForm.factorId,
           label: factorForm.label,
@@ -162,8 +163,8 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
       setSubmittingReview(true);
       setReviewError(null);
       try {
-        demoSessionCache.updateFactorStatus(reviewingProposal.id, reviewDecision);
-        setFactors(demoSessionCache.getFactors());
+        demoCache().updateFactorStatus(reviewingProposal.id, reviewDecision);
+        setFactors(demoCache().getFactors());
         setReviewingProposal(null);
       } finally {
         setSubmittingReview(false);

@@ -18,7 +18,6 @@ import { listEvidenceV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { workspaceCanWrite, csvText } from "@/lib/dashboard/industrialWorkspace";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import { analyzeActivityAnomalies, type ActivityAnomalyResult } from "@/lib/ai/carbonDataAiService";
 import { sha256CanonicalJson } from "@/lib/industrialOperations";
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import WorkspaceFrame from "./WorkspaceFrame";
+import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 const emptyForm = {
   activityReference: "",
@@ -90,10 +90,11 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
 
   const load = useCallback(async () => {
     if (demo) {
+      await loadDemoData();
       const demoData = (await import("@/lib/dashboard/industrialDemoData")).INDUSTRIAL_DEMO;
-      const activities = demoSessionCache.getActivities();
-      const facilities = demoSessionCache.getFacilities();
-      const processes = demoSessionCache.getProcesses();
+      const activities = demoCache().getActivities();
+      const facilities = demoCache().getFacilities();
+      const processes = demoCache().getProcesses();
       return {
         facilities,
         processes,
@@ -160,7 +161,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
     }
 
     if (demo) {
-      demoSessionCache.addActivity({
+      demoCache().addActivity({
         activityReference: form.activityReference.trim(),
         facilityRevisionId: form.facilityRevisionId || facilities[0]?.id || "demo-fac",
         processRevisionId: form.processRevisionId || null,

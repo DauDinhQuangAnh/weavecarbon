@@ -73,7 +73,7 @@ const downloadText = (filename: string, content: string, mime: string) => {
   URL.revokeObjectURL(url);
 };
 
-export interface DemoExportConfigurationPortalV2Props {
+export interface ExportPortalProps {
   documentManagerSlot?: React.ReactNode;
   onOpenMarketDetail?: (market: MarketCode) => void;
 }
@@ -119,7 +119,7 @@ const REAL_EXPORT_COPY = {
  * Demo dùng gói SKU mẫu; tài khoản thật chỉ dùng sản phẩm, thị trường và chứng từ thật từ API
  * (không rơi về dữ liệu mẫu khi chưa có dữ liệu).
  */
-const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2Props> = ({
+const ExportPortal: React.FC<ExportPortalProps> = ({
   documentManagerSlot,
   onOpenMarketDetail
 }) => {
@@ -1924,4 +1924,4 @@ const DemoExportConfigurationPortalV2: React.FC<DemoExportConfigurationPortalV2P
   );
 };
 
-export default DemoExportConfigurationPortalV2;
+export default ExportPortal;

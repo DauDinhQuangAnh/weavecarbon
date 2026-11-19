@@ -9,8 +9,6 @@ import type { EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import type { FactorProposal } from "@/lib/dataGovernanceApi";
 import type { ProductRecord } from "@/lib/products/types";
 import { evaluateCbamApplicability } from "@/lib/cbam/applicability";
-import { getIndustrialPortfolio } from "./dataset";
-import { getIndustrialReporting, pivotIndustryCadence } from "./reporting";
 
 export type PortfolioSeverity = "critical" | "warning" | "info";
 export interface PortfolioScopePoint { period: string; scope1: number; scope2: number; scope3: number }
@@ -44,63 +42,18 @@ export interface PortfolioView {
   hasInventory: boolean;
 }
 
-const DEMO_INDUSTRIES = ["Steel", "Cement", "Aluminium", "Chemicals", "Agriculture", "Construction Materials", "Mining & Minerals"] as const;
-const INDUSTRY_VI: Record<string, string> = {
-  Steel: "Thép", Cement: "Xi măng", Aluminium: "Nhôm", Chemicals: "Hoá chất", Agriculture: "Nông nghiệp",
-  "Construction Materials": "Vật liệu xây dựng", "Mining & Minerals": "Khai khoáng",
-};
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const finite = (n: unknown): number => (typeof n === "number" && Number.isFinite(n) ? n : 0);
 
-function countMarkets(products: Array<{ marketScope: string }>) {
+export function countMarkets(products: Array<{ marketScope: string }>) {
   return {
     domesticProducts: products.filter((p) => p.marketScope === "domestic").length,
     dualProducts: products.filter((p) => p.marketScope === "dual").length,
     exportProducts: products.filter((p) => p.marketScope === "export").length,
   };
 }
-function averageEvidence(products: Array<{ evidenceCount: number }>) {
+export function averageEvidence(products: Array<{ evidenceCount: number }>) {
   return products.length ? Math.round(products.reduce((s, p) => s + p.evidenceCount, 0) / products.length) : 0;
-}
-
-/** Bộ dữ liệu mẫu cho /demo — giữ nguyên số liệu đang hiển thị. */
-export function buildDemoPortfolioView(): PortfolioView {
-  const core = getIndustrialPortfolio();
-  const reporting = getIndustrialReporting();
-  const severity = (impact: string): PortfolioSeverity => (impact === "High" ? "critical" : impact === "Medium" ? "warning" : "info");
-  const products: PortfolioProductRow[] = reporting.products.map((p) => ({
-    id: p.id, name: p.name, industry: p.industry, productCode: p.productCode, cnCode: p.cnCode,
-    marketScope: p.marketScope, intensity: p.intensity, reportTargets: p.reportTargets, evidenceCount: p.evidenceCount,
-  }));
-  return {
-    mode: "demo",
-    engineVersion: core.organization.engineVersion,
-    facilitiesCount: core.emissionsSummary.facilities,
-    period: core.organization.period,
-    totalTonnes: core.emissionsSummary.totalTonnes,
-    coverage: { value: core.facilities.length, label: "Độ phủ ngành", subtext: "Số ngành được đại diện" },
-    ...countMarkets(products),
-    avgEvidence: averageEvidence(products),
-    reportProfilesCount: reporting.reportProfiles.length,
-    cadence: {
-      rows: pivotIndustryCadence(reporting.cadence),
-      series: DEMO_INDUSTRIES.map((key) => ({ key, label: INDUSTRY_VI[key] ?? key })),
-    },
-    emissionsMonthly: core.emissionsMonthly,
-    emissionsQuarterly: core.emissionsQuarterly,
-    emissionsBySource: core.emissionsBySource,
-    products,
-    evidence: reporting.evidence.map((d) => ({
-      id: d.id, fileName: d.fileName, documentType: d.documentType, linkedActivity: d.linkedActivity, evidenceLevel: d.evidenceLevel,
-    })),
-    hotspots: core.hotspots.map((h: { id?: string; entity: string; type: string; facility: string; tonnes: number; pct: number }) => ({
-      id: h.id ?? h.entity, entity: h.entity, type: h.type, facility: h.facility, tonnes: h.tonnes, pct: h.pct,
-    })),
-    alerts: core.dataGaps.slice(0, 4).map((g: { id: string; impact: string; issue: string; entity: string }) => ({
-      id: g.id, severity: severity(g.impact), text: g.issue, entity: g.entity,
-    })),
-    hasInventory: true,
-  };
 }
 
 export interface RealPortfolioInput {

@@ -49,14 +49,13 @@ import {
   type WeavenodeHealth,
   type WeavenodeUpdate
 } from "@/lib/weavenodeApi";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
-import { DEMO_MEASUREMENT_POINTS } from "@/lib/dashboard/industrialDemoData";
 import {
   detectIotSensorAnomalies,
   type IotAnomalyScanResult,
   type IotAnomalyItem,
 } from "@/lib/ai/carbonDataAiService";
 import { toast } from "sonner";
+import { demoCache, demoData, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 const selectClass = "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
 
@@ -161,11 +160,12 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
 
   const load = useCallback(async () => {
     if (demo) {
-      const devs: WeavenodeDevice[] = demoSessionCache.getWeavenodeDevices().map((d) => ({
+      await loadDemoData();
+      const devs: WeavenodeDevice[] = demoCache().getWeavenodeDevices().map((d) => ({
         id: d.id,
         deviceReference: d.deviceReference,
-        measurementPointRevisionId: DEMO_MEASUREMENT_POINTS[0]?.id || "demo-point-1",
-        measurementPointReference: DEMO_MEASUREMENT_POINTS[0]?.measurementPointReference || "DEMO-POINT-01",
+        measurementPointRevisionId: demoData().DEMO_MEASUREMENT_POINTS[0]?.id || "demo-point-1",
+        measurementPointReference: demoData().DEMO_MEASUREMENT_POINTS[0]?.measurementPointReference || "DEMO-POINT-01",
         canonicalUnit: "kWh",
         publicKeySha256: "demo-sha256",
         protocolVersion: "weavenode-ed25519-v2",
@@ -177,7 +177,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
         createdAt: new Date().toISOString(),
       }));
       setDevices(devs);
-      setPoints(DEMO_MEASUREMENT_POINTS);
+      setPoints(demoData().DEMO_MEASUREMENT_POINTS);
       if (devs.length > 0 && !selectedDevice) setSelectedDevice(devs[0].id);
       setLoading(false);
       return;

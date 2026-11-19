@@ -44,12 +44,12 @@ import {
   type ClimateLocation,
   type ClimatePortfolio,
 } from "@/lib/climateRiskApi";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import {
   simulateClimatePhysicalHazards,
   type ClimateHazardSimulationResult,
 } from "@/lib/ai/supplyChainAndClimateAiService";
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
+import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 const selectClass =
   "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
@@ -138,12 +138,13 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
 
   const load = useCallback(async () => {
     if (demo) {
-      const cachedFacilities = demoSessionCache.getFacilities() as unknown as IndustrialFacility[];
+      await loadDemoData();
+      const cachedFacilities = demoCache().getFacilities() as unknown as IndustrialFacility[];
       setFacilities(cachedFacilities);
       setEvidence([]);
-      setLocations(demoSessionCache.getClimateLocations());
-      setAssessments(demoSessionCache.getClimateAssessments());
-      setPortfolios(demoSessionCache.getClimatePortfolios());
+      setLocations(demoCache().getClimateLocations());
+      setAssessments(demoCache().getClimateAssessments());
+      setPortfolios(demoCache().getClimatePortfolios());
       if (cachedFacilities.length > 0 && !aiSelectedFacilityId) {
         setAiSelectedFacilityId(cachedFacilities[0].id);
       }
@@ -202,7 +203,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       return;
     }
     if (demo) {
-      const newLoc = demoSessionCache.addClimateLocation({
+      const newLoc = demoCache().addClimateLocation({
         facilityRevisionId: locationForm.facilityRevisionId,
         latitude: Number(locationForm.latitude),
         longitude: Number(locationForm.longitude),
@@ -231,7 +232,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       return;
     }
     if (demo) {
-      const newAss = demoSessionCache.addClimateAssessment({
+      const newAss = demoCache().addClimateAssessment({
         facilityRevisionId: assessmentForm.facilityRevisionId,
         locationRevisionId: assessmentForm.locationRevisionId,
         hazardType: assessmentForm.hazardType as "heat" | "drought" | "extreme_rainfall",
@@ -282,7 +283,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
       return;
     }
     if (demo) {
-      const newPort = demoSessionCache.addClimatePortfolio({
+      const newPort = demoCache().addClimatePortfolio({
         portfolioReference,
         methodologyNotes,
         assessmentIds: selectedIds,

@@ -5,7 +5,8 @@ import type { EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import type { ProductRecord } from "@/lib/products/types";
 import { getIndustrialPortfolio } from "./dataset";
 import { getIndustrialReporting } from "./reporting";
-import { buildDemoPortfolioView, buildRealPortfolioView, latestInventories } from "./portfolioView";
+import { buildRealPortfolioView, latestInventories } from "./portfolioView";
+import { buildDemoPortfolioView } from "./portfolioDemoView";
 
 const SHA = "a".repeat(64);
 const inventory = (over: Partial<CorporateGhgInventory> & { rows?: Array<Record<string, unknown>> } = {}): CorporateGhgInventory => {

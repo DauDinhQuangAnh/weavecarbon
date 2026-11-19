@@ -37,11 +37,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import WorkspaceFrame, { EmptyWorkspace } from "./WorkspaceFrame";
-import { demoSessionCache } from "@/lib/dashboard/demoSessionCache";
 import {
   DATA_QUALITY_LADDER,
   normalizeDataQualityTier,
 } from "@/lib/design-system/dataQualityLadder";
+import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
 const PROCESS_TYPE_SUGGESTIONS = [
   { label: "Chuẩn bị nguyên liệu", value: "material_preparation" },
@@ -63,11 +63,11 @@ export default function FacilityProcessClient({
   const load = useCallback(
     async () =>
       demo
-        ? {
-            facilities: demoSessionCache.getFacilities(),
-            processes: mode === "processes" ? demoSessionCache.getProcesses() : [],
-            activities: demoSessionCache.getActivities(),
-          }
+        ? await loadDemoData().then(() => ({
+            facilities: demoCache().getFacilities(),
+            processes: mode === "processes" ? demoCache().getProcesses() : [],
+            activities: demoCache().getActivities(),
+          }))
         : {
             facilities: await industrialCoreApi.facilities(),
             processes: mode === "processes" ? await industrialCoreApi.processes() : [],
@@ -107,7 +107,7 @@ export default function FacilityProcessClient({
     try {
       if (demo) {
         if (isFacility) {
-          demoSessionCache.addFacility({
+          demoCache().addFacility({
             facilityReference: form.reference.trim(),
             name: form.name.trim(),
             countryCode: "VN",
@@ -116,7 +116,7 @@ export default function FacilityProcessClient({
           });
         } else {
           const targetFacilityId = facility || query.data?.facilities[0]?.id || "demo-fac";
-          demoSessionCache.addProcess({
+          demoCache().addProcess({
             facilityRevisionId: targetFacilityId,
             processReference: form.reference.trim(),
             name: form.name.trim(),
