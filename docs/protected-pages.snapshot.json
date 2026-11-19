@@ -282,7 +282,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/steps/LocationPicker.tsx",
-      "sha256": "aad28bc01a201cb9fb59e668e3ec6430bf999b6ec160e14a709c1c31d6f73b72"
+      "sha256": "7fa0cd12966d5fd41ae96fb6aa18ef2e820e3a78aea1d0348bdc734c31345ea7"
     },
     {
       "repo": "FE",
@@ -411,11 +411,6 @@
     },
     {
       "repo": "FE",
-      "path": "components/dashboard/export/DemoExportConfigurationPortalV2.tsx",
-      "sha256": "3ba0fb8e5bf1f1d544aa6967ecba08e5c7104720b28795ded264571c51a9d166"
-    },
-    {
-      "repo": "FE",
       "path": "components/dashboard/export/EnvironmentalClaimRegisterPanel.tsx",
       "sha256": "fc68e56b69941b1ff9d4c59166a0bd4a9f8e1d48c9b2965d9578702562ba8508"
     },
@@ -427,12 +422,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ExportClient.tsx",
-      "sha256": "f456ab1194f39468de43d437c310000560e26c63004d7f3b42080f02bdeb095e"
-    },
-    {
-      "repo": "FE",
-      "path": "components/dashboard/export/ExportConfigurationPortalV2.tsx",
-      "sha256": "f279134146a46d981640ffd0a7db7b800989c26ae425781515bf120d0fc0f0fd"
+      "sha256": "4aeacc5e509efc33a8a7db0e1121b04089039e1250c934170b01562fb0fa58e9"
     },
     {
       "repo": "FE",
@@ -512,7 +502,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/logistic/SupplyChainMapContent.tsx",
-      "sha256": "b1cc4cd2e1bbd38eb7c99dcc97e3fd94b807af03f59913cfa74252989067c74b"
+      "sha256": "d2570d11a694bd7334f196efaa192a3b1583d26ed69e47a9539c455b1f8ba76d"
     },
     {
       "repo": "FE",
@@ -642,17 +632,12 @@
     {
       "repo": "FE",
       "path": "components/dashboard/reports/ReportClient.tsx",
-      "sha256": "873bab395fc1a64f85bfb9aa2e23fd377769da3cb563d3a52cd6509b995ce9b0"
+      "sha256": "d7c05862a7bda8e7e22a1a03b6b86ad316f1beacd282c2a607945e4794e8e0ef"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/reports/ReportPreviewModal.tsx",
       "sha256": "5bd076f62be26304c0373f85751f64f991bc8150768964bf5f02c5105394b5e7"
-    },
-    {
-      "repo": "FE",
-      "path": "components/dashboard/reports/mobile/MobileDataCard.tsx",
-      "sha256": "1e6d186fe6e17bc0dcaddd97fa96a37712fe571226bb8b44e2cd314da2d99242"
     },
     {
       "repo": "FE",
@@ -693,11 +678,6 @@
       "repo": "FE",
       "path": "components/dashboard/transport/TransportScopeSelector.tsx",
       "sha256": "09287baca1ef8ab69fdcf2bab5b880fac7a031625300d626500a5ebb59785472"
-    },
-    {
-      "repo": "FE",
-      "path": "components/demo/DemoAutoTour.tsx",
-      "sha256": "ff8a77c7463c976c0cfbd41e3e757d0e97f23cb79dd441cdc00682f910b8e7cc"
     },
     {
       "repo": "FE",
@@ -757,7 +737,7 @@
     {
       "repo": "FE",
       "path": "components/ui/TransportMap.tsx",
-      "sha256": "9a50b70d95790a84650685cbbb42dde3b03b82022aac578e6e23711fbcaee652"
+      "sha256": "33d3a828bed37e9e60806710a13fe9feecf58c72659917d05d8b1757bf628571"
     },
     {
       "repo": "FE",
@@ -1422,7 +1402,7 @@
     {
       "repo": "FE",
       "path": "lib/vietnamSovereigntyLabels.ts",
-      "sha256": "d9e58671e2823e1f4ee9f88bcfbbdaeee4ce408fce4304cfc8dbd241a1932f68"
+      "sha256": "61d3d5a73ef09c6672b3f85c3f3d95f98523d3ff8869fc00ff3279e44e95ba18"
     },
     {
       "repo": "FE",
@@ -1502,17 +1482,17 @@
     {
       "repo": "FE",
       "path": "next.config.mjs",
-      "sha256": "50c56afa9bed99fc97a9e4f0eda312033b8a79155a9e04fa1c6305677b3a78cc"
+      "sha256": "76502c481fc314bb8df80da31ed010aa3e3da66bc300bd9c827e014ada8ea2ed"
     },
     {
       "repo": "FE",
       "path": "package-lock.json",
-      "sha256": "668296c7b341acd5b53691e0dca0f2ea1776f55ba6b1412120ce8d65e44cafdf"
+      "sha256": "f601b8cc4dcdbe1f2d5b6d215c53f1596f5e72c32f70d6f354a2ebd045c1223a"
     },
     {
       "repo": "FE",
       "path": "package.json",
-      "sha256": "f5946b9f72ba63e8adab66b9e0b356973c44b05d5f8721a345a3bb121e83ab0f"
+      "sha256": "c98506b4b9db9fc901dafd81945457fbfbcac86085435b8aa1921db1a7266673"
     },
     {
       "repo": "FE",
@@ -2366,11 +2346,6 @@
     },
     {
       "repo": "BE",
-      "path": "src/routes/auth/helpers.js",
-      "sha256": "d76ba507e2162dcb20141b3142eb7444947358e13b8eb70c28c724571f3a912c"
-    },
-    {
-      "repo": "BE",
       "path": "src/routes/auth.js",
       "sha256": "b2dbefa5be8fb57c10a56b098718b9849fb2fb1e9c4a469d2aa97e4497b24461"
     },
@@ -2566,11 +2541,6 @@
     },
     {
       "repo": "BE",
-      "path": "src/services/authService/tokens.js",
-      "sha256": "3d103b68a6d665a7396c459cdf831506433bd5b3d972a61ce81e9e45eaa095c1"
-    },
-    {
-      "repo": "BE",
       "path": "src/services/authService.js",
       "sha256": "8f69ff013202605cd82b3605a1a3a23bd4da56b393a8ef202f5b767b051be59b"
     },
@@ -2593,11 +2563,6 @@
       "repo": "BE",
       "path": "src/services/b2cService.js",
       "sha256": "3537dec7130f84f4069f7824934853f2a486b124e266536e23a0f439d99af592"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/batchesService.js",
-      "sha256": "3b655045a5ab236b033be4ed58f6b75c267301bb3ce5894c645e9abfe27e7cd0"
     },
     {
       "repo": "BE",
@@ -2716,16 +2681,6 @@
     },
     {
       "repo": "BE",
-      "path": "src/services/evidenceFileStorage.js",
-      "sha256": "18a20d06a94dcde315530445dc233be0f74824e9461b6a9eaab73a9352b306eb"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/evidenceService.js",
-      "sha256": "1ab250849951b26b20d5c7da5e7a832053282a0bdb7582be9e8a304b795f52ca"
-    },
-    {
-      "repo": "BE",
       "path": "src/services/exportDocumentBuffer.js",
       "sha256": "cab58513365b770149d0ef14ff51b38f57a3b1e28207cc13673f0bc9105d213a"
     },
@@ -2768,11 +2723,6 @@
       "repo": "BE",
       "path": "src/services/exportV2Service.js",
       "sha256": "d6db0142040e1027e0c98052863ea448adb4ac8947974bfdbae7f53d57b1949e"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/googleAuthService.js",
-      "sha256": "05cbd12d6d09ae45cc65d2584b1e3d3c5b0a167624cef4ca779514e4ec535ba9"
     },
     {
       "repo": "BE",
@@ -2841,46 +2791,6 @@
     },
     {
       "repo": "BE",
-      "path": "src/services/pdfReportService.js",
-      "sha256": "731926dd0a98c1752818c160dc01b809729aef8d9331e2fa6aebcf26446645f0"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/bulkImportExecution.js",
-      "sha256": "d6102bb3aff7d65d3d1851a8e53836269540102853c84b79dc270ef35c830fa1"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/bulkImportValidation.js",
-      "sha256": "fea27e3a45ca07050cfdddce58c63f6616d6d5123756aba222b60ad84529cf0f"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/carbonScoring.js",
-      "sha256": "5d638419caf0dbb656df7cb83f37737bef57eaa65b1af6bb4742efeae403d150"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/mappers.js",
-      "sha256": "addd5425b71c79c9d152414d2c7c1e98e01ae3d65783bcf431d1023d1ab2a91e"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/payloadExtraction.js",
-      "sha256": "0dadff1dc4aca4b16cfc3519e740069524af14450d9425b0851ba4058a50545c"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/shared.js",
-      "sha256": "ef2d8c9b0768801b0160e1f90306f699c1567b0faa9889f00b2dd623ce5fcedb"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/productsService/shipmentSync.js",
-      "sha256": "fe083b0f62c0a30a633f5bb37d588a705f866296ba041e8016efb050b329a9d3"
-    },
-    {
-      "repo": "BE",
       "path": "src/services/productsService.js",
       "sha256": "443c7bfcfe6d418ffaa2294e90c84dcdb3152110365c735183383b5ada29fad7"
     },
@@ -2898,16 +2808,6 @@
       "repo": "BE",
       "path": "src/services/reportJobQueue.js",
       "sha256": "8d6e2ce6772ae34cc162212cd1f0e58b428c29a0a9aa1b5e4268cc8e1b7b90db"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/reportsService/helpers.js",
-      "sha256": "7c7ee237d64b02cb5454ea998f40e059ac9f47617ccb75c7d88fcdbdcf7d312e"
-    },
-    {
-      "repo": "BE",
-      "path": "src/services/reportsService.js",
-      "sha256": "4465f7b7a0658d0fd640cd94001816149e46671b9080ac226777c4f8619c692a"
     },
     {
       "repo": "BE",
@@ -3026,28 +2926,13 @@
     },
     {
       "repo": "BE",
-      "path": "src/validators/authValidators.js",
-      "sha256": "d67604f14df66515aa3b2631f06b41e11f3ba9d784005a3231c0b64a37a9be5d"
-    },
-    {
-      "repo": "BE",
       "path": "src/validators/b2cValidators.js",
       "sha256": "62a8a3f412c330f4cb237a9789a317fd509ed35bacddb891358715dc5568dc38"
     },
     {
       "repo": "BE",
-      "path": "src/validators/batchesValidators.js",
-      "sha256": "837a6ad78b49d1935fc41313a72ac86feb12f219a2d8e0ec968f1f24f99a1561"
-    },
-    {
-      "repo": "BE",
       "path": "src/validators/chatValidators.js",
       "sha256": "988ed8bc5c25972a92dfe05e58f27de500c61e71658463c46baaf53842ed4cac"
-    },
-    {
-      "repo": "BE",
-      "path": "src/validators/companyMembersValidators.js",
-      "sha256": "51421e5a24d08a7ccc2da6b5d248d9674325cd5fe134127a1f0371130002a447"
     },
     {
       "repo": "BE",
@@ -3063,16 +2948,6 @@
       "repo": "BE",
       "path": "src/validators/logisticsValidators.js",
       "sha256": "fde48dff345fd5dd267cb97b95990a2601a0e7bbf2657000d4db9f95f181940b"
-    },
-    {
-      "repo": "BE",
-      "path": "src/validators/productsValidators.js",
-      "sha256": "e0b30ea890fb393c7135c7edb957ca8fc243157605ac2364617706f07ab2aa26"
-    },
-    {
-      "repo": "BE",
-      "path": "src/validators/reportsValidators.js",
-      "sha256": "37ff09256ed3b859ba6c67f0a77b078bd0e16a4dee4c0c87037536a3ec1cd3c3"
     },
     {
       "repo": "BE",
@@ -3338,6 +3213,21 @@
       "repo": "BE",
       "path": "migrations/052_g2_controlled_ai_activity_promotion.sql",
       "sha256": "0f0bcb181c32b32e653f52fa14b4700cd22036d24681e6b4d7d8826f06455fa7"
+    },
+    {
+      "repo": "FE",
+      "path": "components/dashboard/export/ExportPortal.tsx",
+      "sha256": "4821a5418bf93d47e569c5ccdd183754d9ff92a3b1b1406fb3a607c15a03bdc5"
+    },
+    {
+      "repo": "FE",
+      "path": "lib/maps/maplibreRuntime.ts",
+      "sha256": "918d373c35b10454f990758da9d99463dfc8dc3a7b7cd2516725857e139641db"
+    },
+    {
+      "repo": "FE",
+      "path": "lib/dashboard/loadDemoData.ts",
+      "sha256": "097fb5679ed1cf3e3b0e8d272b8a57ea16b89b5d95206b836c78fb3ca255cb05"
     }
   ],
   "approvedUpdates": [
@@ -3364,6 +3254,38 @@
       "reason": "User requested (19/11/2026) that the signed-in B2B dashboard match the demo, with real data instead of demo data: overview uses the demo layout and an industrial portfolio computed from real inventories/facilities/products/evidence (duplicate card removed); real accounts get the full export portal (real products/markets only, neutral claim copy, no simulated prices/weights/routes) plus a customs tab; CBAM tab uses the full tool plus the HS/CN scope screen.",
       "filesUpdated": 4,
       "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User-approved source cleanup (19/11/2026, batches 1-3): remove unused files and the vaul/uuid/mapbox-gl dependencies; lazy-load demo datasets; rename DemoExportConfigurationPortalV2 to ExportPortal (wrapper removed); run all maps on MapLibre/OpenFreeMap; delete 21 unreachable one-line BE compatibility shims (tests now import the module exports). New protected entries: ExportPortal.tsx, lib/maps/maplibreRuntime.ts, lib/dashboard/loadDemoData.ts.",
+      "filesUpdated": 12,
+      "filesRemoved": [
+        "FE/components/dashboard/export/DemoExportConfigurationPortalV2.tsx",
+        "FE/components/dashboard/export/ExportConfigurationPortalV2.tsx",
+        "FE/components/dashboard/reports/mobile/MobileDataCard.tsx",
+        "FE/components/demo/DemoAutoTour.tsx",
+        "BE/src/routes/auth/helpers.js",
+        "BE/src/services/authService/tokens.js",
+        "BE/src/services/batchesService.js",
+        "BE/src/services/evidenceFileStorage.js",
+        "BE/src/services/evidenceService.js",
+        "BE/src/services/googleAuthService.js",
+        "BE/src/services/pdfReportService.js",
+        "BE/src/services/productsService/bulkImportExecution.js",
+        "BE/src/services/productsService/bulkImportValidation.js",
+        "BE/src/services/productsService/carbonScoring.js",
+        "BE/src/services/productsService/mappers.js",
+        "BE/src/services/productsService/payloadExtraction.js",
+        "BE/src/services/productsService/shared.js",
+        "BE/src/services/productsService/shipmentSync.js",
+        "BE/src/services/reportsService/helpers.js",
+        "BE/src/services/reportsService.js",
+        "BE/src/validators/authValidators.js",
+        "BE/src/validators/batchesValidators.js",
+        "BE/src/validators/companyMembersValidators.js",
+        "BE/src/validators/productsValidators.js",
+        "BE/src/validators/reportsValidators.js"
+      ]
     }
   ]
 }
