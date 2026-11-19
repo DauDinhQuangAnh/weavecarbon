@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,10 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, MapPin, Navigation, Search, X } from "lucide-react";
 import {
   buildMapboxForwardGeocodingUrl,
-  buildMapboxReverseGeocodingUrl,
-  configureMapboxRuntime,
-  MAPBOX_PUBLIC_TOKEN
+  buildMapboxReverseGeocodingUrl
 } from "@/lib/mapbox";
+import { ensureMaplibreWorker, OPENFREEMAP_STYLES, OSM_RASTER_STYLE } from "@/lib/maps/maplibreRuntime";
 import { type RoadRoutePointSource } from "@/lib/roadRouting";
 import { AddressInput } from "./types";
 import { fetchWithPolicy } from "@/lib/http/requestPolicy";
@@ -208,8 +207,8 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const mapLanguage = "vi";
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
   const reverseGeocodeAbortRef = useRef<AbortController | null>(null);
   const reverseGeocodeRequestSeqRef = useRef(0);
   const searchAbortRef = useRef<AbortController | null>(null);
@@ -466,7 +465,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       if (!map) return;
 
       if (!markerRef.current) {
-        const marker = new mapboxgl.Marker({
+        const marker = new maplibregl.Marker({
           color: "#10b981",
           draggable: true
         })
@@ -674,41 +673,10 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
     if (!mapContainerRef.current || mapRef.current) return;
 
     try {
-      const hasToken = MAPBOX_PUBLIC_TOKEN.startsWith("pk.");
-
-      if (hasToken) {
-        configureMapboxRuntime(mapboxgl);
-      } else {
-        // Use a placeholder so mapbox-gl doesn't throw; OSM tiles need no token.
-        mapboxgl.accessToken = "pk.placeholder";
-        if (typeof (mapboxgl as unknown as { setTelemetryEnabled?: (v: boolean) => void }).setTelemetryEnabled === "function") {
-          (mapboxgl as unknown as { setTelemetryEnabled: (v: boolean) => void }).setTelemetryEnabled(false);
-        }
-      }
-
-      const osmStyleDefinition = {
-        version: 8 as const,
-        sources: {
-          osm: {
-            type: "raster" as const,
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution:
-              '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          },
-        },
-        layers: [
-          {
-            id: "osm-tiles",
-            type: "raster" as const,
-            source: "osm",
-          },
-        ],
-      };
-
-      const mapStyle = hasToken
-        ? "mapbox://styles/mapbox/streets-v12"
-        : osmStyleDefinition;
+      ensureMaplibreWorker();
+      // Nền vector OpenFreeMap (không cần token); lỗi tải style thì chuyển sang raster OSM.
+      const mapStyle = OPENFREEMAP_STYLES.liberty;
+      const osmStyleDefinition = OSM_RASTER_STYLE;
 
       const initialLat = addressRef.current.lat;
       const initialLng = addressRef.current.lng;
@@ -718,18 +686,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           [initialLng as number, initialLat as number] :
           defaultCenter;
 
-      const map = new mapboxgl.Map({
+      const map = new maplibregl.Map({
         container: mapContainerRef.current,
         style: mapStyle,
         center: initialCenter,
-        zoom: hasInitialCoordinates ? TARGET_MAP_ZOOM : 10,
-        attributionControl: !hasToken
+        zoom: hasInitialCoordinates ? TARGET_MAP_ZOOM : 10
       });
 
-      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      map.addControl(new maplibregl.NavigationControl(), "top-right");
       mapRef.current = map;
 
-      // Auto-fallback to OpenStreetMap when Mapbox token is restricted to production domain
+      // Tự chuyển sang raster OpenStreetMap khi không tải được style vector
       let osmFallbackApplied = false;
       map.on("error", (event) => {
         const errMsg = String(
@@ -742,9 +709,9 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
           errMsg.toLowerCase().includes("style") ||
           errMsg.toLowerCase().includes("fetch");
 
-        if (hasToken && !osmFallbackApplied && isAuthOrStyleError) {
+        if (!osmFallbackApplied && isAuthOrStyleError) {
           osmFallbackApplied = true;
-          console.warn("[LocationPicker] Mapbox error – falling back to OpenStreetMap:", errMsg);
+          console.warn("[LocationPicker] Map style error – falling back to OpenStreetMap raster:", errMsg);
           try {
             map.setStyle(osmStyleDefinition as Parameters<typeof map.setStyle>[0]);
             map.once("styledata", () => {

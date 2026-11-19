@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import * as maplibregl from "maplibre-gl";
 import type { ErrorEvent as MapLibreErrorEvent, GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { ensureMaplibreWorker, OPENFREEMAP_STYLES } from "@/lib/maps/maplibreRuntime";
 import { buildSupplyChainRouteGeometry } from "@/lib/transportRouteGeometry";
 import {
   addVietnamSovereigntyLayers,
@@ -27,8 +28,7 @@ interface SupplyChainMapContentProps {
 // commercial use allowed — unlike the raw OSM raster tile server (which blocks
 // production traffic and left this map blank) and unlike Mapbox (which needs a
 // token configured per environment).
-const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const MAPLIBRE_WORKER_URL = "/vendor/maplibre/maplibre-gl-worker.mjs";
+const MAP_STYLE_URL = OPENFREEMAP_STYLES.liberty;
 
 const MODE_FALLBACK_COLORS: Record<string, string> = {
   ship: "#3b82f6",
@@ -194,9 +194,7 @@ const SupplyChainMapContent: React.FC<SupplyChainMapContentProps> = ({
     try {
       // MapLibre v6 cannot find its worker inside the Next.js bundle; serve it from
       // public/ (copied by scripts/copy-maplibre-worker.mjs on predev/prebuild).
-      if (maplibregl.getWorkerUrl() !== MAPLIBRE_WORKER_URL) {
-        maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL);
-      }
+      ensureMaplibreWorker();
       const { center: initialCenter, zoom: initialZoom } = initialViewRef.current;
       map = new maplibregl.Map({
         container: mapContainerRef.current,

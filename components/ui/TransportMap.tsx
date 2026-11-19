@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import {
   Truck
 } from "lucide-react";
 import type { TransportLeg, TransportLocation } from "@/types/transport";
-import { configureMapboxRuntime } from "@/lib/mapbox";
+import { ensureMaplibreWorker, OPENFREEMAP_STYLES } from "@/lib/maps/maplibreRuntime";
 import { addVietnamSovereigntyLabels } from "@/lib/vietnamSovereigntyLabels";
 import {
   isRoadTransportMode,
@@ -142,10 +142,10 @@ const TransportMap: React.FC<TransportMapProps> = ({
   const tMap = useTranslations("trackShipment.map");
   const displayLocale = "vi-VN";
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const sovereigntyMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  const animationMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const sovereigntyMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const animationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -260,7 +260,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
 
     let isCancelled = false;
     let initTimer: ReturnType<typeof setTimeout> | null = null;
-    let createdMap: mapboxgl.Map | null = null;
+    let createdMap: maplibregl.Map | null = null;
 
     const onMapLoad = () => {
       if (!isCancelled) {
@@ -280,28 +280,26 @@ const TransportMap: React.FC<TransportMapProps> = ({
       }
 
       try {
-        configureMapboxRuntime(mapboxgl);
+        ensureMaplibreWorker();
 
-        const map = new mapboxgl.Map({
+        const map = new maplibregl.Map({
           container: mapContainerRef.current,
-          style: "mapbox://styles/mapbox/dark-v11",
+          style: OPENFREEMAP_STYLES.dark,
           center: [108.2772, 14.0583],
           zoom: 2,
-          projection: "mercator",
           bearing: 0,
           pitch: 0,
-          maxPitch: 0,
-          performanceMetricsCollection: false
+          maxPitch: 0
         });
 
         createdMap = map;
         mapRef.current = map;
-        map.addControl(new mapboxgl.NavigationControl());
+        map.addControl(new maplibregl.NavigationControl());
         map.on("load", onMapLoad);
         map.on("error", onMapError);
         map.once("load", () => {
           if (!isCancelled && sovereigntyMarkersRef.current.length === 0) {
-            sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(mapboxgl, map);
+            sovereigntyMarkersRef.current = addVietnamSovereigntyLabels(maplibregl, map);
           }
         });
 
@@ -396,12 +394,12 @@ const TransportMap: React.FC<TransportMapProps> = ({
       </div>
     `;
 
-    const marker = new mapboxgl.Marker(el);
+    const marker = new maplibregl.Marker(el);
     animationMarkerRef.current = marker;
 
     const distance = getPolylineDistance(pathCoordinates);
 
-    const bounds = new mapboxgl.LngLatBounds();
+    const bounds = new maplibregl.LngLatBounds();
     pathCoordinates.forEach((coordinate) => bounds.extend(coordinate));
 
     let maxZoom;
@@ -517,7 +515,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
           });
         });
 
-        const bounds = new mapboxgl.LngLatBounds();
+        const bounds = new maplibregl.LngLatBounds();
         allPoints.forEach((point) => bounds.extend([point.lng, point.lat]));
         mapRef.current.fitBounds(bounds, {
           padding: { top: 80, bottom: 80, left: 80, right: 80 },
@@ -534,7 +532,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
         setIsAnimating(false);
 
         if (mapRef.current) {
-          const bounds = new mapboxgl.LngLatBounds();
+          const bounds = new maplibregl.LngLatBounds();
           bounds.extend([nextLeg.origin.lng, nextLeg.origin.lat]);
           bounds.extend([nextLeg.destination.lng, nextLeg.destination.lat]);
           mapRef.current.fitBounds(bounds, {
@@ -576,7 +574,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
       try {
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
-        const routeBounds = new mapboxgl.LngLatBounds();
+        const routeBounds = new maplibregl.LngLatBounds();
         let hasRouteBounds = false;
 
         displayLegs.forEach((_, idx) => {
@@ -694,7 +692,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
           tMap("point.destination") :
           tMap("point.transit");
 
-          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+          const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px;">
               <p style="font-weight: bold; margin-bottom: 4px;">${point.name}</p>
               <p style="font-size: 12px; color: #666;">
@@ -703,7 +701,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
             </div>
           `);
 
-          const marker = new mapboxgl.Marker(el).
+          const marker = new maplibregl.Marker(el).
           setLngLat([point.lng, point.lat]).
           setPopup(popup).
           addTo(map);
@@ -712,7 +710,7 @@ const TransportMap: React.FC<TransportMapProps> = ({
         });
 
         if (hasRouteBounds || allPoints.length > 0) {
-          const bounds = hasRouteBounds ? routeBounds : new mapboxgl.LngLatBounds();
+          const bounds = hasRouteBounds ? routeBounds : new maplibregl.LngLatBounds();
           if (!hasRouteBounds) {
             allPoints.forEach((point) => bounds.extend([point.lng, point.lat]));
           }

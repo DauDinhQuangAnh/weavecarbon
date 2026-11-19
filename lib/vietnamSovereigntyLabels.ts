@@ -1,4 +1,4 @@
-import type mapboxgl from "mapbox-gl";
+import type * as maplibregl from "maplibre-gl";
 
 interface SovereigntyLabelSpec {
   lng: number;
@@ -44,11 +44,11 @@ const createLabelElement = (text: string) => {
  * Caller is responsible for removing the returned markers on cleanup.
  */
 export const addVietnamSovereigntyLabels = (
-  mapboxRuntime: typeof mapboxgl,
-  map: mapboxgl.Map
-): mapboxgl.Marker[] =>
+  mapRuntime: typeof maplibregl,
+  map: maplibregl.Map
+): maplibregl.Marker[] =>
   SOVEREIGNTY_LABELS.map(({ lng, lat, label }) =>
-    new mapboxRuntime.Marker({ element: createLabelElement(label), anchor: "center" })
+    new mapRuntime.Marker({ element: createLabelElement(label), anchor: "center" })
       .setLngLat([lng, lat])
       .addTo(map)
   );
