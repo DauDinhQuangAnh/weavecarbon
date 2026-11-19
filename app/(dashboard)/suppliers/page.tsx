@@ -30,7 +30,7 @@ import {
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import SupplierNetworkPanel from '@/components/dashboard/suppliers/SupplierNetworkPanel';
-import { demoSessionCache } from '@/lib/dashboard/demoSessionCache';
+import { demoCache, loadDemoData } from '@/lib/dashboard/loadDemoData';
 import {
   screenSupplierEsgAndCarbon,
   generateSupplierScope3Questionnaire,
@@ -94,7 +94,8 @@ export default function SuppliersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     if (demo) {
-      setRows(demoSessionCache.getSupplierRequests());
+      await loadDemoData();
+      setRows(demoCache().getSupplierRequests());
       setLoading(false);
       return;
     }
@@ -135,7 +136,7 @@ export default function SuppliersPage() {
     };
 
     if (demo) {
-      demoSessionCache.addSupplierRequest(payload);
+      demoCache().addSupplierRequest(payload);
       toast({ title: 'Đã tạo yêu cầu dữ liệu Scope 3 (Lưu demo 1 giờ)' });
       setOpen(false);
       setForm(EMPTY_FORM);
@@ -169,7 +170,7 @@ export default function SuppliersPage() {
 
     if (r.status === 'draft') {
       if (demo) {
-        demoSessionCache.updateSupplierRequest(r.id, { status: 'sent' });
+        demoCache().updateSupplierRequest(r.id, { status: 'sent' });
         await load();
       } else {
         try {

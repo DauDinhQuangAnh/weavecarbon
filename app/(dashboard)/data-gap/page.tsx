@@ -36,7 +36,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/useToast';
 import { EvidenceSelector } from '@/components/evidence/EvidenceSelector';
-import { demoSessionCache } from '@/lib/dashboard/demoSessionCache';
+import { demoCache, loadDemoData } from '@/lib/dashboard/loadDemoData';
 import { scanAuditDataGaps } from '@/lib/ai/carbonDataAiService';
 import { AiDocumentImportModal } from '@/components/ui/AiDocumentImportModal';
 
@@ -120,7 +120,8 @@ export default function DataGapPage() {
   const load = useCallback(async () => {
     setLoading(true);
     if (isDemo) {
-      const demoRows = demoSessionCache.getDataGaps();
+      await loadDemoData();
+      const demoRows = demoCache().getDataGaps();
       setRows(demoRows);
       setLoading(false);
       return;
@@ -146,7 +147,7 @@ export default function DataGapPage() {
 
   const seed = async () => {
     if (isDemo) {
-      const seeded = demoSessionCache.seedDataGaps(SEED_GROUPS);
+      const seeded = demoCache().seedDataGaps(SEED_GROUPS);
       setRows(seeded);
       toast({ title: 'Đã tạo checklist mặc định (lưu cache demo)' });
       return;
@@ -171,7 +172,7 @@ export default function DataGapPage() {
       const result = scanAuditDataGaps({ framework: frameworkFilter === 'all' ? 'ISO_14064' : frameworkFilter });
       if (isDemo) {
         result.detectedGaps.forEach((g) => {
-          demoSessionCache.addDataGap({
+          demoCache().addDataGap({
             dataGroup: g.dataGroup,
             riskLevel: g.riskLevel,
             currentStatus: g.currentStatus,
@@ -181,7 +182,7 @@ export default function DataGapPage() {
             regulationTag: g.regulationTag,
           });
         });
-        setRows(demoSessionCache.getDataGaps());
+        setRows(demoCache().getDataGaps());
       } else {
         // Real mode: add to state
         setRows((prev) => {
@@ -229,7 +230,7 @@ export default function DataGapPage() {
     if (!form.dataGroup) return;
 
     if (isDemo) {
-      demoSessionCache.addDataGap({
+      demoCache().addDataGap({
         dataGroup: form.dataGroup,
         requiredForAudit: true,
         currentStatus: form.currentStatus,
@@ -241,7 +242,7 @@ export default function DataGapPage() {
       });
       setOpen(false);
       setForm(EMPTY_FORM);
-      setRows(demoSessionCache.getDataGaps());
+      setRows(demoCache().getDataGaps());
       toast({ title: 'Đã thêm khoảng trống dữ liệu vào cache demo.' });
       return;
     }
@@ -283,7 +284,7 @@ export default function DataGapPage() {
     if (!editingGap || !editForm.dataGroup) return;
 
     if (isDemo) {
-      demoSessionCache.updateDataGap(editingGap.id, {
+      demoCache().updateDataGap(editingGap.id, {
         dataGroup: editForm.dataGroup,
         currentStatus: editForm.currentStatus,
         riskLevel: editForm.riskLevel,
@@ -294,7 +295,7 @@ export default function DataGapPage() {
       });
       setEditOpen(false);
       setEditingGap(null);
-      setRows(demoSessionCache.getDataGaps());
+      setRows(demoCache().getDataGaps());
       toast({ title: 'Đã cập nhật mục đối soát demo.' });
       return;
     }
@@ -321,8 +322,8 @@ export default function DataGapPage() {
     if (!window.confirm(`Xoá mục kiểm toán "${name}"? Hành động này sẽ được ghi vào nhật ký kiểm toán.`)) return;
 
     if (isDemo) {
-      demoSessionCache.deleteDataGap(id);
-      setRows(demoSessionCache.getDataGaps());
+      demoCache().deleteDataGap(id);
+      setRows(demoCache().getDataGaps());
       toast({ title: 'Đã xoá mục trong cache demo.' });
       return;
     }
@@ -359,14 +360,14 @@ export default function DataGapPage() {
       : `Đã gắn chứng từ #${selectedEvidenceId.slice(0, 8)}`;
 
     if (isDemo) {
-      demoSessionCache.updateDataGap(resolvingGap.id, {
+      demoCache().updateDataGap(resolvingGap.id, {
         currentStatus: 'uploaded',
         requiredAction: updatedAction,
       });
       setResolveOpen(false);
       setResolvingGap(null);
       setSelectedEvidenceId(null);
-      setRows(demoSessionCache.getDataGaps());
+      setRows(demoCache().getDataGaps());
       toast({ title: 'Đã liên kết chứng từ và đánh dấu Đã tải lên (cache demo).' });
       return;
     }
