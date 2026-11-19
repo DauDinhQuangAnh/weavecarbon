@@ -767,7 +767,7 @@
     {
       "repo": "FE",
       "path": "components/ui/button.tsx",
-      "sha256": "373d13f0f765decc8d25393be40621ef83528b9c208fa1654d2755ad8486a02b"
+      "sha256": "c88cc26674f5df1975237fd41bdbf2e8857037674707fc9c5ec517a528ee1a0b"
     },
     {
       "repo": "FE",
@@ -3361,6 +3361,12 @@
       "date": "2026-11-19",
       "reason": "User asked (19/11/2026) why the signed-in overview shows a stage bar chart while demo shows a monthly line chart. The demo monthly series is synthetic sample data; real accounts had no monthly source. The backend overview now returns productMonthlyEmissions computed from published product batches (quantity × per-unit CO2e, grouped by publish month); the chart uses it for real accounts with the same Theo tháng / Theo giai đoạn toggle as demo (default monthly, with an explanatory empty state when no published batches exist).",
       "filesUpdated": 4,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User approved (19/11/2026) committing their own working-tree edits: components/ui/button.tsx drops the hover:-translate-y-0.5 lift on button variants (buttons no longer move away from the cursor on hover), and the Google sign-in button gets clearer neutral styling.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ]

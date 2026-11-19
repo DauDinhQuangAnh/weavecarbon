@@ -10,19 +10,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-        "bg-primary text-primary-foreground shadow-sm hover:-translate-y-0.5 hover:bg-primary/95 hover:shadow-lg",
+        "bg-primary text-primary-foreground shadow-sm hover:bg-primary/92 hover:shadow-md",
         destructive:
-        "bg-destructive text-destructive-foreground shadow-sm hover:-translate-y-0.5 hover:bg-destructive/92 hover:shadow-md",
+        "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/92 hover:shadow-md",
         outline:
-        "border border-white/70 bg-background/60 text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/80 hover:shadow-md",
+        "border border-white/70 bg-background/60 text-foreground shadow-sm hover:border-primary/20 hover:bg-background/80 hover:shadow-md",
         secondary:
-        "border border-white/60 bg-secondary/70 text-secondary-foreground shadow-sm hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md",
-        ghost: "bg-transparent text-foreground hover:-translate-y-0.5 hover:bg-white/50 hover:shadow-sm",
+        "border border-white/60 bg-secondary/70 text-secondary-foreground shadow-sm hover:bg-secondary/90 hover:shadow-md",
+        ghost: "bg-transparent text-foreground hover:bg-white/50 hover:shadow-sm",
         link: "text-primary underline-offset-4 hover:underline",
-        hero: "bg-gradient-forest text-primary-foreground shadow-lg hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0",
+        hero: "bg-gradient-forest text-primary-foreground shadow-lg hover:shadow-xl active:translate-y-0",
         heroOutline:
-        "border border-primary/30 bg-white/45 text-primary shadow-sm hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground hover:shadow-lg",
-        accent: "bg-accent/90 text-accent-foreground shadow-sm hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
+        "border border-primary/30 bg-white/45 text-primary shadow-sm hover:bg-primary hover:text-primary-foreground hover:shadow-lg",
+        accent: "bg-accent/90 text-accent-foreground shadow-sm hover:bg-accent hover:shadow-md"
       },
       size: {
         default: "h-10 px-4 py-2",
