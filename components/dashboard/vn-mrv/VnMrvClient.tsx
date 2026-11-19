@@ -559,7 +559,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
       )}
 
 
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="grid gap-6 xl:grid-cols-3 [&>*]:min-w-0">
         {/* Case Card */}
         <Card className="border shadow-xs">
           <CardHeader className="border-b border-slate-100 pb-4">
@@ -568,7 +568,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                 <CardTitle className="text-base font-bold text-slate-900">{t("caseTitle")}</CardTitle>
                 <CardDescription className="text-xs text-slate-600 mt-0.5">{t("caseDescription")}</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"

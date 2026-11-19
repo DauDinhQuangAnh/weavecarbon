@@ -45,7 +45,7 @@ describe('production environmental-claim guardrails', () => {
     expect(source).toContain('publicPayload.environmentalClaims');
     expect(source).toContain('claim.exactClaimText');
     expect(source).toContain('claim.specificationText');
-    expect(source).toContain('Internal carbon calculations, transport emissions and self-declared labels are not displayed.');
+    expect(source).toContain('Số liệu carbon nội bộ, phát thải vận chuyển và nhãn tự khai không được hiển thị.');
     expect(source).not.toContain('{calculation.totalCO2.toFixed(2)}');
     expect(source).not.toContain('{formatExactValue(leg.co2Kg)} kg CO2e');
     expect(`${source}\n${loadingSource}`).not.toMatch(/(?:text|bg|border|from|via|to)-(?:green|emerald)-/);

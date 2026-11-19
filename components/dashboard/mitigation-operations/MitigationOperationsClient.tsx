@@ -468,7 +468,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         </div>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
         {/* Initiative Card */}
         <Card className="border shadow-xs">
           <CardHeader className="border-b border-slate-100 pb-4">
@@ -477,7 +477,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                 <CardTitle className="text-base font-bold text-slate-900">{t("initiativeTitle")}</CardTitle>
                 <CardDescription className="text-xs text-slate-600 mt-0.5">{t("initiativeDescription")}</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"

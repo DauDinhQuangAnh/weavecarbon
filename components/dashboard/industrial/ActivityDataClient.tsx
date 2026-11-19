@@ -665,7 +665,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
             <span className="text-xs text-muted-foreground font-medium">Trợ lý AI Scan & Nhận diện:</span>
             <DataEntryScanTrigger
               contextKey="activity"

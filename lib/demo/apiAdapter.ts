@@ -6,6 +6,7 @@ import {
 } from "@/lib/apiClient";
 import type { DemoDataset } from "@/lib/demo/schema";
 import { mutateDemoDataset, readDemoDataset } from "@/lib/demo/storage";
+import { resolveDemoPassport } from "@/lib/demo/passportDemo";
 import { getDemoAccountPayload, getDemoCheckCompanyPayload, getDemoCompanyMembersPayload } from "@/lib/demo/domain/account";
 import { getDemoSubscriptionPayload } from "@/lib/demo/domain/subscription";
 import {
@@ -350,17 +351,24 @@ export const createDemoApiRequestAdapter = (): ApiRequestAdapter => {
       // ── Public passport ────────────────────────────────────────
       if (method === "GET" && /^\/passport\/[^/]+$/.test(pathname)) {
         const match = ensurePathMatches(pathname.match(/^\/passport\/([^/]+)$/), pathname);
-        const productId = decodeURIComponent(match[1]);
-        const dataset = getDemoDataset();
-        const product = getDemoProductById(dataset, productId);
-        const shipments = listDemoShipments(dataset, {});
-        const relatedShipment = shipments.items.find((s) => {
-          const ids = [s.referenceNumber, s.id];
-          return ids.some((v) => v === productId);
-        }) ?? shipments.items[0] ?? null;
+        const resolved = resolveDemoPassport(
+          getDemoDataset(),
+          decodeURIComponent(match[1]),
+          searchParams.get("shipmentId")
+        );
+        if (!resolved.product) {
+          throw new ApiError("Passport product not found", {
+            status: 404,
+            code: "PASSPORT_PRODUCT_NOT_FOUND",
+          });
+        }
         return {
           handled: true,
-          value: { product, shipment: relatedShipment },
+          value: {
+            ...resolved,
+            environmentalClaimStatus: "not_authorized",
+            environmentalClaims: [],
+          },
         };
       }
 

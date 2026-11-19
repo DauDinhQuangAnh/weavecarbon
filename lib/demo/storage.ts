@@ -191,3 +191,19 @@ export const mutateDemoDataset = async <T>(
   writeDemoDataset(next);
   return { dataset: next, result };
 };
+
+let seedProductIds: Set<string> | null = null;
+
+/**
+ * Sản phẩm có sẵn trong bộ dữ liệu demo gốc. Mọi thiết bị đều dựng lại được bộ này,
+ * nên QR hộ chiếu của các sản phẩm đó chỉ cần mang id (link ngắn, QR thưa, dễ quét).
+ */
+export const isSeedDemoProductId = (productId: string) => {
+  if (!seedProductIds) {
+    const products = createSeedDataset().products as Array<{ id?: unknown }>;
+    seedProductIds = new Set(
+      products.map((item) => String(item?.id ?? "")).filter((id) => id.length > 0)
+    );
+  }
+  return seedProductIds.has(productId);
+};

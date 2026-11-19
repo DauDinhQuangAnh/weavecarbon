@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -27,9 +27,9 @@ import { useAppRuntime } from "@/lib/demo/routes";
 import { env } from "@/lib/env";
 import {
   PRODUCT_SNAPSHOT_PARAM,
-  encodeProductSnapshot
+  encodePublicPassportSnapshot
 } from "@/lib/demo/passportSnapshot";
-import type { ProductRecord } from "@/lib/productsApi";
+import { isPublishedProductStatus, type ProductRecord } from "@/lib/productsApi";
 
 const normalizePublicBaseUrl = (value?: string | null) => {
   const trimmed = String(value || "").trim();
@@ -68,9 +68,9 @@ export interface ProductQRCodeProps {
   sku?: string;
   shipmentId?: string;
   /**
-   * Full product record. When provided in demo mode, a compact snapshot is embedded
-   * in the QR link so the scanned passport resolves on any device (demo data is
-   * per-browser localStorage and otherwise wouldn't exist on the scanning phone).
+   * Full product record. Dùng để cảnh báo khi sản phẩm chưa xuất bản (trang công khai
+   * chỉ hiển thị sản phẩm đã xuất bản) và, ở demo, để nhúng snapshot gọn cho sản phẩm
+   * tự tạo trong phiên — thiết bị quét không có dữ liệu demo của trình duyệt này.
    */
   product?: ProductRecord;
   open?: boolean;
@@ -96,31 +96,45 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
   const runtime = useAppRuntime();
   const [copied, setCopied] = useState(false);
 
-  // Generate public passport URL - accessible without authentication
-  // This allows customers to scan QR and view product info without logging in
-  const passportUrl = useMemo(() => {
-    const publicOrigin = resolvePublicOrigin();
-    if (!publicOrigin) return "";
-
-    if (runtime === "demo") {
-      const base = `${publicOrigin}/demo/summary/${encodeURIComponent(productId)}`;
-      const snapshot = encodeProductSnapshot(product);
-      return snapshot ? `${base}?${PRODUCT_SNAPSHOT_PARAM}=${snapshot}` : base;
-    }
-    const params = new URLSearchParams({ id: productId });
-    if (shipmentId && shipmentId.trim().length > 0) {
-      params.set("shipmentId", shipmentId.trim());
-    }
-    return `${publicOrigin}/passport?${params.toString()}`;
+  // QR luôn trỏ tới trang hộ chiếu công khai /passport (không cần đăng nhập), giống nhau
+  // ở tài khoản thật và demo. Demo thêm `demo=1` để trang đọc dữ liệu mẫu thay vì API;
+  // sản phẩm có sẵn trong bộ dữ liệu demo gốc chỉ cần id nên link ngắn, QR thưa.
+  const [passportUrl, setPassportUrl] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    const build = async () => {
+      const publicOrigin = resolvePublicOrigin();
+      if (!publicOrigin) return "";
+      const params = new URLSearchParams({ id: productId });
+      if (shipmentId && shipmentId.trim().length > 0) {
+        params.set("shipmentId", shipmentId.trim());
+      }
+      if (runtime === "demo") {
+        params.set("demo", "1");
+        const { isSeedDemoProductId } = await import("@/lib/demo/storage");
+        if (!isSeedDemoProductId(productId)) {
+          const snapshot = await encodePublicPassportSnapshot(product);
+          if (snapshot) params.set(PRODUCT_SNAPSHOT_PARAM, snapshot);
+        }
+      }
+      return `${publicOrigin}/passport?${params.toString()}`;
+    };
+    void build().then((url) => {
+      if (!cancelled) setPassportUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [product, productId, runtime, shipmentId]);
 
-  // Embedded snapshots make the URL long; drop error-correction from H to M so the
-  // QR stays comfortably within capacity and scannable. Plain links keep level H.
+  // Link có snapshot dài hơn nên hạ mức sửa lỗi xuống M để QR không quá dày.
   const qrLevel: "L" | "M" | "Q" | "H" = passportUrl.includes(
-    `?${PRODUCT_SNAPSHOT_PARAM}=`
+    `&${PRODUCT_SNAPSHOT_PARAM}=`
   )
     ? "M"
     : "H";
+
+  const isUnpublished = Boolean(product) && !isPublishedProductStatus(product?.status);
 
   const usesLocalhostUrl = passportUrl ? isLocalhostUrl(passportUrl) : false;
 
@@ -308,6 +322,7 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
           <Card className="bg-linear-to-br from-slate-50 to-slate-100">
             <CardContent className="p-6 flex flex-col items-center">
               <div className="bg-white p-4 rounded-xl shadow-sm">
+                {passportUrl ?
                 <QRCodeSVG
                   id="product-qr-code"
                   value={passportUrl}
@@ -315,8 +330,10 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
                   level={qrLevel}
                   includeMargin={true}
                   bgColor="#ffffff"
-                  fgColor="#000000" />
+                  fgColor="#000000" /> :
 
+                <div className="h-56 w-56 animate-pulse rounded-lg bg-slate-100" aria-hidden />
+                }
               </div>
 
               <div className="mt-4 text-center">
@@ -337,10 +354,23 @@ const ProductQRCode: React.FC<ProductQRCodeProps> = ({
             </div>
           )}
 
-          {passportUrl && (
-            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground break-all">
-              {passportUrl}
+          {isUnpublished && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+              Sản phẩm chưa xuất bản nên trang hộ chiếu công khai chưa hiển thị. Hãy xuất bản
+              sản phẩm trước khi in hoặc gửi mã QR này.
             </div>
+          )}
+
+          {passportUrl && (
+            <a
+              href={passportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={passportUrl}
+              className="block truncate rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {passportUrl}
+            </a>
           )}
 
           <div className="grid grid-cols-2 gap-2">

@@ -46,7 +46,9 @@ import {
 import {
   fetchProductById,
   fetchProducts,
+  isPublishedProductStatus,
   isValidProductId,
+  normalizeProductFromUnknown,
   type ProductRecord } from
 "@/lib/productsApi";
 import {
@@ -747,10 +749,39 @@ identifier: string)
   }
 }
 
+// QR tạo ở chế độ demo trỏ tới /passport?demo=1: đọc dữ liệu mẫu ngay trên thiết bị
+// quét (cùng quy tắc với API thật — xem lib/demo/passportDemo). Sản phẩm tự tạo trong
+// phiên demo không có trên thiết bị khác nên được mang theo dạng snapshot (`p`).
+async function loadDemoPassportPayload(
+productId: string,
+shipmentId: string,
+snapshotParam: string | null)
+: Promise<{product: ProductRecord | null;shipment: LogisticsShipmentDetail | null;environmentalClaims: PublicEnvironmentalClaim[];}> {
+  const [{ ensureDemoDataset }, { resolveDemoPassport }, { decodePublicPassportSnapshot }] =
+  await Promise.all([
+  import("@/lib/demo/storage"),
+  import("@/lib/demo/passportDemo"),
+  import("@/lib/demo/passportSnapshot")]
+  );
+  const resolved = resolveDemoPassport(ensureDemoDataset(), productId, shipmentId || null);
+  if (resolved.product) {
+    return { ...resolved, environmentalClaims: [] };
+  }
+  const snapshot = await decodePublicPassportSnapshot(snapshotParam);
+  const product = snapshot ? normalizeProductFromUnknown(snapshot) : null;
+  return {
+    product: product && isPublishedProductStatus(product.status) ? product : null,
+    shipment: null,
+    environmentalClaims: []
+  };
+}
+
 const PassportClient: React.FC = () => {
   const searchParams = useSearchParams();
   const productId = searchParams.get("id");
   const shipmentId = searchParams.get("shipmentId");
+  const isDemoPassport = searchParams.get("demo") === "1";
+  const snapshotParam = searchParams.get("p");
   const t = useTranslations("passport");
   const locale = "vi";
   const displayLocale = "vi-VN";
@@ -793,7 +824,9 @@ const PassportClient: React.FC = () => {
       let apiShipment: LogisticsShipmentDetail | null = null;
       if (normalizedProductId) {
         try {
-          const publicPayload = await fetchPublicPassportPayload(normalizedProductId);
+          const publicPayload = isDemoPassport ?
+          await loadDemoPassportPayload(normalizedProductId, normalizedShipmentId, snapshotParam) :
+          await fetchPublicPassportPayload(normalizedProductId, normalizedShipmentId || undefined);
           apiProduct = (publicPayload.product as ProductRecord | null) || null;
           apiShipment = (publicPayload.shipment as LogisticsShipmentDetail | null) || null;
           resolvedPublicClaims = publicPayload.environmentalClaims || [];
@@ -866,11 +899,14 @@ const PassportClient: React.FC = () => {
           resolvedTransportDataSource = "api";
         }
 
-        if (!apiShipment && apiProduct.shipmentId) {
+        // Hộ chiếu công khai đã trả về lô hàng (hoặc xác nhận không có) — không quét thêm
+        // danh sách lô của tenant: người quét thường chưa đăng nhập, và lô "đoán" theo
+        // SKU/tên có thể sai so với lô backend đã chọn.
+        if (!publicLookupAttempted && !apiShipment && apiProduct.shipmentId) {
           apiShipment = await resolveShipmentDetailByIdentifier(apiProduct.shipmentId);
         }
 
-        if (!apiShipment) {
+        if (!publicLookupAttempted && !apiShipment) {
           apiShipment = await findShipmentByProductId(apiProduct);
         }
 
@@ -992,7 +1028,7 @@ const PassportClient: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [productId, shipmentId]);
+  }, [isDemoPassport, productId, shipmentId, snapshotParam]);
 
   const getModeIcon = (mode: string) => {
     switch (mode) {
@@ -1077,8 +1113,8 @@ const PassportClient: React.FC = () => {
     legsLabel: "ch\u1eb7ng",
     estimated: "\u01af\u1edbc t\u00ednh",
     routeData: "Theo h\u00e0nh tr\u00ecnh",
-    apiData: "API",
-    localData: "Local",
+    apiData: "Theo l\u00f4 h\u00e0ng",
+    localData: "D\u1eef li\u1ec7u \u0111\u00e3 l\u01b0u",
     summaryDistance: "Qu\u00e3ng \u0111\u01b0\u1eddng",
     summaryRoute: "Tuy\u1ebfn",
     routeDomestic: "N\u1ed9i \u0111\u1ecba",
@@ -1127,9 +1163,9 @@ const PassportClient: React.FC = () => {
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700">
               <Package className="h-4 w-4" />
             </div>
-            <span className="text-xl font-semibold text-slate-900">Product Passport</span>
+            <span className="text-xl font-semibold text-slate-900">Hộ chiếu sản phẩm</span>
           </div>
-          <Badge variant="outline" className="rounded-full">Public product information</Badge>
+          <Badge variant="outline" className="rounded-full">Thông tin công khai</Badge>
         </div>
       </header>
 
@@ -1146,7 +1182,7 @@ const PassportClient: React.FC = () => {
                 </p>
               </div>
               <div className="text-right">
-                <Badge className="bg-white/20 text-white border-white/30">Operator-provided data</Badge>
+                <Badge className="bg-white/20 text-white border-white/30">Do doanh nghiệp cung cấp</Badge>
               </div>
             </div>
           </div>
@@ -1163,16 +1199,16 @@ const PassportClient: React.FC = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Shield className="w-4 h-4 text-blue-600" />
-              Public environmental claims
+              Tuyên bố môi trường đã duyệt
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {publicClaims?.length ? publicClaims.map((claim) => <div key={claim.dossierId} className="space-y-2 rounded border border-blue-200 bg-blue-50 p-3">
               <p className="font-medium text-slate-900">{claim.exactClaimText}</p>
               <p className="text-sm text-slate-700">{claim.specificationText}</p>
-              <p className="text-xs text-slate-600">R18 dossier {claim.claimReference} · revision {claim.revision} · {claim.rulesetVersion} · valid {claim.communicationStart} to {claim.communicationEnd || 'open-ended'}</p>
+              <p className="text-xs text-slate-600">Hồ sơ R18 {claim.claimReference} · bản {claim.revision} · {claim.rulesetVersion} · hiệu lực {claim.communicationStart} đến {claim.communicationEnd || 'không thời hạn'}</p>
             </div>) : <div className="rounded bg-slate-50 p-3 text-sm text-slate-600">
-              No environmental claim is currently approved for publication on this passport. Internal carbon calculations, transport emissions and self-declared labels are not displayed.
+              Hiện chưa có tuyên bố môi trường nào được duyệt để công bố trên hộ chiếu này. Số liệu carbon nội bộ, phát thải vận chuyển và nhãn tự khai không được hiển thị.
             </div>}
           </CardContent>
         </Card>
@@ -1313,13 +1349,16 @@ const PassportClient: React.FC = () => {
             <Clock className="w-4 h-4" />
             <span>
               {t("updatedLabel")}{" "}
-              {new Date(product.createdAt).toLocaleDateString(displayLocale)}
+              {new Date(product.updatedAt || product.createdAt).toLocaleDateString(displayLocale)}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
             {t("poweredBy")}{" "}
             <span className="font-semibold text-slate-700">WeaveCarbon</span>
           </p>
+          {isDemoPassport &&
+          <p className="text-xs text-muted-foreground">Dữ liệu mẫu từ bản demo.</p>
+          }
         </div>
       </main>
     </div>);

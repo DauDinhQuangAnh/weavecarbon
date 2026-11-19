@@ -343,10 +343,13 @@ export const fetchB2CDonationImageObjectUrl = async (donationId: string) => {
   return URL.createObjectURL(blob);
 };
 
-export const fetchPublicPassportPayload = (productId: string) =>
-  api.get<PublicPassportPayload>(`/passport/${encodeURIComponent(productId)}`, {
-    disableResponseCache: true
-  });
+export const fetchPublicPassportPayload = (productId: string, shipmentId?: string) =>
+  api.get<PublicPassportPayload>(
+    `/passport/${encodeURIComponent(productId)}${
+      shipmentId ? `?shipmentId=${encodeURIComponent(shipmentId)}` : ""
+    }`,
+    { disableResponseCache: true }
+  );
 
 export type {
   B2CCollectionPoint,

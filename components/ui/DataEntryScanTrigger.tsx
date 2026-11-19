@@ -128,7 +128,7 @@ export default function DataEntryScanTrigger({
           </div>
         </div>
       ) : variant === "dialog_header" ? (
-        <div className={`flex items-center gap-1.5 ${className}`}>
+        <div className={`flex min-w-0 flex-wrap items-center gap-1.5 ${className}`}>
           <Button
             type="button"
             variant="outline"
@@ -158,7 +158,7 @@ export default function DataEntryScanTrigger({
           </Button>
         </div>
       ) : (
-        <div className={`inline-flex items-center gap-1.5 ${className}`}>
+        <div className={`inline-flex min-w-0 flex-wrap items-center gap-1.5 ${className}`}>
           <Button
             type="button"
             variant="outline"

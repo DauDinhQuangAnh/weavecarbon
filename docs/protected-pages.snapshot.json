@@ -227,7 +227,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductQRCode.tsx",
-      "sha256": "edf997f89791e83d59acd6c4983d700b23dcd0d923af77903367714a275ad848"
+      "sha256": "c721828d6d56c91e2cac1669bb2c8206129f69b37687919219a4ac1feca519b8"
     },
     {
       "repo": "FE",
@@ -1077,7 +1077,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/apiAdapter.ts",
-      "sha256": "dadb082ab73b425e4e4432e50bc13ca1ae765ed2e11f8869dcdcdffae614ebd3"
+      "sha256": "e6fe6b8fc8dac2346f4019a638559e4f5bd099bc87a342d280ce4223e7a49447"
     },
     {
       "repo": "FE",
@@ -1147,7 +1147,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/passportSnapshot.ts",
-      "sha256": "020c3ff02b10dee5e3676b17fa0ce5fb8c35ad87cbbc3312493a26f8b66ef7a9"
+      "sha256": "409b86a7b221f51895db05bd6faddc4cce11ad76c9dc7cb4f742cf14be9d772f"
     },
     {
       "repo": "FE",
@@ -1177,7 +1177,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/storage.ts",
-      "sha256": "29254faf190b766a7bf20924980356d8e4ae994183016d12ed098fccd07738e2"
+      "sha256": "744f49eddb267e22c3a66b61707c8dd849ade7f1ecc022371b9b931b6d0e4705"
     },
     {
       "repo": "FE",
@@ -1572,7 +1572,7 @@
     {
       "repo": "BE",
       "path": "src/config/openapiContract.js",
-      "sha256": "2bc8d57cd758277c9c1b31ef3c209d83070695c7f1003525e265fc1954661b8f"
+      "sha256": "6900475906979355ab6220a7d0c6f2560513a238bef2118d12e967988c0a6541"
     },
     {
       "repo": "BE",
@@ -2482,7 +2482,7 @@
     {
       "repo": "BE",
       "path": "src/routes/passport.js",
-      "sha256": "5fce5622b6727453cc440428e739f41756a8a152a3255a879aadc4d758710fde"
+      "sha256": "8f7b64105031d87f1683ee0630cae6be5092061ca345975167213a06c4389f41"
     },
     {
       "repo": "BE",
@@ -2782,7 +2782,7 @@
     {
       "repo": "BE",
       "path": "src/services/passportService.js",
-      "sha256": "179c29f289b5f512f10053237a20b526001af802bd2c25c6498d3c2088f5f45f"
+      "sha256": "cd208ddac437377d38eb1e509b8c53b6fcb22d5cefe9cb6909bfe60ce941b3fc"
     },
     {
       "repo": "BE",
@@ -3319,6 +3319,12 @@
       "date": "2026-11-19",
       "reason": "User asked (19/11/2026) for higher contrast across the dashboard (real and demo alike) without changing brand colours: a scoped .app-contrast / html[data-app-surface] token layer darkens the page background, borders, inputs, muted text and slate/gray neutrals, makes glass cards and the sticky header more opaque with visible borders, and swaps near-invisible white borders for the border token. Also drops a leftover \"(demo)\" suffix from the default export buyer name.",
       "filesUpdated": 5,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked (19/11/2026) to re-check product QR generation in demo and real accounts and the page the QR opens. Demo and real QR now both open the public /passport page (demo adds demo=1 and reads sample data on the scanning device; seeded products need only the id, so the QR is sparse and scannable; session-created products carry a compact deflate snapshot without internal carbon results). The demo passport follows the backend rules (published products only, shipment must contain the product). The QR dialog warns when the product is unpublished and shows the link on one line. The public endpoint accepts an optional shipmentId (honoured only for a shipment of the same company that contains the product), and the passport page no longer scans tenant shipments after the public lookup. The demo /passport adapter handler now uses the same resolver.",
+      "filesUpdated": 7,
       "filesRemoved": []
     }
   ]
