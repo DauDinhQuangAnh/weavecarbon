@@ -84,9 +84,15 @@ const Solution = () => {
             {copy.subtitle}
           </p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {copy.modules.map((m) => (
-            <div key={m.title} className="rounded-2xl border border-border bg-card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+        {/* 5 ô: desktop 2 ô hàng trên (căn giữa) + 3 ô hàng dưới; tablet 2-2-1 với ô cuối căn giữa. */}
+        <div className="grid gap-6 md:grid-cols-4 lg:grid-cols-6">
+          {copy.modules.map((m, index) => (
+            <div
+              key={m.title}
+              className={`rounded-2xl border border-border bg-card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 md:col-span-2 ${
+                index === 0 ? "lg:col-start-2" : ""
+              } ${index === copy.modules.length - 1 && copy.modules.length % 2 === 1 ? "md:col-start-2 lg:col-start-auto" : ""}`}
+            >
               <div className="w-12 h-12 rounded-xl bg-gradient-forest flex items-center justify-center mb-4 text-primary-foreground">
                 <m.icon className="w-6 h-6" />
               </div>
