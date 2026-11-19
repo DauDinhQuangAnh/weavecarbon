@@ -54,7 +54,12 @@ const LeafHero3D = () => {
       isCoarsePointer || hardwareConcurrency <= 6 ?
         1.25 :
         2;
-    const targetRenderFps = maxPixelRatio <= 1.25 ? 24 : 30;
+    // Máy mạnh (≥8 luồng, chuột, không giảm chuyển động) vẽ 60 khung/giây để lá trôi mượt;
+    // máy yếu giữ 30. Trước đây 24–30 khung/giây trên màn 60–165 Hz nhìn rõ bị giật.
+    const targetRenderFps =
+      prefersReducedMotion ? 24 :
+      maxPixelRatio >= 2 ? 60 :
+      30;
 
     // --- 1. SETUP THREE.JS ---
     const scene = new THREE.Scene();
@@ -196,6 +201,53 @@ const LeafHero3D = () => {
     let disposed = false;
     let sequenceFinished = false;
 
+    const frameUrl = (index: number) =>
+      `/textures/sequence/${(index + 1).toString().padStart(4, "0")}.webp`;
+
+    // Tải trước bản nén của cả chuỗi (≈9 MB, rẻ bộ nhớ) vào HTTP cache, song song với
+    // TextureLoader chỉ giải mã ~24 khung phía trước. Intro chỉ bắt đầu chạy khi đủ khung
+    // để chạy liền mạch; nếu mạng quá chậm thì bỏ qua intro và hiện thẳng lá 3D, thay vì
+    // phát kiểu "dừng – chạy" từng khung.
+    const prefetchedFrames = new Set<number>();
+    const maxConcurrentPrefetch = 8;
+    const startBufferFrames = 120;
+    const bufferDeadlineMs = 4500;
+    let nextFrameToPrefetch = 0;
+    let prefetchInFlight = 0;
+    let playbackStarted = false;
+    let skipSequence = false;
+    let firstFrameShownAt = 0;
+
+    const pumpPrefetch = () => {
+      while (
+        !disposed && !sequenceFinished &&
+        prefetchInFlight < maxConcurrentPrefetch &&
+        nextFrameToPrefetch < totalFrames
+      ) {
+        const index = nextFrameToPrefetch++;
+        prefetchInFlight++;
+        fetch(frameUrl(index))
+          .then((response) => (response.ok ? response.arrayBuffer() : null))
+          .catch(() => null)
+          .finally(() => {
+            prefetchInFlight--;
+            prefetchedFrames.add(index);
+            pumpPrefetch();
+          });
+      }
+    };
+
+    const isFrameReady = (index: number) =>
+      Boolean(loadedTextures[index]) || failedFrames.has(index) || prefetchedFrames.has(index);
+
+    const hasPlaybackBuffer = () => {
+      const needed = Math.min(startBufferFrames, totalFrames - currentFrameRef.current);
+      for (let offset = 0; offset < needed; offset++) {
+        if (!isFrameReady(currentFrameRef.current + offset)) return false;
+      }
+      return true;
+    };
+
     const disposeLeafModel = (model: THREE.Object3D) => {
       model.traverse((object) => {
         if (object instanceof THREE.Mesh) {
@@ -224,7 +276,7 @@ const LeafHero3D = () => {
         const frameNumber = (index + 1).toString().padStart(4, "0");
         framesInFlight++;
         textureLoader.load(
-          `/textures/sequence/${frameNumber}.webp`,
+          frameUrl(index),
           (texture) => {
             framesInFlight--;
             if (disposed || sequenceFinished) {
@@ -253,6 +305,7 @@ const LeafHero3D = () => {
       }
     };
     pumpFrames();
+    pumpPrefetch();
     texturesRef.current = loadedTextures;
 
     // === SEQUENCE PLANE: Rendered as a 2D fullscreen overlay ===
@@ -486,14 +539,17 @@ const LeafHero3D = () => {
         return;
       }
 
+      // Nhịp vẽ đều: giữ lưới thời gian cố định (không lấy mốc theo rAF bị lệch), có dung sai
+      // 1.5 ms để 60 khung/giây trên màn 60 Hz không bị rơi xuống 30.
       const renderInterval = 1000 / targetRenderFps;
-      if (
-        lastRenderTimeRef.current !== 0 &&
-        time - lastRenderTimeRef.current < renderInterval
-      ) {
+      const sinceLastRender = time - lastRenderTimeRef.current;
+      if (lastRenderTimeRef.current !== 0 && sinceLastRender < renderInterval - 1.5) {
         return;
       }
-      lastRenderTimeRef.current = time;
+      lastRenderTimeRef.current =
+        lastRenderTimeRef.current === 0 || sinceLastRender > renderInterval * 3 ?
+          time :
+          lastRenderTimeRef.current + renderInterval * Math.max(1, Math.floor((sinceLastRender + 1.5) / renderInterval));
 
       // Start as soon as the first sequence image is available.
       if (!isLoadedRef.current) {
@@ -513,10 +569,25 @@ const LeafHero3D = () => {
             currentFrameRef.current = firstAvailable;
             sequencePlaneRef.current.material.map = loadedTextures[firstAvailable] ?? null;
             sequencePlaneRef.current.material.needsUpdate = true;
+            firstFrameShownAt = time;
           }
         }
 
-        if (currentFrameRef.current < totalFrames - 1) {
+        if (!playbackStarted && !skipSequence && currentFrameRef.current < totalFrames - 1) {
+          if (hasPlaybackBuffer()) {
+            playbackStarted = true;
+          } else if (firstFrameShownAt > 0 && time - firstFrameShownAt > bufferDeadlineMs && leafModelRef.current) {
+            // Mạng chậm: bỏ intro, chuyển thẳng sang lá 3D (đoạn fade bên dưới).
+            skipSequence = true;
+            currentFrameRef.current = totalFrames - 1;
+            nextFrameToRequest = totalFrames;
+            nextFrameToPrefetch = totalFrames;
+          }
+        }
+
+        if (currentFrameRef.current < totalFrames - 1 && !playbackStarted) {
+          // Đang chờ đủ khung: giữ nguyên khung đầu.
+        } else if (currentFrameRef.current < totalFrames - 1) {
           const nextFrame = currentFrameRef.current + 1;
           const nextTexture = loadedTextures[nextFrame];
           if (nextTexture || failedFrames.has(nextFrame)) {

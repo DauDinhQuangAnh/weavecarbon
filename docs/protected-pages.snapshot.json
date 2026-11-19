@@ -1482,7 +1482,7 @@
     {
       "repo": "FE",
       "path": "next.config.mjs",
-      "sha256": "76502c481fc314bb8df80da31ed010aa3e3da66bc300bd9c827e014ada8ea2ed"
+      "sha256": "b991ed73e9220ec5fd784aebeb490f1a8c5a40111d50e65496a0e3382cb8099c"
     },
     {
       "repo": "FE",
@@ -3348,6 +3348,12 @@
     {
       "date": "2026-11-19",
       "reason": "Contrast follow-up (same request): many selects/inputs use bg-background, which the contrast layer had darkened to the page tone, so they looked grey next to white inputs. The background token is near-white again inside the dashboard; the darker page tone stays on the .app-contrast layout root.",
+      "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User reported (19/11/2026) the landing-page leaf hero lags. Measured on production: the 200-frame intro sequence was served with Cache-Control max-age=0, so every visit revalidated each frame and the intro stalled waiting for frames. next.config.mjs now serves /textures/* and /models/* with max-age=86400 and stale-while-revalidate=2592000.",
       "filesUpdated": 1,
       "filesRemoved": []
     }
