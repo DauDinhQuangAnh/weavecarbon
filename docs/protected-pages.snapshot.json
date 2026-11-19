@@ -1717,7 +1717,7 @@
     {
       "repo": "BE",
       "path": "src/modules/auth/demoAccountService.js",
-      "sha256": "eb4a1081dc38ffe38d931b555e20aa94cdee9f5dbb70bbebc877a5b27d7ab109"
+      "sha256": "2335a7ac8dc06b9e067ca672c1d3112a2e2d105cefdd80e4cbeaa34cf363ae79"
     },
     {
       "repo": "BE",
@@ -1787,7 +1787,7 @@
     {
       "repo": "BE",
       "path": "src/modules/auth/tokens.js",
-      "sha256": "868ea6a253b48d3a4a86f2b08520359ef60d0ef7fe737f496d54b6eec8200980"
+      "sha256": "db5252857deb92bbfcd14204df53dc8f59d03e2e08fcf7411fef47041e0de81c"
     },
     {
       "repo": "BE",
@@ -2547,7 +2547,7 @@
     {
       "repo": "BE",
       "path": "src/server.js",
-      "sha256": "2aa6c10a035d6fdb450ef6b97c0b967cacb08d6099c4a9f1841f4ead6a61f651"
+      "sha256": "243852ad4176da0e5306c40ac559d7df18e789a19e6d2959323962a48f6bf2e3"
     },
     {
       "repo": "BE",
@@ -2557,7 +2557,7 @@
     {
       "repo": "BE",
       "path": "src/services/analyticsService.js",
-      "sha256": "4f173aac32d002ef0dcc18c62ae4e219194106206b3fb5bb6d04cbdb55d701ff"
+      "sha256": "9901b361aec4c9160905aea9954b4142bd334c0819b55b936c6eb6fbe8de540d"
     },
     {
       "repo": "BE",
@@ -2932,7 +2932,7 @@
     {
       "repo": "BE",
       "path": "src/services/subscriptionService.js",
-      "sha256": "2d6d1af794964caf4969a4e9b205894e2210c43e66104268b01b322fde050018"
+      "sha256": "8427264df59925bfa28c4859b3792aa051612b2fd3f993bbacbbf05f0bb81a10"
     },
     {
       "repo": "BE",
@@ -3351,6 +3351,12 @@
       "date": "2026-11-18",
       "reason": "User approved bugfix plan from the weavecarbon.com test report (18/11/2026): MapLibre worker, B2C demo session, pitch-deck pricing, demo data consistency, number formatting, assessment wizard hints, demo Weavey, search folding, chart warnings, SEO metadata; BE Gemini key removal, demo cleanup, rate limit, pricing, search.",
       "filesUpdated": 22,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User approved (19/11/2026) syncing BE hashes to BE main 6ddc04c. src/server.js: opt-in demo cleanup scheduler from the approved bugfix plan. demoAccountService.js, tokens.js, analyticsService.js, subscriptionService.js: changes from earlier BE commit 9f7701e already on main.",
+      "filesUpdated": 5,
       "filesRemoved": []
     }
   ]
