@@ -204,7 +204,7 @@ const LeafHero3D = () => {
     const frameUrl = (index: number) =>
       `/textures/sequence/${(index + 1).toString().padStart(4, "0")}.webp`;
 
-    // Tải trước bản nén của cả chuỗi (≈9 MB, rẻ bộ nhớ) vào HTTP cache, song song với
+    // Tải trước cả chuỗi (≈9 MB bản nén) vào cache trình duyệt, song song với
     // TextureLoader chỉ giải mã ~24 khung phía trước. Intro chỉ bắt đầu chạy khi đủ khung
     // để chạy liền mạch; nếu mạng quá chậm thì bỏ qua intro và hiện thẳng lá 3D, thay vì
     // phát kiểu "dừng – chạy" từng khung.
@@ -226,14 +226,18 @@ const LeafHero3D = () => {
       ) {
         const index = nextFrameToPrefetch++;
         prefetchInFlight++;
-        fetch(frameUrl(index))
-          .then((response) => (response.ok ? response.arrayBuffer() : null))
-          .catch(() => null)
-          .finally(() => {
-            prefetchInFlight--;
-            prefetchedFrames.add(index);
-            pumpPrefetch();
-          });
+        // Ảnh tĩnh cùng origin: dùng Image (như TextureLoader) để làm ấm cache, không giải mã.
+        const image = new Image();
+        const settle = () => {
+          image.onload = null;
+          image.onerror = null;
+          prefetchInFlight--;
+          prefetchedFrames.add(index);
+          pumpPrefetch();
+        };
+        image.onload = settle;
+        image.onerror = settle;
+        image.src = frameUrl(index);
       }
     };
 
