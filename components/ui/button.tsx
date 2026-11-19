@@ -14,14 +14,14 @@ const buttonVariants = cva(
         destructive:
         "bg-destructive text-destructive-foreground shadow-sm hover:-translate-y-0.5 hover:bg-destructive/92 hover:shadow-md",
         outline:
-        "border border-white/70 bg-background/60 text-foreground shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/80 hover:shadow-md",
+        "border border-white/70 bg-background/60 text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/80 hover:shadow-md",
         secondary:
-        "border border-white/60 bg-secondary/70 text-secondary-foreground shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md",
-        ghost: "bg-transparent text-foreground backdrop-blur-sm hover:-translate-y-0.5 hover:bg-white/50 hover:shadow-sm",
+        "border border-white/60 bg-secondary/70 text-secondary-foreground shadow-sm hover:-translate-y-0.5 hover:bg-secondary/90 hover:shadow-md",
+        ghost: "bg-transparent text-foreground hover:-translate-y-0.5 hover:bg-white/50 hover:shadow-sm",
         link: "text-primary underline-offset-4 hover:underline",
         hero: "bg-gradient-forest text-primary-foreground shadow-lg hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0",
         heroOutline:
-        "border border-primary/30 bg-white/45 text-primary shadow-sm backdrop-blur-md hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground hover:shadow-lg",
+        "border border-primary/30 bg-white/45 text-primary shadow-sm hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground hover:shadow-lg",
         accent: "bg-accent/90 text-accent-foreground shadow-sm hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
       },
       size: {

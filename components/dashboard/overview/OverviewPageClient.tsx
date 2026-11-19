@@ -3,6 +3,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import IndustrialPortfolioSection from "@/components/dashboard/portfolio/IndustrialPortfolioSection";
+import DeferUntilVisible from "@/components/app/DeferUntilVisible";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { api, isUnauthorizedApiError } from "@/lib/apiClient";
@@ -415,7 +416,9 @@ const OverviewPage: React.FC = () => {
         emissionBreakdown={emissionBreakdown}
         isLoading={insightsLoading}
         hideBreakdown />
-      <IndustrialPortfolioSection />
+      <DeferUntilVisible minHeight={1600} rootMargin="200px">
+        <IndustrialPortfolioSection />
+      </DeferUntilVisible>
       <div className="border-t border-border/70 pt-6">
         <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">Danh mục sản phẩm (SKU)</h2>
         <p className="mt-1 text-sm text-muted-foreground">

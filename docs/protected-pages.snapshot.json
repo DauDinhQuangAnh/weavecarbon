@@ -497,7 +497,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/logistic/SupplyChainMap.tsx",
-      "sha256": "dcca4a025c374e74f8aaaf5c8a05da61f6c722fd55bb1df9dba645303aa62c8c"
+      "sha256": "543a152b721cf1f24fcec5c41afdf62cb1f21fffa39f468365818b2b82611191"
     },
     {
       "repo": "FE",
@@ -507,7 +507,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/overview/OverviewPageClient.tsx",
-      "sha256": "40725b04f646b2460b5e9f0c08abe8caea522e342b151fdb4d987b3dd271f8ee"
+      "sha256": "2aa83d60350b347bf6f913bcb4768318f5f6a0a2911a31a94f33a484c6baac01"
     },
     {
       "repo": "FE",
@@ -767,7 +767,7 @@
     {
       "repo": "FE",
       "path": "components/ui/button.tsx",
-      "sha256": "810e03130c8e611bc24d2e2156d3e638e3aa64a7ccbf5285767792227a3cc7af"
+      "sha256": "373d13f0f765decc8d25393be40621ef83528b9c208fa1654d2755ad8486a02b"
     },
     {
       "repo": "FE",
@@ -3228,6 +3228,16 @@
       "repo": "FE",
       "path": "lib/dashboard/loadDemoData.ts",
       "sha256": "097fb5679ed1cf3e3b0e8d272b8a57ea16b89b5d95206b836c78fb3ca255cb05"
+    },
+    {
+      "repo": "FE",
+      "path": "hooks/useNearViewport.ts",
+      "sha256": "add0ab4c590d1361bd0cba8a78ec41776e4d5b1f7baf5ccf4edad5b3a0bd9458"
+    },
+    {
+      "repo": "FE",
+      "path": "components/app/DeferUntilVisible.tsx",
+      "sha256": "621b159ee392a3f19d08339482a2ee83ff49e47cab1ea53620e1527fe78e775d"
     }
   ],
   "approvedUpdates": [
@@ -3291,6 +3301,12 @@
       "date": "2026-11-19",
       "reason": "User asked to fix landing-page scroll lag (19/11/2026): scroll/pointer effects no longer write CSS variables on <html> every frame (CSS scroll-driven animation + a dedicated transformed glow element), body gradient moved to a fixed composited layer instead of background-attachment: fixed, in-flow landing cards drop backdrop-blur, hero WebGL skips MSAA on high-density screens.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked that signed-in pages be as smooth as the landing page (19/11/2026): buttons drop backdrop-blur, the supply-chain map mounts only near the viewport, the overview industrial portfolio renders once visible (new useNearViewport hook and DeferUntilVisible component).",
+      "filesUpdated": 5,
       "filesRemoved": []
     }
   ]

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { useTranslations } from "next-intl";
+import { useNearViewport } from "@/hooks/useNearViewport";
 
 export interface SupplyChainNode {
   id: string;
@@ -54,11 +55,19 @@ const LazyMapContent = lazy(() => import("./SupplyChainMapContent"));
 
 const SupplyChainMap: React.FC<SupplyChainMapProps> = (props) => {
   const { height = "500px", ...mapProps } = props;
+  // Bản đồ thường nằm dưới màn hình đầu: chỉ tải và khởi tạo MapLibre khi sắp cuộn tới.
+  const [ref, near] = useNearViewport<HTMLDivElement>("300px");
 
   return (
-    <Suspense fallback={<LoadingPlaceholder height={height} />}>
-      <LazyMapContent {...mapProps} height={height} />
-    </Suspense>
+    <div ref={ref}>
+      {near ? (
+        <Suspense fallback={<LoadingPlaceholder height={height} />}>
+          <LazyMapContent {...mapProps} height={height} />
+        </Suspense>
+      ) : (
+        <LoadingPlaceholder height={height} />
+      )}
+    </div>
   );
 };
 
