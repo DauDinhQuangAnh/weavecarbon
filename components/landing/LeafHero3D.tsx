@@ -209,7 +209,15 @@ const LeafHero3D = () => {
     // để chạy liền mạch; nếu mạng quá chậm thì bỏ qua intro và hiện thẳng lá 3D, thay vì
     // phát kiểu "dừng – chạy" từng khung.
     const prefetchedFrames = new Set<number>();
-    const maxConcurrentPrefetch = 8;
+    // Ít request song song + ưu tiên thấp + dừng hẳn khi người dùng bấm/gõ phím: tránh giành
+    // băng thông với lúc chuyển trang (đo được: bấm "Doanh nghiệp B2B" trễ 2,5 s khi đang tải).
+    const maxConcurrentPrefetch = 4;
+    let prefetchStopped = false;
+    const stopPrefetch = () => {
+      prefetchStopped = true;
+    };
+    window.addEventListener("pointerdown", stopPrefetch, { capture: true, once: true });
+    window.addEventListener("keydown", stopPrefetch, { capture: true, once: true });
     const startBufferFrames = 120;
     const bufferDeadlineMs = 4500;
     let nextFrameToPrefetch = 0;
@@ -220,7 +228,7 @@ const LeafHero3D = () => {
 
     const pumpPrefetch = () => {
       while (
-        !disposed && !sequenceFinished &&
+        !disposed && !sequenceFinished && !prefetchStopped &&
         prefetchInFlight < maxConcurrentPrefetch &&
         nextFrameToPrefetch < totalFrames
       ) {
@@ -228,6 +236,7 @@ const LeafHero3D = () => {
         prefetchInFlight++;
         // Ảnh tĩnh cùng origin: dùng Image (như TextureLoader) để làm ấm cache, không giải mã.
         const image = new Image();
+        image.fetchPriority = "low";
         const settle = () => {
           image.onload = null;
           image.onerror = null;
@@ -731,6 +740,8 @@ const LeafHero3D = () => {
     // Cleanup
     return () => {
       disposed = true;
+      window.removeEventListener("pointerdown", stopPrefetch, { capture: true });
+      window.removeEventListener("keydown", stopPrefetch, { capture: true });
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (viewportObserver) {
         viewportObserver.disconnect();

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Building2, User, ArrowRight, Play } from "lucide-react";
+import { useEffect, useState, useTransition, type MouseEvent } from "react";
+import { Building2, User, ArrowRight, Play, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useLandingT } from "./LandingLanguage";
 import { useRouter } from "next/navigation";
@@ -21,17 +21,42 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
   const router = useRouter();
   const { startLocalDemo, startLocalB2CDemo } = useAuth();
   const [demoLoading, setDemoLoading] = useState<"b2b" | "b2c" | null>(null);
+  // Mục đang chuyển trang. Hộp thoại giữ nguyên và hiện trạng thái chờ tới khi trang mới
+  // hiển thị (trước đây đóng ngay lập tức, mạng chậm thì nhìn như bấm không ăn).
+  const [pendingTarget, setPendingTarget] = useState<"b2b" | "b2c" | "demo-b2b" | "demo-b2c" | null>(null);
+  const [isNavigating, startNavigation] = useTransition();
+  const busyTarget = demoLoading ? `demo-${demoLoading}` : isNavigating ? pendingTarget : null;
   const demoB2CLabel = t.has("demoB2C") ? t("demoB2C") : "Demo B2C";
 
   useEffect(() => {
     if (!open) return;
 
+    router.prefetch("/auth");
     router.prefetch("/demo/overview");
     router.prefetch("/b2c");
   }, [open, router]);
 
+  const navigateTo = (target: NonNullable<typeof pendingTarget>, href: string) => {
+    setPendingTarget(target);
+    startNavigation(() => {
+      router.push(href);
+    });
+  };
+
+  const handleAccountLink = (
+    event: MouseEvent<HTMLAnchorElement>,
+    target: "b2b" | "b2c",
+    href: string
+  ) => {
+    // Giữ hành vi mở tab mới (Ctrl/Cmd/Shift/chuột giữa) của thẻ link.
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    if (busyTarget) return;
+    navigateTo(target, href);
+  };
+
   const handleDemoLogin = async () => {
-    if (demoLoading) return;
+    if (busyTarget) return;
 
     setDemoLoading("b2b");
     try {
@@ -41,15 +66,14 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
         return;
       }
 
-      onOpenChange(false);
-      router.push("/demo/overview");
+      navigateTo("demo-b2b", "/demo/overview");
     } finally {
       setDemoLoading(null);
     }
   };
 
   const handleB2CDemoLogin = async () => {
-    if (demoLoading) return;
+    if (busyTarget) return;
 
     setDemoLoading("b2c");
     try {
@@ -59,8 +83,7 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
         return;
       }
 
-      onOpenChange(false);
-      router.push("/b2c");
+      navigateTo("demo-b2c", "/b2c");
     } finally {
       setDemoLoading(null);
     }
@@ -78,7 +101,8 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
         <div className="grid grid-cols-1 gap-3 py-4 sm:gap-4 sm:py-6">
           <Link
             href="/auth?type=b2b&forceLogin=1"
-            onClick={() => onOpenChange(false)}
+            onClick={(event) => handleAccountLink(event, "b2b", "/auth?type=b2b&forceLogin=1")}
+            aria-busy={busyTarget === "b2b"}
             className="group flex items-center gap-3 rounded-xl border-2 border-border bg-card p-4 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 sm:gap-4 sm:p-5"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground sm:h-14 sm:w-14">
@@ -90,12 +114,15 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
               </h3>
               <p className="text-sm text-muted-foreground">{t("b2bDesc")}</p>
             </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
+            {busyTarget === "b2b" ?
+              <Loader2 className="h-5 w-5 animate-spin text-primary" aria-label={tAuth("loading")} /> :
+              <ArrowRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />}
           </Link>
 
           <Link
             href="/auth?type=b2c&forceLogin=1"
-            onClick={() => onOpenChange(false)}
+            onClick={(event) => handleAccountLink(event, "b2c", "/auth?type=b2c&forceLogin=1")}
+            aria-busy={busyTarget === "b2c"}
             className="group flex items-center gap-3 rounded-xl border-2 border-border bg-card p-4 transition-all duration-300 hover:border-accent/50 hover:bg-accent/5 sm:gap-4 sm:p-5"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground sm:h-14 sm:w-14">
@@ -107,7 +134,9 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
               </h3>
               <p className="text-sm text-muted-foreground">{t("b2cDesc")}</p>
             </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-accent" />
+            {busyTarget === "b2c" ?
+              <Loader2 className="h-5 w-5 animate-spin text-accent" aria-label={tAuth("loading")} /> :
+              <ArrowRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-accent" />}
           </Link>
 
           <div className="pt-2">
@@ -121,22 +150,24 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
               <button
                 type="button"
                 onClick={() => void handleDemoLogin()}
-                disabled={demoLoading !== null}
+                disabled={busyTarget !== null}
                 className="group flex items-center justify-center gap-3 rounded-xl border border-border bg-muted/30 px-5 py-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:pointer-events-none disabled:opacity-60"
               >
-                <Play className="h-4 w-4 text-primary" />
-                <span>{demoLoading === "b2b" ? tAuth("loading") : t("demoB2B")}</span>
+                {busyTarget === "demo-b2b" ?
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" /> :
+                  <Play className="h-4 w-4 text-primary" />}
+                <span>{busyTarget === "demo-b2b" ? tAuth("loading") : t("demoB2B")}</span>
               </button>
 
               <Button
                 type="button"
                 variant="outline"
                 className="h-auto rounded-xl px-5 py-4 text-sm"
-                disabled={demoLoading !== null}
+                disabled={busyTarget !== null}
                 onClick={() => void handleB2CDemoLogin()}
               >
-                <User className="h-4 w-4" />
-                <span>{demoLoading === "b2c" ? tAuth("loading") : demoB2CLabel}</span>
+                {busyTarget === "demo-b2c" ? <Loader2 className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
+                <span>{busyTarget === "demo-b2c" ? tAuth("loading") : demoB2CLabel}</span>
               </Button>
             </div>
           </div>

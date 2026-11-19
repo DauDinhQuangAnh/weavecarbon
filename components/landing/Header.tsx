@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Leaf, Menu } from "lucide-react";
-import { useRef, useState } from "react";
+import { Leaf, Loader2, Menu } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import UserTypeDialog from "./UserTypeDialog";
@@ -19,14 +19,36 @@ const Header = () => {
   const t = useLandingT("navigation");
   const { startLocalDemo } = useAuth();
   const [isStartingDemo, setIsStartingDemo] = useState(false);
+  // Nút chuyển trang giữ trạng thái chờ tới khi trang mới hiện ra; mạng chậm vẫn thấy phản hồi.
+  const [pendingNav, setPendingNav] = useState<"signup" | "trial" | null>(null);
+  const [isNavigating, startNavigation] = useTransition();
+  const busyNav = isStartingDemo ? "trial" : isNavigating ? pendingNav : null;
+
+  useEffect(() => {
+    // Tải sẵn trang đăng nhập/đăng ký để bấm là chuyển ngay.
+    navigate.prefetch("/auth");
+  }, [navigate]);
+
+  const navigateTo = (target: "signup" | "trial", href: string) => {
+    setPendingNav(target);
+    startNavigation(() => {
+      navigate.push(href);
+    });
+  };
+
+  const goSignup = () => {
+    setIsMenuOpen(false);
+    if (busyNav) return;
+    navigateTo("signup", "/auth?signup=1");
+  };
 
   const goTry = async () => {
     setIsMenuOpen(false);
-    if (isStartingDemo) return;
+    if (busyNav) return;
     setIsStartingDemo(true);
     try {
       const { error } = await startLocalDemo("b2b_standard_20");
-      navigate.push(error ? "/auth" : "/demo/demo-lab");
+      navigateTo("trial", error ? "/auth" : "/demo/demo-lab");
     } finally {
       setIsStartingDemo(false);
     }
@@ -160,17 +182,21 @@ const Header = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate.push("/auth?signup=1")}
+                onClick={goSignup}
+                disabled={busyNav !== null}
+                aria-busy={busyNav === "signup"}
               >
+                {busyNav === "signup" && <Loader2 className="h-4 w-4 animate-spin" />}
                 {t("signup")}
               </Button>
               <Button
                 variant="hero"
                 size="sm"
                 onClick={goTry}
-                disabled={isStartingDemo}
+                disabled={busyNav !== null}
+                aria-busy={busyNav === "trial"}
               >
-                {isStartingDemo ? t("starting") : t("trial")}
+                {busyNav === "trial" ? t("starting") : t("trial")}
               </Button>
             </div>
 
@@ -225,20 +251,19 @@ const Header = () => {
                 <Button
                   variant="outline"
                   className="w-full justify-center"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate.push("/auth?signup=1");
-                  }}
+                  onClick={goSignup}
+                  disabled={busyNav !== null}
                 >
+                  {busyNav === "signup" && <Loader2 className="h-4 w-4 animate-spin" />}
                   {t("signup")}
                 </Button>
                 <Button
                   variant="hero"
                   className="w-full justify-center"
                   onClick={goTry}
-                  disabled={isStartingDemo}
+                  disabled={busyNav !== null}
                 >
-                  {isStartingDemo ? t("starting") : t("trial")}
+                  {busyNav === "trial" ? t("starting") : t("trial")}
                 </Button>
               </div>
             </nav>
