@@ -60,6 +60,13 @@ export interface DashboardOverviewResponse {
     total?: number;
     batchTotal?: number;
   }>;
+  productMonthlyEmissions?: Array<{
+    productId?: string;
+    name?: string;
+    sku?: string;
+    month?: string;
+    emissionsKg?: number;
+  }>;
   marketReadiness?: Array<{
     marketCode?: string;
     marketName?: string;

@@ -44,7 +44,7 @@ import {
 "lucide-react";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
-import type { EmissionBreakdownPoint } from "../OverviewCharts";
+import type { EmissionBreakdownPoint, ProductMonthlyEmissionsRow } from "../OverviewCharts";
 import { useRouter } from "next/navigation";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
@@ -127,6 +127,9 @@ const OverviewPage: React.FC = () => {
   const [emissionBreakdown, setEmissionBreakdown] = useState<
     EmissionBreakdownPoint[]>(
     []);
+  // undefined = API chưa trả trường này (demo / backend cũ) → biểu đồ dùng nhịp mẫu từ batchTotal.
+  const [overviewProductMonthly, setOverviewProductMonthly] = useState<
+    ProductMonthlyEmissionsRow[] | undefined>(undefined);
   const [overviewProductEmissions, setOverviewProductEmissions] = useState<
     Array<{
       name: string;
@@ -338,6 +341,7 @@ const OverviewPage: React.FC = () => {
           setRecommendations([]);
           setEmissionBreakdown([]);
           setOverviewProductEmissions([]);
+          setOverviewProductMonthly(undefined);
           setInsightsLoading(false);
         }
         return;
@@ -388,6 +392,17 @@ const OverviewPage: React.FC = () => {
             ...(typeof item.batchTotal === "number" ? { batchTotal: item.batchTotal } : {})
           }))
         );
+        setOverviewProductMonthly(
+          Array.isArray(overview.productMonthlyEmissions) ?
+            overview.productMonthlyEmissions.map((row) => ({
+              productId: row.productId,
+              name: row.name || row.sku || "Sản phẩm",
+              sku: row.sku || row.productId || "-",
+              month: String(row.month || ""),
+              emissionsKg: Number(row.emissionsKg) || 0
+            })) :
+            undefined
+        );
       } catch {
         if (cancelled) return;
 
@@ -396,6 +411,7 @@ const OverviewPage: React.FC = () => {
         setRecommendations([]);
         setEmissionBreakdown([]);
         setOverviewProductEmissions([]);
+        setOverviewProductMonthly(undefined);
       }
 
       setInsightsLoading(false);
@@ -413,6 +429,7 @@ const OverviewPage: React.FC = () => {
       {/* Cùng một bố cục cho demo và tài khoản thật; chỉ khác nguồn dữ liệu. */}
       <OverviewCharts
         productEmissions={productEmissions}
+        productMonthlyEmissions={overviewProductMonthly}
         emissionBreakdown={emissionBreakdown}
         isLoading={insightsLoading}
         hideBreakdown />

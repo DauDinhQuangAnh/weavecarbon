@@ -37,6 +37,16 @@ export interface ProductEmissionsPoint {
   batchTotal?: number;
 }
 
+/** Phát thải theo tháng của một sản phẩm, từ lô đã xuất bản (API /dashboard/overview). */
+export interface ProductMonthlyEmissionsRow {
+  productId?: string;
+  name: string;
+  sku: string;
+  /** "YYYY-MM" */
+  month: string;
+  emissionsKg: number;
+}
+
 export interface EmissionBreakdownPoint {
   name: string;
   value: number;
@@ -102,8 +112,47 @@ export function buildMonthlyProductSeries(points: ProductEmissionsPoint[], maxSe
   return { data, series };
 }
 
+/**
+ * Nhịp phát thải theo tháng của tài khoản thật: số lượng trong lô đã xuất bản × phát thải mỗi
+ * đơn vị, gộp theo tháng (backend tính). Không dựng thêm số liệu.
+ */
+export function buildMonthlySeriesFromRows(rows: ProductMonthlyEmissionsRow[], maxSeries = 6) {
+  const valid = rows.filter((row) => /^\d{4}-\d{2}$/.test(row.month) && row.emissionsKg > 0);
+  if (valid.length === 0) return { data: [] as Record<string, number | string>[], series: [] as { key: string; label: string; color: string }[] };
+
+  const months = Array.from(new Set(valid.map((row) => row.month))).sort();
+  const totals = new Map<string, { label: string; kg: number }>();
+  valid.forEach((row) => {
+    const current = totals.get(row.sku) ?? { label: row.name || row.sku, kg: 0 };
+    current.kg += row.emissionsKg;
+    totals.set(row.sku, current);
+  });
+  const ranked = Array.from(totals.entries()).sort((a, b) => b[1].kg - a[1].kg);
+  const top = ranked.slice(0, maxSeries);
+  const topKeys = new Set(top.map(([sku]) => sku));
+  const restCount = ranked.length - top.length;
+  const series = top.map(([sku, info], i) => ({ key: sku, label: info.label, color: PRODUCT_LINE_COLORS[i % PRODUCT_LINE_COLORS.length] }));
+  if (restCount > 0) series.push({ key: "__other", label: `Khác (${restCount} SKU)`, color: PRODUCT_LINE_COLORS[6] });
+
+  const round = (kg: number) => Number((kg / 1000).toFixed(kg >= 10_000 ? 1 : 3));
+  const data = months.map((month) => {
+    const [year, mm] = month.split("-");
+    const row: Record<string, number | string> = { month: `T${Number(mm)}/${year}` };
+    series.forEach((item) => { row[item.key] = 0; });
+    valid.filter((r) => r.month === month).forEach((r) => {
+      const key = topKeys.has(r.sku) ? r.sku : "__other";
+      row[key] = (row[key] as number) + r.emissionsKg;
+    });
+    series.forEach((item) => { row[item.key] = round(row[item.key] as number); });
+    return row;
+  });
+  return { data, series };
+}
+
 interface OverviewChartsProps {
   productEmissions?: ProductEmissionsPoint[];
+  /** Có ở tài khoản thật: phát thải theo tháng từ lô đã xuất bản. Demo dùng batchTotal. */
+  productMonthlyEmissions?: ProductMonthlyEmissionsRow[];
   emissionBreakdown?: EmissionBreakdownPoint[];
   isLoading?: boolean;
   /** Ẩn biểu đồ tròn "Nguồn phát thải" khi trang đã có khối "Phát thải theo nguồn" (tránh trùng). */
@@ -112,6 +161,7 @@ interface OverviewChartsProps {
 
 export default function OverviewCharts({
   productEmissions = [],
+  productMonthlyEmissions,
   emissionBreakdown = [],
   isLoading = false,
   hideBreakdown = false,
@@ -129,10 +179,23 @@ export default function OverviewCharts({
   }, []);
 
   const hasProductData = productEmissions.length > 0;
-  const monthly = React.useMemo(() => buildMonthlyProductSeries(productEmissions), [productEmissions]);
+  // Tài khoản thật có productMonthlyEmissions (từ lô thật); demo dựng nhịp mẫu từ batchTotal.
+  const usesRealMonthly = Array.isArray(productMonthlyEmissions);
+  const monthly = React.useMemo(
+    () => usesRealMonthly
+      ? buildMonthlySeriesFromRows(productMonthlyEmissions ?? [])
+      : buildMonthlyProductSeries(productEmissions),
+    [usesRealMonthly, productMonthlyEmissions, productEmissions]
+  );
   const hasMonthly = monthly.data.length > 0;
+  // Cùng một giao diện cho demo và tài khoản thật: luôn có nút chuyển, mặc định "Theo tháng".
+  const showToggle = hasMonthly || (usesRealMonthly && hasProductData);
   const [view, setView] = React.useState<"monthly" | "stage">("monthly");
-  const showMonthly = hasMonthly && view === "monthly";
+  const monthlySelected = showToggle && view === "monthly";
+  const showMonthly = hasMonthly && monthlySelected;
+  const monthRange = hasMonthly
+    ? `${monthly.data[0].month}${monthly.data.length > 1 ? `–${monthly.data[monthly.data.length - 1].month}` : ""}`
+    : "";
   const hasBreakdownData = emissionBreakdown.length > 0;
 
   const categoryLabels = {
@@ -160,13 +223,15 @@ export default function OverviewCharts({
           </CardTitle>
           <div className="mt-0.5 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              {showMonthly
-                ? "Nhịp phát thải theo tháng của từng sản phẩm (tCO₂e) · T1–T8/2026"
+              {monthlySelected
+                ? usesRealMonthly
+                  ? `Nhịp phát thải theo tháng của từng sản phẩm (tCO₂e) · theo lô đã xuất bản${monthRange ? ` · ${monthRange}` : ""}`
+                  : `Nhịp phát thải theo tháng của từng sản phẩm (tCO₂e) · ${monthRange.replace(/\/2026–T/, "–T")}`
                 : locale === "vi"
                   ? "Phân theo giai đoạn: vật liệu, sản xuất, vận chuyển, đóng gói (kgCO₂e / đơn vị)"
                   : "Broken down by stage: materials, production, transport, packaging"}
             </p>
-            {hasMonthly ? (
+            {showToggle ? (
               <div className="flex rounded-lg border border-border p-0.5">
                 {(["monthly", "stage"] as const).map((key) => (
                   <button
@@ -183,9 +248,24 @@ export default function OverviewCharts({
           </div>
         </CardHeader>
         <CardContent className="px-2 pb-3 pt-4 md:px-6 md:pt-5">
-          <div className={showMonthly ? "h-72 md:h-80" : "h-56 md:h-64"}>
+          <div className={monthlySelected ? "h-72 md:h-80" : "h-56 md:h-64"}>
             {isLoading ? (
               <div className="h-full w-full rounded-md border border-slate-300 bg-slate-200/70 animate-pulse" />
+            ) : monthlySelected && !hasMonthly ? (
+              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-6 text-center">
+                <p className="text-sm font-medium text-foreground">Chưa có lô sản phẩm đã xuất bản trong 6 tháng gần đây</p>
+                <p className="max-w-md text-xs leading-5 text-muted-foreground">
+                  Nhịp theo tháng được tính từ số lượng trong lô đã xuất bản × phát thải mỗi đơn vị sản phẩm.
+                  Xuất bản lô ở mục Sản phẩm để thấy biểu đồ này.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setView("stage")}
+                  className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  Xem phát thải theo giai đoạn →
+                </button>
+              </div>
             ) : showMonthly ? (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 320, height: 200 }}>
                 <LineChart data={monthly.data} margin={{ top: 8, right: isMobile ? 8 : 16, left: isMobile ? -16 : 0, bottom: 0 }}>
@@ -195,7 +275,7 @@ export default function OverviewCharts({
                     tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)} />
                   <Tooltip
                     contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12 }}
-                    formatter={(value, name) => [`${Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} tCO₂e`, name]}
+                    formatter={(value, name) => [`${Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 3 })} tCO₂e`, name]}
                   />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
                   {monthly.series.map((item) => (

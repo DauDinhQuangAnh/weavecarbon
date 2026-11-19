@@ -212,7 +212,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/OverviewCharts.tsx",
-      "sha256": "af04cbb2ab8357a1702eb141fae471087521ae5c8b5e426764dfc20a644de736"
+      "sha256": "fa957348f3d507b6062b85e7ee1818652c3b04af92dde0bb5481cd5ad6b1c35a"
     },
     {
       "repo": "FE",
@@ -507,12 +507,12 @@
     {
       "repo": "FE",
       "path": "components/dashboard/overview/OverviewPageClient.tsx",
-      "sha256": "2aa83d60350b347bf6f913bcb4768318f5f6a0a2911a31a94f33a484c6baac01"
+      "sha256": "632ebfac8da5afede3e03f3b9d4955637ab9cd6a1d74fc60f90431b4826cc93b"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/overview/overviewPageHelpers.tsx",
-      "sha256": "9c636888f03cbe5fb22356a2769bf91404c2941fa4dc79e7f6cf2291b55e60ff"
+      "sha256": "3bed9d1d247e953535a9a802acff5890c36c0f2305b71faa12b4c86198c3612c"
     },
     {
       "repo": "FE",
@@ -2612,7 +2612,7 @@
     {
       "repo": "BE",
       "path": "src/services/dashboardService.js",
-      "sha256": "f66b8675398f11b8e67615f16843fa5091ac06b7cd003ad34a7a5731afa63af3"
+      "sha256": "f225ebeb3f51b8fc8a38077afee75afe93307467bddb14ed988aae00a3f8fbed"
     },
     {
       "repo": "BE",
@@ -3355,6 +3355,12 @@
       "date": "2026-11-19",
       "reason": "User reported (19/11/2026) the landing-page leaf hero lags. Measured on production: the 200-frame intro sequence was served with Cache-Control max-age=0, so every visit revalidated each frame and the intro stalled waiting for frames. next.config.mjs now serves /textures/* and /models/* with max-age=86400 and stale-while-revalidate=2592000.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked (19/11/2026) why the signed-in overview shows a stage bar chart while demo shows a monthly line chart. The demo monthly series is synthetic sample data; real accounts had no monthly source. The backend overview now returns productMonthlyEmissions computed from published product batches (quantity × per-unit CO2e, grouped by publish month); the chart uses it for real accounts with the same Theo tháng / Theo giai đoạn toggle as demo (default monthly, with an explanatory empty state when no published batches exist).",
+      "filesUpdated": 4,
       "filesRemoved": []
     }
   ]
