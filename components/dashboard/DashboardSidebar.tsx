@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import AutoLocalizer from "@/components/i18n/AutoLocalizer";
 import AppLanguageToggle from "@/components/i18n/AppLanguageToggle";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -62,6 +62,12 @@ const icons = { AlertCircle, BarChart3, CalculatorIcon, CreditCard, Factory, Dat
   Settings, TrendingUp, Truck, Users, RadioTower, Activity, GitBranch, Inbox, Workflow, Flame, ShieldCheck, Sparkles };
 type NavigationItem = { path: string; icon: keyof typeof icons; labelKey?: string; label?: string };
 
+// Biểu tượng xoay nhỏ trên mục đang chuyển trang (chỉ hiện khi trang mới chưa sẵn sàng).
+function NavPendingSpinner() {
+  const { pending } = useLinkStatus();
+  return pending ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" aria-hidden /> : null;
+}
+
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   company,
   companyLoading = false,
@@ -78,6 +84,17 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const appRoutes = useAppRoutes();
   const router = useRouter();
   const pathname = usePathname();
+  // Mục vừa bấm được tô sáng ngay (không chờ trang mới tải xong); xóa khi URL đã đổi.
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  useEffect(() => {
+    setPendingPath(null);
+  }, [pathname]);
+  useEffect(() => {
+    if (!pendingPath) return;
+    // Phòng khi điều hướng bị hủy/lỗi: không giữ tô sáng sai chỗ quá lâu.
+    const timer = window.setTimeout(() => setPendingPath(null), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [pendingPath]);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["carbon"]);
   useEffect(() => {
     const group = SIDEBAR_GROUPS.find((entry) => entry.items.some((item) => pathname === appRoutes.toAppPath(item.path) || pathname.startsWith(`${appRoutes.toAppPath(item.path)}/`)));
@@ -118,6 +135,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   const isActive = (path: string) => {
+    if (pendingPath) return pendingPath === path;
     const targetPath = appRoutes.toAppPath(path);
     if (path === "/reports" && pathname === appRoutes.toAppPath("/report-builder")) return true;
     return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
@@ -134,13 +152,25 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const renderMenuItem = (item: NavigationItem, nested = false) => {
     const active = isActive(item.path);
     const Icon = icons[item.icon];
-    return <Link key={item.path} href={appRoutes.toAppPath(item.path)} prefetch={false}
+    const href = appRoutes.toAppPath(item.path);
+    // Không prefetch hàng loạt ~30 mục khi sidebar hiện ra; tải trước khi người dùng rê chuột /
+    // focus / chạm vào mục — đủ sớm để lúc bấm trang đã sẵn.
+    const prefetchOnIntent = () => router.prefetch(href);
+    return <Link key={item.path} href={href} prefetch={false}
       title={sidebarOpen ? undefined : item.labelKey ? t(item.labelKey) : item.label}
       aria-current={active ? "page" : undefined}
-      onClick={(event) => { if (active) { event.preventDefault(); return; } handleSidebarNavigate(); }}
+      onMouseEnter={prefetchOnIntent}
+      onFocus={prefetchOnIntent}
+      onTouchStart={prefetchOnIntent}
+      onClick={(event) => {
+        if (active) { event.preventDefault(); return; }
+        if (!(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) setPendingPath(item.path);
+        handleSidebarNavigate();
+      }}
       className={`group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 ${nested && sidebarOpen ? "pl-9" : ""} ${active ? "bg-secondary font-medium text-secondary-foreground shadow-[0_1px_0_hsl(0_0%_100%/0.8)_inset]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
       <Icon className={`h-4 w-4 shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
       {sidebarOpen && <span className="flex-1 truncate">{item.labelKey ? t(item.labelKey) : item.label}</span>}
+      <NavPendingSpinner />
     </Link>;
   };
 

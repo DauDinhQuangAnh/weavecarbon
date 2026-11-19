@@ -12,6 +12,9 @@ const MAX_HEALTH_CACHE_ENTRIES = 8;
 type HealthCacheEntry = {
   expiresAt: number;
   promise: Promise<BackendHealthResult>;
+  /** Kết quả gần nhất đã có, dùng để trả ngay khi cache hết hạn (stale-while-revalidate). */
+  settled?: BackendHealthResult;
+  refreshing?: boolean;
 };
 
 const healthCache = new Map<string, HealthCacheEntry>();
@@ -144,24 +147,46 @@ export const getBackendHealth = async (): Promise<BackendHealthResult> => {
   if (cached && cached.expiresAt > now) {
     return cached.promise;
   }
+
+  // Layout gốc gọi hàm này ở MỌI lần chuyển trang. Khi cache vừa hết hạn mà lần trước khỏe,
+  // trả ngay kết quả cũ và kiểm tra lại ở nền — tránh một lần bấm phải chờ /health (tới 2,5 s).
+  // Lần trước không khỏe thì vẫn chờ kết quả mới để màn bảo trì gỡ ra ngay khi backend hồi phục.
+  if (cached?.settled?.healthy) {
+    if (!cached.refreshing) {
+      cached.refreshing = true;
+      void requestBackendHealth(healthUrl).then((result) => {
+        const current = healthCache.get(healthUrl);
+        if (current !== cached) return;
+        current.settled = result;
+        current.promise = Promise.resolve(result);
+        current.expiresAt = Date.now() + (
+          result.healthy ? HEALTHY_CACHE_TTL_MS : UNHEALTHY_CACHE_TTL_MS
+        );
+        current.refreshing = false;
+      });
+    }
+    return cached.settled;
+  }
   if (cached) {
     healthCache.delete(healthUrl);
   }
 
+  const entry: HealthCacheEntry = {
+    expiresAt: now + HEALTHY_CACHE_TTL_MS,
+    promise: Promise.resolve(null as unknown as BackendHealthResult)
+  };
   const request = requestBackendHealth(healthUrl).then((result) => {
-    const current = healthCache.get(healthUrl);
-    if (current?.promise === request) {
-      current.expiresAt = Date.now() + (
+    if (healthCache.get(healthUrl) === entry) {
+      entry.settled = result;
+      entry.expiresAt = Date.now() + (
         result.healthy ? HEALTHY_CACHE_TTL_MS : UNHEALTHY_CACHE_TTL_MS
       );
     }
     return result;
   });
+  entry.promise = request;
 
-  healthCache.set(healthUrl, {
-    expiresAt: now + HEALTHY_CACHE_TTL_MS,
-    promise: request
-  });
+  healthCache.set(healthUrl, entry);
 
   while (healthCache.size > MAX_HEALTH_CACHE_ENTRIES) {
     const oldestKey = healthCache.keys().next().value;

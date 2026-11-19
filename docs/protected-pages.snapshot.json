@@ -1017,7 +1017,7 @@
     {
       "repo": "FE",
       "path": "lib/backendHealth.ts",
-      "sha256": "181bc1f9a71fd684f23eab413a9025c07082b1e6a8d3c3b4eeb7ea99cdfcddec"
+      "sha256": "2744b3631ad1e91342cb1aebed83a15053581d8124c76198aa5694a7c56c15e5"
     },
     {
       "repo": "FE",
@@ -1482,7 +1482,7 @@
     {
       "repo": "FE",
       "path": "next.config.mjs",
-      "sha256": "b991ed73e9220ec5fd784aebeb490f1a8c5a40111d50e65496a0e3382cb8099c"
+      "sha256": "824e71932c308761d896ce953e173269c2b42acd0b1a908ccc86de6d9f359327"
     },
     {
       "repo": "FE",
@@ -3367,6 +3367,12 @@
       "date": "2026-11-19",
       "reason": "User approved (19/11/2026) committing their own working-tree edits: components/ui/button.tsx drops the hover:-translate-y-0.5 lift on button variants (buttons no longer move away from the cursor on hover), and the Google sign-in button gets clearer neutral styling.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked (19/11/2026) to remove the slight delay when switching pages across the app. Measured on production: sidebar links had prefetch disabled, each click waited for the RSC payload (64 ms to over 1 s) with no feedback, and the force-dynamic root layout awaited the backend /health check whenever its 30 s cache expired. getBackendHealth now serves the last healthy result immediately and refreshes in the background (unhealthy results are still awaited), and next.config keeps visited dynamic pages in the client router cache for 30 s (experimental.staleTimes.dynamic).",
+      "filesUpdated": 2,
       "filesRemoved": []
     }
   ]

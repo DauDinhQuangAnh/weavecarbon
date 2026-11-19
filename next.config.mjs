@@ -10,6 +10,12 @@ const HERO_ASSET_CACHE = "public, max-age=86400, stale-while-revalidate=2592000"
 const nextConfig = {
   output: "standalone",
   reactStrictMode: false,
+  experimental: {
+    // Giữ payload trang đã tải/prefetch trong bộ nhớ router 30 s: quay lại trang vừa xem
+    // (vd. Tổng quan ↔ Sản phẩm) hiện ngay, không gọi lại server. Dữ liệu trên trang vẫn do
+    // client tải nên không bị cũ.
+    staleTimes: { dynamic: 30 },
+  },
   async headers() {
     return [
       { source: "/textures/:path*", headers: [{ key: "Cache-Control", value: HERO_ASSET_CACHE }] },
