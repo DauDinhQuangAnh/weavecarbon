@@ -46,7 +46,7 @@ export async function exportBrandedTradeDocumentXlsx(
     let nextRow = addTitleBlock(
       sheet,
       "HÓA ĐƠN THƯƠNG MẠI NHÚNG DỮ LIỆU CARBON (COMMERCIAL INVOICE)",
-      `Được chứng nhận bởi WeaveCarbon · PO/Hợp đồng: ${cfg.poContractId || "PO-2026-0891"} · Nhà mua hàng: ${cfg.buyerBrand || "EuroSteel Trading GmbH (demo)"}`,
+      `Được chứng nhận bởi WeaveCarbon · PO/Hợp đồng: ${cfg.poContractId || "PO-2026-0891"} · Nhà mua hàng: ${cfg.buyerBrand || "EuroSteel Trading GmbH"}`,
       9,
       `Số hóa đơn: INV-${cfg.poContractId || "2026-EU-01"} · Ngày phát hành: 26/09/2026 · Chuẩn khai báo: EU CBAM & ISO 14067:2018 (Phạm vi Scope 1+2+3)`
     );
@@ -68,7 +68,7 @@ export async function exportBrandedTradeDocumentXlsx(
       { header: "Thành tiền (USD)", width: 18, align: "right", numFmt: "$#,##0.00", total: true, value: ({ item, idx }) => item.sku.units * (8.5 + (idx % 3) * 3.75) },
       { header: "Carbon nhúng (kg CO₂e/sp)", width: 26, align: "right", numFmt: "#,##0.000", value: ({ item }) => item.embeddedKgPerUnit },
       { header: "Tổng carbon dòng (tCO₂e)", width: 26, align: "right", numFmt: "#,##0.0000", total: true, value: ({ item }) => item.embeddedTonnesBatch },
-      { header: "Tiêu chuẩn kiểm toán", width: 24, align: "center", value: () => "ISO 14067 / SGS Verified" }
+      { header: "Tiêu chuẩn kiểm toán", width: 24, align: "center", value: () => "ISO 14067 (thẩm tra độc lập)" }
     ];
 
     const dataRows = items.map((item, idx) => ({ item, idx }));
@@ -171,7 +171,7 @@ export async function exportBrandedTradeDocumentXlsx(
     { header: "Vận tải biển Scope 3.4 (tCO₂e)", width: 26, align: "right", numFmt: "#,##0.0000", total: true, value: (item) => item.sku.units * 0.00025 * 0.098 },
     { header: "Carbon nhúng hàng (tCO₂e)", width: 24, align: "right", numFmt: "#,##0.0000", total: true, value: (item) => item.embeddedTonnesBatch },
     { header: "Tổng dấu chân B/L (tCO₂e)", width: 24, align: "right", numFmt: "#,##0.0000", total: true, value: (item) => item.sku.units * 0.00025 * 0.098 + item.embeddedTonnesBatch },
-    { header: "Chuẩn xác thực logistics", width: 26, align: "center", value: () => "GLEC Framework / DNV Verified" }
+    { header: "Chuẩn xác thực logistics", width: 26, align: "center", value: () => "GLEC Framework v3.0" }
   ];
 
   addDataTable(sheet, {

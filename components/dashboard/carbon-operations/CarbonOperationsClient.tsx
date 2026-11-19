@@ -82,7 +82,8 @@ export default function CarbonOperationsClient({
 }) {
   const t = useTranslations("carbonOperations");
   const { isRoot, canMutate, isPlanLocked } = usePermissions();
-  const canWrite = !demo && isRoot && canMutate;
+  // Demo thao tác như tài khoản thật; dữ liệu ghi vào phiên demo thay vì máy chủ.
+  const canWrite = demo || (isRoot && canMutate);
   const readOnlyMessage = demo
     ? t("demoReadOnly")
     : !isRoot
@@ -197,10 +198,10 @@ export default function CarbonOperationsClient({
       setRegistry(INDUSTRIAL_CORE_DEMO_REGISTRY);
       setFacilities(demoCache().getFacilities());
       setProcesses(demoCache().getProcesses());
-      setMeasurementPoints(demoData().DEMO_MEASUREMENT_POINTS);
+      setMeasurementPoints(demoCache().getMeasurementPoints());
       setActivities(demoCache().getActivities());
-      setAllocationRules([]);
-      setAllocationRuns([]);
+      setAllocationRules(demoCache().getAllocationRules());
+      setAllocationRuns(demoCache().getAllocationRuns());
       setEvidence(demoData().DEMO_EVIDENCE);
       setLoading(false);
       return;
@@ -274,11 +275,14 @@ export default function CarbonOperationsClient({
     setActionSaving("facility", true);
     setActionError("facility");
     try {
-      const created = await industrialCoreApi.createFacility({
+      const facilityInput = {
         ...form,
         countryCode: form.countryCode.toUpperCase(),
-        lifecycleStatus: "active",
-      });
+        lifecycleStatus: "active" as const,
+      };
+      const created = demo
+        ? demoCache().addFacility(facilityInput)
+        : await industrialCoreApi.createFacility(facilityInput);
       setFacilities((current) => [created, ...current]);
       setForm(emptyForm);
       toast({ title: t("facilityCreated") });
@@ -295,10 +299,10 @@ export default function CarbonOperationsClient({
     setActionSaving("process", true);
     setActionError("process");
     try {
-      const created = await industrialCoreApi.createProcess({
-        ...processForm,
-        lifecycleStatus: "active",
-      });
+      const processInput = { ...processForm, lifecycleStatus: "active" as const };
+      const created = demo
+        ? demoCache().addProcess(processInput)
+        : await industrialCoreApi.createProcess(processInput);
       setProcesses((current) => [created, ...current]);
       setProcessForm({
         facilityRevisionId: "",
@@ -327,7 +331,9 @@ export default function CarbonOperationsClient({
         calibrationDueOn: pointForm.calibrationDueOn || undefined,
         samplingIntervalSeconds: pointForm.samplingIntervalSeconds ? Number(pointForm.samplingIntervalSeconds) : undefined,
       };
-      const created = await industrialCoreApi.createMeasurementPoint(payload);
+      const created = demo
+        ? demoCache().addMeasurementPoint(payload)
+        : await industrialCoreApi.createMeasurementPoint(payload);
       setMeasurementPoints((current) => [created, ...current]);
       setPointForm({
         facilityRevisionId: "",
@@ -374,12 +380,15 @@ export default function CarbonOperationsClient({
     setActionSaving("allocationRule", true);
     setActionError("allocationRule");
     try {
-      const created = await industrialCoreApi.createAllocationRule({
+      const ruleInput = {
         ...allocationRuleForm,
-        sourceLevel: "facility", targetLevel: "process",
+        sourceLevel: "facility" as const, targetLevel: "process" as const,
         evidenceDocumentId:
           allocationRuleForm.evidenceDocumentId || undefined,
-      });
+      };
+      const created = demo
+        ? demoCache().addAllocationRule(ruleInput)
+        : await industrialCoreApi.createAllocationRule(ruleInput);
       setAllocationRules((current) => [created, ...current]);
       setAllocationRuleForm({
         facilityRevisionId: "",
@@ -419,11 +428,14 @@ export default function CarbonOperationsClient({
     setActionSaving("allocationRun", true);
     setActionError("allocationRun");
     try {
-      const created = await industrialCoreApi.createAllocationRun({
+      const runInput = {
         ruleRevisionId: allocationRunForm.ruleRevisionId,
         sourceActivityId: allocationRunForm.sourceActivityId,
         targets,
-      });
+      };
+      const created = demo
+        ? demoCache().addAllocationRun(runInput)
+        : await industrialCoreApi.createAllocationRun(runInput);
       setAllocationRuns((current) => [created, ...current]);
       setAllocationDrivers({});
       toast({ title: t("allocationRunCreated") });
@@ -864,7 +876,7 @@ export default function CarbonOperationsClient({
                     />
                   </div>
                   <CardDescription className="text-xs text-slate-500">
-                    {demo ? t("demoReadOnly") : t("facilityFormDescription")}
+                    {t("facilityFormDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-4">
@@ -1318,6 +1330,7 @@ export default function CarbonOperationsClient({
               canWrite={canWrite}
               readOnlyMessage={readOnlyMessage}
               onCreated={(created) => setActivities((current) => [created, ...current])}
+              demo={demo}
             />
 
             {/* ── Governed Allocation Rules & Deterministic Runs ── */}

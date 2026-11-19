@@ -10,7 +10,6 @@ import {
   ShieldAlert,
   BarChart3,
   AlertCircle,
-  CheckCircle2,
   ChevronRight,
   Download,
   FileText,
@@ -569,12 +568,6 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
         </div>
       )}
 
-      {demo && (
-        <div className="flex items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 shadow-xs">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-sky-600" />
-          <span>{t("demoReadOnly")}</span>
-        </div>
-      )}
 
       {/* Overview stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

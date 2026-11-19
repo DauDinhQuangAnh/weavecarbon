@@ -149,7 +149,7 @@ export default function DataGapPage() {
     if (isDemo) {
       const seeded = demoCache().seedDataGaps(SEED_GROUPS);
       setRows(seeded);
-      toast({ title: 'Đã tạo checklist mặc định (lưu cache demo)' });
+      toast({ title: 'Đã tạo checklist mặc định' });
       return;
     }
     if (!companyId) return;
@@ -243,7 +243,7 @@ export default function DataGapPage() {
       setOpen(false);
       setForm(EMPTY_FORM);
       setRows(demoCache().getDataGaps());
-      toast({ title: 'Đã thêm khoảng trống dữ liệu vào cache demo.' });
+      toast({ title: 'Đã thêm khoảng trống dữ liệu.' });
       return;
     }
 
@@ -296,7 +296,7 @@ export default function DataGapPage() {
       setEditOpen(false);
       setEditingGap(null);
       setRows(demoCache().getDataGaps());
-      toast({ title: 'Đã cập nhật mục đối soát demo.' });
+      toast({ title: 'Đã cập nhật mục đối soát.' });
       return;
     }
 
@@ -324,7 +324,7 @@ export default function DataGapPage() {
     if (isDemo) {
       demoCache().deleteDataGap(id);
       setRows(demoCache().getDataGaps());
-      toast({ title: 'Đã xoá mục trong cache demo.' });
+      toast({ title: 'Đã xoá mục.' });
       return;
     }
 
@@ -368,7 +368,7 @@ export default function DataGapPage() {
       setResolvingGap(null);
       setSelectedEvidenceId(null);
       setRows(demoCache().getDataGaps());
-      toast({ title: 'Đã liên kết chứng từ và đánh dấu Đã tải lên (cache demo).' });
+      toast({ title: 'Đã liên kết chứng từ và đánh dấu Đã tải lên.' });
       return;
     }
 

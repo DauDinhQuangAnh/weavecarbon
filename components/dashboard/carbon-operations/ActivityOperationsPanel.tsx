@@ -27,6 +27,7 @@ import {
 } from "@/lib/industrialCoreApi";
 import { isControlledEvidence, sha256CanonicalJson, zonedLocalDateTimeToIso } from "@/lib/industrialOperations";
 import type { EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
+import { demoCache } from "@/lib/dashboard/loadDemoData";
 
 const PAGE_SIZE = 10;
 
@@ -54,10 +55,12 @@ type Props = {
   canWrite: boolean;
   readOnlyMessage: string;
   onCreated: (activity: IndustrialActivity) => void;
+  /** Demo: ghi vào dữ liệu phiên demo thay vì máy chủ. */
+  demo?: boolean;
 };
 
 export default function ActivityOperationsPanel({
-  activities, facilities, processes, measurementPoints, evidence, canWrite, readOnlyMessage, onCreated,
+  activities, facilities, processes, measurementPoints, evidence, canWrite, readOnlyMessage, onCreated, demo = false,
 }: Props) {
   const t = useTranslations("carbonOperations");
   const [form, setForm] = useState(emptyActivity);
@@ -115,7 +118,9 @@ export default function ActivityOperationsPanel({
         dataQualityLevel: form.dataQualityLevel, facilityTimezone,
         evidenceDocumentIds: [...form.evidenceDocumentIds].sort(),
       };
-      const created = await industrialCoreApi.createActivity({
+      const created = demo
+        ? demoCache().addActivity({ ...provenance, processRevisionId: form.processRevisionId || null, measurementPointRevisionId: form.measurementPointRevisionId || null })
+        : await industrialCoreApi.createActivity({
         ...provenance,
         processRevisionId: form.processRevisionId || undefined,
         measurementPointRevisionId: form.measurementPointRevisionId || undefined,
@@ -136,7 +141,8 @@ export default function ActivityOperationsPanel({
     setBusy("lineage");
     setError(null);
     try {
-      const result = await industrialCoreApi.activityLineage(activityId);
+      const result = demo ? demoCache().getLineage(activityId) : await industrialCoreApi.activityLineage(activityId);
+      if (!result) throw new Error(t("lineageLoadError"));
       setLineage(result);
       setReview({ decision: result.latestReview?.decision || "needs_information", notes: "" });
     } catch (cause) {
@@ -152,11 +158,15 @@ export default function ActivityOperationsPanel({
     setBusy("review");
     setError(null);
     try {
-      await industrialCoreApi.reviewActivity(lineage.activity.id, {
-        reviewerRole: "industrial_activity_reviewer", decision: review.decision, notes: review.notes.trim(),
-      });
-      const refreshed = await industrialCoreApi.activityLineage(lineage.activity.id);
-      setLineage(refreshed);
+      if (demo) {
+        demoCache().saveActivityReview(lineage.activity.id, { decision: review.decision, notes: review.notes.trim() });
+      } else {
+        await industrialCoreApi.reviewActivity(lineage.activity.id, {
+          reviewerRole: "industrial_activity_reviewer", decision: review.decision, notes: review.notes.trim(),
+        });
+      }
+      const refreshed = demo ? demoCache().getLineage(lineage.activity.id) : await industrialCoreApi.activityLineage(lineage.activity.id);
+      if (refreshed) setLineage(refreshed);
       setReview((current) => ({ ...current, notes: "" }));
       toast({ title: t("activityReviewed") });
     } catch (cause) {

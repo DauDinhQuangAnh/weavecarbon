@@ -43,10 +43,11 @@ describe("new industrial demo pages", () => {
     { page: <EvidenceLineageClient review demo />, text: "DEMO · Hóa đơn điện tháng 9 · locked" },
     { page: <InboxClient demo />, text: "DEMO · Hệ số nhiên liệu chờ rà soát" },
     { page: <ComplianceClient demo />, text: "Hai kỳ kiểm kê giả định" },
-  ])("renders populated, labelled demo: $text", async ({ page, text }) => {
+  ])("renders populated demo pages without per-page demo notices: $text", async ({ page, text }) => {
     render(page);
     expect(await screen.findByText(text)).toBeInTheDocument();
-    expect(screen.getByText(/Demo chỉ đọc · dữ liệu tổng hợp/)).toBeInTheDocument();
+    // Chỉ khung DEMO MODE ở thanh bên báo chế độ demo; các trang không lặp lại ghi chú.
+    expect(screen.queryByText(/Demo chỉ đọc|Chế độ Demo/)).not.toBeInTheDocument();
   });
 
   it("changes inventory periods and hotspot grouping without mixing revisions", async () => {

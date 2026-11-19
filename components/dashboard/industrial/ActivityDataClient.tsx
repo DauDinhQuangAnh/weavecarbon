@@ -175,7 +175,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
       });
       setShowAddModal(false);
       setForm(emptyForm);
-      toast.success("Đã ghi nhận hoạt động vào sổ cái demo (lưu cache 1 giờ).");
+      toast.success("Đã ghi nhận hoạt động vào sổ cái.");
       await query.reload();
       return;
     }
@@ -640,7 +640,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                           href={routes.toAppPath("/evidence-graph")}
                           className="text-primary hover:underline text-xs font-medium"
                         >
-                          {demo ? "Xem chuỗi bằng chứng minh họa →" : "Xem phả hệ bằng chứng →"}
+                          Xem phả hệ bằng chứng →
                         </Link>
                       </td>
                     </tr>

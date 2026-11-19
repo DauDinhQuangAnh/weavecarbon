@@ -161,7 +161,7 @@ export default function OverviewCharts({
           <div className="mt-0.5 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               {showMonthly
-                ? "Nhịp phát thải theo tháng của từng sản phẩm (tCO₂e) · dữ liệu demo T1–T8/2026"
+                ? "Nhịp phát thải theo tháng của từng sản phẩm (tCO₂e) · T1–T8/2026"
                 : locale === "vi"
                   ? "Phân theo giai đoạn: vật liệu, sản xuất, vận chuyển, đóng gói (kgCO₂e / đơn vị)"
                   : "Broken down by stage: materials, production, transport, packaging"}

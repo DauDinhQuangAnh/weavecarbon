@@ -232,11 +232,6 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
         </div>
       )}
 
-      {demo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
-          💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể nhập đánh giá DQL, đề xuất hệ số và thẩm tra/phê duyệt hệ số. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
-        </div>
-      )}
 
       <section className="grid gap-6 xl:grid-cols-2">
         {/* DQL Card */}
@@ -293,7 +288,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <Label className="text-xs font-semibold text-slate-700">Đối tượng đánh giá</Label>
                   <select
                     className="h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    disabled={demo || saving}
+                    disabled={saving}
                     value={dqlForm.subjectType}
                     onChange={(e) => setDqlForm({ ...dqlForm, subjectType: e.target.value })}
                   >
@@ -493,7 +488,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <Label className="text-xs font-semibold text-slate-700">Mã đề xuất</Label>
                   <Input
                     required
-                    disabled={demo || saving}
+                    disabled={saving}
                     placeholder={t("proposalReference")}
                     value={factorForm.proposalReference}
                     onChange={(e) => setFactorForm({ ...factorForm, proposalReference: e.target.value })}
@@ -503,7 +498,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   <Label className="text-xs font-semibold text-slate-700">Mã hệ số (ID)</Label>
                   <Input
                     required
-                    disabled={demo || saving}
+                    disabled={saving}
                     placeholder="VD: EF-ELEC-VN-2026"
                     value={factorForm.factorId}
                     onChange={(e) => setFactorForm({ ...factorForm, factorId: e.target.value })}

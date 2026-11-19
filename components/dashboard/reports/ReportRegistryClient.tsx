@@ -87,7 +87,8 @@ const ReportRegistryClient: React.FC = () => {
   const appLanguage = useAppLanguage();
   const vi = appLanguage === 'vi';
   const router = useRouter();
-  const base = isDemoPath(usePathname()) ? '/demo' : '';
+  const demo = isDemoPath(usePathname());
+  const base = demo ? '/demo' : '';
   const navigate = (path: string) => router.push(`${base}${path.replace(/^\/dashboard/, '')}`);
   const dataset = getIndustrialPortfolio();
   const reporting = getIndustrialReporting();
@@ -121,10 +122,12 @@ const ReportRegistryClient: React.FC = () => {
 
   const sourceBackedCount = legalMarketProfiles.reduce((sum, profile) => sum + profile.references.length, 0);
   const note = dataset.loading || reporting.loading
-    ? (vi ? 'Đang tải dữ liệu demo…' : 'Loading demo data…')
-    : (vi
-      ? `Khung pháp lý/tiêu chuẩn được version theo nguồn chính thức · dữ liệu doanh nghiệp bên trong là DEMO`
-      : 'Legal/standard framework is versioned from authoritative sources · internal business data is DEMO');
+    ? (vi ? 'Đang tải dữ liệu…' : 'Loading data…')
+    : demo
+      ? (vi ? 'Khung pháp lý/tiêu chuẩn được version theo nguồn chính thức' : 'Legal/standard framework is versioned from authoritative sources')
+      : (vi
+        ? `Khung pháp lý/tiêu chuẩn được version theo nguồn chính thức · dữ liệu doanh nghiệp bên trong là DEMO`
+        : 'Legal/standard framework is versioned from authoritative sources · internal business data is DEMO');
 
   const exportProfile = async (profile: LegalMarketProfile) => {
     if (profile.reportProfileCode === 'EU_CBAM_2026') {
@@ -149,16 +152,16 @@ const ReportRegistryClient: React.FC = () => {
       <PageHeader
         title={vi ? 'Trung tâm báo cáo pháp lý & thị trường' : 'Legal & Market Reporting Center'}
         description={vi
-          ? 'Chọn ngành và thị trường để dựng đúng cấu trúc hồ sơ. Phần tiêu chuẩn/pháp lý dùng nguồn chính thức; số liệu doanh nghiệp, sản phẩm và bằng chứng bên trong được gắn nhãn DEMO và không được trình bày như filing thật.'
-          : 'Select an industry and market to build the correct report structure. Legal/standard requirements use authoritative sources; internal company, product and evidence values are labelled DEMO and are never presented as an official filing.'}
+          ? (demo ? 'Chọn ngành và thị trường để dựng đúng cấu trúc hồ sơ. Phần tiêu chuẩn/pháp lý dùng nguồn chính thức.' : 'Chọn ngành và thị trường để dựng đúng cấu trúc hồ sơ. Phần tiêu chuẩn/pháp lý dùng nguồn chính thức; số liệu doanh nghiệp, sản phẩm và bằng chứng bên trong được gắn nhãn DEMO và không được trình bày như filing thật.')
+          : (demo ? 'Select an industry and market to build the correct report structure. Legal/standard requirements use authoritative sources.' : 'Select an industry and market to build the correct report structure. Legal/standard requirements use authoritative sources; internal company, product and evidence values are labelled DEMO and are never presented as an official filing.')}
         meta={<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Database className="h-3.5 w-3.5" />{note}</span>}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label={vi ? 'Khung thị trường' : 'Market frameworks'} value={String(legalMarketProfiles.length)} subtext={vi ? 'Pháp lý · tiêu chuẩn · buyer · readiness' : 'Regulatory · standards · buyer · readiness'} />
-        <StatCard label={vi ? 'Ngành demo' : 'Demo industries'} value={String(reportingIndustries.length)} subtext={vi ? 'Một data backbone · nhiều Industry Pack' : 'One data backbone · multiple Industry Packs'} />
+        <StatCard label={vi ? (demo ? 'Ngành' : 'Ngành demo') : (demo ? 'Industries' : 'Demo industries')} value={String(reportingIndustries.length)} subtext={vi ? 'Một data backbone · nhiều Industry Pack' : 'One data backbone · multiple Industry Packs'} />
         <StatCard label={vi ? 'Nguồn chuẩn chính thức' : 'Authoritative references'} value={String(sourceBackedCount)} subtext={vi ? `Registry review ${REPORTING_REGISTRY_REVIEW_DATE}` : `Registry reviewed ${REPORTING_REGISTRY_REVIEW_DATE}`} />
-        <StatCard label={vi ? 'Phát thải demo danh mục' : 'Demo portfolio emissions'} value={dataset.emissionsSummary.totalTonnes.toLocaleString('vi-VN',{maximumFractionDigits:1})} unit="tCO₂e" subtext={dataset.organization.period} />
+        <StatCard label={vi ? (demo ? 'Phát thải danh mục' : 'Phát thải demo danh mục') : (demo ? 'Portfolio emissions' : 'Demo portfolio emissions')} value={dataset.emissionsSummary.totalTonnes.toLocaleString('vi-VN',{maximumFractionDigits:1})} unit="tCO₂e" subtext={dataset.organization.period} />
       </div>
 
       <div className="mb-6 grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm lg:grid-cols-[1fr_1fr_auto] lg:items-end">
@@ -235,7 +238,7 @@ const ReportRegistryClient: React.FC = () => {
         </div>
 
         <SectionCard
-          title={vi ? 'Bản xem trước hồ sơ chuẩn — dữ liệu DEMO' : 'Standard report preview — DEMO data'}
+          title={demo ? (vi ? 'Bản xem trước hồ sơ chuẩn' : 'Standard report preview') : (vi ? 'Bản xem trước hồ sơ chuẩn — dữ liệu DEMO' : 'Standard report preview — DEMO data')}
           description={vi ? `${industry === 'All' ? 'Danh mục đa ngành' : industryLabel(industry, true)} · ${vi ? selectedProfile.titleVi : selectedProfile.titleEn}` : `${industry === 'All' ? 'Multi-industry portfolio' : industry} · ${selectedProfile.titleEn}`}
           actions={
             <Button size="sm" onClick={() => exportProfile(selectedProfile)} disabled={isExporting}>
@@ -286,11 +289,11 @@ const ReportRegistryClient: React.FC = () => {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <SectionCard title={vi ? 'Sản phẩm demo theo thị trường' : 'Demo products by market'} description={vi ? 'Dữ liệu minh họa bên trong, không thay đổi quy tắc pháp lý bên ngoài.' : 'Internal demonstration data does not change the external legal rules.'} bodyClassName="p-0">
+        <SectionCard title={demo ? (vi ? 'Sản phẩm theo thị trường' : 'Products by market') : (vi ? 'Sản phẩm demo theo thị trường' : 'Demo products by market')} description={demo ? undefined : (vi ? 'Dữ liệu minh họa bên trong, không thay đổi quy tắc pháp lý bên ngoài.' : 'Internal demonstration data does not change the external legal rules.')} bodyClassName="p-0">
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-5 py-3">{vi?'Sản phẩm':'Product'}</th><th className="px-5 py-3">{vi?'Ngành':'Industry'}</th><th className="px-5 py-3">{vi?'Thị trường':'Market'}</th><th className="px-5 py-3">{vi?'Cường độ':'Intensity'}</th><th className="px-5 py-3">{vi?'Mục tiêu báo cáo':'Report targets'}</th></tr></thead><tbody className="divide-y divide-border">{demoProducts.slice(0,8).map((p)=><tr key={p.id}><td className="px-5 py-4"><p className="font-medium">{p.name}</p><p className="text-xs text-muted-foreground">{p.productCode || p.id}{p.cnCode?` · CN ${p.cnCode}`:''}</p></td><td className="px-5 py-4 text-muted-foreground">{industryLabel(p.industry,vi)}</td><td className="px-5 py-4 text-muted-foreground">{p.destinationMarket || '—'}</td><td className="px-5 py-4 text-muted-foreground">{p.intensity || '—'}</td><td className="px-5 py-4"><div className="flex max-w-[300px] flex-wrap gap-1">{p.reportTargets.map((t)=><span key={t} className="rounded bg-secondary px-2 py-1 text-[10px] text-secondary-foreground">{t}</span>)}</div></td></tr>)}</tbody></table></div>
         </SectionCard>
 
-        <SectionCard title={vi ? 'Evidence register demo cho profile đang chọn' : 'Demo evidence register for selected profile'} description={vi ? 'Filename/hash là synthetic metadata; chỉ dùng để minh họa data lineage.' : 'Filenames/hashes are synthetic metadata used only to demonstrate data lineage.'} bodyClassName="p-0">
+        <SectionCard title={demo ? (vi ? 'Evidence register cho profile đang chọn' : 'Evidence register for selected profile') : (vi ? 'Evidence register demo cho profile đang chọn' : 'Demo evidence register for selected profile')} description={demo ? undefined : (vi ? 'Filename/hash là synthetic metadata; chỉ dùng để minh họa data lineage.' : 'Filenames/hashes are synthetic metadata used only to demonstrate data lineage.')} bodyClassName="p-0">
           <div className="divide-y divide-border">{demoEvidence.length ? demoEvidence.slice(0,8).map((e)=><div key={e.id} className="px-5 py-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{e.fileName}</p><p className="mt-1 text-xs text-muted-foreground">{e.documentType} · {e.linkedActivity || '—'} · {e.period}</p></div><StatusPill label={e.evidenceLevel}/></div><p className="mt-2 text-[11px] text-muted-foreground">{e.status} · {e.integrityHash || 'No hash'}</p></div>) : <div className="p-8 text-center text-sm text-muted-foreground">{vi ? 'Profile này chưa có evidence demo được ánh xạ. Không tự tạo bằng chứng giả.' : 'No demo evidence is mapped to this profile. We do not fabricate evidence.'}</div>}</div>
         </SectionCard>
       </div>

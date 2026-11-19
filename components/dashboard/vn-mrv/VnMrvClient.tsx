@@ -188,7 +188,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
         const fac = facilities.find((f) => f.id === caseForm.facilityRevisionId) || facilities[0];
         const x = demoCache().addMrvCase({
           facilityId: caseForm.facilityRevisionId || fac?.id || "demo-fac",
-          facilityName: fac?.name || "Cơ sở demo",
+          facilityName: fac?.name || "Cơ sở sản xuất",
           caseReference: caseForm.caseReference || `MRV-${Date.now()}`,
           reportingYear: Number(caseForm.reportingYear) || 2026,
         });
@@ -330,7 +330,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
           readinessStatus: "ready_for_internal_review",
           blockers: [],
           payloadSha256: `demo-filing-sha-${Date.now()}`,
-          disclaimer: "Hồ sơ MRV mô phỏng thử nghiệm demo.",
+          disclaimer: "Hồ sơ MRV nội bộ, chưa nộp cơ quan quản lý.",
         };
         setFilings((v) => [x, ...v]);
       } finally {
@@ -558,11 +558,6 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
         </div>
       )}
 
-      {demo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
-          💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể tạo hồ sơ MRV, lập kế hoạch đo đạc và tạo hồ sơ nộp báo cáo thử nghiệm. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
-        </div>
-      )}
 
       <section className="grid gap-6 xl:grid-cols-3">
         {/* Case Card */}
@@ -1235,7 +1230,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                       (f) =>
                         f.id ===
                         cases.find((c) => c.id === selectedFilingForMau06.caseId)?.facilityRevisionId
-                    )?.name || "Nhà máy thép Hải Phòng (demo)"}
+                    )?.name || "Nhà máy thép Hải Phòng"}
                   </p>
                   <p>
                     <strong>Lĩnh vực:</strong> Công Thương (industry_trade)

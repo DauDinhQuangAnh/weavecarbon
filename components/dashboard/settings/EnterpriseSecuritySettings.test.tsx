@@ -28,6 +28,7 @@ describe("G2-13 enterprise security workspace contract", () => {
     expect(source).toContain("Đây là sổ cấu hình");
     expect(source).toContain("round-trip với IdP thật");
     expect(source).toContain("Quyết định “accepted” bị backend từ chối");
-    expect(source).toContain("Demo chỉ đọc");
+    // Demo ghi nhận thao tác trong phiên, không gọi máy chủ bảo mật thật.
+    expect(source).toContain("không có máy chủ bảo mật thật phía sau");
   });
 });

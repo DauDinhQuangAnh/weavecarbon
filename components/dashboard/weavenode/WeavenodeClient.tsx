@@ -248,7 +248,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
           manifest: {},
           manifestSha256: "demo-sha256",
           rollbackOfUpdateId: null,
-          reason: "Bản cập nhật định kỳ minh họa",
+          reason: "Bản cập nhật định kỳ",
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -273,7 +273,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
       try {
         await action();
       } catch (cause) {
-        setError(isApiError(cause) ? cause.message : "Có lỗi khi xử lý thao tác demo.");
+        setError(isApiError(cause) ? cause.message : "Có lỗi khi xử lý thao tác.");
       } finally {
         setSaving(false);
       }
@@ -414,7 +414,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
           manifest: {},
           manifestSha256: "demo-sha256",
           rollbackOfUpdateId: null,
-          reason: "Bản cập nhật thử nghiệm demo",
+          reason: "Bản cập nhật thử nghiệm",
           createdAt: new Date().toISOString(),
         };
         setUpdates((prev) => [item, ...prev]);
@@ -471,12 +471,6 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
         </div>
       )}
 
-      {demo && (
-        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 shadow-sm">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-amber-600" />
-          <span>💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể phân cấp điểm đo, đối soát tiêu thụ, tạo khóa và ghi nhận bản cập nhật thiết bị thử nghiệm. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).</span>
-        </div>
-      )}
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

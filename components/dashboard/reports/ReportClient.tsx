@@ -1,7 +1,6 @@
 "use client";
 import PageHeader from "@/components/app/PageHeader";
 import StatCard from "@/components/app/StatCard";
-import StatusPill from "@/components/app/StatusPill";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
@@ -1014,7 +1013,7 @@ const ReportsPage: React.FC = () => {
         <PageHeader
           title="Xuất dữ liệu & báo cáo đã lưu"
           description="Xuất dữ liệu Excel (XLSX) có đầy đủ metadata, tạo báo cáo PDF theo ESG · GHG · CBAM · PCF và quản lý các bản đã tạo."
-          meta={isDemoRuntime ? <StatusPill label="Demo · dữ liệu export có metadata demo" tone="warning" /> : undefined}
+         
           actions={
           <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Button

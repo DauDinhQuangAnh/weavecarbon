@@ -93,7 +93,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           id: "demo-init-1",
           initiativeReference: "INIT-EE-2026-01",
           facilityRevisionId: demoFacs[0]?.id || "demo-fac-1",
-          facilityName: demoFacs[0]?.name || "Cơ sở demo",
+          facilityName: demoFacs[0]?.name || "Cơ sở sản xuất",
           revision: 1,
           title: "Thay thế biến tần và tối ưu hóa hệ thống sấy",
           lifecycleStatus: "in_progress",
@@ -122,7 +122,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           id: "demo-alloc-1",
           allocationReference: "ALLOC-VN-2026-01",
           facilityRevisionId: demoFacs[0]?.id || "demo-fac-1",
-          facilityName: demoFacs[0]?.name || "Cơ sở demo",
+          facilityName: demoFacs[0]?.name || "Cơ sở sản xuất",
           revision: 1,
           reportingYear: 2026,
           instrumentType: "authority_quota",
@@ -347,7 +347,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
           readinessStatus: projected >= 0 ? "surplus_projected" : "deficit_warning",
           blockers: [],
           payloadSha256: "demo-sha256",
-          disclaimer: "Vị thế demo",
+          disclaimer: "Vị thế nội bộ, chưa phải hồ sơ nộp chính thức.",
         };
         setPositions((prev) => [newPos, ...prev]);
         setPosition({
@@ -461,11 +461,6 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
         </div>
       )}
 
-      {demo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          💡 <strong>Chế độ Demo tương tác</strong>: Bạn có thể tạo sáng kiến giảm thiểu, xây dựng kịch bản dự phóng, phân bổ hạn ngạch và tính vị thế phát thải. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
-        </div>
-      )}
 
       {loading && (
         <div className="flex items-center justify-center p-8">

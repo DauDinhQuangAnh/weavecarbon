@@ -18,7 +18,9 @@ describe("Carbon Operations workspace contract", () => {
   });
 
   it("aligns mutation controls with company-admin and subscription permissions", () => {
-    expect(source).toContain("const canWrite = !demo && isRoot && canMutate");
+    // Demo thao tác như tài khoản thật trên dữ liệu phiên; tài khoản thật vẫn cần admin + gói còn hiệu lực.
+    expect(source).toContain("const canWrite = demo || (isRoot && canMutate)");
+    expect(source).toContain("demoCache().addAllocationRun(runInput)");
     expect(source).toContain('t("adminRequired")');
     expect(activitySource).toContain("disabled={!canWrite");
   });
@@ -28,7 +30,7 @@ describe("Carbon Operations workspace contract", () => {
     expect(source).toContain("industrialCoreApi.createAllocationRule");
     expect(source).toContain("industrialCoreApi.createAllocationRun");
     expect(source).toContain("reconciliationStatus");
-    expect(source).toContain("sourceLevel: \"facility\", targetLevel: \"process\"");
+    expect(source).toContain("sourceLevel: \"facility\" as const, targetLevel: \"process\" as const");
     expect(source).toContain("selectControlledEvidence");
   });
 });

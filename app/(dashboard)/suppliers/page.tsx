@@ -137,7 +137,7 @@ export default function SuppliersPage() {
 
     if (demo) {
       demoCache().addSupplierRequest(payload);
-      toast({ title: 'Đã tạo yêu cầu dữ liệu Scope 3 (Lưu demo 1 giờ)' });
+      toast({ title: 'Đã tạo yêu cầu dữ liệu Scope 3' });
       setOpen(false);
       setForm(EMPTY_FORM);
       setSaving(false);
@@ -340,7 +340,7 @@ export default function SuppliersPage() {
               <DialogFooter className="pt-3">
                 <Button onClick={submit} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  {demo ? 'Lưu yêu cầu (Demo 1 giờ)' : 'Lưu và tạo yêu cầu'}
+                  Lưu và tạo yêu cầu
                 </Button>
               </DialogFooter>
             </DialogContent>

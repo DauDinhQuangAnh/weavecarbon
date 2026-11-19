@@ -226,6 +226,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
       setProcesses(demoCache().getProcesses());
       setFactors(demoData().DEMO_FACTORS);
       setEvidence(demoData().DEMO_EVIDENCE.filter(evidenceReady));
+      setPilots(demoCache().getIndustryPilots());
       setLoading(false);
       return;
     }
@@ -255,9 +256,46 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
   const selectedPack = manifests.find((pack) => pack.id === form.packId);
   const patchLine = (index: number, changes: Partial<Line>) => setLines((current) => current.map((line, position) => position === index ? { ...line, ...changes } : line));
   const submit = async (event: FormEvent) => {
-    event.preventDefault(); if (demo || saving) return;
+    event.preventDefault(); if (saving) return;
     setSaving(true); setError(null);
     try {
+      if (demo) {
+        // Demo: tính pilot ngay trong phiên từ factor đã chọn (lượng × hệ số), không gọi máy chủ.
+        const pack = manifests.find((item) => item.id === form.packId);
+        const resultLines = lines.map((line) => {
+          const factor = factors.find((item) => item.id === line.factorProposalId);
+          const kg = factor ? Number(line.activityQuantity) * Number(factor.factorValue) : 0;
+          return { category: line.category, sourceReference: line.sourceReference, activityQuantity: Number(line.activityQuantity), activityUnit: line.activityUnit, calculatedTco2e: kg / 1000, factorLabel: factor?.label, evidenceDocumentIds: splitIds(line.evidenceDocumentIds) };
+        });
+        const missing = lines.filter((line) => !line.factorProposalId);
+        const grossKg = resultLines.reduce((sum, line) => sum + (line.calculatedTco2e || 0) * 1000, 0);
+        const output = Number(form.outputTonnes) || 0;
+        const hash = Date.now().toString(16).padStart(16, "0").repeat(4).slice(0, 64);
+        demoCache().addIndustryPilot({
+          id: `demo-pilot-${Date.now()}`,
+          facilityRevisionId: form.facilityRevisionId,
+          processRevisionId: form.processRevisionId,
+          studyReference: form.studyReference || `PILOT-${new Date().getFullYear()}-${pilots.length + 1}`,
+          revision: pilots.filter((item) => item.studyReference === form.studyReference).length + 1,
+          packId: form.packId,
+          packVersion: (pack as { version?: string } | undefined)?.version || "1.0.0",
+          packApprovalStatus: "internal_review",
+          periodStart: form.periodStart,
+          periodEnd: form.periodEnd,
+          inputSha256: hash,
+          resultSha256: hash,
+          status: missing.length ? "needs_information" : "calculated",
+          createdAt: new Date().toISOString(),
+          result: {
+            totals: missing.length === lines.length ? null : { grossKgCo2e: grossKg, grossTco2e: grossKg / 1000, intensityKgCo2ePerTonne: output > 0 ? grossKg / output : 0 },
+            findings: missing.map((line) => ({ code: "FACTOR_MISSING", severity: "warning", message: `Thiếu hệ số cho dòng ${categoryLabel[line.category] || line.category}` })),
+            lines: resultLines,
+            disclaimer: t("legalNotice"),
+          },
+        });
+        await load();
+        return;
+      }
       await industryPacksApi.createPilot({ ...form, sectorContext, allocation: { method: "single_product", share: 1 }, methodology: { boundary: form.methodologyBoundary, source: form.methodologySource }, productionEvidenceDocumentIds: splitIds(form.productionEvidenceDocumentIds), activityLines: lines.map((line) => ({ ...line, evidenceDocumentIds: splitIds(line.evidenceDocumentIds) })) });
       await load();
     } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); }
@@ -337,11 +375,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
         </div>
       )}
 
-      {demo && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {t("demoReadOnly")}
-        </div>
-      )}
 
       {/* Workspace Tabs Navigation Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-3">
@@ -429,7 +462,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
             <DataEntryScanTrigger
               contextKey="production_batch"
               demo={demo}
-              disabled={demo}
               variant="dialog_header"
               fileButtonLabel="Quét Lô sản xuất / Báo cáo LCA"
               cameraButtonLabel="Chụp nhãn lô"
@@ -451,7 +483,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Industry Pack</label>
                 <select
                   className={selectClass}
-                  disabled={demo}
                   value={form.packId}
                   onChange={(event) => {
                     const pack = manifests.find((item) => item.id === event.target.value);
@@ -474,7 +505,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <select
                   required
                   className={selectClass}
-                  disabled={demo}
                   value={form.facilityRevisionId}
                   onChange={(event) => setForm({ ...form, facilityRevisionId: event.target.value, processRevisionId: "" })}
                 >
@@ -492,7 +522,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <select
                   required
                   className={selectClass}
-                  disabled={demo}
                   value={form.processRevisionId}
                   onChange={(event) => setForm({ ...form, processRevisionId: event.target.value })}
                 >
@@ -511,7 +540,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Mã nghiên cứu (Study Ref)</label>
                 <Input
                   required
-                  disabled={demo}
                   placeholder={t("studyReference")}
                   value={form.studyReference}
                   onChange={(event) => setForm({ ...form, studyReference: event.target.value })}
@@ -522,7 +550,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Mã sản phẩm (Product Ref)</label>
                 <Input
                   required
-                  disabled={demo}
                   placeholder={t("productReference")}
                   value={form.productReference}
                   onChange={(event) => setForm({ ...form, productReference: event.target.value })}
@@ -533,7 +560,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Sản lượng (Tấn)</label>
                 <Input
                   required
-                  disabled={demo}
                   type="number"
                   min="0.000001"
                   step="any"
@@ -547,7 +573,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Bắt đầu kỳ</label>
                 <Input
                   required
-                  disabled={demo}
                   type="date"
                   value={form.periodStart}
                   onChange={(event) => setForm({ ...form, periodStart: event.target.value })}
@@ -558,7 +583,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Kết thúc kỳ</label>
                 <Input
                   required
-                  disabled={demo}
                   type="date"
                   value={form.periodEnd}
                   onChange={(event) => setForm({ ...form, periodEnd: event.target.value })}
@@ -570,7 +594,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <select
                   required
                   className={selectClass}
-                  disabled={demo}
                   value={form.productionEvidenceDocumentIds}
                   onChange={(event) => setForm({ ...form, productionEvidenceDocumentIds: event.target.value })}
                 >
@@ -593,7 +616,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                       <span className="font-medium text-xs text-slate-700">{selectedPack.contextFieldDescriptions[key] || key}</span>
                       <Input
                         required
-                        disabled={demo}
                         type={key === "recycledContentPercent" ? "number" : "text"}
                         min={key === "recycledContentPercent" ? 0 : undefined}
                         max={key === "recycledContentPercent" ? 100 : undefined}
@@ -612,7 +634,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block">Ranh giới phương pháp tính</label>
                 <Textarea
                   required
-                  disabled={demo}
                   placeholder={t("methodologyBoundary")}
                   value={form.methodologyBoundary}
                   onChange={(event) => setForm({ ...form, methodologyBoundary: event.target.value })}
@@ -622,7 +643,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <label className="text-xs font-semibold text-slate-700 block">Nguồn tham chiếu phương pháp</label>
                 <Textarea
                   required
-                  disabled={demo}
                   placeholder={t("methodologySource")}
                   value={form.methodologySource}
                   onChange={(event) => setForm({ ...form, methodologySource: event.target.value })}
@@ -638,14 +658,12 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                   <div className="grid gap-3 md:grid-cols-3">
                     <Input
                       required
-                      disabled={demo}
                       placeholder={t("sourceReference")}
                       value={line.sourceReference}
                       onChange={(event) => patchLine(index, { sourceReference: event.target.value })}
                     />
                     <Input
                       required
-                      disabled={demo}
                       type="number"
                       min="0"
                       step="any"
@@ -655,7 +673,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                     />
                     <Input
                       required
-                      disabled={demo}
                       placeholder={t("unit")}
                       value={line.activityUnit}
                       onChange={(event) => patchLine(index, { activityUnit: event.target.value })}
@@ -663,7 +680,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                     <select
                       required
                       className={selectClass}
-                      disabled={demo}
                       value={line.factorProposalId}
                       onChange={(event) => patchLine(index, { factorProposalId: event.target.value })}
                     >
@@ -685,7 +701,6 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                     <select
                       required
                       className={`${selectClass} md:col-span-2`}
-                      disabled={demo}
                       value={line.evidenceDocumentIds}
                       onChange={(event) => patchLine(index, { evidenceDocumentIds: event.target.value })}
                     >
@@ -701,7 +716,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
               ))}
             </div>
 
-            <Button disabled={demo || saving} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
+            <Button disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {t("createPilot")}
             </Button>

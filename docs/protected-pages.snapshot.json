@@ -197,7 +197,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/DashboardLayoutContent.tsx",
-      "sha256": "dbf4741fc21cc6a72c5c33abd9d55fc6649a05dd74744a99c79da609bec87304"
+      "sha256": "388c8708a7084142f8d958b3f5f3e375e6e49e08e0c4465e78db9d1289988917"
     },
     {
       "repo": "FE",
@@ -212,7 +212,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/OverviewCharts.tsx",
-      "sha256": "65bed3b5b6b4217d3e93ca5890d54914cd6e30633a28f4a798401cb34011d1ed"
+      "sha256": "af04cbb2ab8357a1702eb141fae471087521ae5c8b5e426764dfc20a644de736"
     },
     {
       "repo": "FE",
@@ -632,7 +632,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/reports/ReportClient.tsx",
-      "sha256": "d7c05862a7bda8e7e22a1a03b6b86ad316f1beacd282c2a607945e4794e8e0ef"
+      "sha256": "57e729c9fae13fbd989cb466ae4b61707409685f56c4f8c421bccb2f00559db8"
     },
     {
       "repo": "FE",
@@ -642,7 +642,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/track-shipment/ShipmentDetails.tsx",
-      "sha256": "bc8476ff7cf2994aa90c70ed6b0c2ecc76043bf5f5219be7d1fe73ee05b26f99"
+      "sha256": "10ded0a9eae4f679dbf5fdc0a90e98c01761d91de1036ac69560c7a2a5317f15"
     },
     {
       "repo": "FE",
@@ -662,7 +662,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/transport/TransportClient.tsx",
-      "sha256": "7811b0335003fa0a9d12388477449238121aab1caebe087a0528eb68312e5ac1"
+      "sha256": "a8a123763f431295f65db682253ca4117c7ad70ba0742af9dd9337a10863074f"
     },
     {
       "repo": "FE",
@@ -1332,7 +1332,7 @@
     {
       "repo": "FE",
       "path": "lib/reports/tradeDocumentsXlsx.ts",
-      "sha256": "5973bd8a94fb7e8a1435ca5034a05b23abdc9381efb01460b179e3bdf82fc3eb"
+      "sha256": "de6b5bb2703bec206c1fd0abeab6f1d3cf9cf70739fabf9c04ac9d4872d5d4b1"
     },
     {
       "repo": "FE",
@@ -1477,7 +1477,7 @@
     {
       "repo": "FE",
       "path": "locales/vi/common.json",
-      "sha256": "5880a53078fa1e4a81c5350e7e9f049fea5a82f3e53b70fadbd802e1ec5df036"
+      "sha256": "9d9bbba68ba07edf2c418a5d93ce6035953351ccbb51367195223305cb2295df"
     },
     {
       "repo": "FE",
@@ -3217,7 +3217,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ExportPortal.tsx",
-      "sha256": "4821a5418bf93d47e569c5ccdd183754d9ff92a3b1b1406fb3a607c15a03bdc5"
+      "sha256": "1153078a1b9cb8cdae1f3e1f208261ddd49665803e674965530a49750788590a"
     },
     {
       "repo": "FE",
@@ -3307,6 +3307,12 @@
       "date": "2026-11-19",
       "reason": "User asked that signed-in pages be as smooth as the landing page (19/11/2026): buttons drop backdrop-blur, the supply-chain map mounts only near the viewport, the overview industrial portfolio renders once visible (new useNearViewport hook and DeferUntilVisible component).",
       "filesUpdated": 5,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "User asked (19/11/2026) that demo work like a signed-in account with only the data differing: remove per-page demo notices/badges/toasts (only the sidebar DEMO MODE box remains), show every menu entry in demo (settings, export, reports), let demo write to the session data (carbon operations facilities/processes/measurement points/activities/allocation rules & runs, industry-pack pilots, data governance, transport save, shipment cancel, enterprise security controls), and replace real certification-body names in demo export copy with a generic independent verifier.",
+      "filesUpdated": 8,
       "filesRemoved": []
     }
   ]

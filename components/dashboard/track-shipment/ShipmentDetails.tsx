@@ -141,8 +141,7 @@ const ShipmentDetails: React.FC<ShipmentDetailsProps> = ({
     shipment.shipmentId &&
     (shipment.status === "pending" ||
       (shipment.status === "in_transit" && !shipment.simulationEnabled)) &&
-    canMutate &&
-    !appRoutes.isDemo
+    (canMutate || appRoutes.isDemo)
   );
 
   const getStatusBadge = (status: string) => {

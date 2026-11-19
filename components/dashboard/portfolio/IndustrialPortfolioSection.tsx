@@ -156,7 +156,7 @@ export default function IndustrialPortfolioSection() {
   const isDemo = view.mode === "demo";
   const series = granularity === "monthly" ? view.emissionsMonthly : view.emissionsQuarterly;
   const note = isDemo
-    ? "Bộ dữ liệu công nghiệp mẫu · doanh nghiệp demo tổng hợp"
+    ? `Danh mục công nghiệp · kỳ ${view.period}`
     : view.hasInventory
       ? `Dữ liệu của doanh nghiệp · kỳ kiểm kê ${view.period}`
       : "Dữ liệu của doanh nghiệp · chưa có bản kiểm kê GHG";
@@ -200,7 +200,7 @@ export default function IndustrialPortfolioSection() {
           label="Phát thải kiểm kê các cơ sở"
           value={fmt(view.totalTonnes)}
           unit="tCO₂e"
-          subtext={isDemo ? `Danh mục demo ${view.period}` : view.hasInventory ? `Kỳ ${view.period}` : "Chưa có kỳ kiểm kê"}
+          subtext={isDemo || view.hasInventory ? `Kỳ ${view.period}` : "Chưa có kỳ kiểm kê"}
         />
         <StatCard label={view.coverage.label} value={String(view.coverage.value)} subtext={view.coverage.subtext} />
         <StatCard
@@ -211,7 +211,7 @@ export default function IndustrialPortfolioSection() {
         <StatCard
           label="Bằng chứng trên mỗi sản phẩm"
           value={String(view.avgEvidence)}
-          subtext={isDemo ? "Số chứng từ demo liên kết trung bình" : "Số chứng từ liên kết trung bình"}
+          subtext="Số chứng từ liên kết trung bình"
         />
       </div>
 
@@ -222,7 +222,7 @@ export default function IndustrialPortfolioSection() {
           description={isDemo ? "Nhịp vận hành theo tháng của từng ngành — Jan đến Aug 2026" : "Phát thải (tCO₂e) của từng cơ sở qua các kỳ kiểm kê"}
           footer={
             isDemo
-              ? "Chuỗi demo tổng hợp. Mỗi ngành có nhịp vận hành riêng; tổng các giá trị khớp với tổng theo cơ sở đã seed."
+              ? "Mỗi ngành có nhịp vận hành riêng; tổng các giá trị khớp với tổng theo cơ sở."
               : "Tính từ các bản kiểm kê GHG đã lập; Scope 2 theo phương pháp location-based."
           }
         >
@@ -363,7 +363,7 @@ export default function IndustrialPortfolioSection() {
           description="Tách rõ sản phẩm, thị trường đích và khung báo cáo."
           footer={
             isDemo
-              ? "Danh mục sản phẩm demo; khả năng áp dụng quy định được kiểm soát theo thị trường đích và phạm vi sản phẩm."
+              ? "Khả năng áp dụng quy định được kiểm soát theo thị trường đích và phạm vi sản phẩm."
               : "Sản phẩm của doanh nghiệp; khung báo cáo là gợi ý theo thị trường đích và mã HS/CN, cần chuyên viên xác nhận."
           }
           bodyClassName="p-0"
@@ -419,12 +419,12 @@ export default function IndustrialPortfolioSection() {
           )}
         </SectionCard>
         <SectionCard
-          title={isDemo ? "Mẫu bằng chứng" : "Bằng chứng gần đây"}
+          title="Bằng chứng gần đây"
           description="Chứng từ giúp chuỗi hoạt động → tính toán → báo cáo có thể truy xuất."
           bodyClassName="p-0"
           footer={
             isDemo
-              ? "Tên file và metadata là dữ liệu demo; không tài liệu nào được trình bày như chứng từ thật của bên thứ ba."
+              ? "Chứng từ liên kết với hoạt động, sản phẩm và khung báo cáo."
               : "Chứng từ doanh nghiệp đã tải lên; trạng thái khoá theo checksum SHA-256."
           }
         >

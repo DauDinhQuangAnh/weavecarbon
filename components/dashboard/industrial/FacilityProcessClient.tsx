@@ -126,7 +126,7 @@ export default function FacilityProcessClient({
         setForm({ reference: "", name: "", timezone: "Asia/Ho_Chi_Minh", boundary: "", processType: "production" });
         setMessage({
           error: false,
-          text: "Đã lưu revision demo vào bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).",
+          text: "Đã lưu revision.",
         });
         await query.reload();
         return;
@@ -742,13 +742,9 @@ export default function FacilityProcessClient({
               }}
             />
 
-            {demo ? (
-              <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/50 leading-relaxed">
-                💡 <strong>Chế độ Demo</strong>: Bạn có thể nhập và lưu thử nghiệm revision. Dữ liệu lưu trong bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).
-              </p>
-            ) : !canWrite ? (
+            {!canWrite ? (
               <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border">
-                Chỉ quản trị viên của doanh nghiệp có quyền ghi và gói đang hoạt động được tạo revision. Demo chỉ đọc.
+                Chỉ quản trị viên của doanh nghiệp có quyền ghi và gói đang hoạt động được tạo revision.
               </p>
             ) : null}
 

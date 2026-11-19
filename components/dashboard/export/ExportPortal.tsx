@@ -474,7 +474,7 @@ const ExportPortal: React.FC<ExportPortalProps> = ({
 
   const handleSaveConfig = async () => {
     if (isDemoRuntime) {
-      toast.success("Đã lưu cấu hình xuất khẩu (chế độ demo — chỉ lưu tạm trên trình duyệt).");
+      toast.success("Đã lưu cấu hình xuất khẩu");
       return;
     }
 
@@ -504,7 +504,7 @@ const ExportPortal: React.FC<ExportPortalProps> = ({
       if (isDemoRuntime) {
         const localPayload = await buildDppPayloadV2(selectedSku, cfg);
         setDpp(localPayload);
-        toast.success("Đã khóa số liệu & sinh QR DPP (chế độ demo — dữ liệu mẫu, chưa lưu lên server).");
+        toast.success("Đã khóa số liệu & sinh QR DPP");
         return;
       }
 
@@ -586,7 +586,7 @@ const ExportPortal: React.FC<ExportPortalProps> = ({
         return [
           `INV-${cfg.poContractId || "2026-EU-01"}`,
           "2026-09-26",
-          cfg.buyerBrand || "EuroSteel Trading GmbH (demo)",
+          cfg.buyerBrand || "EuroSteel Trading GmbH",
           cfg.poContractId || "PO-2026-0891",
           item.sku.sku,
           item.sku.name,
@@ -692,7 +692,7 @@ const ExportPortal: React.FC<ExportPortalProps> = ({
   const handleDownloadDocument = async (type: "commercial-invoice" | "packing-list" | "bill-of-lading") => {
     if (isDemoRuntime) {
       downloadText(
-        `${type}_${cfg.poContractId || "demo"}.csv`,
+        `${type}_${cfg.poContractId || "export"}.csv`,
         buildDemoDocumentCsv(type),
         "text/csv;charset=utf-8"
       );
@@ -746,7 +746,7 @@ const ExportPortal: React.FC<ExportPortalProps> = ({
     try {
       const result = await exportFullStandardReport("xlsx", {
         locale: "vi",
-        requestedBy: isDemoRuntime ? "Vietnam Industrial Group (Demo)" : null,
+        requestedBy: isDemoRuntime ? "Vietnam Industrial Group" : null,
         planLabel: "Enterprise / Standard",
       });
       toast.success(

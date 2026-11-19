@@ -18,7 +18,6 @@ describe("navigation (chuẩn Lovable)", () => {
   });
   it("mọi mục menu đều có trang thật và trang demo", () => {
     ALL_MENU_PATHS.forEach((route) => ["(dashboard)", "demo"].forEach((segment) => {
-      if (route === "/settings" && segment === "demo") return;
       expect(fs.existsSync(path.join(process.cwd(), "app", segment, route, "page.tsx")), `${segment}${route}`).toBe(true);
     }));
   });
@@ -27,7 +26,10 @@ describe("navigation (chuẩn Lovable)", () => {
     expect(LEGACY_PATHS.filter((route) => canShowNavigation(route, access))).toEqual(["/overview", "/products", "/logistics", "/carbon-calculator", "/evidence", "/audit-trail", "/billing"]);
     expect(canShowNavigation("/settings", access)).toBe(false);
     expect(canShowNavigation("/settings", { ...access, isTrial: false, canAccessSettings: true })).toBe(true);
-    expect(canShowNavigation("/settings", { ...access, isDemo: true, canAccessSettings: true })).toBe(false);
+    // Demo dùng được mọi chức năng như tài khoản thật, kể cả Cài đặt, Xuất khẩu và Báo cáo.
+    expect(canShowNavigation("/settings", { ...access, isDemo: true, canAccessSettings: false })).toBe(true);
+    expect(canShowNavigation("/export", { ...access, isDemo: true })).toBe(true);
+    expect(canShowNavigation("/reports", { ...access, isDemo: true })).toBe(true);
   });
   it("khớp đường dẫn con mà không nhầm route trùng tiền tố", () => {
     expect(isNavigationActive("/export/abc", "/export")).toBe(true);

@@ -4,9 +4,7 @@ import React from "react";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import MethodologyBanner from "@/components/app/MethodologyBanner";
-import DemoDatasetBanner from "@/components/app/DemoDatasetBanner";
 import DashboardHeaderButton from "./DashboardHeaderButton";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -301,11 +299,6 @@ export default function DashboardLayoutContent({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {isDemoPage ? (
-              <Badge variant="secondary" className="hidden rounded-full border border-white/60 sm:inline-flex">
-                Source-backed demo
-              </Badge>
-            ) : null}
             <div className="lg:hidden">
             {shouldShowMobileBackButton ? (
               <button
@@ -331,7 +324,6 @@ export default function DashboardLayoutContent({
       <div
         className={`page-stage mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-4 ${mobileContentTopPadding} md:px-4 md:pb-6 md:pt-24 lg:px-6 lg:pt-4`}
       >
-        {isDemoPage && isOverviewPage ? <DemoDatasetBanner /> : null}
         <div className="animate-fade-up">{children}</div>
       </div>
       <footer className="glass-shell mx-2 mb-3 mt-2 rounded-2xl px-4 py-3 md:mx-4 md:px-6">

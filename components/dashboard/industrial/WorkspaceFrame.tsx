@@ -3,8 +3,8 @@ import { useEffect, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { Button } from "@/components/ui/button";
-export default function WorkspaceFrame({ title, description, demo, loading, error, reload, children }: {
-  title: string; description: string; demo: boolean; loading: boolean; error: string | null; reload: () => void; children: ReactNode;
+export default function WorkspaceFrame({ title, description, loading, error, reload, children }: {
+  title: string; description: string; /** Không còn dùng để hiện ghi chú; giữ để tương thích. */ demo?: boolean; loading: boolean; error: string | null; reload: () => void; children: ReactNode;
 }) {
   const { setPageTitle } = useDashboardTitle();
   useEffect(() => { setPageTitle(title, description); }, [setPageTitle, title, description]);
@@ -13,7 +13,6 @@ export default function WorkspaceFrame({ title, description, demo, loading, erro
       <div><p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Dữ liệu carbon công nghiệp</p><h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p></div>
       <Button variant="outline" disabled={loading} onClick={reload}><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Tải lại</Button>
     </header>
-    {demo && <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Demo chỉ đọc · dữ liệu tổng hợp để minh họa, không phải số đo hoặc kết quả xác minh của doanh nghiệp.</p>}
     {loading ? <p role="status" className="py-12 text-center text-muted-foreground">Đang tải dữ liệu…</p> : error ? <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-5 text-red-800"><p>{error}</p><Button className="mt-3" variant="outline" onClick={reload}>Thử lại</Button></div> : children}
   </div>;
 }

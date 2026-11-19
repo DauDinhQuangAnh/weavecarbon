@@ -5,14 +5,20 @@
 import {
   INDUSTRIAL_DEMO,
   DEMO_FACTORS,
+  DEMO_MEASUREMENT_POINTS,
   demoActivityLineage,
 } from "./industrialDemoData";
 import type {
+  DynamicAllocationLine,
+  DynamicAllocationRule,
+  DynamicAllocationRun,
   IndustrialActivity,
   IndustrialActivityLineage,
   IndustrialFacility,
+  IndustrialMeasurementPoint,
   IndustrialProcess,
 } from "@/lib/industrialCoreApi";
+import type { IndustryPackPilot } from "@/lib/industryPacksApi";
 import type { DqlAssessment, FactorProposal } from "@/lib/dataGovernanceApi";
 import type { VnMrvCase } from "@/lib/vnMrvApi";
 import type {
@@ -1383,5 +1389,122 @@ export const demoSessionCache = {
     const list = this.getInboxTasks().map((t) => (t.id === id ? { ...t, status } : t));
     setCached("inbox_tasks", list);
     return list.find((t) => t.id === id);
+  },
+  // ── Carbon operations: measurement points, dynamic allocation ───────────────
+  getMeasurementPoints(): IndustrialMeasurementPoint[] {
+    return getCached<IndustrialMeasurementPoint[]>("measurement_points", () => [...DEMO_MEASUREMENT_POINTS]);
+  },
+  addMeasurementPoint(input: {
+    facilityRevisionId: string; processRevisionId?: string; measurementPointReference: string; measurementType: string;
+    canonicalUnit: string; sourceType: IndustrialMeasurementPoint["sourceType"]; deviceIdentity?: string;
+    calibrationStatus?: IndustrialMeasurementPoint["calibrationStatus"]; calibrationDueOn?: string; samplingIntervalSeconds?: number;
+  }): IndustrialMeasurementPoint {
+    const list = this.getMeasurementPoints();
+    const facility = this.getFacilities().find((f) => f.id === input.facilityRevisionId);
+    const point: IndustrialMeasurementPoint = {
+      id: `demo-point-${Date.now()}`,
+      facilityRevisionId: input.facilityRevisionId,
+      facilityReference: facility?.facilityReference,
+      processRevisionId: input.processRevisionId || null,
+      measurementPointReference: input.measurementPointReference,
+      revision: list.filter((row) => row.measurementPointReference === input.measurementPointReference).length + 1,
+      measurementType: input.measurementType,
+      canonicalUnit: input.canonicalUnit,
+      sourceType: input.sourceType,
+      deviceIdentity: input.deviceIdentity || null,
+      calibrationStatus: input.calibrationStatus || "unknown",
+      calibrationDueOn: input.calibrationDueOn || null,
+      samplingIntervalSeconds: input.samplingIntervalSeconds ?? null,
+      metadata: {},
+      createdAt: new Date().toISOString(),
+    };
+    setCached("measurement_points", [point, ...list]);
+    return point;
+  },
+  getAllocationRules(): DynamicAllocationRule[] {
+    return getCached<DynamicAllocationRule[]>("allocation_rules", () => []);
+  },
+  addAllocationRule(input: Omit<DynamicAllocationRule, "id" | "revision" | "ruleSha256" | "createdAt" | "facilityReference" | "facilityName" | "evidenceDocumentId"> & { evidenceDocumentId?: string }): DynamicAllocationRule {
+    const list = this.getAllocationRules();
+    const facility = this.getFacilities().find((f) => f.id === input.facilityRevisionId);
+    const rule: DynamicAllocationRule = {
+      ...input,
+      id: `demo-rule-${Date.now()}`,
+      facilityReference: facility?.facilityReference,
+      facilityName: facility?.name,
+      revision: list.filter((row) => row.allocationReference === input.allocationReference).length + 1,
+      evidenceDocumentId: input.evidenceDocumentId || null,
+      ruleSha256: Date.now().toString(16).padStart(16, "0").repeat(4).slice(0, 64),
+      createdAt: new Date().toISOString(),
+    };
+    setCached("allocation_rules", [rule, ...list]);
+    return rule;
+  },
+  getAllocationRuns(): DynamicAllocationRun[] {
+    return getCached<DynamicAllocationRun[]>("allocation_runs", () => []);
+  },
+  /** Phân bổ lượng hoạt động nguồn cho các quy trình đích theo tỷ lệ driver (tổng luôn khớp nguồn). */
+  addAllocationRun(input: { ruleRevisionId: string; sourceActivityId?: string; targets: Array<{ targetEntityId: string; driverValue: number }> }): DynamicAllocationRun {
+    const rule = this.getAllocationRules().find((row) => row.id === input.ruleRevisionId);
+    if (!rule) throw new Error("Không tìm thấy quy tắc phân bổ.");
+    const activity = this.getActivities().find((row) => row.id === input.sourceActivityId);
+    if (!activity) throw new Error("Chọn hoạt động nguồn để phân bổ.");
+    const processes = this.getProcesses();
+    const driverTotal = input.targets.reduce((sum, target) => sum + target.driverValue, 0);
+    if (!(driverTotal > 0)) throw new Error("Tổng driver phải lớn hơn 0.");
+    let allocated = 0;
+    const lines: DynamicAllocationLine[] = input.targets.map((target, index) => {
+      const share = target.driverValue / driverTotal;
+      const isLast = index === input.targets.length - 1;
+      const quantity = isLast ? activity.quantity - allocated : Math.round(activity.quantity * share * 1e6) / 1e6;
+      allocated += quantity;
+      return {
+        id: `demo-line-${Date.now()}-${index}`,
+        lineNumber: index + 1,
+        targetLevel: rule.targetLevel,
+        targetEntityId: target.targetEntityId,
+        targetReference: processes.find((p) => p.id === target.targetEntityId)?.processReference || target.targetEntityId,
+        driverValue: target.driverValue,
+        driverUnit: rule.driverUnit,
+        allocationShare: share,
+        allocatedQuantity: quantity,
+        canonicalUnit: activity.canonicalUnit,
+        lineSha256: (Date.now() + index).toString(16).padStart(16, "0").repeat(4).slice(0, 64),
+      };
+    });
+    const run: DynamicAllocationRun = {
+      id: `demo-run-${Date.now()}`,
+      facilityRevisionId: rule.facilityRevisionId,
+      ruleRevisionId: rule.id,
+      allocationReference: rule.allocationReference,
+      ruleRevision: rule.revision,
+      sourceLevel: rule.sourceLevel,
+      targetLevel: rule.targetLevel,
+      allocationMethod: rule.allocationMethod,
+      sourceKind: "activity",
+      sourceActivityId: activity.id,
+      sourceAllocationLineId: null,
+      sourceQuantity: activity.quantity,
+      sourceUnit: activity.canonicalUnit,
+      driverTotal,
+      allocatedQuantity: allocated,
+      reconciliationDifference: Math.round((activity.quantity - allocated) * 1e6) / 1e6,
+      reconciliationStatus: "reconciled",
+      payloadSha256: Date.now().toString(16).padStart(16, "0").repeat(4).slice(0, 64),
+      lines,
+      createdAt: new Date().toISOString(),
+      disclaimer: "Phân bổ theo driver; tổng các dòng khớp lượng hoạt động nguồn.",
+    };
+    setCached("allocation_runs", [run, ...this.getAllocationRuns()]);
+    return run;
+  },
+
+  // ── Industry pack pilots ─────────────────────────────────────────────────────
+  getIndustryPilots(): IndustryPackPilot[] {
+    return getCached<IndustryPackPilot[]>("industry_pilots", () => []);
+  },
+  addIndustryPilot(pilot: IndustryPackPilot): IndustryPackPilot {
+    setCached("industry_pilots", [pilot, ...this.getIndustryPilots()]);
+    return pilot;
   },
 };

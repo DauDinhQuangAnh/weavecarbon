@@ -62,7 +62,9 @@ export function isNavigationActive(pathname: string, target: string) {
   return pathname === target || pathname.startsWith(`${target}/`);
 }
 export function canShowNavigation(path: string, access: { isDemo: boolean; isTrial: boolean; canAccessSettings: boolean }) {
-  if (path === "/settings") return !access.isDemo && access.canAccessSettings;
+  // Demo dùng được mọi chức năng như tài khoản thật (chỉ khác dữ liệu), nên hiện đủ menu.
+  if (access.isDemo) return true;
+  if (path === "/settings") return access.canAccessSettings;
   if (access.isTrial && (path === "/export" || path === "/reports")) return false;
   return true;
 }

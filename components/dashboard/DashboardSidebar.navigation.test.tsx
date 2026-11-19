@@ -31,13 +31,18 @@ describe("sidebar rendering (Lovable grouping)", () => {
     expect(screen.getByRole("link", { name: "overview" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "overview" })).not.toHaveAttribute("title");
   });
-  it("applies demo prefixes and existing trial visibility", () => {
-    state.demo = true; state.trial = true; state.path = "/demo/products";
+  it("applies demo prefixes and shows every feature in demo", () => {
+    state.demo = true; state.trial = true; state.settings = false; state.path = "/demo/products";
     render(<DashboardSidebar {...props} />);
     expect(screen.getByRole("link", { name: "product" })).toHaveAttribute("href", "/demo/products");
+    expect(screen.getByRole("link", { name: "reports" })).toHaveAttribute("href", "/demo/reports");
+    expect(screen.getByRole("link", { name: "settings" })).toHaveAttribute("href", "/demo/settings");
+  });
+  it("keeps trial restrictions for signed-in accounts", () => {
+    state.trial = true; state.path = "/products";
+    render(<DashboardSidebar {...props} />);
     expect(screen.queryByRole("link", { name: "export" })).toBeNull();
     expect(screen.queryByRole("link", { name: "reports" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "settings" })).toBeNull();
   });
   it("opens the current new route group and permits keyboard-compatible toggles", () => {
     state.path = "/evidence-graph";

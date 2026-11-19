@@ -132,11 +132,11 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
         {
           step: "4",
           title: "Hệ số phát thải",
-          desc: demo ? "Chưa liên kết hệ số trong lineage demo" : "MoNRE / IPCC / EF Database",
+          desc: "MoNRE / IPCC / EF Database",
           active: !demo,
           type: "factor",
           meta: {
-            "Nguồn hệ số": demo ? "Hệ số minh họa demo" : "Cục Biến đổi khí hậu (MoNRE)",
+            "Nguồn hệ số": "Cục Biến đổi khí hậu (MoNRE)",
             "Cơ sở tính": "IPCC AR6 GWP100",
           },
         },
@@ -245,7 +245,7 @@ ${opinionDraft.opinionTitle}
           count++;
         });
         setBatchApprovedCount(count);
-        toast.success(`Đã ký duyệt & thẩm tra thành công ${count} bản ghi hoạt động (Demo Cache)!`);
+        toast.success(`Đã ký duyệt & thẩm tra thành công ${count} bản ghi hoạt động.`);
         await lineage.reload();
         return;
       }
@@ -278,7 +278,7 @@ ${opinionDraft.opinionTitle}
     try {
       if (demo) {
         demoCache().saveActivityReview(data.activity.id, { decision, notes: notes.trim() });
-        setMessage("Đã lưu review demo vào bộ nhớ tạm (tự động xóa sau 1 giờ hoặc khi đăng xuất).");
+        setMessage("Đã lưu review.");
         await lineage.reload();
         return;
       }
@@ -696,15 +696,9 @@ ${opinionDraft.opinionTitle}
                       </Button>
                     </div>
 
-                    {demo ? (
-                      <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-                        💡 <strong>Chế độ Demo</strong>: Bạn có thể chọn quyết định và nhập lý do review để trải nghiệm luồng thẩm tra (lưu tạm thời trên cache 1 giờ / tự xóa khi đăng xuất).
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
+                                          <p className="text-sm text-muted-foreground">
                         Chỉ quản trị viên có quyền ghi. Duyệt yêu cầu mọi chứng từ được khóa hoặc third_party_verified và có SHA-256 hợp lệ. DQL cao không tự chứng minh đã xác minh độc lập.
                       </p>
-                    )}
 
                     {/* Render AI Opinion Draft Card if generated */}
                     {opinionDraft && (
