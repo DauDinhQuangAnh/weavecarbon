@@ -19,7 +19,6 @@ const productionClaimSurfaces = [
   'app/passport/page.tsx',
   'components/dashboard/reports/ReportClient.tsx',
   'components/dashboard/reports/ReportPreviewModal.tsx',
-  'components/dashboard/CompliancePanel.tsx',
   'config/penalties.ts',
   'lib/weave-v2/productReportAdapter.ts',
   'lib/weave-v2/reportTemplate.ts',

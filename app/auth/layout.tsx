@@ -2,7 +2,7 @@ import React from "react";
 import { Leaf } from "lucide-react";
 import Link from "next/link";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
-import type { AbstractIntlMessages } from "use-intl/core";
+import type { AbstractIntlMessages } from "next-intl";
 import { getScopedMessages } from "@/lib/i18n/messages";
 import { AUTH_NAMESPACES } from "@/lib/i18n/namespaces";
 

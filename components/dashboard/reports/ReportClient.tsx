@@ -81,7 +81,7 @@ import { useSubscriptionLock } from "@/hooks/useSubscriptionLock";
 import { isStandardPlan, normalizeSubscriptionPlan } from "@/lib/subscriptionPlans";
 import { isDemoPath } from "@/lib/demo/routes";
 import { downloadDemoReportFromPath } from "@/lib/demo/domain/reports";
-import { cn } from "@/lib/utils";import MobileDataCard from "./mobile/MobileDataCard";
+import { cn } from "@/lib/utils";
 const ReportPreviewModal = dynamic(() => import("./ReportPreviewModal"), { ssr: false });
 const CorporateGhgInventoryPanel = dynamic(
   () => import("./CorporateGhgInventoryPanel"),
@@ -134,9 +134,6 @@ type ReportType =
 
 type ReportStatus = "completed" | "processing" | "failed";
 
-// Turbopack/HMR can temporarily keep a stale reference to this component
-// while the report list layout is being iterated. Keep the symbol stable.
-void MobileDataCard;
 
 interface ReportItem {
   id: string;
