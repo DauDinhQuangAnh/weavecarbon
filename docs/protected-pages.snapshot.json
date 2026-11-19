@@ -177,7 +177,7 @@
     {
       "repo": "FE",
       "path": "app/globals.css",
-      "sha256": "e2dc4cd4b437793a2e3f99f90ee8511a1e8e5b2fabba82000fdd2deaae5caee8"
+      "sha256": "a77dc1efe629f70e49f6defa2decf10189a137d781d27495fd74d59f75980acf"
     },
     {
       "repo": "FE",
@@ -3336,6 +3336,12 @@
     {
       "date": "2026-11-19",
       "reason": "Contract sync for the same QR request: the backend public passport endpoint gained an optional shipmentId query parameter, so the FE OpenAPI snapshot and generated backend types were regenerated with npm run contract:sync.",
+      "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-19",
+      "reason": "Found while verifying the contrast/QR work (19/11/2026): Tailwind v4 applied dark: utilities from the OS colour scheme although the app has no dark theme, so on dark-mode machines inputs (dark:bg-input/30) looked greyed out like disabled fields. dark: now only applies under a .dark class, which no page sets.",
       "filesUpdated": 1,
       "filesRemoved": []
     }

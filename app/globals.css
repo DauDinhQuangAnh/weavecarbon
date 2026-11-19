@@ -1,6 +1,11 @@
 
 @import "tailwindcss";
 
+/* WeaveCarbon chỉ có giao diện sáng. Mặc định Tailwind v4 bật `dark:` theo cài đặt hệ điều hành,
+   khiến ô nhập (dark:bg-input/30) bị xám như đang khóa khi máy để chế độ tối. Chỉ dùng `dark:`
+   khi có class .dark (hiện không trang nào gắn). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Leaflet CSS for map support */
 
 /* =========================================================
