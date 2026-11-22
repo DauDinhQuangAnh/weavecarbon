@@ -564,6 +564,10 @@ export default function CarbonOperationsClient({
               </CardContent>
             </Card>
 
+            {/* The reconciliation and what-if panels use a fixed illustrative plant baseline
+                (520.000 kWh infeed, 3.430 tCO₂e/năm), so they only render in the /demo runtime. */}
+            {demo ? (
+            <>
             {/* ── AI Energy & Mass Balance Reconciliation Panel ── */}
             <section className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -771,6 +775,8 @@ export default function CarbonOperationsClient({
                 </div>
               </div>
             </section>
+            </>
+            ) : null}
 
             {/* ── Layers & Standardized Entities ── */}
             <section className="grid gap-4 md:gap-6 xl:grid-cols-[1.35fr_0.65fr]">

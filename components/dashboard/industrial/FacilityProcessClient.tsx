@@ -195,6 +195,19 @@ export default function FacilityProcessClient({
     return textMatch && facilityMatch && statusMatch && typeMatch;
   });
 
+  // Real, data-backed figures shown instead of the illustrative demo-only panels.
+  const facilitiesWithBoundary = useMemo(
+    () => (isFacility ? (rows as IndustrialFacility[]).filter((row) => Boolean(row.boundaryNotes?.trim())).length : 0),
+    [isFacility, rows]
+  );
+  const processCountByType = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!isFacility) {
+      (rows as IndustrialProcess[]).forEach((row) => counts.set(row.processType, (counts.get(row.processType) || 0) + 1));
+    }
+    return counts;
+  }, [isFacility, rows]);
+
   // Calculate statistics for /processes mode
   const stats = useMemo(() => {
     if (isFacility) return null;
@@ -316,14 +329,14 @@ export default function FacilityProcessClient({
           <div className="flex items-center gap-2 text-muted-foreground">
             <Activity className="h-4 w-4 text-sky-500" />
             <span className="text-xs font-medium">
-              {isFacility ? "Tính toàn vẹn kiểm kê" : "Gán dữ liệu hoạt động"}
+              {isFacility ? "Ranh giới đã khai báo" : "Gán dữ liệu hoạt động"}
             </span>
           </div>
           <p className="mt-2 text-2xl font-bold text-foreground">
-            {isFacility ? "100%" : `${stats?.linked || 0} / ${rows.length}`}
+            {isFacility ? `${facilitiesWithBoundary} / ${rows.length}` : `${stats?.linked || 0} / ${rows.length}`}
           </p>
           <span className="text-[11px] text-muted-foreground">
-            {isFacility ? "Xác minh ranh giới pháp lý" : `${stats?.totalActivities || 0} nguồn hoạt động phát sinh`}
+            {isFacility ? "Cơ sở có ghi chú ranh giới" : `${stats?.totalActivities || 0} nguồn hoạt động phát sinh`}
           </span>
         </div>
 
@@ -388,7 +401,9 @@ export default function FacilityProcessClient({
                         <p className="mt-1 text-[10px] text-muted-foreground truncate">{step.desc}</p>
                       </div>
                       <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between text-[10px]">
-                        <span className="font-bold text-primary">{step.share}</span>
+                        <span className="font-bold text-primary">
+                          {demo ? step.share : `${processCountByType.get(step.key) || 0} quy trình`}
+                        </span>
                         <span className="text-muted-foreground font-mono">{step.energy}</span>
                       </div>
                     </button>
@@ -396,8 +411,8 @@ export default function FacilityProcessClient({
                 })}
               </div>
 
-              {/* AI Process Benchmark Callout */}
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-primary/5 border border-primary/15 p-2.5 text-xs">
+              {/* AI Process Benchmark Callout — illustrative shares, demo runtime only */}
+              {demo && <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-primary/5 border border-primary/15 p-2.5 text-xs">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-muted-foreground text-[11px]">
@@ -407,10 +422,11 @@ export default function FacilityProcessClient({
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                   BAT benchmark: lò clinker 3,3 GJ/t (EU BREF CLM)
                 </span>
-              </div>
+              </div>}
             </section>
-          ) : (
-            /* Facility Carbon Performance Scorecard & ISO Boundaries for /facilities */
+          ) : demo ? (
+            /* Facility Carbon Performance Scorecard & ISO Boundaries for /facilities.
+               The figures are illustrative, so the scorecard only renders in the /demo runtime. */
             <section className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
                 <div>
@@ -475,7 +491,7 @@ export default function FacilityProcessClient({
                 </div>
               </div>
             </section>
-          )}
+          ) : null}
 
           {/* Search, Filters, and Action Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3">

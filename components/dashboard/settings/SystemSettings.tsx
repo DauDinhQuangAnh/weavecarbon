@@ -1227,15 +1227,22 @@ const SystemSettings: React.FC = () => {
 
           <div className="mt-6 flex flex-col gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold text-slate-900">{t("upgradeTitle")}</p>
-              <p className="text-sm text-slate-600">{t("upgradeDesc")}</p>
+              {/* On Standard the same checkout adds 30 days and 20 SKU, so it is a top-up, not an upgrade. */}
+              <p className="font-semibold text-slate-900">
+                {activePlanFamily === "standard" ? "Gia hạn hoặc mua thêm SKU" : t("upgradeTitle")}
+              </p>
+              <p className="text-sm text-slate-600">
+                {activePlanFamily === "standard"
+                  ? "Cộng thêm 30 ngày sử dụng và 20 SKU vào gói Standard hiện tại."
+                  : t("upgradeDesc")}
+              </p>
             </div>
             <Button
               size="sm"
               className="w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
               onClick={handleUpgradeNow}
             >
-              {t("upgradeNow")}
+              {activePlanFamily === "standard" ? "Mua thêm" : t("upgradeNow")}
             </Button>
           </div>
         </CardContent>

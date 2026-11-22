@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { industrialCoreApi } from "@/lib/industrialCoreApi";
+import { industrialCoreApi, type IndustrialCapabilityRegistry } from "@/lib/industrialCoreApi";
+import { listEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
+import { fetchProducts } from "@/lib/products/productsQueries";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { useAppRoutes } from "@/lib/demo/routes";
 import { Button } from "@/components/ui/button";
@@ -92,6 +94,33 @@ const FRAMEWORK_DEFINITIONS = [
 
 type FrameworkType = "CBAM" | "DPP" | "VN_MRV" | "ISO_14064" | "PACT";
 
+type ComplianceInputs = {
+  facilityCount: number;
+  activitiesCount: number;
+  verifiedEvidenceCount: number;
+  measurementPointCount: number;
+  productCount: number;
+};
+
+type ComplianceWorkspace = {
+  capabilities: IndustrialCapabilityRegistry | null;
+  inputs: ComplianceInputs;
+};
+
+// Synthetic figures for the /demo runtime only.
+const DEMO_COMPLIANCE_INPUTS: ComplianceInputs = {
+  facilityCount: 3,
+  activitiesCount: 14,
+  verifiedEvidenceCount: 11,
+  measurementPointCount: 8,
+  productCount: 5
+};
+
+const countDistinct = (values: (string | null | undefined)[]) => new Set(values.filter(Boolean)).size;
+
+const isLockedEvidence = (row: EvidenceDocumentV2) =>
+  ["locked", "third_party_verified"].includes(row.status) && /^[a-f0-9]{64}$/i.test(row.checksumSha256 || "");
+
 const statusLabels: Record<string, string> = {
   implemented: "Đã sẵn sàng",
   partial: "Một phần",
@@ -104,65 +133,64 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
   const [filterStatus, setFilterStatus] = useState<"all" | "fail" | "warning" | "pass">("all");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAiImport, setShowAiImport] = useState(false);
-  const [customAssessments, setCustomAssessments] = useState<Record<string, ComplianceFrameworkAssessment>>({});
 
-  const loadCapabilities = useCallback(
-    async () => (demo ? (await import("@/lib/dashboard/industrialDemoData")).DEMO_CAPABILITIES : industrialCoreApi.capabilities()),
-    [demo]
-  );
-  const query = useIndustrialWorkspaceQuery(loadCapabilities, demo);
+  const loadWorkspace = useCallback(async (): Promise<ComplianceWorkspace> => {
+    if (demo) {
+      const { DEMO_CAPABILITIES } = await import("@/lib/dashboard/industrialDemoData");
+      return { capabilities: DEMO_CAPABILITIES, inputs: DEMO_COMPLIANCE_INPUTS };
+    }
+    // Readiness is derived from what the tenant has actually recorded, never from fixed numbers.
+    const [capabilities, facilities, activities, measurementPoints, evidence, products] = await Promise.all([
+      industrialCoreApi.capabilities().catch(() => null),
+      industrialCoreApi.facilities(),
+      industrialCoreApi.activities(500),
+      industrialCoreApi.measurementPoints(),
+      listEvidenceV2(),
+      fetchProducts({ page: 1, page_size: 1 })
+    ]);
+    return {
+      capabilities,
+      inputs: {
+        facilityCount: countDistinct((facilities || []).map((row) => row.facilityReference)),
+        activitiesCount: (activities || []).length,
+        verifiedEvidenceCount: (evidence?.items || []).filter(isLockedEvidence).length,
+        measurementPointCount: countDistinct((measurementPoints || []).map((row) => row.measurementPointReference)),
+        productCount: Number(products?.pagination?.total) || 0
+      }
+    };
+  }, [demo]);
+  const query = useIndustrialWorkspaceQuery(loadWorkspace, demo);
+  const inputs = query.data?.inputs ?? null;
 
-  // Initial Assessment Loader
-  useEffect(() => {
-    const initAssessments: Record<string, ComplianceFrameworkAssessment> = {};
-    FRAMEWORK_DEFINITIONS.forEach((fw) => {
-      initAssessments[fw.id] = runMultiFrameworkGapAnalysis({
-        framework: fw.id as FrameworkType,
-        facilityCount: 3,
-        activitiesCount: 14,
-        verifiedEvidenceCount: 11,
-        hasSubMeters: true
-      });
-    });
-    setCustomAssessments(initAssessments);
-  }, []);
+  const assessments = useMemo<Record<string, ComplianceFrameworkAssessment>>(() => {
+    if (!inputs) return {};
+    return Object.fromEntries(
+      FRAMEWORK_DEFINITIONS.map((fw) => [
+        fw.id,
+        runMultiFrameworkGapAnalysis({
+          framework: fw.id as FrameworkType,
+          ...inputs,
+          hasSubMeters: inputs.measurementPointCount >= 2
+        })
+      ])
+    );
+  }, [inputs]);
 
-  const currentAssessment = customAssessments[activeFw] || runMultiFrameworkGapAnalysis({
-    framework: activeFw,
-    facilityCount: 3,
-    activitiesCount: 14,
-    verifiedEvidenceCount: 11,
-    hasSubMeters: true
-  });
+  const currentAssessment = assessments[activeFw] || runMultiFrameworkGapAnalysis({ framework: activeFw });
 
-  const handleRunAiAnalysis = () => {
+  const handleRunAiAnalysis = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
-      const refreshed = runMultiFrameworkGapAnalysis({
-        framework: activeFw,
-        facilityCount: 3,
-        activitiesCount: 18,
-        verifiedEvidenceCount: 16,
-        hasSubMeters: true
-      });
-      setCustomAssessments((prev) => ({ ...prev, [activeFw]: refreshed }));
+    try {
+      await query.reload();
+      toast.success(`Đã rà soát lại Ma trận Tuân thủ ${activeFw} theo dữ liệu hiện có của doanh nghiệp.`);
+    } finally {
       setIsAnalyzing(false);
-      toast.success(`AI Copilot đã cập nhật Ma trận Tuân thủ ${activeFw}: Độ sẵn sàng đạt ${refreshed.readinessScore}%`);
-    }, 700);
+    }
   };
 
   const handleAiDocumentImported = (_extractedData: Record<string, unknown>) => {
     setShowAiImport(false);
-    toast.success("Đã phân tích văn bản pháp lý & chứng chỉ môi trường thành công!");
-    // Boost readiness score when evidence document is ingested
-    const upgraded = runMultiFrameworkGapAnalysis({
-      framework: activeFw,
-      facilityCount: 3,
-      activitiesCount: 22,
-      verifiedEvidenceCount: 20,
-      hasSubMeters: true
-    });
-    setCustomAssessments((prev) => ({ ...prev, [activeFw]: upgraded }));
+    toast.success("Đã đọc văn bản. Lưu và khóa chứng từ trong kho chứng từ để mức sẵn sàng được cập nhật.");
   };
 
   const handleExportDossier = () => {
@@ -170,8 +198,8 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
     const dossier = {
       title: "WEAVECARBON COMPLIANCE READINESS DOSSIER",
       generatedAt: new Date().toISOString(),
-      platformVersion: query.data?.platformVersion || "v2.6-industrial",
-      manifestSha256: query.data?.manifestSha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      platformVersion: query.data?.capabilities?.platformVersion || "v2.6-industrial",
+      manifestSha256: query.data?.capabilities?.manifestSha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       frameworkAssessed: currentAssessment.frameworkName,
       readinessScorePercent: currentAssessment.readinessScore,
       status: currentAssessment.status,
@@ -186,7 +214,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
       checklistAuditSummary: currentAssessment.checklist,
       unresolvedGaps: currentAssessment.checklist.filter((c) => c.status !== "pass"),
       remediationRoadmap: currentAssessment.roadmap,
-      truthBoundaryDeclaration: query.data?.truthBoundary || "Operational boundary bound to verified tenant ledger."
+      truthBoundaryDeclaration: query.data?.capabilities?.truthBoundary || "Operational boundary bound to verified tenant ledger."
     };
 
     const blob = new Blob([JSON.stringify(dossier, null, 2)], { type: "application/json" });
@@ -289,8 +317,8 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
             <CardTitle className="text-2xl font-bold tracking-tight text-foreground">SHA-256</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-[11px] text-muted-foreground truncate" title={query.data?.manifestSha256 || "Ledger Verified"}>
-              {query.data?.manifestSha256 ? `${query.data.manifestSha256.slice(0, 12)}...` : "Bảo mật sổ cái"}
+            <p className="text-[11px] text-muted-foreground truncate" title={query.data?.capabilities?.manifestSha256 || "Ledger Verified"}>
+              {query.data?.capabilities?.manifestSha256 ? `${query.data.capabilities.manifestSha256.slice(0, 12)}...` : "Bảo mật sổ cái"}
             </p>
           </CardContent>
         </Card>
@@ -325,8 +353,8 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6 motion-reveal">
         {FRAMEWORK_DEFINITIONS.map((item) => {
           const isSelected = activeFw === item.id;
-          const fwAssessment = customAssessments[item.id];
-          const score = fwAssessment ? fwAssessment.readinessScore : 80;
+          const fwAssessment = assessments[item.id];
+          const score = fwAssessment ? fwAssessment.readinessScore : 0;
 
           return (
             <button
@@ -557,17 +585,17 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
               Ranh giới Sự thật (Truth Boundary)
             </div>
             <p className="text-[11px] leading-relaxed">
-              {query.data?.truthBoundary || "Mọi tính toán dựa trên ranh giới thực tế và chứng từ đã xác thực."}
+              {query.data?.capabilities?.truthBoundary || "Mọi tính toán dựa trên ranh giới thực tế và chứng từ đã xác thực."}
             </p>
             <p className="text-[10px] text-muted-foreground pt-1 border-t border-amber-200/60 dark:border-amber-800">
-              Manifest SHA-256: {query.data?.manifestSha256 ? query.data.manifestSha256.slice(0, 24) : "VERIFIED"}...
+              Manifest SHA-256: {query.data?.capabilities?.manifestSha256 ? query.data.capabilities.manifestSha256.slice(0, 24) : "VERIFIED"}...
             </p>
           </div>
         </div>
       </div>
 
       {/* 5. Capability Data Model Registry */}
-      {query.data && (
+      {query.data?.capabilities && (
         <section className="rounded-xl border border-border/70 bg-card p-5 mb-4 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -576,7 +604,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
                 Độ phủ Mô hình Dữ liệu & Lớp Hệ thống (Capability Registry)
               </h2>
               <p className="text-xs text-muted-foreground">
-                Phiên bản Registry: {query.data.platformVersion} · Cập nhật: {query.data.updatedOn}
+                Phiên bản Registry: {query.data.capabilities.platformVersion} · Cập nhật: {query.data.capabilities.updatedOn}
               </p>
             </div>
           </div>
@@ -586,7 +614,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
               Các thực thể nghiệp vụ (Entities)
             </h3>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {query.data.entities.map((item) => (
+              {query.data.capabilities.entities.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between p-2.5 rounded-lg border border-border/40 bg-muted/30 text-xs"
@@ -613,7 +641,7 @@ export default function ComplianceClient({ demo = false }: { demo?: boolean }) {
               Các tầng năng lực & bằng chứng (Capability Layers)
             </h3>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {query.data.layers.map((layer) => (
+              {query.data.capabilities.layers.map((layer) => (
                 <div
                   key={layer.id}
                   className="p-3 rounded-lg border border-border/50 bg-muted/20 text-xs space-y-1.5"

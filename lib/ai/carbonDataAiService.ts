@@ -550,11 +550,17 @@ export function runMultiFrameworkGapAnalysis(params: {
   verifiedEvidenceCount?: number;
   dqlLevel?: string;
   hasSubMeters?: boolean;
+  productCount?: number;
 }): ComplianceFrameworkAssessment {
+  // Every "pass" must be backed by data the tenant actually holds; an empty account
+  // must never read as ready. Items that the platform cannot confirm on its own stay
+  // at "warning" until the user records the decision or evidence.
   const fw = params.framework;
+  const facilities = params.facilityCount || 0;
   const activities = params.activitiesCount || 0;
   const evidence = params.verifiedEvidenceCount || 0;
-  const hasSubMeters = params.hasSubMeters ?? true;
+  const products = params.productCount || 0;
+  const hasSubMeters = params.hasSubMeters ?? false;
 
   if (fw === "CBAM") {
     const checklist: ComplianceFrameworkAssessment["checklist"] = [
@@ -570,7 +576,7 @@ export function runMultiFrameworkGapAnalysis(params: {
       {
         id: "cbam-2",
         requirement: "Định danh mã số hải quan CN 8 số cho dòng sản phẩm xuất khẩu",
-        status: "pass",
+        status: products > 0 ? "pass" : "fail",
         detail: "Đối chiếu mã HS và mã CN châu Âu (Chương 72/73/76/28/31) theo biểu thuế TARIC.",
         actionRequired: "Duy trì tra cứu bảng mã CN tự động và xác thực với khách hàng EU.",
         owner: "Phòng Logistics & Xuất nhập khẩu",
@@ -620,9 +626,9 @@ export function runMultiFrameworkGapAnalysis(params: {
       {
         id: "vnmrv-1",
         requirement: "Xác định nghĩa vụ thuộc Danh mục phát thải KNK bắt buộc (QĐ 13/2024 & QĐ 42/2026)",
-        status: "pass",
+        status: facilities > 0 ? "warning" : "fail",
         detail: "Áp dụng ngưỡng tiêu thụ năng lượng >= 1.000 TOE hoặc phát thải >= 3.000 tCO2e/năm theo Quyết định số 13/2024/QĐ-TTg.",
-        actionRequired: "Cơ sở đã xác định trạng thái danh mục và lưu trữ số quyết định.",
+        actionRequired: facilities > 0 ? "Xác nhận trạng thái danh mục cho từng cơ sở tại trang Carbon Việt Nam và lưu số quyết định làm căn cứ." : "Khai báo cơ sở sản xuất trước, sau đó xác định trạng thái danh mục bắt buộc.",
         owner: "Trưởng phòng Môi trường / An toàn",
         regulationReference: "Quyết định 13/2024/QĐ-TTg & Nghị định 06/2022/NĐ-CP Điều 9"
       },
@@ -638,7 +644,7 @@ export function runMultiFrameworkGapAnalysis(params: {
       {
         id: "vnmrv-3",
         requirement: "Áp dụng hệ số phát thải lưới điện Việt Nam do Cục Biến đổi khí hậu công bố",
-        status: "pass",
+        status: activities > 0 ? "pass" : "warning",
         detail: "Hệ số phát thải lưới điện quốc gia (0.6766 tCO2/MWh) theo văn bản hướng dẫn mới nhất của Bộ TN&MT.",
         actionRequired: "Hệ thống tự động đồng bộ hệ số EF_grid của Cục BĐKH.",
         owner: "Hệ thống WeaveCarbon Engine",
@@ -670,7 +676,7 @@ export function runMultiFrameworkGapAnalysis(params: {
         { step: 2, phase: "Kiểm tra cổng chất lượng DQL", description: "Đảm bảo các nguồn phát thải trọng yếu đạt chuẩn dữ liệu L3 trở lên.", deadlineDays: 20 },
         { step: 3, phase: "Xuất bản Báo cáo Mẫu 06 gửi Sở TN&MT", description: "Tổng hợp biểu mẫu và lưu vết mã băm số học.", deadlineDays: 30 }
       ],
-      dossierSummary: `Mức sẵn sàng MRV Việt Nam đạt ${score}%. Cơ sở đáp ứng đầy đủ điều kiện kỹ thuật để xuất Báo cáo kiểm kê KNK cấp cơ sở Mẫu 06 gửi cơ quan quản lý.`
+      dossierSummary: `Mức sẵn sàng MRV Việt Nam đạt ${score}%. ${score >= 80 ? "Cơ sở đáp ứng điều kiện kỹ thuật để chuẩn bị Báo cáo kiểm kê KNK cấp cơ sở Mẫu 06." : "Cần bổ sung cơ sở, dữ liệu hoạt động và chứng từ trước khi chuẩn bị Báo cáo Mẫu 06."}`
     };
   }
 
@@ -679,7 +685,7 @@ export function runMultiFrameworkGapAnalysis(params: {
       {
         id: "dpp-1",
         requirement: "Hộ chiếu số sản phẩm (DPP) & ma trận nguồn gốc nguyên liệu",
-        status: "pass",
+        status: products > 0 ? "pass" : "fail",
         detail: "Quy định Thiết kế Sinh thái cho Sản phẩm Bền vững (ESPR 2024/1781) yêu cầu lưu vết định danh số của từng lô sản phẩm.",
         actionRequired: "Liên kết mã lô hàng và mã QR Hộ chiếu số sản phẩm.",
         owner: "Phòng Quản lý Chất lượng (QA)",
@@ -697,9 +703,9 @@ export function runMultiFrameworkGapAnalysis(params: {
       {
         id: "dpp-3",
         requirement: "Kiểm soát dư lượng hóa chất theo Danh mục REACH SVHC",
-        status: "pass",
+        status: "warning",
         detail: "Báo cáo kiểm nghiệm hóa chất không chứa các chất trong danh mục đặc biệt quan ngại (SVHC > 0.1% w/w).",
-        actionRequired: "Đã rà soát danh mục hóa chất sử dụng và hoàn tất kiểm nghiệm định kỳ.",
+        actionRequired: "Tải kết quả kiểm nghiệm SVHC (REACH) vào kho chứng từ để chuyên viên rà soát.",
         owner: "Kỹ sư Hóa - Phòng Thí nghiệm",
         regulationReference: "Regulation (EC) No 1907/2006 (REACH)"
       }
@@ -719,7 +725,7 @@ export function runMultiFrameworkGapAnalysis(params: {
         { step: 1, phase: "Số hóa dữ liệu thành phần nguyên liệu", description: "Bóc tách % sợi tự nhiên, sợi tổng hợp và phụ liệu may.", deadlineDays: 14 },
         { step: 2, phase: "Tích hợp mã QR định danh DPP", description: "Sinh mã dữ liệu số theo tiêu chuẩn GS1 Digital Link.", deadlineDays: 28 }
       ],
-      dossierSummary: `Hồ sơ DPP đạt ${score}%. Đã thiết lập định danh số và rà soát hóa chất REACH, sẵn sàng kết nối dữ liệu người mua EU.`
+      dossierSummary: `Hồ sơ DPP đạt ${score}%. ${score >= 80 ? "Đã thiết lập định danh số, sẵn sàng kết nối dữ liệu người mua EU." : "Cần tạo sản phẩm, hộ chiếu số và chứng từ chuỗi hành trình."}`
     };
   }
 
@@ -728,9 +734,9 @@ export function runMultiFrameworkGapAnalysis(params: {
     {
       id: "iso-1",
       requirement: "Ranh giới tổ chức theo Quyền kiểm soát vận hành (Operational Control)",
-      status: "pass",
+      status: facilities > 0 ? "pass" : "fail",
       detail: "Xác định rõ ranh giới các nhà xưởng, trạm cấp nhiệt và kho bãi trực thuộc quyền vận hành.",
-      actionRequired: "Ranh giới cơ sở đã được phê chuẩn trong hồ sơ hệ thống.",
+      actionRequired: facilities > 0 ? "Ranh giới cơ sở đã được khai báo trong hồ sơ hệ thống." : "Khai báo cơ sở và ghi chú ranh giới kiểm soát vận hành.",
       owner: "Ban Quản lý Dự án",
       regulationReference: "ISO 14064-1:2018, Khoản 5.1"
     },
@@ -768,7 +774,7 @@ export function runMultiFrameworkGapAnalysis(params: {
       { step: 1, phase: "Chuẩn hóa phương pháp ranh giới", description: "Thống nhất ranh giới kiểm soát hoạt động và phân nhóm phát thải gián tiếp.", deadlineDays: 15 },
       { step: 2, phase: "Thẩm định phả hệ dữ liệu", description: "Bảo đảm toàn bộ chuỗi chứng từ được đóng dấu băm SHA-256.", deadlineDays: 30 }
     ],
-    dossierSummary: `Mức độ sẵn sàng kiểm toán ISO 14064 đạt ${score}%. Cấu trúc dữ liệu đáp ứng nguyên tắc toàn vẹn, nhất quán và minh bạch.`
+    dossierSummary: `Mức độ sẵn sàng kiểm toán ISO 14064 đạt ${score}%. ${score >= 80 ? "Cấu trúc dữ liệu đáp ứng nguyên tắc toàn vẹn, nhất quán và minh bạch." : "Cần bổ sung cơ sở, dữ liệu hoạt động và điểm đo trước khi kiểm toán."}`
   };
 }
 

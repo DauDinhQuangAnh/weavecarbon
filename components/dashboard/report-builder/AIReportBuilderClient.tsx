@@ -307,6 +307,36 @@ const AIReportBuilderClient: React.FC = () => {
     ? generated.status === 'verification-ready' ? 100 : generated.status === 'needs-review' ? 75 : 45
     : dataset.emissionsSummary.readinessPct;
 
+  // The builder still runs on the 2026 demonstration dataset (Lovable port) and does not read
+  // tenant data yet, so a real account gets an explanation instead of demo figures.
+  if (!demo) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={vi ? 'AI Report Builder' : 'AI Report Builder'}
+          description={vi
+            ? 'Dựng báo cáo theo đúng phạm vi đối tượng và kỳ dữ liệu.'
+            : 'Build reports for an exact reporting object and period.'}
+        />
+        <SectionCard title={vi ? 'Đang chạy trên dữ liệu minh họa' : 'Runs on demonstration data'}>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">{vi
+              ? 'Trình dựng báo cáo này hiện chỉ dùng bộ dữ liệu minh họa 2026 và chưa đọc dữ liệu của doanh nghiệp bạn, nên được tắt trong tài khoản thật để không nhầm với số liệu thật. Để lập báo cáo từ dữ liệu của doanh nghiệp, hãy dùng trang Báo cáo.'
+              : 'This builder currently uses the 2026 demonstration dataset only and does not read your company data yet, so it is turned off in real accounts to avoid mixing it up with real figures. Use the Reports page to report on your own data.'}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => router.push('/reports')}>
+                <FileText className="mr-2 h-4 w-4" />{vi ? 'Mở trang Báo cáo' : 'Open Reports'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => router.push('/demo/report-builder')}>
+                <FlaskConical className="mr-2 h-4 w-4" />{vi ? 'Xem thử trong bản demo' : 'Try it in the demo'}
+              </Button>
+            </div>
+          </div>
+        </SectionCard>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader

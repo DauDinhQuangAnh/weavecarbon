@@ -902,7 +902,7 @@
     {
       "repo": "FE",
       "path": "hooks/useCalculationHistory.ts",
-      "sha256": "e3b7a2100d8e5458ea8ee3a6e95c622f89a498cd46d0c8bbdbba444351eeb7da"
+      "sha256": "6cb0bc191415f9d3fb373bdeeca1e7a4878ffbe73875b9c5d5ff88f98cd196b7"
     },
     {
       "repo": "FE",
@@ -3373,6 +3373,12 @@
       "date": "2026-11-19",
       "reason": "User asked (19/11/2026) to remove the slight delay when switching pages across the app. Measured on production: sidebar links had prefetch disabled, each click waited for the RSC payload (64 ms to over 1 s) with no feedback, and the force-dynamic root layout awaited the backend /health check whenever its 30 s cache expired. getBackendHealth now serves the last healthy result immediately and refreshes in the background (unhealthy results are still awaited), and next.config keeps visited dynamic pages in the client router cache for 30 s (experimental.staleTimes.dynamic).",
       "filesUpdated": 2,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-22",
+      "reason": "User asked (22/11/2026) to fix the bugs found while checking their brand-new account: /calculation-history showed 14 demo records although GET /api/carbon-calculations returned none, because hooks/useCalculationHistory.ts read and wrote a browser-wide localStorage cache shared by every account and by the /demo runtime. History is now read from the server only and the legacy keys are purged.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ]
