@@ -118,6 +118,7 @@ services:
     volumes:
       - rag_data:/app/db
       - rag_cache:/app/.cache
+      - ./deploy/embedding_model_state.json:/app/.embedding_model_state.json
     networks:
       - app
       - data
