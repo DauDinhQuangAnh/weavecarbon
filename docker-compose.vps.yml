@@ -186,6 +186,7 @@ services:
     networks:
       - edge
       - app
+      - airweave_internal
     security_opt:
       - no-new-privileges:true
     stop_grace_period: 30s
@@ -196,6 +197,8 @@ networks:
   app:
   data:
     internal: true
+  airweave_internal:
+    external: true
 
 volumes:
   postgres_data:
