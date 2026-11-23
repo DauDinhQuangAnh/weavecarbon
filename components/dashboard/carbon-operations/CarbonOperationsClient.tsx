@@ -1100,7 +1100,7 @@ export default function CarbonOperationsClient({
                       </select>
                     </div>
 
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 [&>*]:min-w-0">
                       <Input
                         required
                         placeholder={t("fields.processReference")}
@@ -1257,7 +1257,7 @@ export default function CarbonOperationsClient({
                       }
                       className="h-9 rounded-lg border-slate-200 text-xs"
                     />
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 [&>*]:min-w-0">
                       <Input
                         required
                         placeholder={t("fields.measurementType")}
@@ -1285,7 +1285,7 @@ export default function CarbonOperationsClient({
                         className="h-9 rounded-lg border-slate-200 text-xs"
                       />
                     </div>
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 [&>*]:min-w-0">
                       <select aria-label={t("fields.sourceType")} disabled={!canWrite || isSaving("point")} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs" value={pointForm.sourceType} onChange={(event) => setPointForm({ ...pointForm, sourceType: event.target.value as typeof pointForm.sourceType })}>
                         {["meter", "plc", "sensor", "weavenode", "manual", "api"].map((value) => <option key={value} value={value}>{value}</option>)}
                       </select>
@@ -1391,7 +1391,7 @@ export default function CarbonOperationsClient({
                       className="h-9 rounded-lg border-slate-200 text-xs"
                     />
 
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 [&>*]:min-w-0">
                       <select
                         disabled={!canWrite || isSaving("allocationRule")}
                         aria-label={t("allocationMethod")}
@@ -1439,7 +1439,7 @@ export default function CarbonOperationsClient({
                       />
                     </div>
 
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 [&>*]:min-w-0">
                       <Input
                         required
                         placeholder={t("methodologyReference")}
@@ -1482,7 +1482,7 @@ export default function CarbonOperationsClient({
                       className="rounded-lg border-slate-200 text-xs min-h-[50px]"
                     />
 
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2 [&>*]:min-w-0">
                       <select
                         disabled={!canWrite || isSaving("allocationRule")}
                         aria-label={t("approvalStatus")}
