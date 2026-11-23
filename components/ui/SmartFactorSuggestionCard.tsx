@@ -151,18 +151,18 @@ export default function SmartFactorSuggestionCard({
     >
       {/* 1. Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-emerald-100/70 dark:border-emerald-900/30">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+        <div className="flex min-w-0 max-w-full items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
             <Sparkles className="h-4 w-4 animate-pulse" />
           </div>
-          <div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex flex-wrap items-center gap-1.5">
               AI Gợi Ý Hệ Số Phát Thải
               <span className="text-[10px] font-normal text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded font-mono">
                 {activeFactor.matchScore}% phù hợp
               </span>
             </h4>
-            <p className="text-[11px] text-muted-foreground truncate max-w-[280px]">
+            <p className="text-[11px] text-muted-foreground truncate max-w-full sm:max-w-[280px]">
               {activeFactor.matchReasonVi}
             </p>
           </div>

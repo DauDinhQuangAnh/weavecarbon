@@ -552,7 +552,9 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                   <option value="">{t("selectProcess")}</option>
                   {packProcessOptions.map((process) => (
                     <option key={process.id} value={process.id}>
-                      {process.name} · {processTypeLabel(process.processType) || process.processType}
+                      {process.name} · {processTypeLabel(process.processType) && processTypeLabel(process.processType) !== process.name
+                        ? `${processTypeLabel(process.processType)} (${process.processType})`
+                        : process.processType}
                     </option>
                   ))}
                 </select>

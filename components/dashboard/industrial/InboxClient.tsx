@@ -302,8 +302,8 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
                   : "border-border bg-card hover:bg-muted/30"
               }`}
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 max-w-full space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-muted text-muted-foreground">
                     {task.path.replace("/", "")}
                   </span>
@@ -331,7 +331,7 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
                   )}
                   <h2 className="font-semibold text-foreground text-sm">{task.title}</h2>
                 </div>
-                <p className="text-xs text-muted-foreground">{task.reason}</p>
+                <p className="text-xs text-muted-foreground break-words">{task.reason}</p>
               </div>
 
               <div className="flex items-center gap-2">

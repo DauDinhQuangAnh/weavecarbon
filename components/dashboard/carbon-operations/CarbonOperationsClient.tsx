@@ -1340,7 +1340,7 @@ export default function CarbonOperationsClient({
             />
 
             {/* ── Governed Allocation Rules & Deterministic Runs ── */}
-            <section className="grid gap-4 md:gap-6 xl:grid-cols-2">
+            <section className="grid gap-4 md:gap-6 xl:grid-cols-2 [&>*]:min-w-0">
               <Card className="rounded-xl border shadow-xs">
                 <CardHeader className="pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">

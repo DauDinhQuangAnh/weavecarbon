@@ -283,7 +283,7 @@ export default function IndustrialPortfolioSection() {
         </SectionCard>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid gap-6 xl:grid-cols-3 [&>*]:min-w-0">
         <SectionCard
           className="xl:col-span-2"
           title="Phát thải doanh nghiệp theo thời gian"
@@ -356,7 +356,7 @@ export default function IndustrialPortfolioSection() {
         </SectionCard>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid gap-6 xl:grid-cols-3 [&>*]:min-w-0">
         <SectionCard
           className="xl:col-span-2"
           title="Sản phẩm → thị trường → báo cáo"
@@ -451,7 +451,7 @@ export default function IndustrialPortfolioSection() {
         </SectionCard>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid gap-6 xl:grid-cols-3 [&>*]:min-w-0">
         <SectionCard
           className="xl:col-span-2"
           title="Điểm nóng lớn nhất"

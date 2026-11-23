@@ -507,7 +507,7 @@ export default function WeavenodeClient({ demo = false }: { demo?: boolean }) {
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">{t("fleetDescription")}</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 Live Telemetry Pulse

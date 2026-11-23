@@ -389,7 +389,7 @@ export default function FacilityProcessClient({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px] [&>*]:min-w-0">
         {/* Main Content Area */}
         <section className="space-y-4">
           {/* Mode-specific industrial intelligence component */}
@@ -570,10 +570,10 @@ export default function FacilityProcessClient({
                 </select>
               </label>
 
-              <label className="flex items-center gap-2 min-w-[160px]">
+              <label className="flex min-w-0 max-w-full items-center gap-2 sm:min-w-[160px]">
                 <span className="font-medium text-muted-foreground whitespace-nowrap">Loại quy trình:</span>
                 <select
-                  className="rounded-md border border-input bg-background p-1.5 text-xs"
+                  className="min-w-0 max-w-full flex-1 rounded-md border border-input bg-background p-1.5 text-xs"
                   value={typeFilter}
                   onChange={(event) => setTypeFilter(event.target.value)}
                 >
