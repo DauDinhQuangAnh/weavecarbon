@@ -22,6 +22,7 @@ import {
   type IndustrialMeasurementPoint,
   type IndustrialProcess,
 } from '@/lib/industrialCoreApi';
+import { selectLatestRevisions } from "@/lib/industrialOperations";
 
 const TARGETS: Array<{ value: CanonicalActivityField; label: string }> = [
   { value: 'activityReference', label: 'Mã hoạt động' },
@@ -178,7 +179,7 @@ export default function ControlledActivityPromotionPanel({
     if (Number(activity.quantity) === 0 && activity.quantity !== '') codes.push('ZERO_QUANTITY');
     return codes;
   }, [activity.quantity, decisions, suggestions]);
-  const filteredProcesses = processes.filter((item) => item.facilityRevisionId === activity.facilityRevisionId);
+  const filteredProcesses = selectLatestRevisions(processes, (item) => item.processReference).filter((item) => item.facilityRevisionId === activity.facilityRevisionId);
   const filteredPoints = points.filter((item) =>
     item.facilityRevisionId === activity.facilityRevisionId &&
     (!activity.processRevisionId || item.processRevisionId === activity.processRevisionId)
@@ -350,7 +351,7 @@ export default function ControlledActivityPromotionPanel({
 
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Candidate reference"><Input value={candidateReference} onChange={(event) => setCandidateReference(event.target.value)} /></Field>
-        <Field label="Cơ sở"><select required className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activity.facilityRevisionId} onChange={(event) => setActivity({ ...activity, facilityRevisionId: event.target.value, processRevisionId: '', measurementPointRevisionId: '' })}><option value="">Chọn facility revision</option>{facilities.map((facility) => <option key={facility.id} value={facility.id}>{facility.name} · rev {facility.revision}</option>)}</select></Field>
+        <Field label="Cơ sở"><select required className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activity.facilityRevisionId} onChange={(event) => setActivity({ ...activity, facilityRevisionId: event.target.value, processRevisionId: '', measurementPointRevisionId: '' })}><option value="">Chọn facility revision</option>{selectLatestRevisions(facilities, (item) => item.facilityReference).map((facility) => <option key={facility.id} value={facility.id}>{facility.name} · rev {facility.revision}</option>)}</select></Field>
         <Field label="Quy trình (không bắt buộc)"><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activity.processRevisionId} onChange={(event) => setActivity({ ...activity, processRevisionId: event.target.value, measurementPointRevisionId: '' })}><option value="">Không chọn</option>{filteredProcesses.map((process) => <option key={process.id} value={process.id}>{process.name}</option>)}</select></Field>
         <Field label="Điểm đo (không bắt buộc)"><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activity.measurementPointRevisionId} onChange={(event) => setActivity({ ...activity, measurementPointRevisionId: event.target.value })}><option value="">Không chọn</option>{filteredPoints.map((point) => <option key={point.id} value={point.id}>{point.measurementPointReference}</option>)}</select></Field>
         <Field label="Mã hoạt động"><Input value={activity.activityReference} onChange={(event) => setActivity({ ...activity, activityReference: event.target.value })} /></Field>

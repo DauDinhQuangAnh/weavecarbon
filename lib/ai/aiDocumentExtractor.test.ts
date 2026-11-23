@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { apiRequest } from '@/lib/apiClient';
 import { extractDocumentWithContext } from './aiDocumentExtractor';
 import { DOCUMENT_CONTEXTS } from './documentContext';
 
@@ -65,5 +66,55 @@ describe('aiDocumentExtractor', () => {
     expect(result.success).toBe(true);
     expect(result.fields.initiativeReference).toBe('MIT-SOLAR-2026-TB');
     expect(result.fields.targetReductionTco2e).toBe(1450);
+  });
+});
+
+describe('aiDocumentExtractor production responses', () => {
+  it('prefers context_fields returned by the backend and sends field definitions', async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      data: {
+        success: true,
+        confidence: 0.93,
+        source: 'gemini-vision',
+        facility_name: null,
+        context_fields: {
+          reference: 'FAC-TU-02',
+          name: 'Nhà máy Thủ Đức 2',
+          timezone: 'Asia/Ho_Chi_Minh',
+          boundary: 'Kiểm soát vận hành toàn bộ khu A',
+        },
+      },
+    });
+    const file = new File(['content'], 'facility.png', { type: 'image/png' });
+    const result = await extractDocumentWithContext(file, DOCUMENT_CONTEXTS.facility, { demo: false });
+
+    expect(result.success).toBe(true);
+    expect(result.fields).toEqual({
+      reference: 'FAC-TU-02',
+      name: 'Nhà máy Thủ Đức 2',
+      timezone: 'Asia/Ho_Chi_Minh',
+      boundary: 'Kiểm soát vận hành toàn bộ khu A',
+    });
+    const body = vi.mocked(apiRequest).mock.calls.at(-1)?.[1]?.body as unknown as FormData;
+    const context = JSON.parse(String(body.get('context')));
+    expect(context.expectedFields[0]).toMatchObject({ key: 'reference', label: expect.any(String) });
+  });
+
+  it('returns no fields when the backend cannot read the document', async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      data: {
+        success: false,
+        extraction_status: 'unreadable',
+        confidence: 0,
+        source: 'heuristic',
+        summary: 'Không đọc được nội dung tài liệu.',
+      },
+    });
+    const file = new File(['%PDF-1.4 broken'], 'broken.pdf', { type: 'application/pdf' });
+    const result = await extractDocumentWithContext(file, DOCUMENT_CONTEXTS.facility, { demo: false });
+
+    expect(result.success).toBe(false);
+    expect(result.confidence).toBe(0);
+    expect(result.fields).toEqual({});
   });
 });

@@ -45,6 +45,7 @@ import {
 } from "@/lib/ai/carbonDataAiService";
 import { toast } from "sonner";
 import { demoCache, demoData, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { selectLatestRevisions } from "@/lib/industrialOperations";
 const ids = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const select = "h-10 w-full rounded-md border bg-background px-3 text-sm";
 
@@ -509,7 +510,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
-            <form className="grid gap-3 md:grid-cols-2" onSubmit={saveInitiative}>
+            <form className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0" onSubmit={saveInitiative}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã sáng kiến</label>
                 <Input required disabled={saving} placeholder={t("initiativeReference")} value={initiative.initiativeReference} onChange={e => setInitiative({ ...initiative, initiativeReference: e.target.value })} />
@@ -518,7 +519,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
                 <select required disabled={saving} className={select} value={initiative.facilityRevisionId} onChange={e => setInitiative({ ...initiative, facilityRevisionId: e.target.value })}>
                   <option value="">{t("selectFacility")}</option>
-                  {facilities.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  {selectLatestRevisions(facilities, (item) => item.facilityReference).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
@@ -624,7 +625,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             <CardDescription className="text-xs text-slate-600">{t("scenarioDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
-            <form className="grid gap-3 md:grid-cols-2" onSubmit={saveScenario}>
+            <form className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0" onSubmit={saveScenario}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectInitiative")}</label>
                 <select required disabled={saving} className={select} value={scenario.initiativeId} onChange={e => setScenario({ ...scenario, initiativeId: e.target.value })}>
@@ -702,7 +703,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
             </div>
           </CardHeader>
           <CardContent className="pt-5 space-y-4">
-            <form className="grid gap-3 md:grid-cols-2" onSubmit={saveAllocation}>
+            <form className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0" onSubmit={saveAllocation}>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700 block">Mã phân bổ</label>
                 <Input required disabled={saving} placeholder={t("allocationReference")} value={allocation.allocationReference} onChange={e => setAllocation({ ...allocation, allocationReference: e.target.value })} />
@@ -711,7 +712,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
                 <select required disabled={saving} className={select} value={allocation.facilityRevisionId} onChange={e => setAllocation({ ...allocation, facilityRevisionId: e.target.value })}>
                   <option value="">{t("selectFacility")}</option>
-                  {facilities.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  {selectLatestRevisions(facilities, (item) => item.facilityReference).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
@@ -789,7 +790,7 @@ export default function MitigationOperationsClient({ demo = false }: { demo?: bo
                 <label className="text-xs font-semibold text-slate-700 block">{t("selectFacility")}</label>
                 <select required disabled={saving} className={select} value={position.facilityRevisionId} onChange={e => setPosition({ ...position, facilityRevisionId: e.target.value })}>
                   <option value="">{t("selectFacility")}</option>
-                  {facilities.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  {selectLatestRevisions(facilities, (item) => item.facilityReference).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">

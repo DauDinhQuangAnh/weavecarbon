@@ -49,6 +49,7 @@ import {
 } from "@/lib/ai/supplyChainAndClimateAiService";
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { selectLatestRevisions } from "@/lib/industrialOperations";
 
 const selectClass =
   "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors";
@@ -643,7 +644,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 }
               >
                 <option value="">{t("selectFacility")}</option>
-                {facilities.map((f) => (
+                {selectLatestRevisions(facilities, (item) => item.facilityReference).map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name} · {f.facilityReference}
                   </option>
@@ -788,7 +789,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                 value={aiSelectedFacilityId}
                 onChange={(e) => setAiSelectedFacilityId(e.target.value)}
               >
-                {facilities.map((f) => (
+                {selectLatestRevisions(facilities, (item) => item.facilityReference).map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
                   </option>
@@ -991,7 +992,7 @@ export default function ClimateRiskClient({ demo = false }: { demo?: boolean }) 
                   }
                 >
                   <option value="">{t("selectFacility")}</option>
-                  {facilities.map((f) => (
+                  {selectLatestRevisions(facilities, (item) => item.facilityReference).map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name}
                     </option>

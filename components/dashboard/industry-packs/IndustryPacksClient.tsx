@@ -31,6 +31,8 @@ import { dataGovernanceApi, type FactorProposal } from "@/lib/dataGovernanceApi"
 import { industryPacksApi, type IndustryPackManifest, type IndustryPackPilot } from "@/lib/industryPacksApi";
 import { listEvidenceV2, type EvidenceDocumentV2 } from "@/lib/weave-v2/evidenceV2Api";
 import { demoCache, demoData, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { selectLatestRevisions } from "@/lib/industrialOperations";
+import { INDUSTRY_PACK_PROCESS_TAXONOMY, processTypeLabel } from "@/lib/industryPackTaxonomy";
 
 type Line = { category: string; sourceReference: string; activityQuantity: number; activityUnit: string; factorProposalId: string; evidenceDocumentIds: string };
 const initialLines = (categories: string[] = ["process", "fuel", "electricity"]): Line[] => categories.map((category) => ({ category, sourceReference: "", activityQuantity: 0, activityUnit: "", factorProposalId: "", evidenceDocumentIds: "" }));
@@ -212,7 +214,9 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
   const calcGrossTco2e = Number(((calcOutputTonnes * calcBenchmark.avgKgPerTonne) / 1000).toFixed(1));
   const calcBatTco2e = Number(((calcOutputTonnes * calcBenchmark.batKgPerTonne) / 1000).toFixed(1));
   const calcExcessTco2e = Math.max(0, calcGrossTco2e - calcBatTco2e);
-  const calcCbamTaxUsd = calcBenchmark.cbamCovered ? Math.round(calcExcessTco2e * 85) : 0;
+  // Ước tính minh họa: phần phát thải vượt ngưỡng BAT × giá giả định 85 EUR/tCO₂e (không phải nghĩa vụ CBAM thực tế).
+  const CBAM_ILLUSTRATIVE_PRICE_EUR = 85;
+  const calcCbamCostEur = calcBenchmark.cbamCovered ? Math.round(calcExcessTco2e * CBAM_ILLUSTRATIVE_PRICE_EUR) : 0;
 
   const [form, setForm] = useState({ packId: "steel", facilityRevisionId: "", processRevisionId: "", studyReference: "", periodStart: "2026-01-01", periodEnd: "2026-12-31", outputTonnes: 0, productReference: "", methodologyBoundary: "", methodologySource: "", productionEvidenceDocumentIds: "" });
   const [sectorContext, setSectorContext] = useState<Record<string, string>>({});
@@ -254,6 +258,26 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
   }, [demo, t]);
   useEffect(() => { void load(); }, [load]);
   const selectedPack = manifests.find((pack) => pack.id === form.packId);
+  const latestProcesses = selectLatestRevisions(processes, (item) => item.processReference);
+  const selectedFacility = facilities.find((item) => item.id === form.facilityRevisionId);
+  // Quy trình gắn với revision cũ của cùng cơ sở vẫn thuộc cơ sở đang chọn.
+  const facilityReferenceById = new Map(facilities.map((item) => [item.id, item.facilityReference]));
+  const facilityProcesses = latestProcesses.filter(
+    (process) => Boolean(selectedFacility) && facilityReferenceById.get(process.facilityRevisionId) === selectedFacility?.facilityReference
+  );
+  const packProcessOptions = facilityProcesses.filter((process) => selectedPack?.pilotProcesses.includes(process.processType));
+  const packProcessHint = (selectedPack?.pilotProcesses || [])
+    .map((type) => `${processTypeLabel(type) || type} (${type})`)
+    .join(", ");
+  // Độ sẵn sàng dữ liệu theo từng gói: dựa trên quy trình và pilot snapshot thật của công ty.
+  const packReadiness = (packId: string) => {
+    const manifest = manifests.find((item) => item.id === packId);
+    const accepted = new Set(manifest?.pilotProcesses || []);
+    return {
+      processCount: latestProcesses.filter((process) => accepted.has(process.processType)).length,
+      pilotCount: pilots.filter((pilot) => pilot.packId === packId).length,
+    };
+  };
   const patchLine = (index: number, changes: Partial<Line>) => setLines((current) => current.map((line, position) => position === index ? { ...line, ...changes } : line));
   const submit = async (event: FormEvent) => {
     event.preventDefault(); if (saving) return;
@@ -273,7 +297,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
         const hash = Date.now().toString(16).padStart(16, "0").repeat(4).slice(0, 64);
         demoCache().addIndustryPilot({
           id: `demo-pilot-${Date.now()}`,
-          facilityRevisionId: form.facilityRevisionId,
+          facilityRevisionId: processes.find((item) => item.id === form.processRevisionId)?.facilityRevisionId || form.facilityRevisionId,
           processRevisionId: form.processRevisionId,
           studyReference: form.studyReference || `PILOT-${new Date().getFullYear()}-${pilots.length + 1}`,
           revision: pilots.filter((item) => item.studyReference === form.studyReference).length + 1,
@@ -296,7 +320,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
         await load();
         return;
       }
-      await industryPacksApi.createPilot({ ...form, sectorContext, allocation: { method: "single_product", share: 1 }, methodology: { boundary: form.methodologyBoundary, source: form.methodologySource }, productionEvidenceDocumentIds: splitIds(form.productionEvidenceDocumentIds), activityLines: lines.map((line) => ({ ...line, evidenceDocumentIds: splitIds(line.evidenceDocumentIds) })) });
+      await industryPacksApi.createPilot({ ...form, facilityRevisionId: processes.find((item) => item.id === form.processRevisionId)?.facilityRevisionId || form.facilityRevisionId, sectorContext, allocation: { method: "single_product", share: 1 }, methodology: { boundary: form.methodologyBoundary, source: form.methodologySource }, productionEvidenceDocumentIds: splitIds(form.productionEvidenceDocumentIds), activityLines: lines.map((line) => ({ ...line, evidenceDocumentIds: splitIds(line.evidenceDocumentIds) })) });
       await load();
     } catch (cause) { setError(isApiError(cause) ? cause.message : t("saveError")); }
     finally { setSaving(false); }
@@ -509,7 +533,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                   onChange={(event) => setForm({ ...form, facilityRevisionId: event.target.value, processRevisionId: "" })}
                 >
                   <option value="">{t("selectFacility")}</option>
-                  {facilities.map((facility) => (
+                  {selectLatestRevisions(facilities, (item) => item.facilityReference).map((facility) => (
                     <option key={facility.id} value={facility.id}>
                       {facility.name}
                     </option>
@@ -526,14 +550,19 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                   onChange={(event) => setForm({ ...form, processRevisionId: event.target.value })}
                 >
                   <option value="">{t("selectProcess")}</option>
-                  {processes
-                    .filter((process) => process.facilityRevisionId === form.facilityRevisionId && selectedPack?.pilotProcesses.includes(process.processType))
-                    .map((process) => (
-                      <option key={process.id} value={process.id}>
-                        {process.name} · {process.processType}
-                      </option>
-                    ))}
+                  {packProcessOptions.map((process) => (
+                    <option key={process.id} value={process.id}>
+                      {process.name} · {processTypeLabel(process.processType) || process.processType}
+                    </option>
+                  ))}
                 </select>
+                {form.facilityRevisionId && packProcessOptions.length === 0 ? (
+                  <p className="mt-1 text-[11px] text-amber-700">
+                    Cơ sở này chưa có quy trình thuộc gói {selectedPack?.label || form.packId}
+                    {facilityProcesses.length ? ` (${facilityProcesses.length} quy trình hiện có dùng loại khác)` : ""}. Tạo quy trình ở
+                    trang Quy trình sản xuất với loại: {packProcessHint || "—"}.
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -878,7 +907,7 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs text-primary gap-1 border-emerald-300 bg-emerald-50 text-emerald-800">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> 7/7 Ngành đã chuẩn hóa Taxonomy
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> {INDUSTRY_PACK_PROCESS_TAXONOMY.length} gói ngành có taxonomy quy trình
             </Badge>
           </div>
         </CardHeader>
@@ -889,21 +918,21 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                 <th className="px-3.5 py-2.5">Ngành công nghiệp</th>
                 <th className="px-3.5 py-2.5">Phạm vi CBAM EU</th>
                 <th className="px-3.5 py-2.5">Bắt buộc QĐ 13/2024</th>
-                <th className="px-3.5 py-2.5 text-center">Độ sẵn sàng Dữ liệu</th>
+                <th className="px-3.5 py-2.5 text-center">Dữ liệu của công ty</th>
                 <th className="px-3.5 py-2.5">Hành động trọng tâm</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {[
-                { sector: "Thép & Hợp kim sắt (Steel)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", score: "88%", action: "Bóc tách phát thải điện phân EAF vs lò cao BF-BOF" },
-                { sector: "Xi măng & Clinker (Cement)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", score: "86%", action: "Kiểm soát phát thải nung đá vôi CaCO3 & tỷ lệ clinker" },
-                { sector: "Nông nghiệp & Nông sản (Cà phê, Gạo, Cao su)", cbam: "Ngoài CBAM · áp dụng EUDR", vn: "Nhà máy chế biến nông sản", score: "78%", action: "Toạ độ vùng trồng EUDR, phân bón & nhiên liệu sấy" },
-                { sector: "Nhôm & Đúc kim loại (Aluminium)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", score: "90%", action: "Đo phát thải anode PFCs & tỷ lệ nhôm tái chế" },
-                { sector: "Vật liệu xây dựng & Gốm sứ", cbam: "Đang xem xét mở rộng", vn: "Cơ sở gạch gốm kính", score: "82%", action: "Định lượng tiêu hao khí nung và vận tải nội bộ" },
-                { sector: "Hóa chất & Phân bón (Fertilisers)", cbam: "Bắt buộc phân bón", vn: "Nhóm hóa chất cơ bản", score: "84%", action: "Giám sát N2O axit nitric & định mức khí thiên nhiên" },
-                { sector: "Khai khoáng & Khoáng sản", cbam: "Quặng sắt đầu vào CBAM", vn: "Mỏ khai thác quy mô lớn", score: "80%", action: "Dữ liệu nhiên liệu xe tải mỏ & điện tuyển khoáng" },
-              ].map((item, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/60">
+                { packId: "steel", sector: "Thép & Hợp kim sắt (Steel)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", action: "Bóc tách phát thải điện phân EAF vs lò cao BF-BOF" },
+                { packId: "cement", sector: "Xi măng & Clinker (Cement)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", action: "Kiểm soát phát thải nung đá vôi CaCO3 & tỷ lệ clinker" },
+                { packId: "textile_apparel", sector: "Dệt may & Da giày (Textile & Apparel)", cbam: "Ngoài phạm vi CBAM hiện hành", vn: "Theo ngưỡng phát thải của cơ sở", action: "Tách điện, hơi & nhiệt nhuộm theo công đoạn; hồ sơ BOM & nhà cung ứng sợi" },
+                { packId: "aluminium", sector: "Nhôm & Đúc kim loại (Aluminium)", cbam: "Bắt buộc (Annex I)", vn: "Nhóm cơ sở cấp 1", action: "Đo phát thải anode PFCs & tỷ lệ nhôm tái chế" },
+                { packId: "construction_materials", sector: "Vật liệu xây dựng & Gốm sứ", cbam: "Đang xem xét mở rộng", vn: "Cơ sở gạch gốm kính", action: "Định lượng tiêu hao khí nung và vận tải nội bộ" },
+                { packId: "fertiliser_chemicals", sector: "Hóa chất & Phân bón (Fertilisers)", cbam: "Bắt buộc phân bón", vn: "Nhóm hóa chất cơ bản", action: "Giám sát N2O axit nitric & định mức khí thiên nhiên" },
+                { packId: "mining_minerals", sector: "Khai khoáng & Khoáng sản", cbam: "Quặng sắt đầu vào CBAM", vn: "Mỏ khai thác quy mô lớn", action: "Dữ liệu nhiên liệu xe tải mỏ & điện tuyển khoáng" },
+              ].map((item) => ({ ...item, readiness: packReadiness(item.packId) })).map((item) => (
+                <tr key={item.packId} className="hover:bg-slate-50/60">
                   <td className="px-3.5 py-3 font-semibold text-slate-900">{item.sector}</td>
                   <td className="px-3.5 py-3">
                     <span className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium bg-blue-50 text-blue-800 border border-blue-200">
@@ -916,7 +945,13 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
                     </span>
                   </td>
                   <td className="px-3.5 py-3 text-center">
-                    <span className="font-bold text-emerald-700 font-mono">{item.score}</span>
+                    {item.readiness.processCount || item.readiness.pilotCount ? (
+                      <span className="font-semibold text-emerald-700">
+                        {item.readiness.processCount} quy trình · {item.readiness.pilotCount} snapshot
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Chưa có dữ liệu</span>
+                    )}
                   </td>
                   <td className="px-3.5 py-3 text-slate-500">{item.action}</td>
                 </tr>
@@ -1020,10 +1055,12 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
             <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 shadow-xs">
               <span className="text-xs font-medium text-teal-800">Rủi ro Chứng chỉ CBAM EU</span>
               <p className="mt-2 text-2xl font-bold text-teal-700 font-mono">
-                ${calcCbamTaxUsd.toLocaleString("en-US")} <span className="text-xs font-normal text-slate-500">USD</span>
+                €{calcCbamCostEur.toLocaleString("vi-VN")} <span className="text-xs font-normal text-slate-500">EUR</span>
               </p>
               <span className="text-[11px] text-slate-500">
-                {calcBenchmark.cbamCovered ? "Áp dụng định giá 85 EUR/tấn" : "Chưa thuộc phạm vi bắt buộc"}
+                {calcBenchmark.cbamCovered
+                  ? `Minh họa: phần vượt BAT × giá giả định ${CBAM_ILLUSTRATIVE_PRICE_EUR} EUR/tCO₂e`
+                  : "Ngành chưa thuộc phạm vi CBAM hiện hành"}
               </span>
             </div>
           </div>
@@ -1038,7 +1075,9 @@ export default function IndustryPacksClient({ demo = false }: { demo?: boolean }
               💡 {calcBenchmark.intervention}
             </p>
             <p className="text-slate-600 text-[11px] leading-relaxed">
-              Áp dụng giải pháp này giúp đưa cường độ phát thải về sát cận biên BAT Châu Âu, triệt tiêu nguy cơ chịu thuế carbon biên giới khi xuất khẩu.
+              {calcBenchmark.cbamCovered
+                ? "Áp dụng giải pháp này giúp đưa cường độ phát thải về sát ngưỡng BAT Châu Âu, giảm chi phí chứng chỉ CBAM ước tính khi xuất khẩu vào EU."
+                : "Ngành này chưa thuộc phạm vi CBAM hiện hành; giải pháp giúp giảm cường độ phát thải, đáp ứng yêu cầu dữ liệu carbon (PCF / Scope 3) của nhãn hàng và chuẩn bị cho khả năng mở rộng phạm vi."}
             </p>
             <div className="pt-2 flex justify-end">
               <Button

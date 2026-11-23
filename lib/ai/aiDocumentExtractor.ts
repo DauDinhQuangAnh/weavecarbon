@@ -3,7 +3,8 @@ import type { DocumentContextConfig } from './documentContext';
 
 export interface AiDocumentExtractionResult {
   success: boolean;
-  confidence: number;
+  /** null khi dịch vụ AI không trả độ tin cậy; 0 khi không đọc được tài liệu. */
+  confidence: number | null;
   source: string;
   documentTitle: string;
   summary: string;
@@ -49,7 +50,13 @@ export async function extractDocumentWithContext(
     JSON.stringify({
       domainKey: config.key,
       hintKind: config.hintKind,
-      expectedFields: config.expectedFields.map((f) => f.key),
+      expectedFields: config.expectedFields.map((f) => ({
+        key: f.key,
+        label: f.label,
+        type: f.type,
+        description: f.description,
+        options: f.options?.map((option) => option.value),
+      })),
       systemInstruction: config.systemInstruction,
     })
   );
@@ -63,11 +70,39 @@ export async function extractDocumentWithContext(
   );
 
   const raw = ((res as { data?: Record<string, unknown> })?.data || res) as Record<string, unknown>;
+  const confidence = typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? raw.confidence : null;
+
+  // BE báo không đọc được tài liệu: không điền bất kỳ giá trị nào.
+  if (raw.success === false) {
+    return {
+      success: false,
+      confidence: confidence ?? 0,
+      source: typeof raw.source === 'string' ? raw.source : 'unknown',
+      documentTitle: 'Không đọc được tài liệu',
+      summary:
+        typeof raw.summary === 'string' && raw.summary
+          ? raw.summary
+          : 'Không đọc được nội dung tài liệu. Vui lòng thử tệp khác hoặc nhập thủ công.',
+      fields: {},
+    };
+  }
+
+  // Trường theo ngữ cảnh do BE trích xuất (context_fields) được ưu tiên hơn ánh xạ từ lược đồ hóa đơn chung.
+  const contextFields =
+    raw.context_fields && typeof raw.context_fields === 'object' && !Array.isArray(raw.context_fields)
+      ? (raw.context_fields as Record<string, unknown>)
+      : {};
 
   // Build mapped fields matching the expected field schema
   const mappedFields: Record<string, unknown> = {};
   for (const field of config.expectedFields) {
-    if (raw[field.key] !== undefined && raw[field.key] !== null) {
+    const contextValue = contextFields[field.key];
+    if (contextValue !== undefined && contextValue !== null && String(contextValue).trim() !== '') {
+      if (field.type === 'select' && field.options?.length && !field.options.some((option) => option.value === contextValue)) {
+        continue;
+      }
+      mappedFields[field.key] = contextValue;
+    } else if (raw[field.key] !== undefined && raw[field.key] !== null) {
       mappedFields[field.key] = raw[field.key];
     } else {
       // Common field alias mappings
@@ -107,7 +142,7 @@ export async function extractDocumentWithContext(
 
   return {
     success: true,
-    confidence: typeof raw.confidence === 'number' ? raw.confidence : 0.92,
+    confidence,
     source: typeof raw.source === 'string' ? raw.source : 'gemini-vision',
     documentTitle: typeof raw.document_title === 'string' ? raw.document_title : config.title,
     summary:

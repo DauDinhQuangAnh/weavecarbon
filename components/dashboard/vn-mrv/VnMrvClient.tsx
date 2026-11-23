@@ -48,6 +48,7 @@ import { industrialCoreApi, type IndustrialFacility } from "@/lib/industrialCore
 import { fetchCorporateGhgInventories, type CorporateGhgInventory } from "@/lib/weave-v2/corporateGhgInventoryApi";
 import { vnMrvApi, type VnMrvCase, type VnMrvFiling, type VnMrvPlan } from "@/lib/vnMrvApi";
 import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { selectLatestRevisions } from "@/lib/industrialOperations";
 
 const today = "2026-09-15";
 
@@ -617,7 +618,7 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
                   onChange={(e) => setCaseForm({ ...caseForm, facilityRevisionId: e.target.value })}
                 >
                   <option value="">{t("selectFacility")}</option>
-                  {facilities.map((x) => (
+                  {selectLatestRevisions(facilities, (item) => item.facilityReference).map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.name}
                     </option>

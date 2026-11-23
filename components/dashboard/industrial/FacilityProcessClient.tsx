@@ -30,6 +30,14 @@ import {
   type IndustrialProcess,
 } from "@/lib/industrialCoreApi";
 import { workspaceCanWrite, csvText } from "@/lib/dashboard/industrialWorkspace";
+import { selectLatestRevisions } from "@/lib/industrialOperations";
+import {
+  GENERIC_PROCESS_TYPES,
+  INDUSTRY_PACK_PROCESS_TAXONOMY,
+  dominantPackForProcessTypes,
+  processTypeLabel,
+  stageForProcessType,
+} from "@/lib/industryPackTaxonomy";
 import { useIndustrialWorkspaceQuery } from "@/hooks/useIndustrialWorkspaceQuery";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAppRoutes } from "@/lib/demo/routes";
@@ -43,14 +51,7 @@ import {
 } from "@/lib/design-system/dataQualityLadder";
 import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
 
-const PROCESS_TYPE_SUGGESTIONS = [
-  { label: "Chuẩn bị nguyên liệu", value: "material_preparation" },
-  { label: "Sản xuất chính", value: "production" },
-  { label: "Lò nung / lò hơi / sấy", value: "thermal_process" },
-  { label: "Điện & tiện ích", value: "utilities" },
-  { label: "Xử lý chất thải & khí thải", value: "wastewater_treatment" },
-  { label: "Đóng gói & hoàn tất", value: "packaging_finishing" },
-];
+const PROCESS_TYPE_SUGGESTIONS = GENERIC_PROCESS_TYPES;
 
 export default function FacilityProcessClient({
   mode,
@@ -85,6 +86,7 @@ export default function FacilityProcessClient({
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "planned" | "inactive">("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [expandedProcessId, setExpandedProcessId] = useState<string | null>(null);
+  const [suggestPackChoice, setSuggestPackChoice] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     reference: "",
@@ -144,7 +146,7 @@ export default function FacilityProcessClient({
           boundaryNotes: form.boundary.trim(),
         });
       } else {
-        if (!query.data?.facilities.some((row) => row.id === facility)) {
+        if (!latestFacilities.some((row) => row.id === facility)) {
           throw new Error("Vui lòng chọn cơ sở đang được hiển thị.");
         }
         await industrialCoreApi.createProcess({
@@ -165,7 +167,27 @@ export default function FacilityProcessClient({
     }
   }
 
-  const rows = (isFacility ? query.data?.facilities : query.data?.processes) || [];
+  // API trả mọi revision để lưu vết; danh sách, số đếm và ô chọn chỉ dùng revision mới nhất của mỗi mã.
+  const allFacilities = useMemo(() => query.data?.facilities || [], [query.data?.facilities]);
+  const allProcesses = useMemo(() => query.data?.processes || [], [query.data?.processes]);
+  const latestFacilities = useMemo(
+    () => selectLatestRevisions(allFacilities, (item) => item.facilityReference),
+    [allFacilities]
+  );
+  const latestProcesses = useMemo(
+    () => selectLatestRevisions(allProcesses, (item) => item.processReference),
+    [allProcesses]
+  );
+  const facilityById = useMemo(() => new Map(allFacilities.map((item) => [item.id, item])), [allFacilities]);
+  const revisionCountByReference = useMemo(() => {
+    const counts = new Map<string, number>();
+    const references = isFacility
+      ? allFacilities.map((item) => item.facilityReference)
+      : allProcesses.map((item) => item.processReference);
+    references.forEach((reference) => counts.set(reference, (counts.get(reference) || 0) + 1));
+    return counts;
+  }, [isFacility, allFacilities, allProcesses]);
+  const rows = isFacility ? latestFacilities : latestProcesses;
   const allActivities: IndustrialActivity[] = query.data?.activities || [];
 
   // Map activities to processes
@@ -182,15 +204,24 @@ export default function FacilityProcessClient({
   }, [allActivities]);
 
   const visible = rows.filter((row) => {
+    const linkedFacility = "facilityRevisionId" in row ? facilityById.get(row.facilityRevisionId) : undefined;
     const textMatch = `${row.name} ${"facilityReference" in row ? row.facilityReference : ""} ${
       "processReference" in row ? row.processReference : ""
-    }`
+    } ${linkedFacility ? `${linkedFacility.name} ${linkedFacility.facilityReference}` : ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
 
-    const facilityMatch = isFacility || !facility || ("facilityRevisionId" in row && row.facilityRevisionId === facility);
+    // Quy trình gắn với revision cũ của cùng cơ sở vẫn thuộc cơ sở đó.
+    const selectedFacility = facility ? facilityById.get(facility) : undefined;
+    const facilityMatch =
+      isFacility ||
+      !facility ||
+      (Boolean(linkedFacility) && linkedFacility?.facilityReference === selectedFacility?.facilityReference);
     const statusMatch = statusFilter === "all" || row.lifecycleStatus === statusFilter;
-    const typeMatch = isFacility || typeFilter === "all" || ("processType" in row && row.processType === typeFilter);
+    const typeMatch =
+      isFacility ||
+      typeFilter === "all" ||
+      ("processType" in row && (row.processType === typeFilter || stageForProcessType(row.processType) === typeFilter));
 
     return textMatch && facilityMatch && statusMatch && typeMatch;
   });
@@ -200,13 +231,21 @@ export default function FacilityProcessClient({
     () => (isFacility ? (rows as IndustrialFacility[]).filter((row) => Boolean(row.boundaryNotes?.trim())).length : 0),
     [isFacility, rows]
   );
+  // Đếm theo công đoạn chung; loại ngành (spinning, eaf…) được quy về công đoạn tương ứng.
   const processCountByType = useMemo(() => {
     const counts = new Map<string, number>();
     if (!isFacility) {
-      (rows as IndustrialProcess[]).forEach((row) => counts.set(row.processType, (counts.get(row.processType) || 0) + 1));
+      (rows as IndustrialProcess[]).forEach((row) => {
+        const stage = stageForProcessType(row.processType) || row.processType;
+        counts.set(stage, (counts.get(stage) || 0) + 1);
+      });
     }
     return counts;
   }, [isFacility, rows]);
+  // Gói ngành dùng để gợi ý loại quy trình: lựa chọn của người dùng, hoặc gói khớp nhiều quy trình hiện có nhất.
+  const suggestPack =
+    suggestPackChoice ?? dominantPackForProcessTypes(latestProcesses.map((item) => item.processType)) ?? "";
+  const suggestPackTaxonomy = INDUSTRY_PACK_PROCESS_TAXONOMY.find((pack) => pack.packId === suggestPack);
 
   // Calculate statistics for /processes mode
   const stats = useMemo(() => {
@@ -320,7 +359,7 @@ export default function FacilityProcessClient({
           </div>
           <p className="mt-2 text-2xl font-bold text-emerald-600">
             {rows.filter((r) => r.lifecycleStatus === "active").length}{" "}
-            <span className="text-sm font-normal text-muted-foreground">quy trình</span>
+            <span className="text-sm font-normal text-muted-foreground">{isFacility ? "cơ sở" : "quy trình"}</span>
           </p>
           <span className="text-[11px] text-muted-foreground">Mã hóa ranh giới vận hành</span>
         </div>
@@ -523,7 +562,7 @@ export default function FacilityProcessClient({
                   onChange={(event) => setFacility(event.target.value)}
                 >
                   <option value="">Tất cả cơ sở / chọn để tạo quy trình</option>
-                  {query.data?.facilities.map((row) => (
+                  {latestFacilities.map((row) => (
                     <option key={row.id} value={row.id}>
                       {row.name} · {row.facilityReference} · r{row.revision}
                     </option>
@@ -539,10 +578,21 @@ export default function FacilityProcessClient({
                   onChange={(event) => setTypeFilter(event.target.value)}
                 >
                   <option value="all">Tất cả loại</option>
-                  {PROCESS_TYPE_SUGGESTIONS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
+                  <optgroup label="Công đoạn chung (gồm cả loại ngành tương ứng)">
+                    {PROCESS_TYPE_SUGGESTIONS.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {INDUSTRY_PACK_PROCESS_TAXONOMY.map((pack) => (
+                    <optgroup key={pack.packId} label={`Industry Pack · ${pack.label}`}>
+                      {pack.processes.map((item) => (
+                        <option key={`${pack.packId}-${item.value}`} value={item.value}>
+                          {item.label} ({item.value})
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </label>
@@ -584,7 +634,7 @@ export default function FacilityProcessClient({
                 const isProcessRow = "processReference" in row;
                 const linkedActivities = isProcessRow ? activitiesByProcess.get(row.id) || [] : [];
                 const fac = isProcessRow
-                  ? query.data?.facilities.find((f) => f.id === row.facilityRevisionId)
+                  ? facilityById.get(row.facilityRevisionId)
                   : null;
                 const isExpanded = expandedProcessId === row.id;
 
@@ -601,6 +651,11 @@ export default function FacilityProcessClient({
                           <Badge variant="outline" className="text-[11px] font-mono">
                             v{row.revision}
                           </Badge>
+                          {(revisionCountByReference.get(isProcessRow ? row.processReference : row.facilityReference) || 0) > 1 && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Hiện hành · {(revisionCountByReference.get(isProcessRow ? row.processReference : row.facilityReference) || 0) - 1} revision trước được lưu vết (xem Xuất CSV)
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs font-mono font-medium text-primary">
                           {isProcessRow ? row.processReference : row.facilityReference}
@@ -611,7 +666,9 @@ export default function FacilityProcessClient({
                         <div className="flex items-center gap-1.5">
                           <Badge variant="secondary" className="gap-1 text-[11px]">
                             <Cpu className="h-3 w-3 text-muted-foreground" />
-                            {row.processType}
+                            {processTypeLabel(row.processType)
+                              ? `${processTypeLabel(row.processType)} · ${row.processType}`
+                              : row.processType}
                           </Badge>
                         </div>
                       )}
@@ -775,7 +832,7 @@ export default function FacilityProcessClient({
                     onChange={(event) => setFacility(event.target.value)}
                   >
                     <option value="">-- Chọn cơ sở áp dụng --</option>
-                    {query.data?.facilities.map((row) => (
+                    {latestFacilities.map((row) => (
                       <option key={row.id} value={row.id}>
                         {row.name} ({row.facilityReference})
                       </option>
@@ -838,7 +895,7 @@ export default function FacilityProcessClient({
                     <Input
                       required
                       maxLength={120}
-                      placeholder="production, thermal_process, utilities..."
+                      placeholder="production, spinning, dyeing, eaf..."
                       className="mt-1.5 text-xs font-mono"
                       value={form.processType}
                       onChange={(event) => setForm({ ...form, processType: event.target.value })}
@@ -847,7 +904,7 @@ export default function FacilityProcessClient({
 
                   {/* Quick Suggestions Pills */}
                   <div>
-                    <span className="text-[11px] text-muted-foreground">Gợi ý loại chuẩn:</span>
+                    <span className="text-[11px] text-muted-foreground">Gợi ý loại chung:</span>
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {PROCESS_TYPE_SUGGESTIONS.map((item) => (
                         <button
@@ -864,6 +921,47 @@ export default function FacilityProcessClient({
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Loại quy trình theo gói ngành — Industry Packs chỉ nhận các mã này khi tạo pilot snapshot */}
+                  <div className="rounded-md border border-border/70 bg-muted/20 p-2 space-y-1.5">
+                    <label className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                      Loại theo ngành (Industry Pack):
+                      <select
+                        className="rounded border border-input bg-background px-1.5 py-0.5 text-[11px] text-foreground"
+                        value={suggestPack}
+                        onChange={(event) => setSuggestPackChoice(event.target.value)}
+                      >
+                        <option value="">— Chọn ngành —</option>
+                        {INDUSTRY_PACK_PROCESS_TAXONOMY.map((pack) => (
+                          <option key={pack.packId} value={pack.packId}>
+                            {pack.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {suggestPackTaxonomy ? (
+                      <div className="flex flex-wrap gap-1">
+                        {suggestPackTaxonomy.processes.map((item) => (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => setForm({ ...form, processType: item.value })}
+                            title={`Mã ${item.value} · thuộc công đoạn "${processTypeLabel(item.stage)}"`}
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                              form.processType === item.value
+                                ? "bg-primary text-primary-foreground font-semibold"
+                                : "bg-background border border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <p className="text-[10px] text-muted-foreground">
+                      Industry Packs chỉ nhận quy trình có loại theo ngành; loại chung không dùng được để tạo pilot snapshot.
+                    </p>
                   </div>
                 </div>
               )}

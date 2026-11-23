@@ -44,6 +44,7 @@ import {
 import { toast } from "sonner";
 import WorkspaceFrame from "./WorkspaceFrame";
 import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { selectLatestRevisions } from "@/lib/industrialOperations";
 
 const emptyForm = {
   activityReference: "",
@@ -535,7 +536,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
               className="h-9 rounded-md border border-input bg-background px-3 text-xs"
             >
               <option value="all">Tất cả cơ sở</option>
-              {facilities.map((f) => (
+              {selectLatestRevisions(facilities, (item) => item.facilityReference).map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
                 </option>
@@ -687,7 +688,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                 className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
               >
                 <option value="">Chọn cơ sở...</option>
-                {facilities.map((f) => (
+                {selectLatestRevisions(facilities, (item) => item.facilityReference).map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
                   </option>

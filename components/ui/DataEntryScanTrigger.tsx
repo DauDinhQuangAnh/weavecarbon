@@ -62,7 +62,9 @@ export default function DataEntryScanTrigger({
       const file = base64DataUrlToFile(imageData, `${contextKey}-camera-scan.jpg`);
       const extraction = await extractDocumentWithContext(file, contextConfig, { demo });
 
-      if (extraction.success && Object.keys(extraction.fields).length > 0) {
+      if (!extraction.success) {
+        toast.error(extraction.summary);
+      } else if (Object.keys(extraction.fields).length > 0) {
         onApply(extraction.fields);
         toast.success(
           `AI đã nhận diện thành công ${Object.keys(extraction.fields).length} trường thông số và tự động điền vào biểu mẫu!`

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { allNotificationConfigs, type NotificationConfig } from '@/config/notificationConfig';
+import { api } from '@/lib/apiClient';
+import { useAppRuntime } from '@/lib/demo/routes';
 
 interface Setting {
   id: string;
@@ -41,10 +43,43 @@ const ICON_MAP: Record<string, React.ElementType> = {
   compliance_deadline: AlertTriangle,
 };
 
+interface NotificationPreferencesPayload {
+  preferences?: Record<string, boolean>;
+}
+
+const defaultSettings = (): Setting[] =>
+  allNotificationConfigs.map((c) => ({ id: c.id, enabled: c.defaultEnabled }));
+
+const applyPreferences = (preferences: Record<string, boolean> = {}): Setting[] =>
+  allNotificationConfigs.map((c) => ({
+    id: c.id,
+    enabled: typeof preferences[c.id] === 'boolean' ? preferences[c.id] : c.defaultEnabled,
+  }));
+
 const NotificationSettings: React.FC = () => {
-  const [settings, setSettings] = useState<Setting[]>(
-    allNotificationConfigs.map((c) => ({ id: c.id, enabled: c.defaultEnabled }))
-  );
+  const isDemo = useAppRuntime() === 'demo';
+  const [settings, setSettings] = useState<Setting[]>(defaultSettings);
+  const [loading, setLoading] = useState(!isDemo);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isDemo) return;
+    let active = true;
+    api
+      .get<NotificationPreferencesPayload>('/account/notification-preferences')
+      .then((payload) => {
+        if (active) setSettings(applyPreferences(payload?.preferences));
+      })
+      .catch(() => {
+        if (active) toast.error('Không tải được cài đặt thông báo đã lưu; đang hiển thị mặc định.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isDemo]);
 
   const toggle = (id: string, value: boolean) =>
     setSettings((prev) => prev.map((s) => (s.id === id ? { ...s, enabled: value } : s)));
@@ -52,8 +87,24 @@ const NotificationSettings: React.FC = () => {
   const configById = (id: string): NotificationConfig | undefined =>
     allNotificationConfigs.find((c) => c.id === id);
 
-  const handleSave = () => {
-    toast.success('Đã lưu cài đặt thông báo');
+  const handleSave = async () => {
+    if (isDemo) {
+      toast.info('Bản demo không lưu cài đặt thông báo lên máy chủ.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const preferences = Object.fromEntries(settings.map((s) => [s.id, s.enabled]));
+      const payload = await api.put<NotificationPreferencesPayload>('/account/notification-preferences', {
+        preferences,
+      });
+      if (payload?.preferences) setSettings(applyPreferences(payload.preferences));
+      toast.success('Đã lưu cài đặt thông báo');
+    } catch {
+      toast.error('Không lưu được cài đặt thông báo. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -156,7 +207,9 @@ const NotificationSettings: React.FC = () => {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave}>Lưu cài đặt thông báo</Button>
+        <Button onClick={handleSave} disabled={loading || saving}>
+          {saving ? 'Đang lưu…' : 'Lưu cài đặt thông báo'}
+        </Button>
       </div>
     </div>
   );

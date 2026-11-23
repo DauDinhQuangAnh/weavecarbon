@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import {
+  AlertTriangle,
   Check,
   CheckCircle2,
   Loader2,
@@ -110,7 +111,13 @@ export const AiDocumentImportModal: React.FC<AiDocumentImportModalProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 200));
       setProgressValue(100);
       setResult(extResult);
-      toast.success(`AI đã trích xuất thành công dữ liệu ${config.badgeLabel}!`);
+      if (!extResult.success) {
+        toast.error(extResult.summary);
+      } else if (Object.keys(extResult.fields).length === 0) {
+        toast.warning('AI không tìm thấy trường nào khớp với biểu mẫu trong tài liệu này.');
+      } else {
+        toast.success(`AI đã trích xuất ${Object.keys(extResult.fields).length} trường dữ liệu ${config.badgeLabel}.`);
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Lỗi phân tích tài liệu bằng AI.';
       toast.error(msg);
@@ -120,7 +127,7 @@ export const AiDocumentImportModal: React.FC<AiDocumentImportModalProps> = ({
   };
 
   const handleApply = () => {
-    if (!result) return;
+    if (!result || !result.success || Object.keys(result.fields).length === 0) return;
     onApply(result.fields);
     toast.success(`Đã tự động điền các thông số từ AI vào form!`);
     onOpenChange(false);
@@ -243,17 +250,29 @@ export const AiDocumentImportModal: React.FC<AiDocumentImportModalProps> = ({
           {/* Results Review */}
           {result && (
             <div className="space-y-3">
-              <div className="rounded-xl border border-emerald-300 bg-emerald-50/80 p-3.5 space-y-2">
+              <div
+                className={
+                  result.success
+                    ? "rounded-xl border border-emerald-300 bg-emerald-50/80 p-3.5 space-y-2"
+                    : "rounded-xl border border-amber-300 bg-amber-50/80 p-3.5 space-y-2"
+                }
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+                    {result.success ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-amber-700" />
+                    )}
                     <div>
-                      <h4 className="text-sm font-bold text-emerald-950">{result.documentTitle}</h4>
-                      <p className="text-xs text-emerald-800/90">{result.summary}</p>
+                      <h4 className={result.success ? "text-sm font-bold text-emerald-950" : "text-sm font-bold text-amber-950"}>
+                        {result.documentTitle}
+                      </h4>
+                      <p className={result.success ? "text-xs text-emerald-800/90" : "text-xs text-amber-900/90"}>{result.summary}</p>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-800 text-white font-mono text-xs">
-                    Độ tin cậy: {Math.round(result.confidence * 100)}%
+                  <Badge className={result.success ? "bg-emerald-800 text-white font-mono text-xs" : "bg-amber-700 text-white font-mono text-xs"}>
+                    Độ tin cậy: {result.confidence === null ? "không rõ" : `${Math.round(result.confidence * 100)}%`}
                   </Badge>
                 </div>
               </div>
@@ -322,6 +341,7 @@ export const AiDocumentImportModal: React.FC<AiDocumentImportModalProps> = ({
                 size="sm"
                 className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold"
                 onClick={handleApply}
+                disabled={!result.success || Object.keys(result.fields).length === 0}
               >
                 <Check className="mr-1.5 h-3.5 w-3.5" />
                 Áp dụng vào Form (Auto-fill)

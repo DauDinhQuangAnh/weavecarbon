@@ -233,7 +233,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
       )}
 
 
-      <section className="grid gap-6 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-2 [&>*]:min-w-0">
         {/* DQL Card */}
         <Card className="border shadow-xs">
           <CardHeader className="border-b border-slate-100 pb-4">
@@ -451,7 +451,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                   </span>
                   <select
                     aria-label="Chọn hệ số chuẩn AI"
-                    className="h-8 rounded-md border border-emerald-300 bg-white px-2.5 text-xs font-medium text-emerald-900 focus:outline-none"
+                    className="h-8 w-full min-w-0 max-w-full rounded-md border border-emerald-300 bg-white px-2.5 text-xs font-medium text-emerald-900 focus:outline-none"
                     onChange={(e) => {
                       const f = STANDARD_FACTORS[e.target.value];
                       if (!f) return;

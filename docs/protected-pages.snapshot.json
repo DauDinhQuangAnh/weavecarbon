@@ -687,7 +687,7 @@
     {
       "repo": "FE",
       "path": "components/evidence/ControlledActivityPromotionPanel.tsx",
-      "sha256": "d8f31a8c3d79dc85a316aec589af539081366502d60cd70b1bd45df61c07d68f"
+      "sha256": "056e9342b5f611ce610170e1e412a75c4e37cb27269909367b1b140ac13eea30"
     },
     {
       "repo": "FE",
@@ -1932,7 +1932,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/aiExtractor.js",
-      "sha256": "3b3c908a5b458fd1a5eea82a6de0bfcdd75113fe4db1986051b63485642abd58"
+      "sha256": "d45d37763fd905d3887c12fc175b7532f1717aa9c69ef4c61871dfdaeca58ec3"
     },
     {
       "repo": "BE",
@@ -1962,7 +1962,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/routes.js",
-      "sha256": "d877758a737bb8c1b05d66eee0cd0c8c9abde5d82488e319dece231fa8a27fba"
+      "sha256": "659b9c9e86d522190f40bacd0bf48e6610dd1e9e3012b3274f5d2d7b0429aa2d"
     },
     {
       "repo": "BE",
@@ -2332,7 +2332,7 @@
     {
       "repo": "BE",
       "path": "src/routes/account.js",
-      "sha256": "7ddd1cd0af7c74816ec706cd6b0e89f6294945e5bc499376a46883713e06ea8b"
+      "sha256": "343ec26670f2e55f847d0a90683a7e1ca08b1749000bec9ed80506a13f289ce8"
     },
     {
       "repo": "BE",
@@ -3397,6 +3397,12 @@
       "date": "2026-11-23",
       "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-23",
+      "reason": "User asked (23/11/2026) to fix the P1/P2 test findings: notification preferences are persisted per user via GET/PUT /api/account/notification-preferences (LOI-007); facility/process pickers show only the latest revision per reference (LOI-009); evidence AI analysis now uses the form context sent by the scan dialog (expected fields -> context_fields, completeness scored against them) and no longer invents 'Main Facility', a default title or 0.85 confidence when a file cannot be read (LOI-010/011).",
+      "filesUpdated": 4,
       "filesRemoved": []
     }
   ]
