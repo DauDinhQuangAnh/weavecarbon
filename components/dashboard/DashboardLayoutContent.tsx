@@ -197,11 +197,18 @@ export default function DashboardLayoutContent({
     const pageTitle = displayTitle && displayTitle !== "Dashboard" ? displayTitle : "";
     const suffix = isDemoPage ? "WeaveCarbon Demo" : "WeaveCarbon";
     const text = pageTitle ? `${pageTitle} · ${suffix}` : suffix;
-    document.title = text;
-    // Next.js còn giữ thẻ <title> tĩnh từ metadata gốc; trình duyệt hiển thị thẻ đầu tiên nên cập nhật cả nó.
-    document.head.querySelectorAll("title").forEach((element) => {
-      if (element.textContent !== text) element.textContent = text;
-    });
+    // Next.js chèn/cập nhật thẻ <title> từ metadata gốc ("WeaveCarbon") sau khi trang render,
+    // và trình duyệt hiển thị thẻ đầu tiên, nên theo dõi <head> để luôn áp lại tiêu đề trang.
+    const applyTitle = () => {
+      document.querySelectorAll("title").forEach((element) => {
+        if (element.textContent !== text) element.textContent = text;
+      });
+      if (document.title !== text) document.title = text;
+    };
+    applyTitle();
+    const observer = new MutationObserver(applyTitle);
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
   }, [displayTitle, isDemoPage]);
 
   useEffect(() => {
