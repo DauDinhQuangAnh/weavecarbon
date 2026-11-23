@@ -196,7 +196,12 @@ export default function DashboardLayoutContent({
   useEffect(() => {
     const pageTitle = displayTitle && displayTitle !== "Dashboard" ? displayTitle : "";
     const suffix = isDemoPage ? "WeaveCarbon Demo" : "WeaveCarbon";
-    document.title = pageTitle ? `${pageTitle} · ${suffix}` : suffix;
+    const text = pageTitle ? `${pageTitle} · ${suffix}` : suffix;
+    document.title = text;
+    // Next.js còn giữ thẻ <title> tĩnh từ metadata gốc; trình duyệt hiển thị thẻ đầu tiên nên cập nhật cả nó.
+    document.head.querySelectorAll("title").forEach((element) => {
+      if (element.textContent !== text) element.textContent = text;
+    });
   }, [displayTitle, isDemoPage]);
 
   useEffect(() => {

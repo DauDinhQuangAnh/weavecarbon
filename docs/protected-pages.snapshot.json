@@ -197,7 +197,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/DashboardLayoutContent.tsx",
-      "sha256": "a161a34464f83ea3560e1300a710ba213a0b54419319ab3a4d79406edc39872a"
+      "sha256": "38e52657021e379fd0cee581a1435324bbfecd6512aca4cb8c7b584b921bc2f4"
     },
     {
       "repo": "FE",
@@ -3385,6 +3385,12 @@
       "date": "2026-11-23",
       "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 7,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-23",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ]

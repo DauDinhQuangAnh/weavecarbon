@@ -33,7 +33,7 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
 
     router.prefetch("/auth");
     router.prefetch("/demo/overview");
-    router.prefetch("/demo/b2c");
+    router.prefetch("/b2c");
   }, [open, router]);
 
   const navigateTo = (target: NonNullable<typeof pendingTarget>, href: string) => {
@@ -83,7 +83,7 @@ const UserTypeDialog = ({ open, onOpenChange }: UserTypeDialogProps) => {
         return;
       }
 
-      navigateTo("demo-b2c", "/demo/b2c");
+      navigateTo("demo-b2c", "/b2c");
     } finally {
       setDemoLoading(null);
     }
