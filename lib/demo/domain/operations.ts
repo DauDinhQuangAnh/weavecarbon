@@ -429,6 +429,7 @@ export const getDemoCarbonCalculations = (dataset: DemoDataset) =>
     id: `calc-demo-${index + 1}`,
     // camelCase matching BE formatCalc() output
     productId: asString(product.id),
+    productName: asString(product.productName) || asString(product.productCode),
     totalCo2e: getProductBatchCo2(product),
     materialsCo2e: round(getProductPerCo2(product, "materials") * asNumber(product.quantity, 1), 2),
     productionCo2e: round(
@@ -439,7 +440,8 @@ export const getDemoCarbonCalculations = (dataset: DemoDataset) =>
     transportCo2e: round(getProductPerCo2(product, "transport") * asNumber(product.quantity, 1), 2),
     packagingCo2e: round(getProductPerCo2(product, "packaging") * asNumber(product.quantity, 1), 2),
     methodology: "ISO 14067 demo",
-    createdAt: fromSeed(dataset, -5 + index, 9),
+    // Bản tính mẫu luôn nằm trong quá khứ so với thời điểm tạo dữ liệu demo.
+    createdAt: fromSeed(dataset, -(index + 1), 9),
   }));
 
 export const getDemoOperationalCounts = (dataset: DemoDataset) => ({

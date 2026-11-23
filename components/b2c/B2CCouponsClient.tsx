@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAppRoutes } from "@/lib/demo/routes";
 import { useTranslations } from "next-intl";
 import {
   ArrowRight,
@@ -145,6 +146,7 @@ const getDiscountLabel = (coupon: B2CCoupon, t: ReturnType<typeof useTranslation
 
 const B2CCouponsClient: React.FC = () => {
   const router = useRouter();
+  const { toAppPath } = useAppRoutes();
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
@@ -321,13 +323,13 @@ const B2CCouponsClient: React.FC = () => {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="hero" size="lg">
-                <Link href="/b2c/donate">
+                <Link href={toAppPath("/b2c/donate")}>
                   {t("coupons.earnMorePoints")}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/b2c/history">
+                <Link href={toAppPath("/b2c/history")}>
                   {t("coupons.viewHistory")}
                 </Link>
               </Button>
@@ -459,7 +461,7 @@ const B2CCouponsClient: React.FC = () => {
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <Button asChild variant="heroOutline">
-                  <Link href="/b2c/donate">{t("coupons.earnMorePoints")}</Link>
+                  <Link href={toAppPath("/b2c/donate")}>{t("coupons.earnMorePoints")}</Link>
                 </Button>
                 <Button
                   variant="outline"

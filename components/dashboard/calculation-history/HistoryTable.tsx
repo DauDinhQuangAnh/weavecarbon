@@ -37,6 +37,11 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
 }) => {
   const t = useTranslations("calculationHistory");
   const displayLocale = "vi-VN";
+  const formatCo2 = (value: number) =>
+    value.toLocaleString(displayLocale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString(displayLocale, {
       day: "2-digit",
@@ -75,19 +80,19 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
                 </button>
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-slate-600">
-                {item.materialsCO2.toFixed(2)}
+                {formatCo2(item.materialsCO2)}
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-slate-600">
-                {item.manufacturingCO2.toFixed(2)}
+                {formatCo2(item.manufacturingCO2)}
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-slate-600">
-                {item.transportCO2.toFixed(2)}
+                {formatCo2(item.transportCO2)}
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-slate-600">
-                {item.packagingCO2.toFixed(2)}
+                {formatCo2(item.packagingCO2)}
               </TableCell>
               <TableCell className="text-right font-mono text-sm font-bold text-emerald-700 bg-emerald-50/30">
-                {item.totalCO2.toFixed(2)}
+                {formatCo2(item.totalCO2)}
               </TableCell>
               <TableCell>
                 <Badge variant="secondary" className="border border-emerald-200/80 bg-emerald-50 text-emerald-800 text-xs font-mono font-medium">

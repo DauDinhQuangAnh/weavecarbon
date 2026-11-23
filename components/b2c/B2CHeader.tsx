@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Leaf, Coins, HeartHandshake, MapPin, TicketPercent, History } from "lucide-react";
 import { UserProfile } from "@/hooks/useUserProfile";
 import { useTranslations } from "next-intl";
+import { stripDemoPrefix, useAppRoutes } from "@/lib/demo/routes";
 
 interface B2CHeaderProps {
   profile: UserProfile | null;
@@ -27,7 +28,10 @@ const B2CHeader: React.FC<B2CHeaderProps> = ({
   onSignOut
 }) => {
   const t = useTranslations("b2c");
-  const pathname = usePathname();
+  const currentPath = usePathname() || "";
+  // So khớp mục đang chọn trên đường dẫn thật; link thì theo chế độ hiện tại (/demo/b2c khi ở demo).
+  const pathname = stripDemoPrefix(currentPath);
+  const { toAppPath } = useAppRoutes();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md transition-colors">
@@ -37,7 +41,7 @@ const B2CHeader: React.FC<B2CHeaderProps> = ({
           {/* Logo & Brand */}
           <div className="flex items-center gap-6">
             <Link
-              href="/b2c"
+              href={toAppPath("/b2c")}
               className="flex items-center gap-2.5 rounded-lg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-forest shadow-sm">
@@ -61,7 +65,7 @@ const B2CHeader: React.FC<B2CHeaderProps> = ({
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={toAppPath(item.href)}
                     className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                       isActive
                         ? "bg-primary/10 text-primary font-semibold"
@@ -110,7 +114,7 @@ const B2CHeader: React.FC<B2CHeaderProps> = ({
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={toAppPath(item.href)}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors ${
                   isActive
                     ? "bg-primary/10 text-primary font-semibold"

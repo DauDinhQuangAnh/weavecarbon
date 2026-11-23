@@ -205,6 +205,8 @@ const Header = () => {
                 className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted sm:p-2.5 xl:hidden"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label={t("menu")}
+                aria-expanded={isMenuOpen}
+                aria-controls="landing-mobile-menu"
               >
                 <Menu className="w-6 h-6" />
               </button>
@@ -213,7 +215,7 @@ const Header = () => {
         </div>
 
         {isMenuOpen && (
-          <div className="xl:hidden bg-background border-b border-border animate-fade-in">
+          <div id="landing-mobile-menu" className="xl:hidden bg-background border-b border-border animate-fade-in">
             <nav className="mx-auto w-full max-w-[1800px] flex flex-col gap-4 px-4 py-4 md:px-6 lg:px-8 2xl:px-10">
               {navLinks.map((link) =>
                 link.href.startsWith("/") ? (

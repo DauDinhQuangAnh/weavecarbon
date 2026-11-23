@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAppRoutes } from "@/lib/demo/routes";
 import { useTranslations } from "next-intl";
 import {
   Clock3,
@@ -85,6 +86,7 @@ const buildGoogleMapsUrl = (
 
 const B2CCollectionPointsClient: React.FC = () => {
   const router = useRouter();
+  const { toAppPath } = useAppRoutes();
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
@@ -401,7 +403,7 @@ const B2CCollectionPointsClient: React.FC = () => {
                 {getText("collectionPoints.retry", "Try again")}
               </Button>
               <Button asChild variant="outline">
-                <Link href="/b2c">
+                <Link href={toAppPath("/b2c")}>
                   {getText("collectionPoints.backToDashboard", "Back to dashboard")}
                 </Link>
               </Button>

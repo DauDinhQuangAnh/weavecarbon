@@ -24,10 +24,11 @@ const HistorySummaryStats: React.FC<HistorySummaryStatsProps> = ({
   );
   const totalTransport = history.reduce((sum, h) => sum + h.transportCO2, 0);
   const formatSummaryValue = (value: number) => {
-    if (value > 0 && value < 0.1) {
-      return value.toFixed(2);
-    }
-    return value.toFixed(1);
+    const digits = value > 0 && value < 0.1 ? 2 : 1;
+    return value.toLocaleString("vi-VN", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
   };
 
   return (

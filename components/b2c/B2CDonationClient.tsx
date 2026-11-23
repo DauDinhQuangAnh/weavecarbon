@@ -3,6 +3,7 @@
 import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAppRoutes } from "@/lib/demo/routes";
 import { useTranslations } from "next-intl";
 import {
   AlertCircle,
@@ -163,6 +164,7 @@ const doesCollectionPointSupportCategory = (
 
 const B2CDonationClient: React.FC = () => {
   const router = useRouter();
+  const { toAppPath } = useAppRoutes();
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const locale = "vi";
@@ -1109,19 +1111,19 @@ const B2CDonationClient: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Button onClick={() => router.push("/b2c/history")}>
+                <Button onClick={() => router.push(toAppPath("/b2c/history"))}>
                   {t.has("donationWizard.viewHistory")
                     ? t("donationWizard.viewHistory")
                     : "View history"}
                 </Button>
-                <Button variant="outline" onClick={() => router.push("/b2c")}>
+                <Button variant="outline" onClick={() => router.push(toAppPath("/b2c"))}>
                   {t.has("donationWizard.backToDashboard")
                     ? t("donationWizard.backToDashboard")
                     : "Back to dashboard"}
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/b2c/history/${successDonation.id}`)}
+                  onClick={() => router.push(toAppPath(`/b2c/history/${successDonation.id}`))}
                 >
                   {t.has("donationWizard.viewDetail")
                     ? t("donationWizard.viewDetail")

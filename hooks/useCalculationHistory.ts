@@ -50,7 +50,10 @@ export const useCalculationHistory = () => {
           id: String(row.id || `calc-be-${idx}`),
           productId: String(row.productId || row.product_id || ""),
           productName: String(
-            row.notes || (row.productId ? `Sản phẩm ${row.productId}` : "Bản tính phát thải")
+            row.productName ||
+            row.product_name ||
+            row.notes ||
+            (row.productId || row.product_id ? "Sản phẩm không còn trong danh mục" : "Bản tính phát thải")
           ),
           materialsCO2: Number(row.materialsCo2e ?? row.materialsCO2) || 0,
           manufacturingCO2: Number(row.productionCo2e ?? row.manufacturingCO2) || 0,

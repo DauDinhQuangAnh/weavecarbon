@@ -197,7 +197,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/DashboardLayoutContent.tsx",
-      "sha256": "7fb6ca58b916cdda9f65ef3c96ff91581e15148f0f6104d3392e439412cdf9bd"
+      "sha256": "a161a34464f83ea3560e1300a710ba213a0b54419319ab3a4d79406edc39872a"
     },
     {
       "repo": "FE",
@@ -357,12 +357,12 @@
     {
       "repo": "FE",
       "path": "components/dashboard/calculation-history/HistorySummaryStats.tsx",
-      "sha256": "d3b6babea8d6bc9b8befd25123e1e976642af09892303157e6993c38341794e2"
+      "sha256": "23d4e60d697ecde312b18bb9a9742c6092d66e12773c5a2d11f554179a71ba33"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/calculation-history/HistoryTable.tsx",
-      "sha256": "00f6156c97e8d6cf31eb4b54d3420e69787ef9e8a9240d5e95a13f40b4b9d357"
+      "sha256": "61238ec9ed21e8677adf8498bd27571b696d79a4322b50a92f12f0dfe69922e0"
     },
     {
       "repo": "FE",
@@ -902,7 +902,7 @@
     {
       "repo": "FE",
       "path": "hooks/useCalculationHistory.ts",
-      "sha256": "6cb0bc191415f9d3fb373bdeeca1e7a4878ffbe73875b9c5d5ff88f98cd196b7"
+      "sha256": "5643beb7542d01c76883f133fe45c6e8004761052645a58f1b525823ecdf1d99"
     },
     {
       "repo": "FE",
@@ -1112,7 +1112,7 @@
     {
       "repo": "FE",
       "path": "lib/demo/domain/operations.ts",
-      "sha256": "5fccb517d13523ccaaa5726d2b4b96e5799f3c3f04330598a2f0b16c1a1bcbaf"
+      "sha256": "1c8a8a7917d529324198d4047068ba7aea0e2e2d6c765c549f6757ce9500f91c"
     },
     {
       "repo": "FE",
@@ -1912,12 +1912,12 @@
     {
       "repo": "BE",
       "path": "src/modules/carbon/repository.js",
-      "sha256": "616cee1e3fad650603457804f51d3d15bdc20faf3442ac441c709d37e5c8778e"
+      "sha256": "4f2017e081069d2a465f7086932841a1b704cbc5a0e5b85c75a29fd70ecc31fa"
     },
     {
       "repo": "BE",
       "path": "src/modules/carbon/service.js",
-      "sha256": "103a33afc2ae0b8e7663d0010cef3b32da246002f6843887bef152df9d38729a"
+      "sha256": "38b6dc0a846e8a4dbb2ee7745f57ba16433f264264a57dacd6599c17f802e602"
     },
     {
       "repo": "BE",
@@ -3379,6 +3379,12 @@
       "date": "2026-11-22",
       "reason": "User asked (22/11/2026) to fix the bugs found while checking their brand-new account: /calculation-history showed 14 demo records although GET /api/carbon-calculations returned none, because hooks/useCalculationHistory.ts read and wrote a browser-wide localStorage cache shared by every account and by the /demo runtime. History is now read from the server only and the legacy keys are purged.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-23",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "filesUpdated": 7,
       "filesRemoved": []
     }
   ]

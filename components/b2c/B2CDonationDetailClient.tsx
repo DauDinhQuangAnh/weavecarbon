@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAppRoutes } from "@/lib/demo/routes";
 import { useTranslations } from "next-intl";
 import B2CDonationImage from "@/components/b2c/B2CDonationImage";
 import B2CHeader from "@/components/b2c/B2CHeader";
@@ -40,6 +41,7 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
   donationId
 }) => {
   const router = useRouter();
+  const { toAppPath } = useAppRoutes();
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
@@ -301,7 +303,7 @@ const B2CDonationDetailClient: React.FC<B2CDonationDetailClientProps> = ({
 
                 <Separator />
 
-                <Button variant="outline" onClick={() => router.push("/b2c/history")}>
+                <Button variant="outline" onClick={() => router.push(toAppPath("/b2c/history"))}>
                   {t.has("history.backToHistory")
                     ? t("history.backToHistory")
                     : "Back to history"}

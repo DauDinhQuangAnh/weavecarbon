@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAppRoutes } from "@/lib/demo/routes";
 import { useTranslations } from "next-intl";
 import { CalendarClock, Gift, History, Recycle, Star } from "lucide-react";
 import B2CDonationImage from "@/components/b2c/B2CDonationImage";
@@ -25,6 +26,7 @@ import {
 
 const B2CHistoryClient: React.FC = () => {
   const router = useRouter();
+  const { toAppPath } = useAppRoutes();
   const { user, loading, authStatus, signOut } = useAuth();
   const t = useTranslations("b2c");
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
@@ -204,7 +206,7 @@ const B2CHistoryClient: React.FC = () => {
                     )}
 
                     <Button asChild variant="outline">
-                      <Link href={`/b2c/history/${donation.id}`}>
+                      <Link href={toAppPath(`/b2c/history/${donation.id}`)}>
                         {t.has("history.viewDetail")
                           ? t("history.viewDetail")
                           : "View detail"}

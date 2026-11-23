@@ -36,7 +36,7 @@ const Footer = () => {
       title: t("resources"),
       links: [
         { label: t("links.samples"), href: "#reports-sample" },
-        { label: t("links.demo"), href: "/auth" },
+        { label: t("links.demo"), href: "/demo/overview" },
         { label: t("links.advisory"), href: `mailto:${CONTACT_EMAIL}` },
       ],
     },

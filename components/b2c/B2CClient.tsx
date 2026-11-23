@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAppRoutes } from "@/lib/demo/routes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useRecentActivity } from "@/hooks/useRecentActivity";
@@ -17,6 +18,7 @@ const SKIP_AUTH_GUARD = false;
 
 const B2CClient: React.FC = () => {
   const router = useRouter();
+  const { toAppPath } = useAppRoutes();
   const { user, loading, authStatus, signOut } = useAuth();
   const { profile, isLoaded: profileLoaded } = useUserProfile(user?.email);
   const { activities, isLoaded: activitiesLoaded } = useRecentActivity(
@@ -61,15 +63,15 @@ const B2CClient: React.FC = () => {
         <B2CWelcome profile={profile} />
 
         <B2CQuickActions
-          onDonateClick={() => router.push("/b2c/donate")}
-          onCouponsClick={() => router.push("/b2c/coupons")}
-          onLocationClick={() => router.push("/b2c/collection-points")}
-          onHistoryClick={() => router.push("/b2c/history")}
+          onDonateClick={() => router.push(toAppPath("/b2c/donate"))}
+          onCouponsClick={() => router.push(toAppPath("/b2c/coupons"))}
+          onLocationClick={() => router.push(toAppPath("/b2c/collection-points"))}
+          onHistoryClick={() => router.push(toAppPath("/b2c/history"))}
         />
 
         <B2CStatsGrid profile={profile} />
 
-        <B2CDonateCard onStartDonate={() => router.push("/b2c/donate")} />
+        <B2CDonateCard onStartDonate={() => router.push(toAppPath("/b2c/donate"))} />
 
         <B2CRecentActivity activities={activities} />
       </main>

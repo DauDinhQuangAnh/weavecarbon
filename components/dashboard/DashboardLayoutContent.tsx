@@ -192,6 +192,13 @@ export default function DashboardLayoutContent({
     };
   }, []);
 
+  // Tiêu đề tab trình duyệt theo tên trang để phân biệt nhiều tab đang mở.
+  useEffect(() => {
+    const pageTitle = displayTitle && displayTitle !== "Dashboard" ? displayTitle : "";
+    const suffix = isDemoPage ? "WeaveCarbon Demo" : "WeaveCarbon";
+    document.title = pageTitle ? `${pageTitle} · ${suffix}` : suffix;
+  }, [displayTitle, isDemoPage]);
+
   useEffect(() => {
     if (SKIP_AUTH_GUARD) return;
     if (
