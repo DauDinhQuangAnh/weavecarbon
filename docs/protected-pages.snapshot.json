@@ -982,7 +982,7 @@
     {
       "repo": "FE",
       "path": "lib/api/generated/backend.ts",
-      "sha256": "8e85710a7acf3f1514c5186e8cc5244d8a9acc6c77d7e576b7bae19e72cfa642"
+      "sha256": "727c1f5671b68f451a7fb29b8c170e8e190d5122c0e5e1df8c030dbbddcd2465"
     },
     {
       "repo": "FE",
@@ -3403,6 +3403,12 @@
       "date": "2026-11-23",
       "reason": "User asked (23/11/2026) to fix the P1/P2 test findings: notification preferences are persisted per user via GET/PUT /api/account/notification-preferences (LOI-007); facility/process pickers show only the latest revision per reference (LOI-009); evidence AI analysis now uses the form context sent by the scan dialog (expected fields -> context_fields, completeness scored against them) and no longer invents 'Main Facility', a default title or 0.85 confidence when a file cannot be read (LOI-010/011).",
       "filesUpdated": 4,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-23",
+      "reason": "Contract sync (23/11/2026) after BE added GET/PUT /api/account/notification-preferences for LOI-007: regenerated FE OpenAPI snapshot and generated types (npm run contract:sync); no hand edits.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ]
