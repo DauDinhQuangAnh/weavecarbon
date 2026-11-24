@@ -239,7 +239,7 @@ ${opinionDraft.opinionTitle}
         let count = 0;
         let skippedNeedsInfo = 0;
         activities.data.forEach((act) => {
-          const prevReview = demoCache().getActivityReview?.(act.id);
+          const prevReview = demoCache().getLineage(act.id)?.latestReview;
           if (prevReview?.decision === "needs_information") {
             skippedNeedsInfo++;
             return;
