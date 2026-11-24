@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/apiClient";
 
 export interface CalculationHistoryItem {
@@ -33,6 +34,8 @@ const purgeLegacyHistoryCache = () => {
 };
 
 export const useCalculationHistory = () => {
+  const { user } = useAuth();
+  const fallbackUser = user?.full_name ? `${user.full_name}` : (user?.email || "Người dùng");
   const [history, setHistory] = useState<CalculationHistoryItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -62,7 +65,7 @@ export const useCalculationHistory = () => {
           totalCO2: Number(row.totalCo2e ?? row.totalCO2) || 0,
           carbonVersion: String(row.engineVersion || row.methodology || row.methodologyVersion || "v2.1"),
           createdAt: String(row.calculatedAt || row.createdAt || new Date().toISOString()),
-          createdBy: String(row.userId || row.createdBy || "system")
+          createdBy: String(row.createdBy || row.created_by || row.user_name || row.userName || row.userId || fallbackUser || "Người dùng")
         }));
 
         setHistory(mapped);

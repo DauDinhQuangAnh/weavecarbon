@@ -685,7 +685,8 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     Math.max(0, perProduct?.energy || 0) +
     Math.max(0, perProduct?.packaging || 0) :
     null;
-    const transportCo2 = transportComputation.perUnitCo2Kg;
+    const hasStoredPerProductTransport = typeof perProduct?.transport === "number" && perProduct.transport >= 0;
+    const transportCo2 = hasStoredPerProductTransport ? perProduct.transport : transportComputation.perUnitCo2Kg;
     const transportForPercentage =
       typeof transportCo2 === "number" && Number.isFinite(transportCo2) && transportCo2 >= 0 ?
       transportCo2 :
@@ -852,14 +853,28 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     manufacturingForTotal +
     transportForTotal :
     0;
+
+    // Authoritative total: Prefer canonical saved perProduct.total / total_emissions
+    const storedResults = product.carbonResults && typeof product.carbonResults === "object"
+      ? (product.carbonResults as unknown as Record<string, unknown>)
+      : {};
+    const rawStoredPerProduct =
+      typeof perProduct?.total === "number" && perProduct.total > 0
+        ? perProduct.total
+        : typeof storedResults.total_emissions === "number" && storedResults.total_emissions > 0
+        ? (product.quantity && product.quantity > 0 ? Number(storedResults.total_emissions) / product.quantity : Number(storedResults.total_emissions))
+        : typeof storedResults.totalEmissionsPerUnit === "number"
+        ? Number(storedResults.totalEmissionsPerUnit)
+        : 0;
+
     const total =
-    (recalculatedTotal > 0 ?
-    recalculatedTotal :
-    typeof perProduct?.total === "number" && perProduct.total > 0 ?
-    perProduct.total :
-    0) || (
-    breakdownTotal > 0 ? breakdownTotal : 0) || (
-    materialTotal > 0 ? materialTotal : 0);
+      rawStoredPerProduct > 0
+        ? rawStoredPerProduct
+        : (breakdownTotal > 0
+        ? breakdownTotal
+        : (recalculatedTotal > 0
+        ? recalculatedTotal
+        : (materialTotal > 0 ? materialTotal : 0)));
 
     const fallbackConfidenceLevel =
     product.carbonResults?.confidenceLevel || (total > 0 ? "medium" : "low");

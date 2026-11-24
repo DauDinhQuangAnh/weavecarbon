@@ -187,7 +187,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/CarbonCalculator.tsx",
-      "sha256": "bd021145784c4a2b48b25752039eaa5d71135a7f880c222d2598df4683417744"
+      "sha256": "e2b251b776e167f4bd4faac4cae459953705f29d73fec71fd0cdf02d33ec78ec"
     },
     {
       "repo": "FE",
@@ -232,17 +232,17 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductsClient.tsx",
-      "sha256": "ff63b46e57ccb0d8aec20263f288238b26c3f563c86285a77d8e7604fb4b278e"
+      "sha256": "6f95f0d7e3529697dd3eda05af8956b05ffb5fe06d6bc34319ef7889d8964751"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/SummaryClient.tsx",
-      "sha256": "221629efb126a9fea6fcb2211cd2427477fd31eee23cfb904aae5dd7b466059b"
+      "sha256": "61f0f9feba3d6ae73e350c258af4fd6debb6dff640eb20c6795c8e082fbee5a9"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/AssessmentClient.tsx",
-      "sha256": "5303e5d3573aeddc1b2b45ef80a178ccff1b863e3af72c3dbbe9a0fb608fd6d0"
+      "sha256": "d7703526818f58341a9567947f8628b3e16d57c7b05619254ba6a15626efc99e"
     },
     {
       "repo": "FE",
@@ -347,7 +347,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/calculation-history/CalculationHistoryClient.tsx",
-      "sha256": "02829fd0f3ec68cc76415d96fc18a29367b9a6c117c3e4bd394e40f143456d7e"
+      "sha256": "a72aec8832bfd53d456f2dee1c1cf10971042f6c7438e8370f951e338ffed9db"
     },
     {
       "repo": "FE",
@@ -362,7 +362,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/calculation-history/HistoryTable.tsx",
-      "sha256": "61238ec9ed21e8677adf8498bd27571b696d79a4322b50a92f12f0dfe69922e0"
+      "sha256": "4e993954868b3a49378ed30d6ad97f537ccf85a8549f87df4293a263e23024c0"
     },
     {
       "repo": "FE",
@@ -562,7 +562,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/VersionHistory.tsx",
-      "sha256": "3122d2c8437e6d2ca811c93550e4982bb4636b2240c454b0ba543a2b6d37bae8"
+      "sha256": "8c7e7d64aefcdcdf13ae56e194ee3208eac7a99e271753657714d35d94f53e98"
     },
     {
       "repo": "FE",
@@ -902,7 +902,7 @@
     {
       "repo": "FE",
       "path": "hooks/useCalculationHistory.ts",
-      "sha256": "5643beb7542d01c76883f133fe45c6e8004761052645a58f1b525823ecdf1d99"
+      "sha256": "b87549d6709374eebd1467282f9263c6d7478c1ab05dd21eaabb32e2853af7e1"
     },
     {
       "repo": "FE",
@@ -1912,7 +1912,7 @@
     {
       "repo": "BE",
       "path": "src/modules/carbon/repository.js",
-      "sha256": "4f2017e081069d2a465f7086932841a1b704cbc5a0e5b85c75a29fd70ecc31fa"
+      "sha256": "58260c2de52561ed0f2f6ce08ef2a8211d0d60cad645a505459fc32347988105"
     },
     {
       "repo": "BE",
@@ -1962,7 +1962,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/routes.js",
-      "sha256": "5c1db21294fed40f3687b26065a6ee54ff295b596528ccb5539fd2acecb5fa7a"
+      "sha256": "8ea3cb14ec62894b7887992c50fc25915ef70c6112415461cd5bf3f36311bd5d"
     },
     {
       "repo": "BE",
@@ -2377,7 +2377,7 @@
     {
       "repo": "BE",
       "path": "src/routes/chat.js",
-      "sha256": "9ce0844e09e95e0b80dafe99fd27e2c5e77e0fd7e8aba4a0455a693c89827743"
+      "sha256": "ee32c0f5612e3ada0615942689e5abed5e8497144f3362988858805e523f2c64"
     },
     {
       "repo": "BE",
@@ -3359,7 +3359,7 @@
     },
     {
       "date": "2026-11-19",
-      "reason": "User asked (19/11/2026) why the signed-in overview shows a stage bar chart while demo shows a monthly line chart. The demo monthly series is synthetic sample data; real accounts had no monthly source. The backend overview now returns productMonthlyEmissions computed from published product batches (quantity \u00d7 per-unit CO2e, grouped by publish month); the chart uses it for real accounts with the same Theo th\u00e1ng / Theo giai \u0111o\u1ea1n toggle as demo (default monthly, with an explanatory empty state when no published batches exist).",
+      "reason": "User asked (19/11/2026) why the signed-in overview shows a stage bar chart while demo shows a monthly line chart. The demo monthly series is synthetic sample data; real accounts had no monthly source. The backend overview now returns productMonthlyEmissions computed from published product batches (quantity × per-unit CO2e, grouped by publish month); the chart uses it for real accounts with the same Theo tháng / Theo giai đoạn toggle as demo (default monthly, with an explanatory empty state when no published batches exist).",
       "filesUpdated": 4,
       "filesRemoved": []
     },
@@ -3383,19 +3383,19 @@
     },
     {
       "date": "2026-11-23",
-      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"S\u1ea3n ph\u1ea9m <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 7,
       "filesRemoved": []
     },
     {
       "date": "2026-11-23",
-      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"S\u1ea3n ph\u1ea9m <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 1,
       "filesRemoved": []
     },
     {
       "date": "2026-11-23",
-      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"S\u1ea3n ph\u1ea9m <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 1,
       "filesRemoved": []
     },

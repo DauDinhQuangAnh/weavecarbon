@@ -346,7 +346,7 @@ export default function CarbonCalculator() {
       setAssessment(data.answer.trim());
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Không thể tạo đánh giá lúc này.';
+        err instanceof Error ? err.message : 'Không thể kết nối với dịch vụ đánh giá AI lúc này. Vui lòng thử lại sau.';
       setAssessmentError(message);
     } finally {
       setIsAssessing(false);

@@ -54,7 +54,8 @@ import {
   type LogisticsShipmentStatus } from
 "@/lib/logisticsApi";
 import { fetchComplianceMarkets } from "@/lib/exportComplianceApi";
-import { api } from "@/lib/apiClient";
+import { api, invalidateApiResponseCache } from "@/lib/apiClient";
+import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
 import {
   clearAssessmentDraft,
   readAssessmentDraft,
@@ -1760,6 +1761,8 @@ export default function AssessmentClient({
         return;
       }
 
+      invalidateApiResponseCache("assessment-published", ["products"]);
+      dispatchProductUsageUpdatedEvent();
       if (isValidProductId(result.id)) {
         router.push(appRoutes.toSummaryPath(result.id));
       } else {

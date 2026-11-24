@@ -314,7 +314,7 @@ const CalculationHistoryClient: React.FC<CalculationHistoryClientProps> = ({
           <CardContent className="pt-4">
             <HistoryTable
             history={historyForView}
-            onProductClick={(id) => router.push(`/summary/${id}`)} />
+            onProductClick={(id) => { if (id && id.trim()) router.push(`/summary/${id}`); }} />
 
           </CardContent>
         </Card>

@@ -68,7 +68,8 @@ import {
   type LogisticsShipmentStatus } from
 "@/lib/logisticsApi";
 import { api } from "@/lib/apiClient";
-import { dispatchProductUsageUpdatedEvent } from "@/lib/productUsageEvents";
+import { dispatchProductUsageUpdatedEvent, PRODUCT_USAGE_UPDATED_EVENT } from "@/lib/productUsageEvents";
+import { invalidateApiResponseCache } from "@/lib/apiClient";
 import { cacheSummaryProduct } from "@/lib/summaryProductCache";
 import { co2PerUnitLabel, formatFixed } from "@/lib/format/number";
 
@@ -790,6 +791,22 @@ const ProductsClient: React.FC = () => {
         } :
         result.pagination
       );
+
+      if (statusFilter === "all" && effectiveItems.length > 0) {
+        const publishedCount = effectiveItems.filter((item) => item.status === "published").length;
+        const draftCount = effectiveItems.filter((item) => item.status === "draft").length;
+        const totalCount = Math.max(result.pagination.total, effectiveItems.length);
+        setStats((prev) => {
+          if (prev.total === 0 || publishedCount > prev.published || draftCount > prev.draft) {
+            return {
+              total: Math.max(prev.total, totalCount, draftCount + publishedCount),
+              draft: Math.max(prev.draft, draftCount),
+              published: Math.max(prev.published, publishedCount)
+            };
+          }
+          return prev;
+        });
+      }
       const totalPages = Math.max(1, result.pagination.total_pages || 1);
       if (currentPage > totalPages) {
         setCurrentPage(totalPages);
@@ -807,6 +824,8 @@ const ProductsClient: React.FC = () => {
   }, [debouncedSearchQuery, statusFilter, currentPage, t]);
 
   const loadCatalogStats = useCallback(async () => {
+    invalidateApiResponseCache("catalog-stats-refresh", ["products"]);
+
     const requestSeq = statsRequestSeqRef.current + 1;
     statsRequestSeqRef.current = requestSeq;
     setStatsError(null);
@@ -852,6 +871,18 @@ const ProductsClient: React.FC = () => {
   useEffect(() => {
     void loadProducts();
   }, [loadProducts, refreshKey]);
+
+    useEffect(() => {
+    const handleUsageUpdated = () => {
+      invalidateApiResponseCache("usage-updated", ["products"]);
+      void loadProducts();
+      void loadCatalogStats();
+    };
+    window.addEventListener(PRODUCT_USAGE_UPDATED_EVENT, handleUsageUpdated);
+    return () => {
+      window.removeEventListener(PRODUCT_USAGE_UPDATED_EVENT, handleUsageUpdated);
+    };
+  }, [loadProducts, loadCatalogStats]);
 
   useEffect(() => {
     void loadCatalogStats();
@@ -1480,7 +1511,9 @@ const ProductsClient: React.FC = () => {
               if (!result.isUpdate) {
                 setAssessmentSessionDraft(null);
               }
+              invalidateApiResponseCache("modal-assessment-completed", ["products"]);
               void loadProducts();
+              void loadCatalogStats();
               dispatchProductUsageUpdatedEvent();
               closeAssessmentModal();
             }} />

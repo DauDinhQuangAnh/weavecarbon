@@ -72,12 +72,17 @@ const HistoryTable: React.FC<HistoryTableProps> = ({
           {history.map((item) =>
           <TableRow key={item.id} className="border-slate-100 hover:bg-slate-50/80 transition-colors">
               <TableCell className="font-medium pl-4">
-                <button
-                onClick={() => onProductClick(item.productId)}
-                className="text-left font-medium text-slate-900 hover:text-emerald-700 hover:underline">
-
-                  {item.productName}
-                </button>
+                {item.productId && item.productId.trim() !== "" ? (
+                  <button
+                    onClick={() => onProductClick(item.productId)}
+                    className="text-left font-medium text-slate-900 hover:text-emerald-700 hover:underline">
+                    {item.productName}
+                  </button>
+                ) : (
+                  <span className="font-medium text-slate-800">
+                    {item.productName}
+                  </span>
+                )}
               </TableCell>
               <TableCell className="text-right font-mono text-xs text-slate-600">
                 {formatCo2(item.materialsCO2)}

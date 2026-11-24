@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,10 @@ interface VersionEntry {
   isLatest: boolean;
 }
 
-function buildVersionEntries(product: ProductRecord): VersionEntry[] {
+function buildVersionEntries(product: ProductRecord, defaultAuthor: string): VersionEntry[] {
   const v = product.version ?? 1;
   const entries: VersionEntry[] = [];
+  const author = (product as unknown as Record<string, unknown>).createdBy || (product as unknown as Record<string, unknown>).created_by || defaultAuthor;
 
   for (let i = v; i >= 1; i--) {
     const isLatest = i === v;
@@ -55,7 +57,7 @@ function buildVersionEntries(product: ProductRecord): VersionEntry[] {
     entries.push({
       version: `v${i}`,
       timestamp,
-      updatedBy: i === 1 ? 'Người tạo' : 'Người chỉnh sửa',
+      updatedBy: String(author || (i === 1 ? 'Người tạo' : 'Người chỉnh sửa')),
       note:
         i === 1
           ? 'Tạo sản phẩm ban đầu'
@@ -71,8 +73,10 @@ function buildVersionEntries(product: ProductRecord): VersionEntry[] {
 
 const VersionHistory: React.FC<Props> = ({ product }) => {
   const router = useRouter();
+  const { user } = useAuth();
   const [expandedVersion, setExpandedVersion] = useState<string | null>(null);
-  const entries = buildVersionEntries(product);
+  const defaultAuthor = user?.full_name ? `${user.full_name}${user.email ? ` (${user.email})` : ''}` : (user?.email || 'Người dùng');
+  const entries = buildVersionEntries(product, defaultAuthor);
 
   const fmt = (ts: string) =>
     new Date(ts).toLocaleString('vi-VN', {
@@ -144,9 +148,16 @@ const VersionHistory: React.FC<Props> = ({ product }) => {
                             </Badge>
                           )}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>{fmt(entry.timestamp)}</span>
+                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{fmt(entry.timestamp)}</span>
+                          </div>
+                          <span>•</span>
+                          <div className="flex items-center gap-1 text-slate-700 font-medium">
+                            <User className="h-3 w-3 text-slate-400" />
+                            <span>{entry.updatedBy}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -166,7 +177,7 @@ const VersionHistory: React.FC<Props> = ({ product }) => {
                     </p>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <User className="h-3 w-3" />
-                      <span>{entry.updatedBy}</span>
+                      <span>Thực hiện bởi: <strong className="font-semibold text-slate-800">{entry.updatedBy}</strong></span>
                     </div>
                   </div>
                 </CollapsibleContent>
