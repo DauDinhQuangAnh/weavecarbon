@@ -326,6 +326,26 @@ export default function EvidencePage() {
   };
 
   const handleUpload = async () => {
+    if (uploadMode === 'manual' || docType === 'electricity_bill' || docType === 'fuel_receipt') {
+      if (docType === 'electricity_bill') {
+        const val = parseFloat(elecKwh);
+        if (!elecKwh || Number.isNaN(val) || val <= 0) {
+          return toast({
+            title: 'Lượng điện (kWh) là bắt buộc và phải lớn hơn 0',
+            variant: 'destructive',
+          });
+        }
+      }
+      if (docType === 'fuel_receipt') {
+        const val = parseFloat(fuelQtyLiters);
+        if (!fuelQtyLiters || Number.isNaN(val) || val <= 0) {
+          return toast({
+            title: 'Lượng nhiên liệu (lít) là bắt buộc và phải lớn hơn 0',
+            variant: 'destructive',
+          });
+        }
+      }
+    }
     let effectiveFile = file;
     if (!effectiveFile) {
       if (uploadMode === 'manual') {

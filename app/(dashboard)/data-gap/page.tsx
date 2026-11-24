@@ -75,12 +75,12 @@ const RISK_COLOR: Record<Risk, string> = {
 };
 
 const SEED_GROUPS = [
-  'Scrap supplier energy data',
-  'Diesel/thermal process evidence',
-  'Sea freight document (LOT-EU-2026-001)',
-  'BOM and electricity invoice',
-  'EUDR geolocation for coffee lots 2026',
-  'Scope 1 fuel emission factor verification',
+  'Hóa đơn tiền điện trạm biến áp nhà máy (EVN)',
+  'Hóa đơn tiêu thụ dầu diesel / lò hơi nhiệt (Scope 1)',
+  'Chứng từ vận chuyển logistics quốc tế / Vận đơn B/L',
+  'Bảng định mức tiêu hao nguyên phụ liệu (BOM dệt may)',
+  'Báo cáo kiểm kê KNK & hệ số phát thải chuỗi cung ứng',
+  'Hồ sơ tuân thủ hóa chất & môi trường theo REACH SVHC',
 ];
 
 const EMPTY_FORM = {
@@ -257,6 +257,7 @@ export default function DataGapPage() {
         requiredAction: form.requiredAction || null,
         owner: form.owner || null,
         deadline: form.deadline || null,
+        regulationTag: form.regulationTag || 'Kiểm toán nội bộ',
       });
       setOpen(false);
       setForm(EMPTY_FORM);
@@ -308,6 +309,7 @@ export default function DataGapPage() {
         requiredAction: editForm.requiredAction || null,
         owner: editForm.owner || null,
         deadline: editForm.deadline || null,
+        regulationTag: editForm.regulationTag || 'Kiểm toán nội bộ',
       });
       setEditOpen(false);
       setEditingGap(null);
@@ -842,7 +844,6 @@ export default function DataGapPage() {
             <EvidenceSelector
               value={selectedEvidenceId}
               onChange={(id) => setSelectedEvidenceId(id)}
-              filterKind="financial"
             />
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Ghi chú đối soát</Label>

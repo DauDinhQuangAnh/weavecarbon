@@ -30,7 +30,17 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
   const routes = useAppRoutes();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [statusMap, setStatusMap] = useState<Record<string, TaskStatus>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, TaskStatus>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("weavecarbon_inbox_task_status");
+        if (saved) return JSON.parse(saved);
+      } catch {
+        // ignore
+      }
+    }
+    return {};
+  });
   const [activeTaskAi, setActiveTaskAi] = useState<{
     id: string;
     title: string;
@@ -117,7 +127,17 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
   const handleUpdateStatus = (taskId: string, newStatus: TaskStatus, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setStatusMap((prev) => ({ ...prev, [taskId]: newStatus }));
+    setStatusMap((prev) => {
+      const next = { ...prev, [taskId]: newStatus };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("weavecarbon_inbox_task_status", JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
     toast.success(
       newStatus === "resolved"
         ? "Đã đánh dấu công việc Hoàn thành."
@@ -252,15 +272,15 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-primary/20">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={(e) => handleUpdateStatus(activeTaskAi.id, "resolved", e)}
-                className="h-8 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                onClick={(e) => handleUpdateStatus(activeTaskAi.id, "pending", e)}
+                className="h-8 text-xs border-amber-300 text-amber-800 hover:bg-amber-50"
               >
-                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                Đánh dấu Đã hoàn thành
+                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                Chuyển về Chờ xử lý
               </Button>
               <Button
                 size="sm"
@@ -270,6 +290,15 @@ export default function InboxClient({ demo = false }: { demo?: boolean }) {
               >
                 <Clock className="h-3.5 w-3.5 mr-1" />
                 Chuyển sang Đang xử lý
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => handleUpdateStatus(activeTaskAi.id, "resolved", e)}
+                className="h-8 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                Đánh dấu Đã hoàn thành
               </Button>
             </div>
 

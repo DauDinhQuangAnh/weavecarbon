@@ -237,7 +237,13 @@ ${opinionDraft.opinionTitle}
     try {
       if (demo) {
         let count = 0;
+        let skippedNeedsInfo = 0;
         activities.data.forEach((act) => {
+          const prevReview = demoCache().getActivityReview?.(act.id);
+          if (prevReview?.decision === "needs_information") {
+            skippedNeedsInfo++;
+            return;
+          }
           demoCache().saveActivityReview(act.id, {
             decision: "approved",
             notes: "Ký duyệt thẩm tra hàng loạt có bảo chứng băm SHA-256 (ISO 14064-3).",
@@ -245,13 +251,23 @@ ${opinionDraft.opinionTitle}
           count++;
         });
         setBatchApprovedCount(count);
-        toast.success(`Đã ký duyệt & thẩm tra thành công ${count} bản ghi hoạt động.`);
+        if (skippedNeedsInfo > 0) {
+          toast.success(`Đã ký duyệt & thẩm tra ${count} bản ghi (đã giữ nguyên ${skippedNeedsInfo} mục yêu cầu bổ sung hồ sơ).`);
+        } else {
+          toast.success(`Đã ký duyệt & thẩm tra thành công ${count} bản ghi hoạt động.`);
+        }
         await lineage.reload();
         return;
       }
       let count = 0;
+      let skippedNeedsInfo = 0;
       for (const act of activities.data.slice(0, 10)) {
         try {
+          const lin = await industrialCoreApi.activityLineage(act.id);
+          if (lin?.latestReview?.decision === "needs_information") {
+            skippedNeedsInfo++;
+            continue;
+          }
           await industrialCoreApi.reviewActivity(act.id, {
             reviewerRole: "industrial_activity_reviewer",
             decision: "approved",
@@ -263,7 +279,11 @@ ${opinionDraft.opinionTitle}
         }
       }
       setBatchApprovedCount(count);
-      toast.success(`Đã thẩm tra hàng loạt ${count} bản ghi hoạt động!`);
+      if (skippedNeedsInfo > 0) {
+        toast.success(`Đã thẩm tra hàng loạt ${count} hoạt động (đã giữ nguyên ${skippedNeedsInfo} mục đang yêu cầu bổ sung hồ sơ).`);
+      } else {
+        toast.success(`Đã thẩm tra hàng loạt ${count} bản ghi hoạt động!`);
+      }
       await lineage.reload();
     } finally {
       setIsBatchProcessing(false);

@@ -390,11 +390,12 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                         type="button"
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                        className="h-8 px-2.5 text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 border border-slate-200 bg-white shadow-xs"
                         onClick={() => setSelectedDql(item)}
                         title="Xem chi tiết"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>Xem chi tiết</span>
                       </Button>
                     </div>
                   </div>
