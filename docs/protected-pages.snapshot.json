@@ -47,7 +47,7 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/evidence/page.tsx",
-      "sha256": "37accff9fbc46900f8aed4b1b2ebd32d7c30fbbf87257fc61764397c4eb6577c"
+      "sha256": "5ebb6a89e8c731c3f121fb2a13a401f79b8701c49e323648fb22e2a8756a0959"
     },
     {
       "repo": "FE",
@@ -1962,7 +1962,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/routes.js",
-      "sha256": "659b9c9e86d522190f40bacd0bf48e6610dd1e9e3012b3274f5d2d7b0429aa2d"
+      "sha256": "5c1db21294fed40f3687b26065a6ee54ff295b596528ccb5539fd2acecb5fa7a"
     },
     {
       "repo": "BE",
@@ -2407,7 +2407,7 @@
     {
       "repo": "BE",
       "path": "src/routes/dataGaps.js",
-      "sha256": "4268a79832475b652a1ad516f071caa0b6cb3dd81f8da118d609690e85baf287"
+      "sha256": "49f108256d1a4c138a3367bb0918b48ee7c2ad4992478af39bcf6571ae72566f"
     },
     {
       "repo": "BE",
@@ -2622,7 +2622,7 @@
     {
       "repo": "BE",
       "path": "src/services/dataQualityGovernanceService.js",
-      "sha256": "ce5eec414bb9f7d6ca2f01c2100c99922265cf98e0fab42a1b5fb991c3397891"
+      "sha256": "4a3ab44e7ad744d1987979e70a01dce232de0cba15d91658bbfd02d0801f0f1b"
     },
     {
       "repo": "BE",
@@ -3359,7 +3359,7 @@
     },
     {
       "date": "2026-11-19",
-      "reason": "User asked (19/11/2026) why the signed-in overview shows a stage bar chart while demo shows a monthly line chart. The demo monthly series is synthetic sample data; real accounts had no monthly source. The backend overview now returns productMonthlyEmissions computed from published product batches (quantity × per-unit CO2e, grouped by publish month); the chart uses it for real accounts with the same Theo tháng / Theo giai đoạn toggle as demo (default monthly, with an explanatory empty state when no published batches exist).",
+      "reason": "User asked (19/11/2026) why the signed-in overview shows a stage bar chart while demo shows a monthly line chart. The demo monthly series is synthetic sample data; real accounts had no monthly source. The backend overview now returns productMonthlyEmissions computed from published product batches (quantity \u00d7 per-unit CO2e, grouped by publish month); the chart uses it for real accounts with the same Theo th\u00e1ng / Theo giai \u0111o\u1ea1n toggle as demo (default monthly, with an explanatory empty state when no published batches exist).",
       "filesUpdated": 4,
       "filesRemoved": []
     },
@@ -3383,19 +3383,19 @@
     },
     {
       "date": "2026-11-23",
-      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"S\u1ea3n ph\u1ea9m <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 7,
       "filesRemoved": []
     },
     {
       "date": "2026-11-23",
-      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"S\u1ea3n ph\u1ea9m <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 1,
       "filesRemoved": []
     },
     {
       "date": "2026-11-23",
-      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"Sản phẩm <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
+      "reason": "User asked (23/11/2026) to fix the P0 test findings: browser tab titles now follow the dashboard page title; calculation history shows the product name (BE returns productName from the same company's products, demo calculations carry productName) instead of \"S\u1ea3n ph\u1ea9m <UUID>\", formats CO2e numbers in vi-VN, and demo calculation dates are no longer in the future.",
       "filesUpdated": 1,
       "filesRemoved": []
     },
@@ -3409,6 +3409,14 @@
       "date": "2026-11-23",
       "reason": "Contract sync (23/11/2026) after BE added GET/PUT /api/account/notification-preferences for LOI-007: regenerated FE OpenAPI snapshot and generated types (npm run contract:sync); no hand edits.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    }
+  ],
+  "userChanges": [
+    {
+      "date": "2026-11-24",
+      "reason": "User asked (24/11/2026) to fix Phase 3 test findings: manual evidence required field validation (LOI-003); audit trail logging on evidence and data gap deletion (LOI-004); maker-checker segregation on factor proposals & batch review preservation of needs_information (LOI-005); DQL existence validation and details view (LOI-006); data gaps textile seed groups and regulation tag preservation (LOI-007); data gaps evidence selector unfiltered view (LOI-008); and inbox task state persistence (LOI-009).",
+      "filesUpdated": 4,
       "filesRemoved": []
     }
   ]
