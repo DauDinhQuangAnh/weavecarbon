@@ -470,11 +470,84 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
     setShowMau06Modal(true);
   };
 
+  const getFilingGhgSummary = (filing: VnMrvFiling | null, allInventories: CorporateGhgInventory[]) => {
+    if (!filing) {
+      return {
+        scope1Tco2e: 5.36,
+        scope2Tco2e: 51.48,
+        totalTco2e: 56.84,
+        fuelDesc: "5.36 tCO2e (Nhiên liệu cố định & phát điện dự phòng)",
+        fuelEf: "IPCC 2006 / TT 17/2022/TT-BTNMT",
+        elecDesc: "76,086 kWh",
+        elecEf: "0.6766 tCO2/MWh (EVN)",
+        inventoryRef: "GHG-INV-2026-R1",
+        inventoryRev: 2,
+      };
+    }
+
+    const inv = allInventories.find((item) => item.id === filing.corporateInventoryId);
+    const scope1Kg = inv?.result?.totals?.scope1KgCo2e;
+    const scope2Kg = inv?.result?.totals?.scope2LocationBasedKgCo2e;
+    const totalKg = inv?.result?.totals?.grossScope1AndLocationScope2KgCo2e;
+
+    const hasRealData = inv != null && (scope1Kg != null || scope2Kg != null);
+
+    const scope1Tco2e = hasRealData && scope1Kg != null
+      ? Number((scope1Kg / 1000).toFixed(2))
+      : 5.36;
+    const scope2Tco2e = hasRealData && scope2Kg != null
+      ? Number((scope2Kg / 1000).toFixed(2))
+      : 51.48;
+    const totalTco2e = hasRealData && totalKg != null
+      ? Number((totalKg / 1000).toFixed(2))
+      : Number((scope1Tco2e + scope2Tco2e).toFixed(2));
+
+    interface ActivityItem {
+      scope?: string;
+      activityValue?: number;
+      activityUnit?: string;
+      fuelType?: string;
+      category?: string;
+      emissionFactor?: number;
+      factorUnit?: string;
+    }
+
+    const fuelActivities = ((inv?.activitySnapshot || []) as ActivityItem[]).filter((a) => a.scope === "scope1");
+    const fuelDesc = fuelActivities.length > 0
+      ? fuelActivities.map((a) => `${Number(a.activityValue || 0).toLocaleString("vi-VN")} ${a.activityUnit || "L"} (${a.fuelType || a.category || "Nhiên liệu"})`).join(" + ")
+      : `${scope1Tco2e.toLocaleString("vi-VN")} tCO2e (Nhiên liệu cố định lò hơi & phát điện diesel)`;
+    const fuelEf = fuelActivities.length > 0 && fuelActivities[0].emissionFactor
+      ? `${fuelActivities[0].emissionFactor} ${fuelActivities[0].factorUnit || "kg CO2e/đơn vị"}`
+      : "IPCC 2006 / TT 17/2022/TT-BTNMT";
+
+    const elecActivities = ((inv?.activitySnapshot || []) as ActivityItem[]).filter((a) => a.scope === "scope2");
+    const elecTotalKwh = elecActivities.reduce((sum, a) => sum + (Number(a.activityValue) || 0), 0);
+    const elecDesc = elecTotalKwh > 0
+      ? `${elecTotalKwh.toLocaleString("vi-VN")} kWh`
+      : `${(scope2Tco2e / 0.6766 * 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} kWh`;
+    const elecEf = elecActivities.length > 0 && elecActivities[0].emissionFactor
+      ? `${elecActivities[0].emissionFactor} ${elecActivities[0].factorUnit || "kg CO2e/kWh"}`
+      : "0.6766 tCO2/MWh (EVN)";
+
+    return {
+      scope1Tco2e,
+      scope2Tco2e,
+      totalTco2e,
+      fuelDesc,
+      fuelEf,
+      elecDesc,
+      elecEf,
+      inventoryRef: inv?.inventoryReference || "GHG-INV-2026-R1",
+      inventoryRev: inv?.revision ?? 2,
+    };
+  };
+
   const handleExportMau06 = () => {
     if (!selectedFilingForMau06) return;
     const c = cases.find((item) => item.id === selectedFilingForMau06.caseId);
     const p = plans.find((item) => item.id === selectedFilingForMau06.measurementPlanId);
     const fac = facilities.find((item) => item.id === c?.facilityRevisionId);
+    const ghg = getFilingGhgSummary(selectedFilingForMau06, inventories);
 
     const report06 = {
       template: "MẪU SỐ 06 - BÁO CÁO KIỂM KÊ KHÍ NHÀ KÍNH CẤP CƠ SỞ",
@@ -488,9 +561,11 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
       reportingPeriod: `${c?.reportingYear || 2026} (Kỳ kiểm kê 02 năm)`,
       methodology: p?.planReference ? `Kế hoạch ${p.planReference}: Hệ số phát thải IPCC 2006 / MoNRE` : "Phương pháp tính toán theo hệ số phát thải IPCC 2006 / MoNRE",
       scopeBreakdown: {
-        scope1_combustion: "1,240.5 tCO2e (Lò hơi than/sinh khối & máy phát điện diesel)",
-        scope2_grid_electricity: "2,571.1 tCO2e (EF = 0.6766 tCO2/MWh)",
-        total_emissions: "3,811.6 tCO2e",
+        scope1_combustion: `${ghg.scope1Tco2e.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} tCO2e (${ghg.fuelDesc})`,
+        scope2_grid_electricity: `${ghg.scope2Tco2e.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} tCO2e (EF = ${ghg.elecEf})`,
+        total_emissions: `${ghg.totalTco2e.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} tCO2e`,
+        inventoryReference: ghg.inventoryRef,
+        inventoryRevision: ghg.inventoryRev,
       },
       uncertaintyAssessment: "Cấp độ 2 (Độ không đảm bảo ước tính ± 4.2% theo ISO 14064-1)",
       qaqcPlan: "Kiểm định công tơ điện lực EVN 24 tháng/lần, phiếu cân nhiên liệu đối soát kế toán.",
@@ -1248,38 +1323,49 @@ export default function VnMrvClient({ demo = false }: { demo?: boolean }) {
               </div>
 
               {/* Table Preview */}
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
-                <table className="w-full text-left text-[11px]">
-                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="p-2.5">Phạm vi / Nguồn phát thải</th>
-                      <th className="p-2.5">Dữ liệu hoạt động</th>
-                      <th className="p-2.5">Hệ số phát thải (EF)</th>
-                      <th className="p-2.5 text-right">Lượng phát thải (tCO2e)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    <tr>
-                      <td className="p-2.5 font-medium">Scope 1: Đốt nhiên liệu cố định lò hơi</td>
-                      <td className="p-2.5">450 tấn than cám + 800 tấn mùn cưa</td>
-                      <td className="p-2.5 font-mono">2.42 tCO2/t (Than)</td>
-                      <td className="p-2.5 text-right font-mono font-semibold">1,240.5</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2.5 font-medium">Scope 2: Điện lưới EVN mua ngoài</td>
-                      <td className="p-2.5">3,800,000 kWh</td>
-                      <td className="p-2.5 font-mono">0.6766 tCO2/MWh</td>
-                      <td className="p-2.5 text-right font-mono font-semibold">2,571.1</td>
-                    </tr>
-                    <tr className="bg-emerald-50/60 font-bold text-emerald-900">
-                      <td className="p-2.5" colSpan={3}>
-                        TỔNG LƯỢNG PHÁT THẢI KHÍ NHÀ KÍNH CƠ SỞ (Scope 1 + Scope 2)
-                      </td>
-                      <td className="p-2.5 text-right font-mono text-sm">3,811.6 tCO2e</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              {(() => {
+                const ghg = getFilingGhgSummary(selectedFilingForMau06, inventories);
+                return (
+                  <div className="border border-slate-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                        <tr>
+                          <th className="p-2.5">Phạm vi / Nguồn phát thải</th>
+                          <th className="p-2.5">Dữ liệu hoạt động</th>
+                          <th className="p-2.5">Hệ số phát thải (EF)</th>
+                          <th className="p-2.5 text-right">Lượng phát thải (tCO2e)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        <tr>
+                          <td className="p-2.5 font-medium">Scope 1: Đốt nhiên liệu cố định & vận hành</td>
+                          <td className="p-2.5">{ghg.fuelDesc}</td>
+                          <td className="p-2.5 font-mono">{ghg.fuelEf}</td>
+                          <td className="p-2.5 text-right font-mono font-semibold">
+                            {ghg.scope1Tco2e.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-medium">Scope 2: Điện lưới EVN mua ngoài</td>
+                          <td className="p-2.5">{ghg.elecDesc}</td>
+                          <td className="p-2.5 font-mono">{ghg.elecEf}</td>
+                          <td className="p-2.5 text-right font-mono font-semibold">
+                            {ghg.scope2Tco2e.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                        <tr className="bg-emerald-50/60 font-bold text-emerald-900">
+                          <td className="p-2.5" colSpan={3}>
+                            TỔNG LƯỢNG PHÁT THẢI KHÍ NHÀ KÍNH CƠ SỞ (Scope 1 + Scope 2)
+                          </td>
+                          <td className="p-2.5 text-right font-mono text-sm">
+                            {ghg.totalTco2e.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} tCO2e
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
 
               <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
                 Biểu mẫu này đã tích hợp đầy đủ kế hoạch đo đạc giám sát và kết quả đánh giá chất lượng dữ liệu DQL. Khi tải về, tệp JSON/bản in sẽ chứa mã hash SHA-256 bảo đảm tính bất biến trước cơ quan kiểm toán nhà nước.

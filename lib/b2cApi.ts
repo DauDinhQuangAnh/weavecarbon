@@ -93,6 +93,16 @@ export interface B2CCouponListPayload {
   total_count?: number;
 }
 
+export interface RedeemCouponResult {
+  redemption_id: string;
+  coupon_id: string;
+  coupon_title: string;
+  redemption_code: string;
+  points_spent: number;
+  remaining_points: number;
+  expires_at?: string | null;
+}
+
 export interface DonationCollectionPointSummary {
   id: string;
   name: string;
@@ -290,6 +300,9 @@ export const fetchB2CCoupons = (params?: {
       disableResponseCache: true
     }
   );
+
+export const redeemB2CCoupon = (couponId: string) =>
+  api.post<RedeemCouponResult>(`/b2c/coupons/${encodeURIComponent(couponId)}/redeem`, {});
 
 export const createB2CDonation = (
   payload: CreateB2CDonationPayload,

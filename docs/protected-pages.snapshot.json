@@ -2352,7 +2352,7 @@
     {
       "repo": "BE",
       "path": "src/routes/b2c.js",
-      "sha256": "9c1395eb324c6bbbdd18cf9e14c033437a8cab36c5c2a9909abaae8ab2362372"
+      "sha256": "5c2de5abb9f383c0aba0b679fbb76214b4d24dfa87ee18e1348e1a8548950acb"
     },
     {
       "repo": "BE",
@@ -2562,7 +2562,7 @@
     {
       "repo": "BE",
       "path": "src/services/b2cService.js",
-      "sha256": "3537dec7130f84f4069f7824934853f2a486b124e266536e23a0f439d99af592"
+      "sha256": "910f0a1376c573862f405e85d9ec5f41683ec3d41bfbd0ab3f6ba28c6ebae8d4"
     },
     {
       "repo": "BE",
