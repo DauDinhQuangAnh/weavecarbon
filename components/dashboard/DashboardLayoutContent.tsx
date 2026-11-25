@@ -4,7 +4,6 @@ import React from "react";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import MethodologyBanner from "@/components/app/MethodologyBanner";
 import DashboardHeaderButton from "./DashboardHeaderButton";
 import { useDashboardTitle } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -355,9 +354,6 @@ export default function DashboardLayoutContent({
       >
         <div className="animate-fade-up">{children}</div>
       </div>
-      <footer className="glass-shell mx-2 mb-3 mt-2 rounded-2xl px-4 py-3 md:mx-4 md:px-6">
-        <MethodologyBanner />
-      </footer>
     </>);
 
 }
