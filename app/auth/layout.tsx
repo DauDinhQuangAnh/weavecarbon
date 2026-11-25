@@ -1,5 +1,5 @@
 import React from "react";
-import { Leaf } from "lucide-react";
+import { ArrowLeft, Leaf } from "lucide-react";
 import Link from "next/link";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
 import type { AbstractIntlMessages } from "next-intl";
@@ -23,7 +23,16 @@ export default async function AuthLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="flex min-h-screen flex-col bg-linear-to-br from-background via-background to-primary/5 p-3 md:p-4">
-        
+        <div className="mx-auto w-full max-w-6xl pt-1">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground shadow-xs backdrop-blur-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>{locale === "en" ? "Back to home" : "Quay lại trang chủ"}</span>
+          </Link>
+        </div>
+
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-lg">
             
