@@ -1917,7 +1917,7 @@
     {
       "repo": "BE",
       "path": "src/modules/carbon/service.js",
-      "sha256": "18fd21f4b6a2cecc7efc4aef72d667e48515dba99f8a7da173db7dcc7b4168d4"
+      "sha256": "198690f52e900eb69c46ca23e0d2a3c3c392548d54388af5e844b9048b2649a4"
     },
     {
       "repo": "BE",
@@ -3433,6 +3433,12 @@
       "date": "2026-11-28",
       "reason": "Production check (28/11/2026) of LOI-035: material rows on the product page use catalog ids (cat-cotton-100) directly, so the material factor now resolves to the factor used in the calculation (8.0, not the 6.0 fallback).",
       "filesUpdated": 2,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-28",
+      "reason": "Production check (28/11/2026) of LOI-040: BE carbon service returns createdBy in calculation history.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ],
