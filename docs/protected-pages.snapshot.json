@@ -1932,7 +1932,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/aiExtractor.js",
-      "sha256": "f2dd6838329c505418e482c520bfa80ffccc013658a7d4a2a9d4a12132db9b09"
+      "sha256": "b0205ccab82a26e5d5797fc80ed4f4692cd6726dbf003bbdeac50e11fa856d9b"
     },
     {
       "repo": "BE",
@@ -1957,7 +1957,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/repository.js",
-      "sha256": "4109946a19262c8105fe122d9ef2f58aecbdeb6f9c6bca17bfe27913f49aefbf"
+      "sha256": "760e3e115775f655932819459e2dd1cf6450b21f2882d27bdfb6114e275d5615"
     },
     {
       "repo": "BE",
@@ -1967,7 +1967,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/service.js",
-      "sha256": "b49d3d8ef60abe0db7339ea8e744b0e0dee44dbca57c803b65d3ddc9b81da3d3"
+      "sha256": "6914db2eb80efd4e0d77beaaa3d203a0e458442df3629421eccd6d0dc17c6348"
     },
     {
       "repo": "BE",
@@ -3415,6 +3415,12 @@
       "date": "2026-11-28",
       "reason": "User asked (28/11/2026) to fix the 23 remaining test findings (LOI-014..046): VN number parsing and kWh plausibility checks in evidence AI, one grid factor 0.6592 (CV 1726/BĐKH-PTCBT), duplicate-SHA upload warning, DQL L3+ requires locked evidence, rule-based checks no longer claim AI/L5/third-party assurance, publish blocked when required market documents are missing, share 0–100% validation, engine process factors and VN grid detection, route apply/persist, HS code on edit, completeness deep link, consistent material factors and confidence, hotspot-based product suggestions, authenticated compliance downloads, document type naming, material-certification and domestic document slots, bulk import distance/certifications, shipment leg CO2 × cargo weight, quick-calculator packaging, honest AI assessment fallback, manual evidence details. Also re-baselines BE chatService/helpers.js already changed on main (b6384a8, 954a9f5).",
       "filesUpdated": 35,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-28",
+      "reason": "CI follow-up (28/11/2026): BE duplicate-upload check reads original_filename (no file_name column) and the kWh check no longer lowers confidence without contradicting evidence.",
+      "filesUpdated": 3,
       "filesRemoved": []
     }
   ],
