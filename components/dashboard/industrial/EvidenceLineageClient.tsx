@@ -274,6 +274,12 @@ ${opinionDraft.opinionTitle}
 
   const handleBatchVerifyEligible = async () => {
     if (!canWrite || isBatchProcessing || !activities.data?.length) return;
+    // LOI-020: hỏi xác nhận trước khi ghi quyết định duyệt cho nhiều hoạt động.
+    const confirmed = window.confirm(
+      `Duyệt nội bộ các hoạt động đủ điều kiện (tối đa ${Math.min(activities.data.length, 10)})?\n` +
+      "Hoạt động đang 'Yêu cầu bổ sung', đã bị từ chối hoặc đã được duyệt sẽ được giữ nguyên."
+    );
+    if (!confirmed) return;
     setIsBatchProcessing(true);
     try {
       if (demo) {
@@ -305,8 +311,12 @@ ${opinionDraft.opinionTitle}
       for (const act of activities.data.slice(0, 10)) {
         try {
           const lin = await industrialCoreApi.activityLineage(act.id);
-          if (lin?.latestReview?.decision === "needs_information") {
+          const latestDecision = lin?.latestReview?.decision;
+          if (latestDecision === "needs_information" || latestDecision === "rejected") {
             skippedNeedsInfo++;
+            continue;
+          }
+          if (latestDecision === "approved") {
             continue;
           }
           await industrialCoreApi.reviewActivity(act.id, {

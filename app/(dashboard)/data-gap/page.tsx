@@ -183,32 +183,49 @@ export default function DataGapPage() {
           });
         });
         setRows(demoCache().getDataGaps());
-      } else {
-        // Real mode: add to state
-        setRows((prev) => {
-          const existing = new Set(prev.map((p) => p.dataGroup));
-          const newGaps: GapRow[] = result.detectedGaps
-            .filter((g) => !existing.has(g.dataGroup))
-            .map((g) => ({
-              id: g.id,
-              dataGroup: g.dataGroup,
-              requiredForAudit: true,
-              currentStatus: g.currentStatus,
-              riskLevel: g.riskLevel,
-              requiredAction: g.requiredAction,
-              owner: g.owner,
-              deadline: g.deadline,
-              regulationTag: g.regulationTag,
-            }));
-          return [...newGaps, ...prev];
-        });
+        setScanningAi(false);
+        return;
       }
-      setScanningAi(false);
-      toast({
-        title: 'AI đã quét phát hiện khoảng trống dữ liệu',
-        description: `Xác định các hạng mục phát thải cần bổ sung đối soát theo khung ${frameworkFilter.toUpperCase()}.`,
-      });
-    }, 450);
+      // LOI-022: chỉ thêm mục thuộc khung đang lọc, lưu vào hệ thống (không chỉ hiện tạm trên màn hình)
+      // và luôn ở trạng thái "Thiếu" — không tự gán "Đã xác minh"/"Đã tải lên" khi chưa có chứng từ.
+      const matchesFramework = (tag: string) => {
+        const lowered = tag.toLowerCase();
+        if (frameworkFilter === 'iso') return lowered.includes('iso');
+        if (frameworkFilter === 'qd13') return lowered.includes('13') || lowered.includes('06');
+        if (frameworkFilter === 'cbam') return lowered.includes('cbam');
+        return true;
+      };
+      const existing = new Set(rows.map((row) => row.dataGroup.trim().toLowerCase()));
+      const candidates = result.detectedGaps.filter(
+        (gap) => matchesFramework(gap.regulationTag || '') && !existing.has(gap.dataGroup.trim().toLowerCase())
+      );
+      void (async () => {
+        let added = 0;
+        for (const gap of candidates) {
+          try {
+            await api.post('/data-gaps', {
+              dataGroup: gap.dataGroup,
+              requiredForAudit: true,
+              currentStatus: 'missing',
+              riskLevel: gap.riskLevel,
+              requiredAction: gap.requiredAction || null,
+              owner: null,
+              deadline: null,
+              regulationTag: gap.regulationTag || 'Kiểm toán nội bộ',
+            });
+            added += 1;
+          } catch {
+            /* bỏ qua mục lỗi, báo tổng kết bên dưới */
+          }
+        }
+        await load();
+        setScanningAi(false);
+        toast({
+          title: added > 0 ? `Đã thêm ${added} mục cần bổ sung (trạng thái Thiếu)` : 'Không có mục mới để thêm',
+          description: 'Danh mục gợi ý theo quy tắc cho khung đang lọc; mục đã có trong danh sách được bỏ qua.',
+        });
+      })();
+    }, 300);
   };
 
   const handleApplyAiData = (data: Record<string, unknown>) => {
@@ -457,7 +474,7 @@ export default function DataGapPage() {
             className="border-primary/40 text-primary hover:bg-primary/10 text-xs font-medium"
           >
             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            {scanningAi ? 'Đang quét lỗ hổng…' : 'Quét lỗ hổng rà soát bằng AI'}
+            {scanningAi ? 'Đang rà soát…' : 'Gợi ý khoảng trống (theo quy tắc)'}
           </Button>
 
           <Button
@@ -669,7 +686,7 @@ export default function DataGapPage() {
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400">
-                    Chưa có mục nào trong danh sách. Nhấn &ldquo;Quét lỗ hổng rà soát bằng AI&rdquo; hoặc &ldquo;Tạo checklist mặc định&rdquo;.
+                    Chưa có mục nào trong danh sách. Nhấn &ldquo;Gợi ý khoảng trống (theo quy tắc)&rdquo; hoặc &ldquo;Tạo checklist mặc định&rdquo;.
                   </td>
                 </tr>
               ) : (

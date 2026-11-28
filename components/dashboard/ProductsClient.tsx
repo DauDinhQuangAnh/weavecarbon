@@ -1292,6 +1292,22 @@ const ProductsClient: React.FC = () => {
                 </Button>
               </CardContent>
             </Card>
+          ) : visibleProducts.length === 0 ? (
+            // LOI-044: lọc theo mức dữ liệu không có kết quả → báo rõ thay vì để trống.
+            <Card className="sm:col-span-2 xl:col-span-3 rounded-xl border border-dashed bg-slate-50/50 shadow-none">
+              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                <h3 className="font-semibold text-slate-800">Không có sản phẩm nào ở mức dữ liệu này</h3>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">
+                  Thử chọn mức dữ liệu khác hoặc xoá bộ lọc.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setDataStatusFilter("all")}
+                  className="mt-4 rounded-lg text-xs sm:text-sm">
+                  Xoá bộ lọc mức dữ liệu
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             visibleProducts.map((product) => {
               const editBlockedByCancelledShipment = isShipmentCancelled(
@@ -1451,7 +1467,9 @@ const ProductsClient: React.FC = () => {
         {products.length > 0 && (
           <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
             <span>
-              {rangeStart}-{rangeEnd} / {pagination.total}
+              {dataStatusFilter === "all"
+                ? `${rangeStart}-${rangeEnd} / ${pagination.total}`
+                : `${visibleProducts.length} / ${products.length} sản phẩm trên trang này khớp mức dữ liệu đã chọn`}
             </span>
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2">

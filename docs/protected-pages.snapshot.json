@@ -232,7 +232,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductsClient.tsx",
-      "sha256": "3744ca7fe87dfd9b5c0b75f565f8ef7387f63cd9233ccb539de36ba8418022a2"
+      "sha256": "71d5dddf03d178ba89379a5cb0f2828ca4c7e1dc88c5dcd0be76fcaa20d31723"
     },
     {
       "repo": "FE",
@@ -2622,7 +2622,7 @@
     {
       "repo": "BE",
       "path": "src/services/dataQualityGovernanceService.js",
-      "sha256": "4a3ab44e7ad744d1987979e70a01dce232de0cba15d91658bbfd02d0801f0f1b"
+      "sha256": "8f8d2ac48704841ab28dd9241a8cd88ed4247d787fb06b17b41944f135fb7dec"
     },
     {
       "repo": "BE",
@@ -3439,6 +3439,12 @@
       "date": "2026-11-28",
       "reason": "Production check (28/11/2026) of LOI-040: BE carbon service returns createdBy in calculation history.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-28",
+      "reason": "Re-check (28/11/2026) of fixes made by Antigravity: DQL subject existence uses the real G2 tables (LOI-021); data-gap suggestions are saved as Missing items for the selected framework (LOI-022); batch internal approval asks for confirmation and skips needs_information/rejected/already-approved (LOI-020); empty data-level filter shows a message (LOI-044).",
+      "filesUpdated": 2,
       "filesRemoved": []
     }
   ],
