@@ -213,7 +213,7 @@ function CbamReportSectionContent() {
 
   // Electricity invoice CRUD modal
   type ElecForm = { facility_name: string; billing_period: string; kwh: string; emission_factor_kg_per_kwh: string; emission_factor_source: string };
-  const defaultElecForm: ElecForm = { facility_name: 'Main Facility', billing_period: '', kwh: '', emission_factor_kg_per_kwh: '0.4290', emission_factor_source: 'VN Ministry of Natural Resources 2024' };
+  const defaultElecForm: ElecForm = { facility_name: 'Main Facility', billing_period: '', kwh: '', emission_factor_kg_per_kwh: '0.6592', emission_factor_source: 'Cục Biến đổi khí hậu — CV 1726/BĐKH-PTCBT (2024), hệ số lưới điện VN 2023' };
   const [elecModalOpen, setElecModalOpen] = useState(false);
   const [elecEditing, setElecEditing]     = useState<ElectricityInvoice | null>(null);
   const [elecForm, setElecForm]           = useState<ElecForm>(defaultElecForm);
@@ -585,7 +585,7 @@ function CbamReportSectionContent() {
                       <TableCell className="text-xs font-medium">{e.billing_period ?? '—'}</TableCell>
                       <TableCell className="text-xs">{e.facility_name ?? '—'}</TableCell>
                       <TableCell className="font-mono text-xs">{Number(e.kwh).toLocaleString()}</TableCell>
-                      <TableCell className="font-mono text-xs">{e.emission_factor_kg_per_kwh ?? 0.4290}</TableCell>
+                      <TableCell className="font-mono text-xs">{e.emission_factor_kg_per_kwh ?? '—'}</TableCell>
                       <TableCell className="font-mono text-xs font-semibold">{(Number(e.scope2_co2e_kg) || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         {e.evidence_document_id ? (

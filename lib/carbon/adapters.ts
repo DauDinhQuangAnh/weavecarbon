@@ -1,6 +1,6 @@
 import type { ProductAssessmentData, BulkProductRow } from "@/types/domain/product";
 import { calculateCarbonFootprint } from "@/lib/carbon/engine";
-import { resolveCategoryMethodology } from "@/lib/carbon/factorRegistry";
+import { getCarbonFactor, resolveCategoryMethodology } from "@/lib/carbon/factorRegistry";
 import type {
   CarbonComputationResult,
   CarbonEngineInput,
@@ -9,7 +9,7 @@ import type {
   ProductCategory
 } from "@/lib/carbon/types";
 
-const MATERIAL_FACTOR_BY_TYPE: Record<string, string> = {
+export const MATERIAL_FACTOR_BY_TYPE: Record<string, string> = {
   cotton: "cat-cotton-100",
   organic_cotton: "cat-cotton-organic",
   recycled_cotton: "cat-cotton-recycled",
@@ -27,7 +27,7 @@ const MATERIAL_FACTOR_BY_TYPE: Record<string, string> = {
   mixed: "cat-blend-cotton-poly"
 };
 
-const PROCESS_FACTOR_BY_TYPE: Record<string, string> = {
+export const PROCESS_FACTOR_BY_TYPE: Record<string, string> = {
   knitting: "process-knitting",
   weaving: "process-weaving",
   cutting: "process-cutting",
@@ -55,15 +55,40 @@ const toNumber = (value: string | number | undefined | null) => {
 const normalizeText = (value: string | null | undefined) =>
   String(value || "").trim().toLowerCase();
 
+const stripDiacritics = (value: string) =>
+  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+
+/**
+ * Nhận diện địa điểm ở Việt Nam từ chữ tự do ("Thuận An, Bình Dương, Việt Nam", "VN", "Vietnam"...)
+ * để luôn dùng hệ số lưới điện Việt Nam (LOI-031).
+ */
+export const isVietnamGeography = (...values: Array<string | null | undefined>) =>
+  values.some((value) => {
+    const text = stripDiacritics(String(value || "")).toLowerCase().trim();
+    if (!text) return false;
+    return /\bviet\s*nam\b/.test(text) || /(^|[^a-z])vn([^a-z]|$)/.test(text);
+  });
+
+/** Hệ số vật liệu engine dùng (kg CO₂e/kg) cho một loại vật liệu (LOI-035). */
+export const resolveMaterialFactor = (materialType: string) => {
+  const factorId = MATERIAL_FACTOR_BY_TYPE[materialType];
+  return factorId ? getCarbonFactor(factorId) : null;
+};
+
+/** Hệ số công đoạn engine dùng (kWh/kg) cho một quy trình ở bước 3 (LOI-030). */
+export const resolveProcessFactor = (processValue: string) => {
+  const factorId = PROCESS_FACTOR_BY_TYPE[processValue];
+  return factorId ? getCarbonFactor(factorId) : null;
+};
+
 const resolveEnergyFactorId = (
   source: string | undefined,
-  geography: string | undefined
+  ...geographies: Array<string | null | undefined>
 ) => {
   const normalizedSource = normalizeText(source);
-  const normalizedGeography = normalizeText(geography);
 
   if (normalizedSource === "grid") {
-    if (normalizedGeography === "vietnam" || normalizedGeography === "vn") {
+    if (isVietnamGeography(...geographies)) {
       return "energy-grid-vn-2023";
     }
     return "energy-grid-generic";
@@ -252,15 +277,15 @@ export const buildCarbonEngineInputFromAssessment = (
     energyMix:
       data.energySources.length > 0 ?
         data.energySources.map((energy) => {
-          const energyGeography = data.manufacturingLocation || data.originAddress.country;
+          const energyGeography = data.originAddress?.country || data.manufacturingLocation;
           const normalizedEnergy = normalizeText(energy.source);
           const isRenewable = normalizedEnergy === "solar" || normalizedEnergy === "wind";
           // I-REC/GO sold => green attribute transferred; account this renewable
           // electricity at the national grid factor (GHG Protocol Scope 2 market-based).
           const factorId =
             options?.forceGridElectricity || (isRenewable && energy.recsSold) ?
-              resolveEnergyFactorId("grid", energyGeography) :
-              resolveEnergyFactorId(energy.source, energyGeography);
+              resolveEnergyFactorId("grid", data.originAddress?.country, data.manufacturingLocation) :
+              resolveEnergyFactorId(energy.source, data.originAddress?.country, data.manufacturingLocation);
           return {
             factorId,
             percentage: energy.percentage,

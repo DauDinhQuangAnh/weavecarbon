@@ -1514,17 +1514,25 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
     });
   }, [data.destinationAddress, onChange]);
 
+  // LOI-032: "Áp dụng" trên thẻ khuyến nghị luôn áp đúng tuyến khuyến nghị đang hiển thị.
   const applySuggestedTransportLegs = React.useCallback(() => {
     setRouteEditingMode("auto");
+    const recommendedRoute = routeSuggestionResult?.recommended.route;
+    if (recommendedRoute) {
+      setDisplaySuggestedRoute(recommendedRoute);
+      onChange(buildTransportLegUpdates(materializeSuggestedRouteLegs(recommendedRoute, true)));
+      return;
+    }
     onChange(buildTransportLegUpdates(autoSuggestedTransportLegs));
-  }, [autoSuggestedTransportLegs, buildTransportLegUpdates, onChange]);
+  }, [autoSuggestedTransportLegs, buildTransportLegUpdates, onChange, routeSuggestionResult]);
 
+  // Tuyến thay thế do người dùng chọn được lưu như chặng tự chọn (không bị gợi ý tự động
+  // ghi đè khi quay lại bước 4), và không làm thay đổi thẻ tuyến khuyến nghị.
   const applyAlternativeRoute = React.useCallback(
     (route: SuggestedRoute) => {
-      setRouteEditingMode("auto");
-      const legs = materializeSuggestedRouteLegs(route, true);
+      setRouteEditingMode("manual");
+      const legs = materializeSuggestedRouteLegs(route, false);
       onChange(buildTransportLegUpdates(legs));
-      setDisplaySuggestedRoute(route);
     },
     [buildTransportLegUpdates, onChange]
   );
@@ -1830,7 +1838,7 @@ const Step4Logistics: React.FC<Step4LogisticsProps> = ({
                             variant="outline"
                             className="ml-auto h-7 text-xs gap-1 border-emerald-300 hover:bg-emerald-50 shrink-0"
                             onClick={applySuggestedTransportLegs}
-                            disabled={autoSuggestedTransportLegs.length === 0}
+                            disabled={rec.route.legs.length === 0 && autoSuggestedTransportLegs.length === 0}
                           >
                             <Sparkles className="h-3 w-3" />
                             Áp dụng

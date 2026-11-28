@@ -15,7 +15,6 @@ import {
   normalizeMaterialCertificationValue,
   normalizeMaterialCertificationDocumentCode
 } from "@/lib/materialCertificationDefinitions";
-import { suggestMaterialCertificationCodes } from "@/lib/materialCertificationSuggestions";
 
 export const DESTINATION_MARKET_BY_EXPORT_COUNTRY: Record<string, string> = {
   eu: "eu",
@@ -728,6 +727,12 @@ export const mapBulkRowToApiPayload = (
     payload.transport_mode = row.transportMode;
   }
 
+  // LOI-042: gửi kèm khoảng cách đã khai để backend không cảnh báo "thiếu khoảng cách".
+  if (typeof row.transportDistanceKm === "number" && Number.isFinite(row.transportDistanceKm) && row.transportDistanceKm > 0) {
+    payload.transportDistanceKm = row.transportDistanceKm;
+    payload.transport_distance_km = row.transportDistanceKm;
+  }
+
   if (transportLegs.length > 0) {
     payload.transportLegs = transportLegs;
     payload.transport_legs = transportLegs;
@@ -824,16 +829,9 @@ export const applyComplianceAvailabilityToRows = (
   const normalizedRows = rows.map((row) => {
     const rowNumber = row.sourceRow || 1;
     const parsedMaterialCertifications = parseMaterialCertificationInput(row.certifications);
-    const suggestedMaterialCertifications = suggestMaterialCertificationCodes([
-      row.primaryMaterial,
-      row.secondaryMaterial,
-      row.productName
-    ]);
+    // LOI-042: chỉ xét chứng nhận khai trong file, không tự gán chứng nhận theo loại vật liệu.
     const candidateMaterialCertifications = Array.from(
-      new Set([
-        ...parsedMaterialCertifications.knownValues,
-        ...suggestedMaterialCertifications
-      ])
+      new Set(parsedMaterialCertifications.knownValues)
     );
 
     const readyMaterialCertifications: string[] = [];
@@ -858,7 +856,7 @@ export const applyComplianceAvailabilityToRows = (
       warnings.push({
         row: rowNumber,
         field: "certifications",
-        message: `Skipped material certifications not uploaded in system: ${formatMaterialCertificationLabels(missingMaterialCertifications).join(", ")}.`,
+        message: `Bỏ qua chứng nhận vật liệu chưa có tài liệu tải lên trong hệ thống: ${formatMaterialCertificationLabels(missingMaterialCertifications).join(", ")}.`,
         severity: "warning"
       });
     }

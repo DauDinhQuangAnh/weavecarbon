@@ -51,18 +51,20 @@ const STATUS_CONFIG = {
 };
 
 function buildCompleteness(product: ProductRecord): CompletenessItem[] {
+  // LOI-034: "Bổ sung" mở đúng sản phẩm đang xem ở bước chứa mục cần bổ sung.
+  const editLink = (step: number) => `/products?edit=${encodeURIComponent(product.id)}&step=${step}`;
   return [
     {
       field: 'productName',
       label: 'Tên sản phẩm',
       status: product.productName?.trim() ? 'complete' : 'missing',
-      jumpTo: '/products',
+      jumpTo: editLink(1),
     },
     {
       field: 'productCode',
       label: 'Mã SKU',
       status: product.productCode?.trim() ? 'complete' : 'missing',
-      jumpTo: '/products',
+      jumpTo: editLink(1),
     },
     {
       field: 'materials',
@@ -76,25 +78,25 @@ function buildCompleteness(product: ProductRecord): CompletenessItem[] {
       note: product.materials?.some((m) => m.source === 'unknown')
         ? 'Một số nguyên liệu chưa rõ nguồn gốc'
         : undefined,
-      jumpTo: '/assessment',
+      jumpTo: editLink(2),
     },
     {
       field: 'energySources',
       label: 'Nguồn năng lượng',
       status: product.energySources?.length > 0 ? 'complete' : 'missing',
-      jumpTo: '/assessment',
+      jumpTo: editLink(3),
     },
     {
       field: 'productionProcesses',
       label: 'Quy trình sản xuất',
       status: product.productionProcesses?.length > 0 ? 'complete' : 'missing',
-      jumpTo: '/assessment',
+      jumpTo: editLink(3),
     },
     {
       field: 'manufacturingLocation',
       label: 'Địa điểm sản xuất',
       status: product.manufacturingLocation?.trim() ? 'complete' : 'missing',
-      jumpTo: '/assessment',
+      jumpTo: editLink(3),
     },
     {
       field: 'transportLegs',
@@ -110,7 +112,7 @@ function buildCompleteness(product: ProductRecord): CompletenessItem[] {
         product.transportLegs.some((l) => l.co2Kg == null)
           ? 'Một số chặng chưa có CO₂e'
           : undefined,
-      jumpTo: '/assessment',
+      jumpTo: editLink(4),
     },
     {
       field: 'carbonResults',
@@ -118,7 +120,7 @@ function buildCompleteness(product: ProductRecord): CompletenessItem[] {
       status:
         product.carbonResults?.perProduct != null ? 'complete' : 'missing',
       note: !product.carbonResults ? 'Chưa chạy tính toán carbon' : undefined,
-      jumpTo: '/assessment',
+      jumpTo: editLink(5),
     },
   ];
 }

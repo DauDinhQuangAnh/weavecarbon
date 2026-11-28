@@ -29,7 +29,7 @@ export default async function AuthLayout({
             className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground shadow-xs backdrop-blur-xs transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>{locale === "en" ? "Back to home" : "Quay lại trang chủ"}</span>
+            <span>{String(locale) === "en" ? "Back to home" : "Quay lại trang chủ"}</span>
           </Link>
         </div>
 

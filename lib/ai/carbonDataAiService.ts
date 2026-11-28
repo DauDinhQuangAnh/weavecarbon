@@ -123,7 +123,8 @@ export function analyzeActivityAnomalies(activities: IndustrialActivity[]): Acti
       scope3Total += q;
     }
 
-    if (act.dataQualityLevel === "L1" || act.dataQualityLevel === "L2") {
+    // Tỷ lệ "có chứng từ" tính theo liên kết chứng từ thật, không theo cấp DQL tự khai (LOI-019).
+    if ((act.evidenceDocumentIds?.length || 0) > 0) {
       primaryCount++;
     }
   });
@@ -160,22 +161,27 @@ export function analyzeActivityAnomalies(activities: IndustrialActivity[]): Acti
         }
 
         // Check 2: Missing evidence on high quantity
-        if ((!act.evidenceDocumentIds || act.evidenceDocumentIds.length === 0) && (act.dataQualityLevel === "L1" || act.dataQualityLevel === "L2")) {
+        if (!act.evidenceDocumentIds || act.evidenceDocumentIds.length === 0) {
+          const claimsEvidence = ["L3", "L4", "L5"].includes(String(act.dataQualityLevel));
           outliers.push({
             activityId: act.id,
             activityReference: act.activityReference,
-            reason: `Khai báo mức dữ liệu chính ${act.dataQualityLevel} nhưng chưa liên kết chứng từ gốc có mã hash SHA-256.`,
-            severity: "warning",
-            recommendation: "Gắn tệp hóa đơn hoặc biên bản giao nhận từ Evidence Vault để bảo vệ điểm kiểm toán.",
+            reason: claimsEvidence
+              ? `Khai báo cấp ${act.dataQualityLevel} (có chứng từ bảo chứng) nhưng không liên kết chứng từ nào — cấp chất lượng bị khai cao hơn thực tế.`
+              : `Khai báo mức dữ liệu ${act.dataQualityLevel} nhưng chưa liên kết chứng từ gốc có mã hash SHA-256.`,
+            severity: claimsEvidence ? "critical" : "warning",
+            recommendation: claimsEvidence
+              ? "Liên kết chứng từ đã khóa hoặc hạ cấp chất lượng xuống L1/L2."
+              : "Gắn tệp hóa đơn hoặc biên bản giao nhận từ Evidence Vault để bảo vệ điểm kiểm toán.",
           });
         }
       });
   });
 
   const primaryRatioPercent = Math.round((primaryCount / activities.length) * 100);
+  // Kiểm tra theo quy tắc không bao giờ xếp L5: L5 chỉ có khi bên thứ ba thẩm tra.
   let auditReadinessTier: "L1" | "L2" | "L3" | "L4" | "L5" = "L3";
-  if (primaryRatioPercent >= 80) auditReadinessTier = "L5";
-  else if (primaryRatioPercent >= 60) auditReadinessTier = "L4";
+  if (primaryRatioPercent >= 60) auditReadinessTier = "L4";
   else if (primaryRatioPercent >= 40) auditReadinessTier = "L3";
   else if (primaryRatioPercent >= 20) auditReadinessTier = "L2";
   else auditReadinessTier = "L1";
@@ -188,7 +194,7 @@ export function analyzeActivityAnomalies(activities: IndustrialActivity[]): Acti
       scope3Quantity: Math.round(scope3Total),
       primaryRatioPercent,
     },
-    summary: `Đã rà soát ${activities.length} bản ghi hoạt động. Phát hiện ${outliers.length} điểm dị thường/cảnh báo rủi ro. Tỷ lệ dữ liệu nguồn cấp 1-2 đạt ${primaryRatioPercent}%, xếp hạng độ sẵn sàng kiểm toán ${auditReadinessTier}.`,
+    summary: `Kiểm tra theo quy tắc thống kê (không dùng mô hình AI): đã rà soát ${activities.length} bản ghi hoạt động, phát hiện ${outliers.length} điểm dị thường/cảnh báo. ${primaryRatioPercent}% bản ghi có chứng từ liên kết; mức sẵn sàng kiểm toán ước tính ${auditReadinessTier} (chưa phải kết luận thẩm tra).`,
     auditReadinessTier,
   };
 }
@@ -262,13 +268,13 @@ export function auditEvidenceForensics(lineage: IndustrialActivityLineage | null
 
   if (score >= 85 && allEvidenceLocked && isAligned) {
     verdict = "audit_ready";
-    assuranceReadiness = "Đạt chuẩn thẩm tra bên thứ ba (Assurance-Grade L5)";
+    assuranceReadiness = "Đủ điều kiện gửi thẩm tra (kiểm tra theo quy tắc — chưa có xác minh của bên thứ ba)";
   } else if (score < 50) {
     verdict = "high_risk_gap";
     assuranceReadiness = "Rủi ro cao bị loại khỏi báo cáo kiểm toán";
   }
 
-  const certId = `WCB-FORENSIC-${lineage.activity.id.slice(-6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+  const certId = `WCB-RULECHECK-${lineage.activity.id.slice(-6).toUpperCase()}`;
 
   return {
     integrityScore: score,
@@ -279,10 +285,10 @@ export function auditEvidenceForensics(lineage: IndustrialActivityLineage | null
     complianceCert: {
       certId,
       issuedAt: new Date().toISOString(),
-      standard: "ISO 14064-1:2018 / GHG Protocol Corporate Standard",
+      standard: "Kiểm tra nội bộ theo quy tắc — không thay thế thẩm tra ISO 14064-3",
       attestationStatement:
         verdict === "audit_ready"
-          ? `Chuỗi phả hệ bằng chứng đã được AI xác nhận bảo toàn mật mã, ranh giới cơ sở ${lineage.facility.name} và tiến trình thẩm tra.`
+          ? `Kiểm tra theo quy tắc: mã băm hợp lệ, chứng từ đã khóa, ranh giới cơ sở ${lineage.facility.name} và kỳ hoạt động nhất quán. Đây không phải chứng thư thẩm tra; cần thẩm tra viên độc lập xác minh.`
           : `Chuỗi phả hệ còn tồn tại ${hashChecks.filter((h) => !h.isLocked).length} nút chưa khóa hoặc thiếu chứng từ gốc.`,
     },
   };
@@ -343,8 +349,8 @@ export function assessDataQualityPedigree(subject: {
 
   const overall = Number(((temporal + geographic + technological + completeness + reliability) / 5).toFixed(2));
   let dqlLevel: "L1" | "L2" | "L3" | "L4" | "L5" = "L3";
-  if (overall >= 4.5) dqlLevel = "L5";
-  else if (overall >= 3.8) dqlLevel = "L4";
+  // L5 chỉ do bên thẩm tra độc lập gán; chấm theo quy tắc tối đa L4 (LOI-019).
+  if (overall >= 3.8) dqlLevel = "L4";
   else if (overall >= 3.0) dqlLevel = "L3";
   else if (overall >= 2.0) dqlLevel = "L2";
   else dqlLevel = "L1";
@@ -495,7 +501,7 @@ export function resolveInboxTaskWithAi(task: {
       rootCause: "Hệ số phát thải nội bộ đang ở trạng thái 'Đề xuất' (Draft) hoặc chưa được người có thẩm quyền phê duyệt phê chuẩn.",
       auditExposure: "Báo cáo kiểm kê không thể ban hành bản chính thức nếu còn chứa hệ số chưa được phê duyệt.",
       stepByStepAction: [
-        "Bước 1: Kiểm tra nguồn trích dẫn (MoNRE / IPCC / Quyết định 13/2024/QĐ-TTg).",
+        "Bước 1: Kiểm tra nguồn trích dẫn hệ số (Cục Biến đổi khí hậu / IPCC / DEFRA).",
         "Bước 2: Mở giao diện Quản trị chất lượng dữ liệu để tiến hành phê duyệt hệ số.",
         "Bước 3: Ghi chú lý do phê duyệt và xuất bản vào danh mục hệ số hoạt động.",
       ],
@@ -810,29 +816,35 @@ export function generateIsoVerificationOpinion(params: {
   discrepancyPercent?: number;
   levelOfAssurance?: "reasonable" | "limited";
 }): IsoVerificationOpinionDraft {
-  const level = params.levelOfAssurance || "reasonable";
-  const discrepancy = params.discrepancyPercent ?? 1.2;
+  const level = params.levelOfAssurance || "limited";
+  // LOI-019: không bịa sai lệch đối soát; không có số liệu thì không kết luận trọng yếu.
+  const hasDiscrepancy = typeof params.discrepancyPercent === "number" && Number.isFinite(params.discrepancyPercent);
+  const discrepancy = hasDiscrepancy ? Math.round(Math.abs(params.discrepancyPercent as number) * 10) / 10 : 0;
   const threshold = 5.0; // Standard 5% materiality threshold for industrial MRV
-  const isWithinThreshold = discrepancy <= threshold;
+  const isWithinThreshold = hasDiscrepancy && discrepancy <= threshold;
   const evRatio = params.activitiesCount > 0 ? params.evidenceLockedCount / params.activitiesCount : 0;
 
-  let opinionType: IsoVerificationOpinionDraft["opinionType"] = "reasonable_assurance";
-  let opinionTitle = "Ý KIẾN THẨM TRA CHẤP THUẬN TOÀN PHẦN (UNQUALIFIED OPINION)";
+  let opinionType: IsoVerificationOpinionDraft["opinionType"] = level === "reasonable" ? "reasonable_assurance" : "limited_assurance";
+  let opinionTitle = "BẢN NHÁP THEO QUY TẮC — Ý KIẾN CHẤP THUẬN (chờ thẩm tra viên xem xét)";
   const qualifications: string[] = [];
 
-  if (!isWithinThreshold) {
+  if (!hasDiscrepancy) {
     opinionType = "qualified";
-    opinionTitle = "Ý KIẾN THẨM TRA CÓ ĐIỀU KIỆN (QUALIFIED OPINION)";
+    opinionTitle = "BẢN NHÁP THEO QUY TẮC — CHƯA ĐỦ CƠ SỞ KẾT LUẬN";
+    qualifications.push("Chưa có kết quả đối soát công tơ/sản lượng cho cơ sở này nên chưa đánh giá được mức trọng yếu.");
+  } else if (!isWithinThreshold) {
+    opinionType = "qualified";
+    opinionTitle = "BẢN NHÁP THEO QUY TẮC — Ý KIẾN CÓ NGOẠI TRỪ";
     qualifications.push(`Sai lệch số liệu hoạt động tính toán (${discrepancy}%) vượt ngưỡng trọng yếu quy định (${threshold}%).`);
   } else if (evRatio < 0.6) {
     opinionType = "qualified";
-    opinionTitle = "Ý KIẾN THẨM TRA CÓ ĐIỀU KIỆN (QUALIFIED OPINION)";
+    opinionTitle = "BẢN NHÁP THEO QUY TẮC — Ý KIẾN CÓ NGOẠI TRỪ";
     qualifications.push(`Tỷ lệ chứng từ gốc được khóa SHA-256 mới đạt ${Math.round(evRatio * 100)}% (< 60% cỡ mẫu thẩm tra).`);
   }
 
-  const statement = opinionType === "reasonable_assurance"
-    ? `Dựa trên quy trình thẩm tra được thực hiện theo tiêu chuẩn ISO 14064-3:2019, chúng tôi kết luận rằng Tuyên bố Khí nhà kính của cơ sở ${params.facilityName} phản ánh trung thực và hợp lý về mọi khía cạnh trọng yếu, phù hợp với các tiêu chí của ISO 14064-1 và Quy chuẩn Kiểm kê KNK Quốc gia.`
-    : `Dựa trên kết quả thẩm tra, ngoại trừ các điểm ngoại trừ được nêu trong Báo cáo phát hiện kiểm toán (về tỷ lệ chứng từ gốc hoặc sai số đối soát), Tuyên bố Khí nhà kính của cơ sở ${params.facilityName} cơ bản tuân thủ các nguyên tắc kiểm kê.`;
+  const statement = opinionType === "reasonable_assurance" || opinionType === "limited_assurance"
+    ? `Bản nháp do quy tắc của hệ thống tạo dựa trên dữ liệu hiện có: chưa phát hiện sai lệch trọng yếu trong Tuyên bố Khí nhà kính của cơ sở ${params.facilityName}. Nội dung chỉ trở thành ý kiến thẩm tra khi được thẩm tra viên độc lập xem xét và ký theo ISO 14064-3.`
+    : `Bản nháp do quy tắc của hệ thống tạo: ngoại trừ các điểm ngoại trừ được nêu trong Báo cáo phát hiện kiểm toán (về tỷ lệ chứng từ gốc hoặc sai số đối soát), Tuyên bố Khí nhà kính của cơ sở ${params.facilityName} cơ bản tuân thủ các nguyên tắc kiểm kê.`;
 
   return {
     opinionType,
@@ -842,9 +854,11 @@ export function generateIsoVerificationOpinion(params: {
       materialityThresholdPercent: threshold,
       calculatedDiscrepancyPercent: discrepancy,
       isWithinThreshold,
-      conclusion: isWithinThreshold
-        ? `Mức sai lệch đối soát mẫu ${discrepancy}% nằm an toàn dưới ngưỡng trọng yếu 5%, đáp ứng yêu cầu thẩm tra cấp độ ${level === "reasonable" ? "Hợp lý" : "Có giới hạn"}.`
-        : `Mức sai lệch ${discrepancy}% vượt trần 5%, yêu cầu cơ sở thực hiện hiệu chỉnh hồi tố số liệu trước khi cấp chứng thư.`
+      conclusion: !hasDiscrepancy
+        ? "Chưa có số liệu đối soát nên chưa so được với ngưỡng trọng yếu 5%."
+        : isWithinThreshold
+          ? `Sai lệch đối soát lớn nhất ${discrepancy}% nằm dưới ngưỡng trọng yếu 5%.`
+          : `Sai lệch đối soát lớn nhất ${discrepancy}% vượt ngưỡng trọng yếu 5%; cần hiệu chỉnh số liệu trước khi gửi thẩm tra.`
     },
     scopeCoverage: {
       scope1Covered: true,
@@ -854,7 +868,7 @@ export function generateIsoVerificationOpinion(params: {
       evidenceVerifiedCount: params.evidenceLockedCount
     },
     qualificationNotes: qualifications,
-    auditorDeclaration: `Thẩm tra viên cam kết tính độc lập khách quan theo tiêu chuẩn ISO 14065 và không có xung đột lợi ích với bên được thẩm tra. Mã phiên thẩm tra được bảo chứng mật mã trên nền tảng WeaveCarbon.`,
+    auditorDeclaration: "Đây là bản nháp tự động, chưa có thẩm tra viên nào xem xét hay ký. Chỉ đơn vị thẩm tra độc lập được công nhận (ISO 14065) mới được phát hành ý kiến thẩm tra.",
     timestamp: new Date().toISOString()
   };
 }

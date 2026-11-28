@@ -17,8 +17,13 @@ import {
   ProductAssessmentData,
   EnergySourceInput,
   PRODUCTION_PROCESSES,
-  ENERGY_SOURCES
+  ENERGY_SOURCES,
+  isValidSharePercent
 } from "./types";
+import { resolveProcessFactor } from "@/lib/carbon/adapters";
+import { getCarbonFactor } from "@/lib/carbon/factorRegistry";
+
+const VN_GRID_FACTOR = getCarbonFactor("energy-grid-vn-2023")?.value ?? 0.6592;
 import { getMaterialById, MATERIAL_CATALOG } from "../materialCatalog";
 import { useAuth } from "@/contexts/AuthContext";
 import EvidenceUploader from "@/components/evidence/EvidenceUploader";
@@ -180,7 +185,8 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
     (sum, energy) => sum + (energy.percentage || 0),
     0
   );
-  const isValidEnergyTotal = totalEnergyPercentage === 100;
+  const hasInvalidEnergyShare = data.energySources.some((energy) => !isValidSharePercent(energy.percentage || 0));
+  const isValidEnergyTotal = totalEnergyPercentage === 100 && !hasInvalidEnergyShare;
 
   const isSourceSelected = (sourceValue: string) =>
     data.energySources.some((energy) => energy.source === sourceValue);
@@ -310,7 +316,16 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
                       : process.label}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {t("process.factor", { value: process.co2Factor })}
+                    {(() => {
+                      const engineFactor = resolveProcessFactor(process.value);
+                      if (engineFactor && engineFactor.unit === "kWh/kg") {
+                        return t("process.intensity", {
+                          kwh: engineFactor.value,
+                          co2: Math.round(engineFactor.value * VN_GRID_FACTOR * 100) / 100
+                        });
+                      }
+                      return t("process.factor", { value: process.co2Factor });
+                    })()}
                   </p>
                 </div>
               </label>
@@ -414,7 +429,8 @@ const Step3ProductionEnergy: React.FC<Step3ProductionEnergyProps> = ({
                                 Number(event.target.value)
                               )
                             }
-                            className="w-20 h-8 text-sm"
+                            className={`w-20 h-8 text-sm ${isValidSharePercent(energy.percentage || 0) ? "" : "border-destructive"}`}
+                            aria-invalid={!isValidSharePercent(energy.percentage || 0)}
                           />
 
                           <span className="text-sm text-muted-foreground">%</span>

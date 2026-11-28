@@ -55,6 +55,7 @@ import ControlledActivityPromotionPanel from '@/components/evidence/ControlledAc
 import { fetchAllProducts, type ProductRecord } from '@/lib/productsApi';
 
 import { DOC_TYPES, downloadTemplate } from '@/components/evidence/evidenceTemplates';
+import { getCarbonFactor } from '@/lib/carbon/factorRegistry';
 import {
   ACCEPT,
   MAX_SIZE,
@@ -66,6 +67,10 @@ import {
 
 const PAGE_SIZE = 50;
 
+
+const DEFAULT_GRID_FACTOR = getCarbonFactor('energy-grid-vn-2023');
+const DEFAULT_GRID_FACTOR_VALUE = String(DEFAULT_GRID_FACTOR?.value ?? 0.6592);
+const DEFAULT_GRID_FACTOR_SOURCE = 'Cục Biến đổi khí hậu — CV 1726/BĐKH-PTCBT (2024), hệ số lưới điện VN 2023';
 export default function EvidencePage() {
   const { user } = useAuth();
   const isViewer = user?.company_role === 'viewer';
@@ -81,6 +86,7 @@ export default function EvidencePage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewDoc, setReviewDoc] = useState<EvDoc | null>(null);
   const [reviewFields, setReviewFields] = useState<ExtractedField[]>([]);
+  const [reviewChecked, setReviewChecked] = useState(false);
   const [promotionRefreshToken, setPromotionRefreshToken] = useState(0);
 
   const [file, setFile] = useState<File | null>(null);
@@ -99,8 +105,8 @@ export default function EvidencePage() {
   const [elecFacilityName, setElecFacilityName] = useState('Main Facility');
   const [elecBillingPeriod, setElecBillingPeriod] = useState('');
   const [elecKwh, setElecKwh] = useState('');
-  const [elecEF, setElecEF] = useState('0.4290');
-  const [elecEFSource, setElecEFSource] = useState('VN Ministry of Natural Resources 2024');
+  const [elecEF, setElecEF] = useState(DEFAULT_GRID_FACTOR_VALUE);
+  const [elecEFSource, setElecEFSource] = useState(DEFAULT_GRID_FACTOR_SOURCE);
 
   // Fuel receipt structured fields → synced to fuel_invoices (CBAM Scope 1)
   const [fuelBillingPeriod, setFuelBillingPeriod] = useState('');
@@ -122,6 +128,7 @@ export default function EvidencePage() {
     kwh_total?: number | null;
     fuel_liters?: number | null;
     summary?: string;
+    warnings?: string[];
   } | null>(null);
 
   const analyzeSelectedFile = async (selectedFile: File) => {
@@ -139,11 +146,12 @@ export default function EvidencePage() {
         setAiAnalysisResult({
           detected_kind: data.detected_kind,
           document_title: data.document_title,
-          confidence: data.confidence || 0.9,
+          confidence: typeof data.confidence === 'number' ? data.confidence : 0,
           supplier_name: data.supplier_name,
           kwh_total: data.kwh_total,
           fuel_liters: data.fuel_liters,
           summary: data.summary,
+          warnings: (data.validation_warnings || []).map((warning) => warning.message),
         });
 
         // Auto-populate form fields
@@ -208,7 +216,7 @@ export default function EvidencePage() {
 
         toast({
           title: `✨ AI đã nhận diện: ${data.document_title}`,
-          description: `Đã tự động điền loại chứng từ và số liệu trích xuất (${Math.round((data.confidence || 0.9) * 100)}% tin cậy).`,
+          description: `Đã tự động điền loại chứng từ và số liệu trích xuất (${Math.round((typeof data.confidence === 'number' ? data.confidence : 0) * 100)}% tin cậy).`,
         });
       }
     } catch (err) {
@@ -317,8 +325,8 @@ export default function EvidencePage() {
     setElecFacilityName('Main Facility');
     setElecBillingPeriod('');
     setElecKwh('');
-    setElecEF('0.4290');
-    setElecEFSource('VN Ministry of Natural Resources 2024');
+    setElecEF(DEFAULT_GRID_FACTOR_VALUE);
+    setElecEFSource(DEFAULT_GRID_FACTOR_SOURCE);
     setFuelBillingPeriod('');
     setFuelType('diesel');
     setFuelQtyLiters('');
@@ -392,7 +400,22 @@ export default function EvidencePage() {
         ));
       }
 
-      const uploadResult = await api.post<EvDoc>('/evidence/upload', formData);
+      let uploadResult: EvDoc;
+      try {
+        uploadResult = await api.post<EvDoc>('/evidence/upload', formData);
+      } catch (uploadError) {
+        // LOI-017: cùng tệp (cùng SHA-256) đã có trong kho → hỏi trước khi lưu bản trùng.
+        if ((uploadError as { code?: string })?.code !== 'EVIDENCE_DUPLICATE_FILE') throw uploadError;
+        const proceed = window.confirm(
+          `${(uploadError as Error).message}\n\nThường không nên lưu trùng vì sẽ bị đếm hai lần. Bạn vẫn muốn lưu thành chứng từ riêng?`
+        );
+        if (!proceed) {
+          toast({ title: 'Đã hủy tải lên tệp trùng.' });
+          return;
+        }
+        formData.append('allowDuplicate', 'true');
+        uploadResult = await api.post<EvDoc>('/evidence/upload', formData);
+      }
       const evidenceId = uploadResult?.id;
 
       // Sync structured data to CBAM invoice tables
@@ -402,8 +425,8 @@ export default function EvidencePage() {
             facility_name: elecFacilityName || 'Main Facility',
             billing_period: elecBillingPeriod,
             kwh: parseFloat(elecKwh),
-            emission_factor_kg_per_kwh: parseFloat(elecEF) || 0.4290,
-            emission_factor_source: elecEFSource || 'VN Ministry of Natural Resources 2024',
+            emission_factor_kg_per_kwh: parseFloat(elecEF) || Number(DEFAULT_GRID_FACTOR_VALUE),
+            emission_factor_source: elecEFSource || DEFAULT_GRID_FACTOR_SOURCE,
             evidence_document_id: evidenceId,
           });
         } catch { /* non-fatal */ }
@@ -440,6 +463,7 @@ export default function EvidencePage() {
 
   const openReview = useCallback(async (doc: EvDoc) => {
     setReviewDoc(doc);
+    setReviewChecked(false);
     try {
       const fields = await api.get<ExtractedField[]>(`/evidence/${doc.id}/fields`);
       setReviewFields(fields);
@@ -892,6 +916,13 @@ export default function EvidencePage() {
                               </span>
                             )}
                           </div>
+                          {aiAnalysisResult.warnings && aiAnalysisResult.warnings.length > 0 && (
+                            <div className="mt-1.5 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 space-y-0.5">
+                              {aiAnalysisResult.warnings.map((warning, index) => (
+                                <div key={index}>⚠ {warning}</div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -1562,10 +1593,10 @@ export default function EvidencePage() {
                 <table className="w-full text-xs">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="text-left p-2">Field</th>
+                      <th className="text-left p-2">Trường</th>
                       <th className="text-left p-2">AI đọc được</th>
                       <th className="text-left p-2">Bạn xác nhận</th>
-                      <th className="text-left p-2">Confidence</th>
+                      <th className="text-left p-2">Độ tin cậy</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1584,8 +1615,14 @@ export default function EvidencePage() {
                       reviewFields.map((f, i) => (
                         <tr key={f.id} className="border-t">
                           <td className="p-2 font-medium">{f.label || f.id}</td>
-                          <td className="p-2 text-slate-600 max-w-[180px] truncate">
-                            {f.ai_value ?? '—'}
+                          <td className="p-2 text-slate-600 max-w-[220px]">
+                            <div className="truncate">{f.ai_value ?? '—'}</div>
+                            {f.user_entered_value && (
+                              <div className="text-[10px] text-sky-800">Bạn đã nhập: {f.user_entered_value}</div>
+                            )}
+                            {f.warning && (
+                              <div className="text-[10px] text-amber-800">⚠ {f.warning}</div>
+                            )}
                           </td>
                           <td className="p-2">
                             <Input
@@ -1616,6 +1653,19 @@ export default function EvidencePage() {
                   </tbody>
                 </table>
               </div>
+              {reviewFields.length > 0 && !['locked', 'verified', 'third_party_verified'].includes(reviewDoc.status || '') && (
+                <label className="flex items-start gap-2 text-xs text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={reviewChecked}
+                    onChange={(event) => setReviewChecked(event.target.checked)}
+                  />
+                  <span>
+                    Tôi đã đối chiếu từng trường ở cột &quot;Bạn xác nhận&quot; với chứng từ gốc. Sau khi xác nhận, chứng từ sẽ bị khóa và không sửa được số liệu.
+                  </span>
+                </label>
+              )}
               <ControlledActivityPromotionPanel
                 evidenceId={reviewDoc.id}
                 refreshToken={promotionRefreshToken}
@@ -1638,6 +1688,7 @@ export default function EvidencePage() {
             {reviewFields.length > 0 && !['locked', 'verified', 'third_party_verified'].includes(reviewDoc?.status || '') && (
               <Button
                 onClick={confirmReview}
+                disabled={!reviewChecked}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
                 Xác nhận dữ liệu

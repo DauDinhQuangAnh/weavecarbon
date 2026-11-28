@@ -22,8 +22,8 @@ export const DOC_TEMPLATES: Record<string, { sheet: string; rows: (string | numb
     sheet: 'Hoa_don_dien',
     rows: [
       ['Kỳ thanh toán', 'Cơ sở / Nhà máy', 'Lượng điện (kWh)', 'Hệ số phát thải (kg CO₂e/kWh)', 'Nguồn hệ số phát thải', 'CO₂e (kg) = kWh × EF'],
-      ['2024-Q2', 'Nhà máy Bình Dương', 12500, 0.4290, 'VN Ministry of Natural Resources 2024', 5362.5],
-      ['2024-Q3', 'Nhà máy Bình Dương', 11800, 0.4290, 'VN Ministry of Natural Resources 2024', 5062.2],
+      ['2024-Q2', 'Nhà máy Bình Dương', 12500, 0.6592, 'Cục Biến đổi khí hậu — CV 1726/BĐKH-PTCBT (2024), hệ số lưới điện VN 2023', 8240],
+      ['2024-Q3', 'Nhà máy Bình Dương', 11800, 0.6592, 'Cục Biến đổi khí hậu — CV 1726/BĐKH-PTCBT (2024), hệ số lưới điện VN 2023', 7778.56],
       ['* Ghi chú: Kỳ có thể là 2024-Q1, 2024-01, hoặc tháng cụ thể. CO₂e được tính tự động bởi hệ thống.', '', '', '', '', ''],
     ],
   },

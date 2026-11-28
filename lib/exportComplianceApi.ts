@@ -529,9 +529,15 @@ const shouldTryParseBodyAsDownloadPointer = (contentType: string, size: number) 
 
 const isSameOriginAsApi = (url: string) => {
   try {
-    const apiOrigin = new URL(resolveApiUrl("/")).origin;
-    const targetOrigin = new URL(url, resolveApiUrl("/")).origin;
-    return apiOrigin === targetOrigin;
+    // resolveApiUrl có thể trả đường dẫn tương đối ("/api/") → cần gốc trang để tạo URL.
+    const pageBase = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const apiUrl = new URL(resolveApiUrl("/"), pageBase);
+    const target = new URL(url, apiUrl);
+    if (apiUrl.origin === target.origin) return true;
+    // LOI-037: link tải về do backend trả có thể là URL tuyệt đối theo tên miền trang web
+    // (https://weavecarbon.com/api/...) trong khi API được gọi qua origin khác; vẫn là API của mình.
+    const pageOrigin = typeof window !== "undefined" ? window.location.origin : null;
+    return Boolean(pageOrigin && target.origin === pageOrigin && target.pathname.startsWith("/api/"));
   } catch {
     return false;
   }
@@ -1165,10 +1171,11 @@ const normalizeMarketCompliance = (value: unknown): MarketCompliance | null => {
         return document;
       })
     : mergedDocuments;
-  const documentsWithMarketFallback = applyMarketDocumentRequirementsFallback(
-    marketCode,
-    documentsWithRequiredFlag
-  );
+  // LOI-038/043: danh mục yêu cầu của backend là chuẩn; chỉ dùng danh mục dự phòng phía FE khi
+  // backend không trả danh mục (tránh sinh loại tài liệu tạm "fallback-xx-n" lệch với kiểm tra xuất bản).
+  const documentsWithMarketFallback = normalizedRequirements.length > 0
+    ? documentsWithRequiredFlag
+    : applyMarketDocumentRequirementsFallback(marketCode, documentsWithRequiredFlag);
   const requiredDocumentsFromMerged = documentsWithMarketFallback.filter((document) => document.required);
   const requiredDocumentsUploadedFromMerged = requiredDocumentsFromMerged.filter((document) =>
     isDocumentFulfilledStatus(document.status)
@@ -1418,10 +1425,14 @@ export const upsertComplianceCarbonData = async (input: UpsertCarbonInput) => {
 export const uploadComplianceDocument = async (
   marketCode: MarketCode,
   documentId: string,
-  file: File
+  file: File,
+  meta: { documentName?: string | null; documentCode?: string | null } = {}
 ) => {
   const body = new FormData();
   body.append("file", file);
+  // LOI-038: gửi kèm tên/mã loại tài liệu để backend không lấy id tạm ("fallback-eu-4") làm tên.
+  if (meta.documentName && meta.documentName.trim()) body.append("document_name", meta.documentName.trim());
+  if (meta.documentCode && meta.documentCode.trim()) body.append("document_code", meta.documentCode.trim());
 
   await apiRequest<unknown>(
     `${withEncodedMarketPath(marketCode)}/documents/${encodeURIComponent(documentId)}/upload`,

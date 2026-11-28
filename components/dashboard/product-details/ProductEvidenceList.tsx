@@ -44,7 +44,37 @@ interface EvidenceRow {
   ocr_confidence: number | null;
   created_at: string;
   extracted: Record<string, unknown>;
+  /** Thông tin nhập tay / metadata của chứng từ (dùng khi AI/OCR không trích xuất được). */
+  details: EvidenceDetails;
 }
+
+interface EvidenceDetails {
+  supplier: string | null;
+  period: string | null;
+  kwh: number | null;
+  fuelLiters: number | null;
+  amount: number | null;
+}
+
+const toNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value);
+  return null;
+};
+
+const buildEvidenceDetails = (value: Record<string, unknown>, extracted: Record<string, unknown>): EvidenceDetails => {
+  const start = asString(value.reportingPeriodStart ?? value.reporting_period_start).slice(0, 10);
+  const end = asString(value.reportingPeriodEnd ?? value.reporting_period_end).slice(0, 10);
+  const extractedPeriod = asString(extracted.billing_period) || asString(extracted.period_start);
+  return {
+    supplier: asString(extracted.supplier) || asString(extracted.supplier_name)
+      || asString(value.sourceVendor ?? value.source_vendor) || null,
+    period: extractedPeriod || (start || end ? `${start || '…'} → ${end || '…'}` : null),
+    kwh: toNumberOrNull(value.linkedKwh ?? value.linked_kwh) ?? toNumberOrNull(extracted.kwh_total ?? extracted.kwh),
+    fuelLiters: toNumberOrNull(value.linkedFuelLiters ?? value.linked_fuel_liters) ?? toNumberOrNull(extracted.fuel_liters),
+    amount: toNumberOrNull(extracted.amount_vnd ?? extracted.total_amount),
+  };
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -83,19 +113,22 @@ const normalizeEvidenceRow = (value: unknown): EvidenceRow | null => {
   );
   const checksum = asString(value.checksumSha256 ?? value.checksum_sha256 ?? value.storage_path ?? value.storagePath);
 
+  const extracted = isRecord(value.extracted)
+    ? value.extracted
+    : isRecord(value.extractedJson)
+      ? value.extractedJson
+      : {};
+
   return {
     id,
+    details: buildEvidenceDetails(value, extracted),
     kind: asString(value.kind ?? value.evidence_type ?? value.evidenceType, 'other'),
     status: asString(value.status, 'pending'),
     file_name: fileName,
     storage_path: asString(value.storage_path ?? value.storagePath, checksum),
     ocr_confidence: asNullableNumber(value.ocr_confidence ?? value.ocrConfidence),
     created_at: asString(value.created_at ?? value.createdAt, new Date().toISOString()),
-    extracted: isRecord(value.extracted)
-      ? value.extracted
-      : isRecord(value.extractedJson)
-        ? value.extractedJson
-        : {},
+    extracted,
   };
 };
 
@@ -479,43 +512,52 @@ const ProductEvidenceList: React.FC<Props> = ({
                   </div>
                 )}
 
-                {activeEvidence?.extracted && Object.keys(activeEvidence.extracted).length > 0 && (
-                  <div className="rounded-lg border bg-muted/30 p-3 text-xs">
-                    <p className="font-semibold text-foreground mb-1.5">Thông tin AI/OCR đã trích xuất:</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-muted-foreground">
-                      {Boolean(activeEvidence.extracted.supplier || activeEvidence.extracted.supplier_name) && (
-                        <div>
-                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Nhà cung cấp</span>
-                          <span className="font-medium text-foreground">{String(activeEvidence.extracted.supplier || activeEvidence.extracted.supplier_name)}</span>
-                        </div>
-                      )}
-                      {Boolean(activeEvidence.extracted.billing_period || activeEvidence.extracted.period_start) && (
-                        <div>
-                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Kỳ thanh toán</span>
-                          <span className="font-medium text-foreground">{String(activeEvidence.extracted.billing_period || activeEvidence.extracted.period_start)}</span>
-                        </div>
-                      )}
-                      {typeof (activeEvidence.extracted.kwh_total ?? activeEvidence.extracted.kwh) === 'number' && (
-                        <div>
-                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Điện năng tiêu thụ</span>
-                          <span className="font-semibold text-emerald-600">{Number(activeEvidence.extracted.kwh_total ?? activeEvidence.extracted.kwh).toLocaleString('vi-VN')} kWh</span>
-                        </div>
-                      )}
-                      {typeof (activeEvidence.extracted.fuel_liters) === 'number' && (
-                        <div>
-                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Nhiên liệu</span>
-                          <span className="font-semibold text-amber-600">{Number(activeEvidence.extracted.fuel_liters).toLocaleString('vi-VN')} L</span>
-                        </div>
-                      )}
-                      {typeof (activeEvidence.extracted.amount_vnd ?? activeEvidence.extracted.total_amount) === 'number' && (
-                        <div>
-                          <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Tổng tiền</span>
-                          <span className="font-semibold text-blue-600">{Number(activeEvidence.extracted.amount_vnd ?? activeEvidence.extracted.total_amount).toLocaleString('vi-VN')} ₫</span>
+                {activeEvidence && (() => {
+                  const details = activeEvidence.details;
+                  const hasAny = Boolean(details.supplier || details.period)
+                    || details.kwh != null || details.fuelLiters != null || details.amount != null;
+                  return (
+                    <div className="rounded-lg border bg-muted/30 p-3 text-xs">
+                      <p className="font-semibold text-foreground mb-1.5">Thông tin chứng từ (AI/OCR hoặc nhập tay):</p>
+                      {!hasAny ? (
+                        <p className="text-muted-foreground">Chứng từ chưa có thông tin trích xuất hay nhập tay.</p>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-muted-foreground">
+                          {details.supplier && (
+                            <div>
+                              <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Nhà cung cấp</span>
+                              <span className="font-medium text-foreground">{details.supplier}</span>
+                            </div>
+                          )}
+                          {details.period && (
+                            <div>
+                              <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Kỳ</span>
+                              <span className="font-medium text-foreground">{details.period}</span>
+                            </div>
+                          )}
+                          {details.kwh != null && (
+                            <div>
+                              <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Điện năng tiêu thụ</span>
+                              <span className="font-semibold text-emerald-600">{details.kwh.toLocaleString('vi-VN')} kWh</span>
+                            </div>
+                          )}
+                          {details.fuelLiters != null && (
+                            <div>
+                              <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Nhiên liệu</span>
+                              <span className="font-semibold text-amber-600">{details.fuelLiters.toLocaleString('vi-VN')} L</span>
+                            </div>
+                          )}
+                          {details.amount != null && (
+                            <div>
+                              <span className="block text-[10px] uppercase font-semibold text-muted-foreground/80">Tổng tiền</span>
+                              <span className="font-semibold text-blue-600">{details.amount.toLocaleString('vi-VN')} ₫</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             ) : null}
           </div>

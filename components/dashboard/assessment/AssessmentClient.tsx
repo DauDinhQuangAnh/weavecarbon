@@ -37,7 +37,8 @@ import {
   PRODUCT_CATEGORIES,
   PRODUCT_TYPES,
   ProductAssessmentData,
-  ProductAssessmentSessionDraft
+  ProductAssessmentSessionDraft,
+  isValidSharePercent
 } from "./steps/types";
 import {
   createProduct,
@@ -1222,14 +1223,22 @@ export default function AssessmentClient({
             (sum, material) => sum + (material.percentage || 0),
             0
           );
-          return productData.materials.length > 0 && total === 100;
+          return (
+            productData.materials.length > 0 &&
+            total === 100 &&
+            productData.materials.every((material) => isValidSharePercent(material.percentage || 0))
+          );
         }
       case 3:{
           const total = productData.energySources.reduce(
             (sum, energy) => sum + (energy.percentage || 0),
             0
           );
-          return productData.productionProcesses.length > 0 && total === 100;
+          return (
+            productData.productionProcesses.length > 0 &&
+            total === 100 &&
+            productData.energySources.every((energy) => isValidSharePercent(energy.percentage || 0))
+          );
         }
       case 4:
         return (
@@ -1257,13 +1266,17 @@ export default function AssessmentClient({
       case 2: {
         const total = productData.materials.reduce((sum, material) => sum + (material.percentage || 0), 0);
         if (productData.materials.length === 0) missing.push("Ít nhất một vật liệu");
+        else if (productData.materials.some((material) => !isValidSharePercent(material.percentage || 0)))
+          missing.push("Mỗi tỷ lệ vật liệu phải trong khoảng 0–100% (không âm)");
         else if (total !== 100) missing.push(`Tổng tỷ lệ vật liệu = 100% (hiện ${total}%)`);
         break;
       }
       case 3: {
         const total = productData.energySources.reduce((sum, energy) => sum + (energy.percentage || 0), 0);
         if (productData.productionProcesses.length === 0) missing.push("Ít nhất một quy trình sản xuất");
-        if (total !== 100) missing.push(`Tổng tỷ lệ nguồn năng lượng = 100% (hiện ${total}%)`);
+        if (productData.energySources.some((energy) => !isValidSharePercent(energy.percentage || 0)))
+          missing.push("Mỗi tỷ lệ nguồn năng lượng phải trong khoảng 0–100% (không âm)");
+        else if (total !== 100) missing.push(`Tổng tỷ lệ nguồn năng lượng = 100% (hiện ${total}%)`);
         break;
       }
       case 4:
@@ -1653,8 +1666,10 @@ export default function AssessmentClient({
       setCurrentStep(4);
       return;
     }
+    // LOI-027: không xuất bản khi chưa kiểm tra xong / còn thiếu tài liệu bắt buộc của thị trường.
     if (!isTrialPlan && !appRoutes.isDemo && isCertificationAvailabilityLoading) {
-      toast.warning(t("toast.certificationDocumentsChecking"));
+      toast.warning(t("toast.publishBlockedDocumentsChecking"));
+      return;
     }
 
     if (!isTrialPlan && !appRoutes.isDemo) {
@@ -1674,11 +1689,14 @@ export default function AssessmentClient({
         const documentPreview = `${missingRequiredExportDocuments
           .slice(0, 3)
           .join(", ")}${missingRequiredExportDocuments.length > 3 ? "..." : ""}`;
-        toast.warning(
-          t("toast.missingExportDocuments", {
+        toast.error(
+          t("toast.publishBlockedMissingDocuments", {
+            count: missingRequiredExportDocuments.length,
             documents: documentPreview
           })
         );
+        setCurrentStep(6);
+        return;
       }
     }
 

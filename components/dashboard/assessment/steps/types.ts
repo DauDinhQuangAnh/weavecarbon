@@ -127,3 +127,7 @@ export const MATERIAL_SOURCES = [
   { value: "imported", label: "Nhập khẩu" },
   { value: "unknown", label: "Không xác định" },
 ];
+
+/** Tỷ lệ % hợp lệ cho một vật liệu / nguồn năng lượng: số hữu hạn trong khoảng 0–100 (LOI-029). */
+export const isValidSharePercent = (value: unknown): boolean =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;

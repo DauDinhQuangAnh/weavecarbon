@@ -34,6 +34,8 @@ import {
   normalizeDataQualityTier,
 } from "@/lib/design-system/dataQualityLadder";
 import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { weavenodeApi } from "@/lib/weavenodeApi";
+import { getCarbonFactor } from "@/lib/carbon/factorRegistry";
 
 type GraphNodeType = "evidence" | "point" | "activity" | "factor" | "process" | "report";
 
@@ -86,6 +88,17 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
   const lineage = useIndustrialWorkspaceQuery(loadLineage, demo);
   const data = lineage.data?.activity.id === activityId ? lineage.data : null;
 
+  // LOI-019: bước "Hệ số" và "Phân bổ" lấy từ dữ liệu thật, không dùng nhãn cố định.
+  const loadAllocationRuns = useCallback(
+    async () => (demo ? [] : industrialCoreApi.allocationRuns(500).catch(() => [])),
+    [demo]
+  );
+  const allocationRuns = useIndustrialWorkspaceQuery(loadAllocationRuns, demo);
+  const activityAllocationRuns = (allocationRuns.data || []).filter((run) => run.sourceActivityId === activityId);
+  const latestAllocationRun = activityAllocationRuns[0] || null;
+  const activityTypeKey = String(data?.activity.activityType || "").toLowerCase();
+  const linkedFactor = activityTypeKey.includes("electric") ? getCarbonFactor("energy-grid-vn-2023") : null;
+
   const dqlTier = data ? normalizeDataQualityTier(data.activity.dataQualityLevel) : "L2";
   const dqlDef = DATA_QUALITY_LADDER[dqlTier];
 
@@ -132,24 +145,41 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
         {
           step: "4",
           title: "Hệ số phát thải",
-          desc: "MoNRE / IPCC / EF Database",
-          active: !demo,
+          desc: linkedFactor ? `${linkedFactor.value} ${linkedFactor.unit}` : "Chưa liên kết hệ số",
+          active: Boolean(linkedFactor),
           type: "factor",
-          meta: {
-            "Nguồn hệ số": "Cục Biến đổi khí hậu (MoNRE)",
-            "Cơ sở tính": "IPCC AR6 GWP100",
-          },
+          meta: linkedFactor
+            ? {
+                "Hệ số": `${linkedFactor.value} ${linkedFactor.unit}`,
+                "Nguồn hệ số": linkedFactor.source,
+                "Năm": String(linkedFactor.year ?? "—"),
+              }
+            : {
+                "Hệ số": "Chưa có hệ số đã duyệt gắn với loại hoạt động này",
+                "Hành động": "Chọn hệ số ở trang Quản trị dữ liệu / Hệ số phát thải",
+              },
         },
         {
           step: "5",
           title: "Phân bổ quy trình",
-          desc: data.process?.name || "Ranh giới cơ sở",
-          active: Boolean(data.process),
+          desc: latestAllocationRun
+            ? `${latestAllocationRun.allocationReference} r${latestAllocationRun.ruleRevision} · ${latestAllocationRun.lines.length} đích`
+            : data.process?.name || "Chưa có lần phân bổ",
+          active: Boolean(latestAllocationRun || data.process),
           type: "process",
-          meta: {
-            "Quy trình": data.process?.name || "Ranh giới chung cơ sở",
-            "Cơ sở trực thuộc": data.facility.name,
-          },
+          meta: latestAllocationRun
+            ? {
+                "Quy tắc phân bổ": `${latestAllocationRun.allocationReference} (revision ${latestAllocationRun.ruleRevision})`,
+                "Phương pháp": latestAllocationRun.allocationMethod,
+                "Số lượng phân bổ": `${Number(latestAllocationRun.allocatedQuantity).toLocaleString("vi-VN")} ${latestAllocationRun.sourceUnit}`,
+                "Đích phân bổ": latestAllocationRun.lines.map((line) => `${line.targetReference} ${(line.allocationShare * 100).toFixed(1)}%`).join(", ") || "—",
+                "Số lần phân bổ": String(activityAllocationRuns.length),
+              }
+            : {
+                "Quy trình": data.process?.name || "Chưa gắn quy trình",
+                "Cơ sở trực thuộc": data.facility.name,
+                "Phân bổ": "Chưa có lần phân bổ nào cho hoạt động này",
+              },
         },
         {
           step: "6",
@@ -191,41 +221,52 @@ export default function EvidenceLineageClient({ review = false, demo = false }: 
       setForensicResult(res);
       setRunningForensic(false);
       if (res.verdict === "audit_ready") {
-        toast.success("AI xác nhận: Chuỗi bằng chứng đạt tính toàn vẹn mật mã ISO 14064!");
+        toast.success("Kiểm tra theo quy tắc: chuỗi bằng chứng đủ điều kiện gửi thẩm tra (chưa phải thẩm tra).");
       } else {
         toast.warning(`Phát hiện điểm cần khắc phục: Điểm toàn vẹn đạt ${res.integrityScore}/100.`);
       }
     }, 450);
   };
 
-  const handleGenerateVerificationOpinion = () => {
+  const handleGenerateVerificationOpinion = async () => {
     if (!data) return;
     setGeneratingOpinion(true);
-    setTimeout(() => {
-      const draft = generateIsoVerificationOpinion({
-        facilityName: data.facility.name,
-        activitiesCount: activities.data?.length || 1,
-        evidenceLockedCount: data.evidence.filter((e) => ["locked", "third_party_verified"].includes(e.status)).length,
-        discrepancyPercent: 1.4,
-        levelOfAssurance: "reasonable",
-      });
-      setOpinionDraft(draft);
-      setGeneratingOpinion(false);
-      toast.success("AI đã tạo Dự thảo Ý kiến Thẩm tra KNK (ISO 14064-3)!");
-    }, 450);
+    // LOI-019: dùng sai lệch đối soát công tơ thật của cơ sở, không dùng số cố định.
+    let discrepancyPercent: number | undefined;
+    if (!demo) {
+      try {
+        const reconciliations = await weavenodeApi.reconciliations();
+        const differences = reconciliations
+          .filter((row) => row.facilityRevisionId === data.facility.id && typeof row.differencePercent === "number")
+          .map((row) => Math.abs(row.differencePercent as number));
+        if (differences.length) discrepancyPercent = Math.max(...differences);
+      } catch {
+        discrepancyPercent = undefined;
+      }
+    }
+    const draft = generateIsoVerificationOpinion({
+      facilityName: data.facility.name,
+      activitiesCount: activities.data?.length || 1,
+      evidenceLockedCount: data.evidence.filter((e) => ["locked", "third_party_verified"].includes(e.status)).length,
+      discrepancyPercent,
+      levelOfAssurance: "limited",
+    });
+    setOpinionDraft(draft);
+    setGeneratingOpinion(false);
+    toast.success("Đã tạo bản nháp ý kiến theo quy tắc — cần thẩm tra viên độc lập xem xét.");
   };
 
   const handleApplyOpinionToReview = () => {
     if (!opinionDraft) return;
-    const formattedNotes = `[DỰ THẢO Ý KIẾN THẨM TRA ISO 14064-3]
+    const formattedNotes = `[BẢN NHÁP THEO QUY TẮC — CHƯA PHẢI Ý KIẾN THẨM TRA]
 ${opinionDraft.opinionTitle}
 - Nội dung kết luận: ${opinionDraft.opinionStatement}
 - Đánh giá trọng yếu: ${opinionDraft.materialityAssessment.conclusion}
 - Ghi chú: ${opinionDraft.qualificationNotes.length ? opinionDraft.qualificationNotes.join("; ") : "Không có ngoại trừ trọng yếu."}
-- Cam kết thẩm tra: ${opinionDraft.auditorDeclaration}`;
+- Lưu ý: ${opinionDraft.auditorDeclaration}`;
 
     setNotes(formattedNotes);
-    if (opinionDraft.opinionType === "reasonable_assurance" && canApprove) {
+    if ((opinionDraft.opinionType === "reasonable_assurance" || opinionDraft.opinionType === "limited_assurance") && canApprove) {
       setDecision("approved");
     }
     toast.success("Đã điền Dự thảo Thẩm tra vào form Review!");
@@ -246,15 +287,15 @@ ${opinionDraft.opinionTitle}
           }
           demoCache().saveActivityReview(act.id, {
             decision: "approved",
-            notes: "Ký duyệt thẩm tra hàng loạt có bảo chứng băm SHA-256 (ISO 14064-3).",
+            notes: "Duyệt nội bộ hàng loạt: chứng từ đã khóa và có mã SHA-256 (không phải thẩm tra độc lập).",
           });
           count++;
         });
         setBatchApprovedCount(count);
         if (skippedNeedsInfo > 0) {
-          toast.success(`Đã ký duyệt & thẩm tra ${count} bản ghi (đã giữ nguyên ${skippedNeedsInfo} mục yêu cầu bổ sung hồ sơ).`);
+          toast.success(`Đã duyệt nội bộ ${count} bản ghi (đã giữ nguyên ${skippedNeedsInfo} mục yêu cầu bổ sung hồ sơ).`);
         } else {
-          toast.success(`Đã ký duyệt & thẩm tra thành công ${count} bản ghi hoạt động.`);
+          toast.success(`Đã duyệt nội bộ ${count} bản ghi hoạt động.`);
         }
         await lineage.reload();
         return;
@@ -271,7 +312,7 @@ ${opinionDraft.opinionTitle}
           await industrialCoreApi.reviewActivity(act.id, {
             reviewerRole: "industrial_activity_reviewer",
             decision: "approved",
-            notes: "Thẩm tra bảo đảm hợp lý hàng loạt (ISO 14064-3 Reasonable Assurance).",
+            notes: "Duyệt nội bộ hàng loạt sau khi kiểm tra chứng từ đã khóa (không phải thẩm tra độc lập).",
           });
           count++;
         } catch {
@@ -280,9 +321,9 @@ ${opinionDraft.opinionTitle}
       }
       setBatchApprovedCount(count);
       if (skippedNeedsInfo > 0) {
-        toast.success(`Đã thẩm tra hàng loạt ${count} hoạt động (đã giữ nguyên ${skippedNeedsInfo} mục đang yêu cầu bổ sung hồ sơ).`);
+        toast.success(`Đã duyệt nội bộ hàng loạt ${count} hoạt động (đã giữ nguyên ${skippedNeedsInfo} mục đang yêu cầu bổ sung hồ sơ).`);
       } else {
-        toast.success(`Đã thẩm tra hàng loạt ${count} bản ghi hoạt động!`);
+        toast.success(`Đã duyệt nội bộ hàng loạt ${count} bản ghi hoạt động.`);
       }
       await lineage.reload();
     } finally {
@@ -372,9 +413,9 @@ ${opinionDraft.opinionTitle}
                       <Sparkles className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="text-sm font-semibold text-foreground">Giám định Pháp y Bằng chứng & Mật mã AI</h2>
+                      <h2 className="text-sm font-semibold text-foreground">Kiểm tra chuỗi bằng chứng (theo quy tắc)</h2>
                       <p className="text-xs text-muted-foreground">
-                        Kiểm tra tự động mã hash SHA-256, tính logic thời gian và mức sẵn sàng thẩm định ISO 14064-3.
+                        Kiểm tra tự động theo quy tắc: mã SHA-256, chứng từ đã khóa, kỳ hoạt động. Không thay thế thẩm tra ISO 14064-3.
                       </p>
                     </div>
                   </div>
@@ -386,7 +427,7 @@ ${opinionDraft.opinionTitle}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium shadow-xs"
                   >
                     <Fingerprint className="h-3.5 w-3.5 mr-1.5" />
-                    {runningForensic ? "Đang giám định pháp y…" : "Chạy AI Giám định Chuỗi bằng chứng"}
+                    {runningForensic ? "Đang kiểm tra…" : "Kiểm tra chuỗi bằng chứng"}
                   </Button>
                 </div>
 
@@ -408,7 +449,7 @@ ${opinionDraft.opinionTitle}
                             <ShieldAlert className="h-5 w-5 text-amber-600" />
                           )}
                           <CardTitle className="text-sm font-bold text-foreground">
-                            Chứng thư Toàn vẹn Phả hệ AI: {forensicResult.assuranceReadiness}
+                            Kết quả kiểm tra theo quy tắc: {forensicResult.assuranceReadiness}
                           </CardTitle>
                           <Badge variant="outline" className="font-mono text-xs">
                             Điểm: {forensicResult.integrityScore}/100
@@ -712,7 +753,7 @@ ${opinionDraft.opinionTitle}
                         className="text-xs font-medium gap-1.5 border-primary/40 text-primary hover:bg-primary/5 self-start sm:self-auto"
                       >
                         <Sparkles className={`h-3.5 w-3.5 ${generatingOpinion ? "animate-spin" : ""}`} />
-                        {generatingOpinion ? "Đang dự thảo..." : "AI Dự thảo Ý kiến Thẩm tra (ISO 14064-3)"}
+                        {generatingOpinion ? "Đang dự thảo..." : "Tạo bản nháp ý kiến (theo quy tắc)"}
                       </Button>
                     </div>
 
@@ -784,7 +825,7 @@ ${opinionDraft.opinionTitle}
                         className="mt-2 min-h-24 w-full rounded-md border bg-background p-2 text-sm leading-relaxed"
                         value={notes}
                         onChange={(event) => setNotes(event.target.value)}
-                        placeholder="Nhập lý do review & kết luận thẩm định, hoặc bấm 'AI Dự thảo Ý kiến Thẩm tra' để tạo theo chuẩn ISO 14064-3..."
+                        placeholder="Nhập lý do review & kết luận thẩm định, hoặc bấm 'Tạo bản nháp ý kiến (theo quy tắc)'..."
                       />
 
                       <Button type="submit" disabled={decision === "approved" && !canApprove}>

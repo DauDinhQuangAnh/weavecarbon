@@ -571,17 +571,21 @@ const ExportPage: React.FC = () => {
         item.group === uploadModalGroup && item.key === getUploadTargetKey(targetMarket, targetDocumentId)
     );
     const targetMarketName = complianceData?.[targetMarket]?.marketName || targetMarket;
+    const targetComplianceDocument = complianceData?.[targetMarket]?.documents.find(
+      (document) =>
+        document.id === targetDocumentId && resolveComplianceDocumentGroup(document) === uploadModalGroup
+    );
     const targetDocumentName =
       target?.documentName ||
-      complianceData?.[targetMarket]?.documents.find(
-        (document) =>
-          document.id === targetDocumentId && resolveComplianceDocumentGroup(document) === uploadModalGroup
-      )?.name ||
+      targetComplianceDocument?.name ||
       targetDocumentId;
     void (async () => {
       setUploadingDocument(true);
       try {
-        await uploadComplianceDocument(targetMarket, targetDocumentId, file);
+        await uploadComplianceDocument(targetMarket, targetDocumentId, file, {
+          documentName: targetDocumentName !== targetDocumentId ? targetDocumentName : null,
+          documentCode: targetComplianceDocument?.code ?? null,
+        });
         if (
           uploadModalMode === "edit" &&
           editingDocument &&

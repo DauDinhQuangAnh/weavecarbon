@@ -384,6 +384,15 @@ const ProductsClient: React.FC = () => {
       productName: product.productName,
       productType: product.productType,
       productCategory: product.productCategory || "textile",
+      // LOI-033: nạp đủ mã HS/CN và thông tin hải quan khi mở lại để chỉnh sửa.
+      hsCode: product.hsCode || product.cnCode || "",
+      cnCode: product.cnCode || product.hsCode || "",
+      supplierCountry: product.supplierCountry,
+      supplyGap: product.supplyGap,
+      customsDeclarationNo: product.customsDeclarationNo,
+      poContractId: product.poContractId,
+      billOfLadingNo: product.billOfLadingNo,
+      containerNo: product.containerNo,
       facility: product.facility,
       evidenceLookupCode: product.evidenceLookupCode,
       evidenceDocument: product.evidenceDocument,
@@ -461,7 +470,7 @@ const ProductsClient: React.FC = () => {
   ]);
 
   const openEditAssessment = useCallback(
-    async (product: ProductRecord) => {
+    async (product: Pick<ProductRecord, "id" | "shipmentId">, initialStep = 1) => {
       if (!canMutate) {
         notifyNoPermission();
         return;
@@ -472,7 +481,7 @@ const ProductsClient: React.FC = () => {
       }
 
       setEditingProductId(product.id);
-      setAssessmentInitialStep(1);
+      setAssessmentInitialStep(Math.min(Math.max(Math.trunc(initialStep) || 1, 1), 6));
       try {
         const productShipmentStatus = await resolveShipmentStatus(product.shipmentId);
         if (productShipmentStatus === "cancelled") {
@@ -626,6 +635,22 @@ const ProductsClient: React.FC = () => {
       t
     ]
   );
+
+  // LOI-034: /products?edit=<id>&step=<n> mở đúng sản phẩm ở đúng bước (từ "Bổ sung" ở trang chi tiết).
+  const deepLinkHandledRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandledRef.current || typeof window === "undefined" || !canMutate) return;
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("edit");
+    if (!editId) return;
+    deepLinkHandledRef.current = true;
+    const step = Number.parseInt(params.get("step") || "1", 10);
+    params.delete("edit");
+    params.delete("step");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    void openEditAssessment({ id: editId, shipmentId: null }, Number.isFinite(step) ? step : 1);
+  }, [canMutate, openEditAssessment]);
 
   const handleAssessmentSessionDraftChange = useCallback(
     (draft: ProductAssessmentSessionDraft | null) => {
@@ -1342,15 +1367,15 @@ const ProductsClient: React.FC = () => {
                         <p className="mt-1 text-[11px] text-slate-500 font-medium">
                           {co2PerUnitLabel(product.weightPerUnit)?.replace(/^kg /, "") ?? t("co2PerUnit")}
                         </p>
-                        <div className="mt-1.5 flex items-center gap-1.5" title="Audit-ready score (chỉ báo nội bộ)">
+                        <div className="mt-1.5 flex items-center gap-1.5" title="Độ tin cậy dữ liệu (cùng chỉ số ở bước 5 và trang chi tiết)">
                           <span className="h-1 w-16 overflow-hidden rounded-full bg-muted">
                             <span
                               className="block h-full rounded-full bg-primary transition-[width] duration-700"
-                              style={{ width: `${deriveAuditReadiness(product).auditReadyScore}%` }}
+                              style={{ width: `${deriveAuditReadiness(product).confidenceScore}%` }}
                             />
                           </span>
                           <span className="text-[10px] tabular-nums text-muted-foreground">
-                            {deriveAuditReadiness(product).auditReadyScore}/100
+                            Tin cậy {deriveAuditReadiness(product).confidenceScore}/100
                           </span>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-1">

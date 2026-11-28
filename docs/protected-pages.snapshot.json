@@ -47,7 +47,7 @@
     {
       "repo": "FE",
       "path": "app/(dashboard)/evidence/page.tsx",
-      "sha256": "5ebb6a89e8c731c3f121fb2a13a401f79b8701c49e323648fb22e2a8756a0959"
+      "sha256": "b5ba8f146194e78d1f43ee8e412389aaa2ba2f34bb91dcfa0ca37de57a92481e"
     },
     {
       "repo": "FE",
@@ -187,7 +187,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/CarbonCalculator.tsx",
-      "sha256": "e2b251b776e167f4bd4faac4cae459953705f29d73fec71fd0cdf02d33ec78ec"
+      "sha256": "f2cb53cf74af35618a6273db0aa87d715839fe36047c1b4118dd158c826cbfbf"
     },
     {
       "repo": "FE",
@@ -232,17 +232,17 @@
     {
       "repo": "FE",
       "path": "components/dashboard/ProductsClient.tsx",
-      "sha256": "6f95f0d7e3529697dd3eda05af8956b05ffb5fe06d6bc34319ef7889d8964751"
+      "sha256": "3744ca7fe87dfd9b5c0b75f565f8ef7387f63cd9233ccb539de36ba8418022a2"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/SummaryClient.tsx",
-      "sha256": "61f0f9feba3d6ae73e350c258af4fd6debb6dff640eb20c6795c8e082fbee5a9"
+      "sha256": "6c5048ff745ff8f889a7a21f1027963b6aee67b5409e0ccd84effd634632ab14"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/AssessmentClient.tsx",
-      "sha256": "d7703526818f58341a9567947f8628b3e16d57c7b05619254ba6a15626efc99e"
+      "sha256": "e6610ef1d59efcfff4ba63e35f16bfec206efa32a8438013ff807ec74b34387a"
     },
     {
       "repo": "FE",
@@ -292,17 +292,17 @@
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/steps/Step2Content.tsx",
-      "sha256": "c70e4667e078991a95d939b6284ec63d111a845b82eb1e1f97dad082a5feb7ad"
+      "sha256": "14379b607edfa83802d95aca94bb7adccb74e57669e7bf2bff79be35d7d30394"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/steps/Step3Content.tsx",
-      "sha256": "fbb8224728fcfa3438c38b1d82e8f2acc93896c415171902b77264f203a3096d"
+      "sha256": "04cfc8e65394f8f5827da3090e943f32405aa487660dfaa00500257a4f6f61ab"
     },
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/steps/Step4Content.tsx",
-      "sha256": "d96b6275bf50dcaf41226d94a1c51c77a596fa780b7b27608bb947e2139f27db"
+      "sha256": "09eaf9f56798cba99888f4e1661c2ee091504b44b4f1107735b774b390029d86"
     },
     {
       "repo": "FE",
@@ -342,7 +342,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/assessment/steps/types.ts",
-      "sha256": "87d2ab1c401a89a3dc56439da6d550a45f4a39b47573918a3d24e5809bc18b96"
+      "sha256": "23b1cb6a399ef850e187dceba10a8c8e028901a636d6d92d64bbb220d49eb69e"
     },
     {
       "repo": "FE",
@@ -367,7 +367,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/cbam/CbamReportSection.tsx",
-      "sha256": "a11fb49b4300896f4ca06fff6e1ce3c7561cff5ebc8fa4cf96b03a03fef0d553"
+      "sha256": "95cec8f55a34fd6ee969ba374d49af17086dcb037b3a83567b48b2d193e0a318"
     },
     {
       "repo": "FE",
@@ -422,7 +422,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/export/ExportClient.tsx",
-      "sha256": "4aeacc5e509efc33a8a7db0e1121b04089039e1250c934170b01562fb0fa58e9"
+      "sha256": "0afc2d5b30bb7795116b2061ed9f8cc5ede649d4c81ec1d0ccb71a4e93ae3525"
     },
     {
       "repo": "FE",
@@ -532,7 +532,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/DataCompletenessCheck.tsx",
-      "sha256": "5901f10d79b09b56cd3ee1383e5d38e00540803ea6661ade63ddf2ec3508276a"
+      "sha256": "a2e3a725a949f6cb291c4fbcf7706c8c54bfbf3b51501b7c0a96d3244af6e648"
     },
     {
       "repo": "FE",
@@ -547,7 +547,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/product-details/ProductEvidenceList.tsx",
-      "sha256": "31a39513be4ee9c2627d70e4976627db5ee15dc5b461bda1f6d74820a8251114"
+      "sha256": "89c702c5bcf23d7bce117624acd8a856abaf7719614d97194a7341d70a3701e0"
     },
     {
       "repo": "FE",
@@ -592,7 +592,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/products/bulkUploadHelpers.ts",
-      "sha256": "ac4a8b8b9ac7f729605f4a5a04a891a6facb334535faa7d7a40f6b7685406b2b"
+      "sha256": "1636cdc2eb50ac5ee581d118c755358322fb4ae4f779e7323e7a4c312914711b"
     },
     {
       "repo": "FE",
@@ -707,12 +707,12 @@
     {
       "repo": "FE",
       "path": "components/evidence/evidenceTemplates.ts",
-      "sha256": "16d64c48fdfc4007ea43ab94b22ea82363a480a5c02f4ed25f9a6dbad12565cc"
+      "sha256": "9d4decfb93096030b5ad610f82848503bbcdb16b44caa178666c4d7fb5ada71e"
     },
     {
       "repo": "FE",
       "path": "components/evidence/evidenceTypes.ts",
-      "sha256": "0d6142d8d67818817571b111aa69d888fc07a1645edac4475b22110c33a2738c"
+      "sha256": "c23dcc35fc5ae2a3b8ee549f4bbde9dd8a3fbcff8ab1245a02607cc332396155"
     },
     {
       "repo": "FE",
@@ -907,7 +907,7 @@
     {
       "repo": "FE",
       "path": "hooks/useEvidenceUpload.ts",
-      "sha256": "ea97ddbeba6117e355ffc7457a01ad48d4e3f857b4c524befde53e0296d0d4ff"
+      "sha256": "a6871174f81856a228e3fd6ce2efa53463cc59bb57c9791bc19008f9f50f0223"
     },
     {
       "repo": "FE",
@@ -1027,7 +1027,7 @@
     {
       "repo": "FE",
       "path": "lib/carbon/adapters.ts",
-      "sha256": "979edc6ec7dd71e42c9f74e069cdcf9f73c0ffad37199d848230e7b35bd3c1c1"
+      "sha256": "3d05cdd9b2547b10a25e41d3686148a60b8fc826a68c9b66acd8a820491d8280"
     },
     {
       "repo": "FE",
@@ -1197,7 +1197,7 @@
     {
       "repo": "FE",
       "path": "lib/exportComplianceApi.ts",
-      "sha256": "29aedb78dfb604b1585435c644ec811da7982ecbb6054b9c72d7d21c37504999"
+      "sha256": "c1d204af0a849787a39028c6bf29e0619f06e178f4e9383650b0051b1bb4ecaf"
     },
     {
       "repo": "FE",
@@ -1477,7 +1477,7 @@
     {
       "repo": "FE",
       "path": "locales/vi/common.json",
-      "sha256": "9d9bbba68ba07edf2c418a5d93ce6035953351ccbb51367195223305cb2295df"
+      "sha256": "d871f5bb73ef0a51f28a3b53be3010bbc1c8abc2f1c0b199cdb073ebc30bfef8"
     },
     {
       "repo": "FE",
@@ -1917,7 +1917,7 @@
     {
       "repo": "BE",
       "path": "src/modules/carbon/service.js",
-      "sha256": "38b6dc0a846e8a4dbb2ee7745f57ba16433f264264a57dacd6599c17f802e602"
+      "sha256": "18fd21f4b6a2cecc7efc4aef72d667e48515dba99f8a7da173db7dcc7b4168d4"
     },
     {
       "repo": "BE",
@@ -1932,7 +1932,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/aiExtractor.js",
-      "sha256": "d45d37763fd905d3887c12fc175b7532f1717aa9c69ef4c61871dfdaeca58ec3"
+      "sha256": "f2dd6838329c505418e482c520bfa80ffccc013658a7d4a2a9d4a12132db9b09"
     },
     {
       "repo": "BE",
@@ -1942,7 +1942,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/index.js",
-      "sha256": "776baab15e841d3c69414a071944fb34938d2fc1347d9662a3f93b922dd8d539"
+      "sha256": "be8e1aa4ac6b59830b2c3de0d633423e8584356a8ac6e03768fbe6565a6f4d5f"
     },
     {
       "repo": "BE",
@@ -1952,22 +1952,22 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/processor.js",
-      "sha256": "2f529a615133079a74addbafa4cafcf5f3c4e71e406a0858a6d9d389632c28c3"
+      "sha256": "d2f70f901a0fe09cf6d39b7ff0a8080551a6264a096752771a45f3d3a9dfcc3d"
     },
     {
       "repo": "BE",
       "path": "src/modules/evidence/repository.js",
-      "sha256": "9e4431d7759e79938b69aa85d8e31c25e88187c2437a9f78cb82627509823f20"
+      "sha256": "4109946a19262c8105fe122d9ef2f58aecbdeb6f9c6bca17bfe27913f49aefbf"
     },
     {
       "repo": "BE",
       "path": "src/modules/evidence/routes.js",
-      "sha256": "8ea3cb14ec62894b7887992c50fc25915ef70c6112415461cd5bf3f36311bd5d"
+      "sha256": "9769fde22f948a019950d2d6d40f3c34cd7b089e9c3bf723c3d50d364f4c426b"
     },
     {
       "repo": "BE",
       "path": "src/modules/evidence/service.js",
-      "sha256": "6682bbca74b9270302f6228806a24a26e7937d3e9ab6cdd527599f0375347438"
+      "sha256": "b49d3d8ef60abe0db7339ea8e744b0e0dee44dbca57c803b65d3ddc9b81da3d3"
     },
     {
       "repo": "BE",
@@ -2032,7 +2032,7 @@
     {
       "repo": "BE",
       "path": "src/modules/products/services/bulkImportValidation.js",
-      "sha256": "5e45117432f38403e190c91566b1ac6f498aeb2a241c351d94b1535c863d8bbc"
+      "sha256": "5c7ce45d6f009e2ed8521771262576d2f6f7159997b831321cf906cbb39c9a3e"
     },
     {
       "repo": "BE",
@@ -2057,7 +2057,7 @@
     {
       "repo": "BE",
       "path": "src/modules/products/services/shipmentSync.js",
-      "sha256": "3c82b44b204e7466516be6f870c4a4b3b967fba491519390e01a32463b1fa76e"
+      "sha256": "436390d9e7453b70ca1ddf50c174d1abe1ac61730a18b2b5b76128341f1de695"
     },
     {
       "repo": "BE",
@@ -2202,7 +2202,7 @@
     {
       "repo": "BE",
       "path": "src/modules/shared/industrialActivityValidation.js",
-      "sha256": "cd1b051982a5a3ae60eb10f3ab35b64ba9466bfa2734c9621d041da44e06fc7e"
+      "sha256": "a72f0c6596520b9ac749a2b06c477a4dee39e6408b750a04fb64aed74c931fd5"
     },
     {
       "repo": "BE",
@@ -2377,7 +2377,7 @@
     {
       "repo": "BE",
       "path": "src/routes/chat.js",
-      "sha256": "ee32c0f5612e3ada0615942689e5abed5e8497144f3362988858805e523f2c64"
+      "sha256": "cd8bc631168f53524800510149f8e8a32dbbdc14425bb6d5a3bca2747260a1a0"
     },
     {
       "repo": "BE",
@@ -2572,12 +2572,12 @@
     {
       "repo": "BE",
       "path": "src/services/chatService/helpers.js",
-      "sha256": "e1ead2fbf4da57f0f40b79d78e3cd009958b023bb9a303eabea56e71458fe569"
+      "sha256": "1d22571401c55a17be6e03b158d60f61a3cff8e2b2b26e797f4de04d74f2ef1b"
     },
     {
       "repo": "BE",
       "path": "src/services/chatService.js",
-      "sha256": "45b30e567d35c161873d06cadff7257ffea36a0396fcf51604e0306678d4f418"
+      "sha256": "0a15d69868ca67ee42c68a22f0638e97aeb0951e6ec9c8a5ea8ecb1095998089"
     },
     {
       "repo": "BE",
@@ -2707,7 +2707,7 @@
     {
       "repo": "BE",
       "path": "src/services/exportMarketsService.js",
-      "sha256": "72a648a7e02fb2cf5d471e150bd3e5d592db4585140fe68311614c817f1d7ac0"
+      "sha256": "8c85df445cd113e00438cc7e8a4e98c50a02f3cbdd036226546fced6280ab2cb"
     },
     {
       "repo": "BE",
@@ -2742,7 +2742,7 @@
     {
       "repo": "BE",
       "path": "src/services/industrialCoreService.js",
-      "sha256": "a76a21d3d2dc33ab6931ee3d028c7f54a11f807357211004cfb8107ca71c7d24"
+      "sha256": "f3d6fab2ed2f5a56c1de89dc868af025fdcee2dadb2973b3b82006b01a94ff17"
     },
     {
       "repo": "BE",
@@ -3409,6 +3409,12 @@
       "date": "2026-11-23",
       "reason": "Contract sync (23/11/2026) after BE added GET/PUT /api/account/notification-preferences for LOI-007: regenerated FE OpenAPI snapshot and generated types (npm run contract:sync); no hand edits.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-28",
+      "reason": "User asked (28/11/2026) to fix the 23 remaining test findings (LOI-014..046): VN number parsing and kWh plausibility checks in evidence AI, one grid factor 0.6592 (CV 1726/BĐKH-PTCBT), duplicate-SHA upload warning, DQL L3+ requires locked evidence, rule-based checks no longer claim AI/L5/third-party assurance, publish blocked when required market documents are missing, share 0–100% validation, engine process factors and VN grid detection, route apply/persist, HS code on edit, completeness deep link, consistent material factors and confidence, hotspot-based product suggestions, authenticated compliance downloads, document type naming, material-certification and domestic document slots, bulk import distance/certifications, shipment leg CO2 × cargo weight, quick-calculator packaging, honest AI assessment fallback, manual evidence details. Also re-baselines BE chatService/helpers.js already changed on main (b6384a8, 954a9f5).",
+      "filesUpdated": 35,
       "filesRemoved": []
     }
   ],

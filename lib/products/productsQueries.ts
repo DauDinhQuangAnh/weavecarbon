@@ -1520,15 +1520,15 @@ export const normalizeProductFromUnknown = (value: unknown): ProductRecord | nul
     productCategory: toProductCategory(
       payload.productCategory ?? payload.product_category ?? source.productCategory ?? source.product_category
     ),
-    hsCode: asString(payload.hsCode ?? payload.hs_code ?? source.hsCode ?? source.hs_code),
+    hsCode: asString(payload.hsCode || payload.hs_code || source.hsCode || source.hs_code || payload.cnCode || source.cnCode),
     cnCode: asString(
-      payload.cnCode ??
-      payload.cn_code ??
-      payload.hsCode ??
-      payload.hs_code ??
-      source.cnCode ??
-      source.cn_code ??
-      source.hsCode ??
+      payload.cnCode ||
+      payload.cn_code ||
+      payload.hsCode ||
+      payload.hs_code ||
+      source.cnCode ||
+      source.cn_code ||
+      source.hsCode ||
       source.hs_code
     ),
     facility: asString(payload.facility ?? source.facility),

@@ -66,6 +66,7 @@ export interface AiAnalysisResult {
   invoice_number: string | null;
   confidence: number;
   summary: string;
+  validation_warnings?: Array<{ code: string; message: string }>;
 }
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB

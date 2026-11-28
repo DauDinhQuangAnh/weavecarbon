@@ -102,6 +102,9 @@ const CATEGORY_LABELS: Record<ProductCategory, string> = {
 
 const GRID_EMISSION_FACTOR = getCarbonFactor('energy-grid-vn-2023')?.value ?? 0.6592;
 const PACKAGING_FACTOR = getCarbonFactor('packaging-minimal-proxy')?.value ?? 0.3;
+// Hệ số bao bì tính theo kg BAO BÌ; khối lượng bao bì ước tính = 5% khối lượng sản phẩm.
+// Dùng chung cho kết quả trên màn hình và snapshot lưu vào lịch sử (LOI-040).
+const PACKAGING_MASS_SHARE = 0.05;
 // DEFRA sea-freight factor is per tonne.km; the calculator works in kg.km.
 const TRANSPORT_FACTOR = (getCarbonFactor('transport-sea-defra-2025')?.value ?? 16.12) / 1000;
 
@@ -252,7 +255,7 @@ export default function CarbonCalculator() {
         accessories: [],
         packaging: {
           factorId: 'packaging-minimal-proxy',
-          weightKg: kg * 0.05
+          weightKg: kg * PACKAGING_MASS_SHARE
         },
         processFactorIds: [resolveCategoryMethodology(category).defaultProcessFactorId],
         energyMix: [
@@ -300,7 +303,7 @@ export default function CarbonCalculator() {
     const materialEmission = kg * (materialFactorMeta?.value ?? 0);
     const manufacturingEmission = kg * resolveManufacturingFactor(category);
     const transportEmission = kg * distanceKm * TRANSPORT_FACTOR;
-    const packagingEmission = kg * PACKAGING_FACTOR;
+    const packagingEmission = kg * PACKAGING_MASS_SHARE * PACKAGING_FACTOR;
     const biogenicEmission = kg * (materialFactorMeta?.biogenicCarbonKgPerKg ?? 0);
     const total =
       materialEmission +
@@ -338,16 +341,21 @@ export default function CarbonCalculator() {
         transportDistance,
         emissions,
       });
-      const data = await api.post<{ answer?: string }>('/chat/direct', { query: prompt });
+      const data = await api.post<{ answer?: string }>('/chat/direct', { query: prompt }, { timeoutMs: 75_000 });
       if (!data.answer?.trim()) {
         throw new Error('AI không trả về nội dung đánh giá.');
       }
 
       setAssessment(data.answer.trim());
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Không thể kết nối với dịch vụ đánh giá AI lúc này. Vui lòng thử lại sau.';
-      setAssessmentError(message);
+      // LOI-041: không hiện nguyên văn lỗi kỹ thuật tiếng Anh (timeout, 502...).
+      const rawMessage = err instanceof Error ? err.message : '';
+      const isVietnameseMessage = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(rawMessage);
+      setAssessmentError(
+        isVietnameseMessage
+          ? rawMessage
+          : 'Không thể tạo đánh giá AI lúc này. Vui lòng bấm "Đánh giá AI" để thử lại sau ít phút.'
+      );
     } finally {
       setIsAssessing(false);
     }

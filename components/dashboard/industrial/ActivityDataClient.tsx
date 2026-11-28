@@ -58,7 +58,19 @@ const emptyForm = {
   canonicalUnit: "kWh",
   sourceKind: "invoice" as "invoice" | "meter" | "plc" | "sensor" | "supplier" | "manual",
   dataQualityLevel: "L2" as "L1" | "L2" | "L3" | "L4" | "L5",
+  evidenceDocumentId: "",
 };
+
+// Đơn vị mặc định theo loại hoạt động (đổi loại thì đổi đơn vị, tránh "Dầu Diesel … kWh").
+const DEFAULT_UNIT_BY_ACTIVITY: Record<string, string> = {
+  electricity: "kWh",
+  fuel_diesel: "L",
+  fuel_biomass: "kg",
+  steam: "kg",
+  freight: "tkm",
+};
+const LOCKED_EVIDENCE_STATUSES = new Set(["locked", "verified", "third_party_verified"]);
+const DQL_REQUIRES_EVIDENCE = new Set(["L3", "L4", "L5"]);
 
 export default function ActivityDataClient({ demo = false }: { demo?: boolean }) {
   const routes = useAppRoutes();
@@ -118,6 +130,16 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
   const rawActivities = query.data?.activities;
   const rawFacilities = query.data?.facilities;
   const activities = useMemo(() => rawActivities || [], [rawActivities]);
+  const rawEvidence = query.data?.evidence;
+  const lockedEvidence = useMemo(
+    () => (rawEvidence || []).filter((item) => LOCKED_EVIDENCE_STATUSES.has(String(item.status))),
+    [rawEvidence]
+  );
+  // LOI-018: chỉ đếm bản ghi thật sự có chứng từ liên kết, không suy ra từ cấp DQL tự khai.
+  const evidenceBackedCount = useMemo(
+    () => activities.filter((act) => (act.evidenceDocumentIds?.length || 0) > 0).length,
+    [activities]
+  );
   const facilities = useMemo(() => rawFacilities || [], [rawFacilities]);
 
   // Compute anomaly analysis once data is loaded
@@ -160,6 +182,15 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
       toast.error("Vui lòng điền mã hoạt động và số lượng.");
       return;
     }
+    if (form.dataQualityLevel === "L5") {
+      toast.error("L5 (thẩm tra độc lập) chỉ do bên thẩm tra gán, không chọn khi nhập dữ liệu.");
+      return;
+    }
+    if (DQL_REQUIRES_EVIDENCE.has(form.dataQualityLevel) && !form.evidenceDocumentId && !demo) {
+      toast.error("Cấp L3/L4 cần chọn một chứng từ đã khóa làm bảo chứng. Nếu chưa có chứng từ, hãy chọn L1 hoặc L2.");
+      return;
+    }
+    const linkedEvidenceIds = form.evidenceDocumentId ? [form.evidenceDocumentId] : [];
 
     if (demo) {
       demoCache().addActivity({
@@ -196,8 +227,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         canonicalUnit: form.canonicalUnit,
         sourceKind: form.sourceKind,
         dataQualityLevel: form.dataQualityLevel,
-        evidenceDocumentIds: [],
-
+        evidenceDocumentIds: linkedEvidenceIds,
       };
       const sourceSha256 = await sha256CanonicalJson(provenance);
       await industrialCoreApi.createActivity({
@@ -214,8 +244,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
         dataQualityLevel: form.dataQualityLevel,
         rawPayload: { entryMode: "activity_data_client", provenance },
         sourceSha256,
-        evidenceDocumentIds: [],
-
+        evidenceDocumentIds: linkedEvidenceIds,
       });
       setShowAddModal(false);
       setForm(emptyForm);
@@ -380,7 +409,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
             {dqiStats.overallDqi} <span className="text-xs font-normal text-muted-foreground">/ 100</span>
           </p>
           <span className="text-[11px] text-muted-foreground">
-            {dqiStats.tierDistribution.L3 + dqiStats.tierDistribution.L4 + dqiStats.tierDistribution.L5} / {activities.length || 0} bản ghi có chứng từ bảo chứng
+            {evidenceBackedCount} / {activities.length || 0} bản ghi có chứng từ liên kết
           </span>
         </Card>
       </div>
@@ -609,7 +638,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                         {Number(act.quantity).toLocaleString("vi-VN")} {act.canonicalUnit}
                       </td>
                       <td className="p-3 text-muted-foreground whitespace-nowrap">
-                        {act.periodStart} → {act.periodEnd}
+                        {String(act.periodStart || "").slice(0, 10)} → {String(act.periodEnd || "").slice(0, 10)}
                       </td>
                       <td className="p-3">
                         <span className="text-[11px] capitalize text-muted-foreground">
@@ -713,7 +742,10 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                 <select
                   aria-label="Loại hoạt động"
                   value={form.activityType}
-                  onChange={(e) => setForm({ ...form, activityType: e.target.value })}
+                  onChange={(e) => {
+                    const activityType = e.target.value;
+                    setForm({ ...form, activityType, canonicalUnit: DEFAULT_UNIT_BY_ACTIVITY[activityType] || form.canonicalUnit });
+                  }}
                   className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
                 >
                   <option value="electricity">Điện lưới (Scope 2)</option>
@@ -801,12 +833,36 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
                 >
                   <option value="L1">L1 · Dữ liệu ước lượng / Proxy</option>
                   <option value="L2">L2 · Tự khai báo (Chưa chứng từ)</option>
-                  <option value="L3">L3 · Có chứng từ bảo chứng (Hóa đơn/Biên bản)</option>
-                  <option value="L4">L4 · Đã đối soát chéo (Công tơ/Sản lượng)</option>
-                  <option value="L5">L5 · Thẩm tra độc lập (Bên thứ ba)</option>
+                  <option value="L3">L3 · Có chứng từ bảo chứng (cần chọn chứng từ đã khóa)</option>
+                  <option value="L4">L4 · Đã đối soát chéo (cần chọn chứng từ đã khóa)</option>
+                  <option value="L5" disabled>L5 · Thẩm tra độc lập (chỉ bên thẩm tra gán)</option>
                 </select>
               </div>
             </div>
+
+            {DQL_REQUIRES_EVIDENCE.has(form.dataQualityLevel) && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">Chứng từ bảo chứng (đã khóa) *</label>
+                <select
+                  aria-label="Chứng từ bảo chứng"
+                  value={form.evidenceDocumentId}
+                  onChange={(e) => setForm({ ...form, evidenceDocumentId: e.target.value })}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
+                >
+                  <option value="">— Chọn chứng từ đã xác nhận —</option>
+                  {lockedEvidence.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.documentName}
+                    </option>
+                  ))}
+                </select>
+                {lockedEvidence.length === 0 && (
+                  <p className="text-[11px] text-amber-700">
+                    Chưa có chứng từ nào đã khóa. Hãy tải lên và xác nhận chứng từ ở trang Chứng từ, hoặc chọn L1/L2.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* AI Smart Factor Recommendation */}
             <SmartFactorSuggestionCard

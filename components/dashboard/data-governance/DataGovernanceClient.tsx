@@ -27,6 +27,8 @@ import { assessDataQualityPedigree, type DqlPedigreeAssessment } from "@/lib/ai/
 import DataEntryScanTrigger from "@/components/ui/DataEntryScanTrigger";
 import { STANDARD_FACTORS } from "@/lib/ai/factorRecommendationAiService";
 import { demoCache, loadDemoData } from "@/lib/dashboard/loadDemoData";
+import { industrialCoreApi } from "@/lib/industrialCoreApi";
+import { toast } from "sonner";
 
 const initialDql = { subjectType: "activity", subjectReference: "", temporalScore: 3, geographicScore: 3,
   technologicalScore: 3, completenessScore: 3, reliabilityScore: 3, completenessPercent: 100, rationale: "" };
@@ -53,15 +55,42 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
   const [aiScoring, setAiScoring] = useState(false);
   const [aiAssessment, setAiAssessment] = useState<DqlPedigreeAssessment | null>(null);
 
-  const handleRunAiDqlScore = () => {
+  const handleRunAiDqlScore = async () => {
+    const reference = dqlForm.subjectReference.trim();
+    if (!reference) {
+      toast.error("Nhập mã đối tượng (ví dụ mã hoạt động) trước khi chấm điểm.");
+      return;
+    }
     setAiScoring(true);
+    // LOI-019: chấm theo dữ liệu thật của đối tượng, không giả định công tơ/kWh.
+    let sourceKind = "manual";
+    let unit = "";
+    let description = dqlForm.rationale || "";
+    if (dqlForm.subjectType === "activity") {
+      try {
+        const activities = demo ? demoCache().getActivities() : await industrialCoreApi.activities(500);
+        const match = activities.find((row) => row.activityReference === reference || row.id === reference);
+        if (!match) {
+          setAiScoring(false);
+          toast.error(`Không tìm thấy hoạt động có mã "${reference}". Kiểm tra lại mã ở trang Dữ liệu hoạt động.`);
+          return;
+        }
+        sourceKind = match.sourceKind || "manual";
+        unit = match.canonicalUnit || "";
+        description = `${description} ${match.activityType} ${(match.evidenceDocumentIds?.length || 0) > 0 ? "có chứng từ" : "chưa có chứng từ"}`.trim();
+      } catch {
+        setAiScoring(false);
+        toast.error("Không tải được dữ liệu hoạt động để chấm điểm.");
+        return;
+      }
+    }
     setTimeout(() => {
       const result = assessDataQualityPedigree({
         type: dqlForm.subjectType,
-        reference: dqlForm.subjectReference || "ACT-ELEC-DEFAULT",
-        sourceKind: "meter",
-        unit: "kWh",
-        description: dqlForm.rationale || "Dữ liệu vận hành công nghiệp tiêu chuẩn",
+        reference,
+        sourceKind,
+        unit,
+        description,
       });
       setAiAssessment(result);
       setDqlForm((prev) => ({
@@ -74,7 +103,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
         completenessPercent: result.completenessPercent,
         rationale: prev.rationale
           ? prev.rationale
-          : `AI Pedigree: Đánh giá ${result.dqlLevel} (${result.overallScore}/5) theo GHG Protocol.`,
+          : `Chấm theo quy tắc Pedigree (GHG Protocol): ${result.dqlLevel} (${result.overallScore}/5) — nguồn ${sourceKind}${unit ? `, đơn vị ${unit}` : ""}.`,
       }));
       setAiScoring(false);
     }, 350);
@@ -448,7 +477,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-bold text-emerald-950 flex items-center gap-1.5">
                     <Sparkles className="h-4 w-4 text-emerald-600" />
-                    AI Gợi Ý & Điền Thông Số Hệ Số Chuẩn (QĐ 13/2024 / IPCC / DEFRA)
+                    AI Gợi Ý & Điền Thông Số Hệ Số Chuẩn (Cục BĐKH / IPCC / DEFRA)
                   </span>
                   <select
                     aria-label="Chọn hệ số chuẩn AI"

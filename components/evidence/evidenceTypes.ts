@@ -45,4 +45,8 @@ export interface ExtractedField {
   ai_value: string | null;
   confirmed_value: string | null;
   confidence: number | null;
+  /** Giá trị người dùng đã nhập ở form tải lên (ưu tiên hơn số AI đọc). */
+  user_entered_value?: string | null;
+  /** Cảnh báo kiểm tra hợp lý của trường này (ví dụ kWh bị đọc sai). */
+  warning?: string | null;
 }

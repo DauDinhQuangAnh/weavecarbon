@@ -60,6 +60,8 @@ import ComplianceStatus from "@/components/dashboard/product-details/ComplianceS
 import ProductSuggestionsCard from "@/components/dashboard/product-details/ProductSuggestionsCard";
 import ProductEvidenceList from "@/components/dashboard/product-details/ProductEvidenceList";
 import DataCompletenessCheck from "@/components/dashboard/product-details/DataCompletenessCheck";
+import { confidenceFromScore } from "@/lib/products/auditReadiness";
+import { resolveMaterialFactor } from "@/lib/carbon/adapters";
 import AuditReadinessPanel from "@/components/products/AuditReadinessPanel";
 import EndOfLifeAssessment from "@/components/dashboard/product-details/EndOfLifeAssessment";
 import VersionHistory from "@/components/dashboard/product-details/VersionHistory";
@@ -770,8 +772,18 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     if (!product?.materials) return [];
     const weightPerUnit = product.weightPerUnit || 1000;
 
+    // LOI-035: dùng đúng hệ số vật liệu đã dùng khi tính (factorSources lưu cùng kết quả),
+    // nếu không có thì dùng danh mục hệ số của engine; bảng cố định chỉ là phương án cuối.
+    const storedMaterialFactors = (product.carbonResults?.factorSources || []).filter(
+      (factor) => factor.stage === "materials"
+    );
     return product.materials.map((m) => {
-      const emissionFactor = getMaterialEmissionFactor(m.materialType);
+      const registryFactor = resolveMaterialFactor(m.materialType);
+      const storedFactor = storedMaterialFactors.find(
+        (factor) => factor.factorId === registryFactor?.id
+      );
+      const emissionFactor =
+        storedFactor?.value ?? registryFactor?.value ?? getMaterialEmissionFactor(m.materialType);
       const weight = weightPerUnit * (m.percentage / 100) / 1000;
       const co2e = weight * emissionFactor;
 
@@ -893,13 +905,10 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
       0,
       Math.min(100, rawConfidenceScore ?? fallbackConfidenceScore)
     );
+    // LOI-035: cùng ngưỡng với huy hiệu "Tin cậy" ở danh sách sản phẩm (confidenceFromScore).
     const baseConfidenceLevel: "high" | "medium" | "low" =
     rawConfidenceScore !== undefined ?
-    baseConfidenceScore >= 85 ?
-    "high" :
-    baseConfidenceScore >= 65 ?
-    "medium" :
-    "low" :
+    confidenceFromScore(baseConfidenceScore) :
     fallbackConfidenceLevel;
 
     const normalizeComplianceStatus = (
@@ -1127,10 +1136,8 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
       );
     }
     const fallbackStatus: ComplianceItem["status"] = "partial";
-    let usedFallbackCompliance = false;
 
     if (compliance.length === 0) {
-      usedFallbackCompliance = true;
       compliance = [
       {
         criterion: fallbackCriterion,
@@ -1143,34 +1150,14 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     compliance.length > 0 ?
     compliance.every((item) => item.status === "passed") :
     isPublishedProductStatus(product.status) && total > 0;
-    const passedComplianceCount = compliance.filter((item) => item.status === "passed").length;
-    const complianceCompletionRatio =
-    compliance.length > 0 ?
-    passedComplianceCount / compliance.length :
-    1;
-    const shouldApplyCompliancePenalty =
-    requiredMarketDocuments.length > 0 || !usedFallbackCompliance;
-    const complianceConfidenceCap =
-    shouldApplyCompliancePenalty ?
-    Math.round(40 + complianceCompletionRatio * 60) :
-    100;
-    const confidenceScore = Math.max(
-      0,
-      Math.min(100, Math.min(baseConfidenceScore, complianceConfidenceCap))
-    );
-    const confidenceLevel: "high" | "medium" | "low" =
-    confidenceScore >= 85 ?
-    "high" :
-    confidenceScore >= 65 ?
-    "medium" :
-    "low";
+    // LOI-035: "Độ tin cậy dữ liệu" là MỘT chỉ số thống nhất (điểm đã lưu khi tính carbon),
+    // không trộn thêm mức hoàn thiện hồ sơ tuân thủ — phần đó hiển thị riêng.
+    const confidenceScore = baseConfidenceScore;
+    const confidenceLevel: "high" | "medium" | "low" = baseConfidenceLevel;
 
     return {
       productId: product.id,
       totalCo2e: total,
-      confidenceLevel:
-      usedFallbackCompliance && !shouldApplyCompliancePenalty ?
-      baseConfidenceLevel :
       confidenceLevel,
       confidenceScore,
       calculationNote:

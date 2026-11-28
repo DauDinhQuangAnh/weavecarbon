@@ -26,7 +26,8 @@ import {
   MaterialInput,
   CERTIFICATIONS,
   ACCESSORY_TYPES,
-  AccessoryInput
+  AccessoryInput,
+  isValidSharePercent
 } from "./types";
 import MaterialCombobox from "../MaterialCombobox";
 import OtherMaterialModal from "../OtherMaterialModal";
@@ -90,7 +91,8 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
     (sum, material) => sum + (material.percentage || 0),
     0
   );
-  const isValidTotal = totalPercentage === 100;
+  const hasInvalidShare = data.materials.some((material) => !isValidSharePercent(material.percentage || 0));
+  const isValidTotal = totalPercentage === 100 && !hasInvalidShare;
   const hasProxySource = data.materials.some(
     (material) =>
       material.source === "unknown" ||
@@ -454,7 +456,11 @@ const Step2Materials: React.FC<Step2MaterialsProps> = ({
                           })
                         }
                         placeholder="0"
+                        aria-invalid={!isValidSharePercent(material.percentage || 0)}
                       />
+                      {!isValidSharePercent(material.percentage || 0) && (
+                        <p className="text-xs text-destructive">Tỷ lệ phải nằm trong khoảng 0–100%.</p>
+                      )}
                     </div>
                   </div>
 

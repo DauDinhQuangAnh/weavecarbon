@@ -1201,7 +1201,7 @@
     },
     "aiSuggestions": {
       "title": "Đề xuất cải thiện",
-      "subtitle": "Chỉ tạo đề xuất AI khi bạn cần.",
+      "subtitle": "Đề xuất tính theo điểm nóng phát thải của chính sản phẩm này (theo quy tắc, có nêu giả định).",
       "buttonGenerate": "Tạo đề xuất",
       "buttonRegenerate": "Tạo lại",
       "buttonLoading": "Đang tạo...",
@@ -2179,7 +2179,9 @@
         "certificationDocumentsChecking": "Đang kiểm tra tài liệu chứng nhận. Vui lòng thử lại sau vài giây.",
         "roadRouteRequired": "Cần xác định xong toàn bộ tuyến đường bộ thực tế trước khi xuất bản sản phẩm.",
         "missingMaterialCertificationDocuments": "Cảnh báo: thiếu file đã tải lên cho các chứng nhận nguyên liệu: {certifications}.",
-        "missingExportDocuments": "Cảnh báo: thiếu các tài liệu xuất khẩu bắt buộc: {documents}."
+        "missingExportDocuments": "Cảnh báo: thiếu các tài liệu xuất khẩu bắt buộc: {documents}.",
+        "publishBlockedMissingDocuments": "Chưa thể xuất bản: thiếu {count} tài liệu bắt buộc của thị trường ({documents}). Hãy tải lên ở trang Thị trường xuất khẩu, hoặc bấm Lưu nháp.",
+        "publishBlockedDocumentsChecking": "Đang kiểm tra tài liệu bắt buộc của thị trường. Vui lòng đợi vài giây rồi bấm Xuất bản lại."
       },
       "unknownLocation": "Vị trí chưa xác định"
     },
@@ -2287,6 +2289,7 @@
         "title": "Quy trình sản xuất",
         "subtitle": "Chọn tất cả các công đoạn áp dụng",
         "factor": "Hệ số: {value} kg CO₂e/kg",
+        "intensity": "Cường độ điện: {kwh} kWh/kg · ≈ {co2} kg CO₂e/kg với điện lưới VN",
         "required": "* Vui lòng chọn ít nhất 1 quy trình sản xuất"
       },
       "processes": {
