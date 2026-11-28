@@ -283,7 +283,7 @@ export default function DataGovernanceClient({ demo = false }: { demo?: boolean 
                 className="border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 flex items-center gap-1.5 shadow-xs"
               >
                 <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                {aiScoring ? "Đang tính DQL…" : "AI Đánh giá Phả hệ Tự động"}
+                {aiScoring ? "Đang tính DQL…" : "Chấm phả hệ dữ liệu (theo quy tắc)"}
               </Button>
             </div>
           </CardHeader>

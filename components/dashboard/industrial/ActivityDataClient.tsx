@@ -437,7 +437,7 @@ export default function ActivityDataClient({ demo = false }: { demo?: boolean })
             className="border-primary/40 text-primary hover:bg-primary/10 text-xs font-medium"
           >
             <Activity className="h-3.5 w-3.5 mr-1.5" />
-            {analyzingAi ? "Đang quét dị thường…" : "Phân tích dị thường bằng AI"}
+            {analyzingAi ? "Đang quét dị thường…" : "Phân tích dị thường (thống kê)"}
           </Button>
 
           <DataEntryScanTrigger
