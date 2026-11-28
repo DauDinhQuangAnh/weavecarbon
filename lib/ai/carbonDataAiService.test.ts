@@ -142,7 +142,9 @@ describe("carbonDataAiService", () => {
       expect(result.integrityScore).toBeGreaterThanOrEqual(80);
       expect(result.verdict).toBe("audit_ready");
       expect(result.hashChecks.length).toBeGreaterThan(0);
-      expect(result.complianceCert.certId).toContain("WCB-FORENSIC-");
+      expect(result.complianceCert.certId).toContain("WCB-RULECHECK-");
+      // LOI-019: kiểm tra theo quy tắc không được tự nhận là thẩm tra bên thứ ba / L5.
+      expect(result.assuranceReadiness).not.toContain("L5");
     });
   });
 

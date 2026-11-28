@@ -51,7 +51,8 @@ describe("factorRecommendationAiService", () => {
       expect(result.primaryFactor.factorId).toBe("energy-grid-vn-2023");
       expect(result.primaryFactor.factorValue).toBe(0.6592);
       expect(result.primaryFactor.scope).toBe("Scope 2 (Location-based)");
-      expect(result.primaryFactor.sourceName).toContain("Bộ TN&MT");
+      expect(result.primaryFactor.sourceName).toContain("Cục Biến đổi khí hậu");
+      expect(result.primaryFactor.sourceName).not.toContain("QĐ 13/2024");
       expect(result.instantEstimate).toBeDefined();
       expect(result.instantEstimate?.emissionsKgCo2e).toBe(6592);
       expect(result.instantEstimate?.emissionsTco2e).toBe(6.592);

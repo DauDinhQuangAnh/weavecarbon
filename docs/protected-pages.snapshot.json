@@ -1932,7 +1932,7 @@
     {
       "repo": "BE",
       "path": "src/modules/evidence/aiExtractor.js",
-      "sha256": "b0205ccab82a26e5d5797fc80ed4f4692cd6726dbf003bbdeac50e11fa856d9b"
+      "sha256": "5c56776c1371ad22b0d0b32549baa0973dcff22da7bddae90442bd26c64fae7b"
     },
     {
       "repo": "BE",
@@ -3421,6 +3421,12 @@
       "date": "2026-11-28",
       "reason": "CI follow-up (28/11/2026): BE duplicate-upload check reads original_filename (no file_name column) and the kWh check no longer lowers confidence without contradicting evidence.",
       "filesUpdated": 3,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-28",
+      "reason": "CI follow-up (28/11/2026): Vietnamese decimal comma parsing in BE aiExtractor.",
+      "filesUpdated": 1,
       "filesRemoved": []
     }
   ],
