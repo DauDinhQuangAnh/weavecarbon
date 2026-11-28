@@ -237,7 +237,7 @@
     {
       "repo": "FE",
       "path": "components/dashboard/SummaryClient.tsx",
-      "sha256": "6c5048ff745ff8f889a7a21f1027963b6aee67b5409e0ccd84effd634632ab14"
+      "sha256": "c98816a3faaece506d38ebc47a389b812fe1e10c002da6a65fd78cfd57b30c7c"
     },
     {
       "repo": "FE",
@@ -1027,7 +1027,7 @@
     {
       "repo": "FE",
       "path": "lib/carbon/adapters.ts",
-      "sha256": "3d05cdd9b2547b10a25e41d3686148a60b8fc826a68c9b66acd8a820491d8280"
+      "sha256": "578bfa98976ac7d1b1a98c77967afbec2f4bba7bad6005ed6f7966f1c320d1a4"
     },
     {
       "repo": "FE",
@@ -3427,6 +3427,12 @@
       "date": "2026-11-28",
       "reason": "CI follow-up (28/11/2026): Vietnamese decimal comma parsing in BE aiExtractor.",
       "filesUpdated": 1,
+      "filesRemoved": []
+    },
+    {
+      "date": "2026-11-28",
+      "reason": "Production check (28/11/2026) of LOI-035: material rows on the product page use catalog ids (cat-cotton-100) directly, so the material factor now resolves to the factor used in the calculation (8.0, not the 6.0 fallback).",
+      "filesUpdated": 2,
       "filesRemoved": []
     }
   ],

@@ -780,7 +780,7 @@ export default function SummaryClient({ productId }: SummaryClientProps) {
     return product.materials.map((m) => {
       const registryFactor = resolveMaterialFactor(m.materialType);
       const storedFactor = storedMaterialFactors.find(
-        (factor) => factor.factorId === registryFactor?.id
+        (factor) => factor.factorId === registryFactor?.id || factor.factorId === m.materialType
       );
       const emissionFactor =
         storedFactor?.value ?? registryFactor?.value ?? getMaterialEmissionFactor(m.materialType);

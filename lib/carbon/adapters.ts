@@ -71,8 +71,9 @@ export const isVietnamGeography = (...values: Array<string | null | undefined>) 
 
 /** Hệ số vật liệu engine dùng (kg CO₂e/kg) cho một loại vật liệu (LOI-035). */
 export const resolveMaterialFactor = (materialType: string) => {
-  const factorId = MATERIAL_FACTOR_BY_TYPE[materialType];
-  return factorId ? getCarbonFactor(factorId) : null;
+  // materialType có thể là khóa ngắn ("cotton") hoặc chính mã danh mục ("cat-cotton-100").
+  const factorId = MATERIAL_FACTOR_BY_TYPE[materialType] || materialType;
+  return factorId ? getCarbonFactor(factorId) ?? null : null;
 };
 
 /** Hệ số công đoạn engine dùng (kWh/kg) cho một quy trình ở bước 3 (LOI-030). */
